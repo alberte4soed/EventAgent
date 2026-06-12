@@ -119,7 +119,9 @@ export async function runAgentTurn(
     });
 
     // Push the API content verbatim — required for thoughtSignature on Gemini 2.5+/3.x.
-    contents.push(responseContent);
+    if (responseContent) {
+      contents.push(responseContent);
+    }
 
     const responseParts: Part[] = [];
     for (const call of calls) {

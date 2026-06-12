@@ -13,7 +13,7 @@ import type {
 } from "@/lib/db/types";
 import { ChatPanel } from "@/components/chat/ChatPanel";
 import { QuotesDashboard } from "@/components/quotes/QuotesDashboard";
-import { StatusChip } from "@/components/ui/StatusChip";
+import { VenueCanvas } from "@/components/workspace/VenueCanvas";
 
 interface Props {
   initialEvent: EventRow | null;
@@ -260,34 +260,24 @@ export function EventWorkspace({
 
   const quoteCount = replies.filter((r) => r.quote_status === "quoted").length;
 
-  return (
-    <div className="flex flex-1 flex-col">
-      <header className="flex items-center justify-between border-b border-stone-200 bg-white/70 px-6 py-4">
-        <div className="flex items-center gap-3">
-          <Link href="/events" className="text-sm text-stone-400 hover:text-stone-900">
-            ←
-          </Link>
-          <h1 className="font-medium">{event?.title ?? "New event"}</h1>
-          {event && <StatusChip status={event.status} />}
-        </div>
-        <div className="flex items-center gap-1 rounded-full border border-stone-200 bg-white p-1 text-sm">
-          <button
-            onClick={() => setTab("chat")}
-            className={`rounded-full px-3 py-1 transition ${tab === "chat" ? "bg-stone-900 text-stone-50" : "text-stone-500 hover:text-stone-900"}`}
-          >
-            Chat
-          </button>
-          <button
-            onClick={() => setTab("quotes")}
-            className={`rounded-full px-3 py-1 transition ${tab === "quotes" ? "bg-stone-900 text-stone-50" : "text-stone-500 hover:text-stone-900"}`}
-          >
-            Quotes{quoteCount > 0 ? ` (${quoteCount})` : ""}
-          </button>
-        </div>
-      </header>
+  const activeVenueBatch = useMemo(() => {
+    const msg = [...messages].reverse().find((m) => m.payload?.kind === "venue_batch");
+    if (!msg || msg.payload?.kind !== "venue_batch") return null;
+    return {
+      messageId: msg.id,
+      venueIds: msg.payload.venue_ids,
+    };
+  }, [messages]);
 
+  const batchVenues = useMemo(() => {
+    if (!activeVenueBatch) return [];
+    return venues.filter((v) => activeVenueBatch.venueIds.includes(v.id));
+  }, [venues, activeVenueBatch]);
+
+  return (
+    <div className="flex h-screen flex-col overflow-hidden">
       {!gmailConnected && (
-        <div className="border-b border-amber-200 bg-amber-50 px-6 py-2 text-center text-xs text-amber-700">
+        <div className="shrink-0 border-b border-amber-200 bg-amber-50 px-6 py-2 text-center text-xs text-amber-800">
           Gmail isn&apos;t connected yet — you can chat and swipe, but connect it in{" "}
           <Link href="/settings" className="underline">
             Settings
@@ -296,20 +286,46 @@ export function EventWorkspace({
         </div>
       )}
 
-      {tab === "chat" ? (
-        <ChatPanel
-          messages={messages}
-          venues={venues}
-          drafts={drafts}
-          agentStatus={agentStatus}
-          approving={approving}
-          onSend={sendMessage}
-          onSwipe={handleSwipe}
-          onDeckFinished={handleDeckFinished}
-          onApproveDraft={handleApproveDraft}
-        />
+      {tab === "quotes" ? (
+        <>
+          <header className="flex shrink-0 items-center gap-3 border-b border-[#e5e0cf] bg-[#fdfbf4] px-6 py-4">
+            <button
+              type="button"
+              onClick={() => setTab("chat")}
+              className="text-sm text-[#9a8a77] transition hover:text-[#3d2b23]"
+            >
+              ← Back to workspace
+            </button>
+            <h1 className="font-[family-name:var(--font-fraunces)] text-lg font-semibold text-[#3d2b23]">
+              Quotes
+            </h1>
+          </header>
+          <QuotesDashboard venues={venues} outbound={outbound} replies={replies} />
+        </>
       ) : (
-        <QuotesDashboard venues={venues} outbound={outbound} replies={replies} />
+        <div className="flex min-h-0 flex-1">
+          <ChatPanel
+            messages={messages}
+            venues={venues}
+            drafts={drafts}
+            agentStatus={agentStatus}
+            approving={approving}
+            quoteCount={quoteCount}
+            onSend={sendMessage}
+            onApproveDraft={handleApproveDraft}
+            onOpenQuotes={() => setTab("quotes")}
+          />
+          <VenueCanvas
+            event={event}
+            venues={batchVenues}
+            drafts={drafts}
+            messageId={activeVenueBatch?.messageId ?? null}
+            gmailConnected={gmailConnected}
+            onSwipe={handleSwipe}
+            onDeckFinished={handleDeckFinished}
+            onOpenQuotes={() => setTab("chat")}
+          />
+        </div>
       )}
     </div>
   );

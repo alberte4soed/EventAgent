@@ -1,7 +1,6 @@
 "use client";
 
 import type { ChatMessageRow, EmailDraftRow, VenueRow } from "@/lib/db/types";
-import { SwipeDeck } from "@/components/swipe/SwipeDeck";
 import { DraftApprovalCard } from "@/components/draft/DraftApprovalCard";
 
 interface Props {
@@ -10,10 +9,18 @@ interface Props {
   drafts: EmailDraftRow[];
   isActiveDraft: boolean;
   approving: boolean;
-  onSwipe: (venueId: string, decision: "liked" | "rejected") => void;
-  onDeckFinished: (messageId: string, liked: number, rejected: number) => void;
   onApproveDraft: (draftId: string) => void;
   onRequestChanges: () => void;
+}
+
+function AgentAvatar() {
+  return (
+    <div className="flex size-7 shrink-0 items-center justify-center rounded-full border border-[#dbd5c2] bg-[#f8f4e9]">
+      <span className="font-[family-name:var(--font-fraunces)] text-[13px] font-semibold text-[#ac5239]">
+        k
+      </span>
+    </div>
+  );
 }
 
 export function MessageBubble({
@@ -22,36 +29,53 @@ export function MessageBubble({
   drafts,
   isActiveDraft,
   approving,
-  onSwipe,
-  onDeckFinished,
   onApproveDraft,
   onRequestChanges,
 }: Props) {
   const isUser = message.role === "user";
 
-  return (
-    <div className={`flex flex-col gap-3 ${isUser ? "items-end" : "items-start"}`}>
-      {message.content && (
-        <div
-          className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
-            isUser
-              ? "bg-stone-900 text-stone-50"
-              : "border border-stone-200 bg-white text-stone-700"
-          }`}
-        >
-          {message.content}
+  if (isUser) {
+    return (
+      <div className="flex w-full justify-end">
+        <div className="max-w-[340px] rounded-tl-2xl rounded-tr-2xl rounded-br-[5px] rounded-bl-2xl bg-[#ac5239] px-4 py-[11px]">
+          <p className="whitespace-pre-wrap text-sm leading-[1.55] text-[#f8f4e9]">
+            {message.content}
+          </p>
         </div>
-      )}
+      </div>
+    );
+  }
 
-      {message.payload?.kind === "venue_batch" && (
-        <SwipeDeck
-          messageId={message.id}
-          venues={venues.filter((v) =>
-            (message.payload as { venue_ids: string[] }).venue_ids.includes(v.id)
-          )}
-          onSwipe={onSwipe}
-          onFinished={onDeckFinished}
-        />
+  return (
+    <div className="flex flex-col gap-2.5">
+      {message.content && (
+        <div className="flex gap-3">
+          <AgentAvatar />
+          <div className="flex min-w-0 flex-1 flex-col gap-2.5">
+            <p className="whitespace-pre-wrap text-sm leading-[1.6] text-[#3d2b23]">
+              {message.content}
+            </p>
+            {message.payload?.kind === "venue_batch" && (
+              <div className="flex h-[26px] w-fit items-center gap-1.5 rounded-full bg-[#e0dac7] px-2.5">
+                <svg
+                  stroke="#7a6b5c"
+                  fill="none"
+                  strokeWidth="2"
+                  viewBox="0 0 24 24"
+                  className="size-3"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="2" y1="12" x2="22" y2="12" />
+                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                </svg>
+                <span className="text-[11.5px] font-medium text-[#5c4a3d]">
+                  {(message.payload as { venue_ids: string[] }).venue_ids.length} venues on your
+                  board
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
       {message.payload?.kind === "draft" &&
@@ -61,20 +85,22 @@ export function MessageBubble({
           );
           if (!draft) return null;
           return (
-            <DraftApprovalCard
-              draft={draft}
-              venues={venues}
-              active={isActiveDraft && draft.status === "proposed"}
-              approving={approving}
-              onApprove={() => onApproveDraft(draft.id)}
-              onRequestChanges={onRequestChanges}
-            />
+            <div className="ml-10">
+              <DraftApprovalCard
+                draft={draft}
+                venues={venues}
+                active={isActiveDraft && draft.status === "proposed"}
+                approving={approving}
+                onApprove={() => onApproveDraft(draft.id)}
+                onRequestChanges={onRequestChanges}
+              />
+            </div>
           );
         })()}
 
       {message.payload?.kind === "send_report" && (
-        <div className="flex gap-2 text-xs">
-          <span className="rounded-full bg-[#eef0ec] px-2.5 py-1 text-[#5e6b58]">
+        <div className="ml-10 flex gap-2 text-xs">
+          <span className="rounded-full bg-[#e0dac7] px-2.5 py-1 font-medium text-[#5c4a3d]">
             ✓ {message.payload.sent} sent
           </span>
           {message.payload.failed > 0 && (
@@ -83,7 +109,7 @@ export function MessageBubble({
             </span>
           )}
           {message.payload.skipped > 0 && (
-            <span className="rounded-full bg-stone-100 px-2.5 py-1 text-stone-500">
+            <span className="rounded-full bg-[#f0ede0] px-2.5 py-1 text-[#9a8a77]">
               {message.payload.skipped} skipped (no email)
             </span>
           )}
