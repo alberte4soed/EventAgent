@@ -42,8 +42,8 @@ export function ChatPanel({
       <div className="flex-1 overflow-y-auto px-4 py-6">
         <div className="mx-auto flex w-full max-w-2xl flex-col gap-4">
           {messages.length === 0 && (
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-6 text-sm text-zinc-400">
-              <p className="font-medium text-zinc-200">
+            <div className="rounded-2xl border border-stone-200 bg-white p-6 text-sm text-stone-500">
+              <p className="font-medium text-stone-900">
                 👋 Hi! I&apos;m your event-planning agent.
               </p>
               <p className="mt-2">
@@ -75,8 +75,8 @@ export function ChatPanel({
             />
           ))}
           {agentStatus && (
-            <div className="flex items-center gap-2 text-sm text-zinc-500">
-              <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-zinc-500" />
+            <div className="flex items-center gap-2 text-sm text-stone-500">
+              <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-[#7c8a76]" />
               {agentStatus}
             </div>
           )}

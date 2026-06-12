@@ -32,12 +32,12 @@ export function SwipeDeck({ messageId, venues, onSwipe, onFinished }: Props) {
 
   if (pending.length === 0) {
     return (
-      <div className="flex w-full max-w-sm items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-3 text-xs text-zinc-400">
+      <div className="flex w-full max-w-sm items-center gap-2 rounded-2xl border border-stone-200 bg-white px-4 py-3 text-xs text-stone-500">
         <span>Deck finished:</span>
-        <span className="rounded-full bg-emerald-950 px-2 py-0.5 text-emerald-300">
+        <span className="rounded-full bg-[#eef0ec] px-2 py-0.5 text-[#5e6b58]">
           {liked} liked
         </span>
-        <span className="rounded-full bg-zinc-800 px-2 py-0.5">{rejected} passed</span>
+        <span className="rounded-full bg-stone-100 px-2 py-0.5">{rejected} passed</span>
       </div>
     );
   }
@@ -62,17 +62,17 @@ export function SwipeDeck({ messageId, venues, onSwipe, onFinished }: Props) {
         <button
           aria-label="Reject venue"
           onClick={() => onSwipe(top.id, "rejected")}
-          className="flex h-12 w-12 items-center justify-center rounded-full border border-red-900 bg-red-950/60 text-xl text-red-400 transition hover:scale-105"
+          className="flex h-12 w-12 items-center justify-center rounded-full border border-red-200 bg-red-50 text-xl text-red-500 transition hover:scale-105"
         >
           ✕
         </button>
-        <span className="text-xs text-zinc-600">
+        <span className="text-xs text-stone-400">
           {venues.length - pending.length + 1} / {venues.length}
         </span>
         <button
           aria-label="Like venue"
           onClick={() => onSwipe(top.id, "liked")}
-          className="flex h-12 w-12 items-center justify-center rounded-full border border-emerald-900 bg-emerald-950/60 text-xl text-emerald-400 transition hover:scale-105"
+          className="flex h-12 w-12 items-center justify-center rounded-full border border-[#cdd6c8] bg-[#eef0ec] text-xl text-[#5e6b58] transition hover:scale-105"
         >
           ♥
         </button>
@@ -114,13 +114,13 @@ function TopCard({
     >
       <motion.div
         style={{ opacity: likeOpacity }}
-        className="absolute left-4 top-4 z-10 rotate-[-12deg] rounded-md border-2 border-emerald-400 px-3 py-1 text-lg font-bold text-emerald-400"
+        className="absolute left-4 top-4 z-10 rotate-[-12deg] rounded-md border-2 border-[#5e6b58] px-3 py-1 text-lg font-bold text-[#5e6b58]"
       >
         YES
       </motion.div>
       <motion.div
         style={{ opacity: nopeOpacity }}
-        className="absolute right-4 top-4 z-10 rotate-[12deg] rounded-md border-2 border-red-400 px-3 py-1 text-lg font-bold text-red-400"
+        className="absolute right-4 top-4 z-10 rotate-[12deg] rounded-md border-2 border-red-500 px-3 py-1 text-lg font-bold text-red-500"
       >
         NO
       </motion.div>

@@ -35,8 +35,8 @@ export function MessageBubble({
         <div
           className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
             isUser
-              ? "bg-white text-zinc-900"
-              : "border border-zinc-800 bg-zinc-900 text-zinc-200"
+              ? "bg-stone-900 text-stone-50"
+              : "border border-stone-200 bg-white text-stone-700"
           }`}
         >
           {message.content}
@@ -74,16 +74,16 @@ export function MessageBubble({
 
       {message.payload?.kind === "send_report" && (
         <div className="flex gap-2 text-xs">
-          <span className="rounded-full bg-emerald-950 px-2.5 py-1 text-emerald-300">
+          <span className="rounded-full bg-[#eef0ec] px-2.5 py-1 text-[#5e6b58]">
             ✓ {message.payload.sent} sent
           </span>
           {message.payload.failed > 0 && (
-            <span className="rounded-full bg-red-950 px-2.5 py-1 text-red-300">
+            <span className="rounded-full bg-red-50 px-2.5 py-1 text-red-700">
               ✗ {message.payload.failed} failed
             </span>
           )}
           {message.payload.skipped > 0 && (
-            <span className="rounded-full bg-zinc-800 px-2.5 py-1 text-zinc-400">
+            <span className="rounded-full bg-stone-100 px-2.5 py-1 text-stone-500">
               {message.payload.skipped} skipped (no email)
             </span>
           )}

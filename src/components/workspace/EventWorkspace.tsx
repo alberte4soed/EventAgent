@@ -262,24 +262,24 @@ export function EventWorkspace({
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="flex items-center justify-between border-b border-zinc-800 px-6 py-4">
+      <header className="flex items-center justify-between border-b border-stone-200 bg-white/70 px-6 py-4">
         <div className="flex items-center gap-3">
-          <Link href="/events" className="text-sm text-zinc-400 hover:text-zinc-200">
+          <Link href="/events" className="text-sm text-stone-400 hover:text-stone-900">
             ←
           </Link>
           <h1 className="font-medium">{event?.title ?? "New event"}</h1>
           {event && <StatusChip status={event.status} />}
         </div>
-        <div className="flex items-center gap-1 rounded-lg border border-zinc-800 p-1 text-sm">
+        <div className="flex items-center gap-1 rounded-full border border-stone-200 bg-white p-1 text-sm">
           <button
             onClick={() => setTab("chat")}
-            className={`rounded-md px-3 py-1 ${tab === "chat" ? "bg-zinc-800 text-zinc-100" : "text-zinc-400 hover:text-zinc-200"}`}
+            className={`rounded-full px-3 py-1 transition ${tab === "chat" ? "bg-stone-900 text-stone-50" : "text-stone-500 hover:text-stone-900"}`}
           >
             Chat
           </button>
           <button
             onClick={() => setTab("quotes")}
-            className={`rounded-md px-3 py-1 ${tab === "quotes" ? "bg-zinc-800 text-zinc-100" : "text-zinc-400 hover:text-zinc-200"}`}
+            className={`rounded-full px-3 py-1 transition ${tab === "quotes" ? "bg-stone-900 text-stone-50" : "text-stone-500 hover:text-stone-900"}`}
           >
             Quotes{quoteCount > 0 ? ` (${quoteCount})` : ""}
           </button>
@@ -287,7 +287,7 @@ export function EventWorkspace({
       </header>
 
       {!gmailConnected && (
-        <div className="border-b border-amber-900/50 bg-amber-950/30 px-6 py-2 text-center text-xs text-amber-300">
+        <div className="border-b border-amber-200 bg-amber-50 px-6 py-2 text-center text-xs text-amber-700">
           Gmail isn&apos;t connected yet — you can chat and swipe, but connect it in{" "}
           <Link href="/settings" className="underline">
             Settings

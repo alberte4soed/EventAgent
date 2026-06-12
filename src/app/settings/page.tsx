@@ -20,52 +20,52 @@ export default async function SettingsPage({
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-10">
       <div className="mb-8 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Settings</h1>
-        <Link href="/events" className="text-sm text-zinc-400 hover:text-zinc-200">
+        <h1 className="text-2xl font-medium tracking-tight">Settings</h1>
+        <Link href="/events" className="text-sm text-stone-500 hover:text-stone-900">
           ← Back to events
         </Link>
       </div>
 
       {params.connected && (
-        <div className="mb-6 rounded-lg border border-emerald-800 bg-emerald-950/50 px-4 py-3 text-sm text-emerald-300">
+        <div className="mb-6 rounded-xl border border-[#cdd6c8] bg-[#eef0ec] px-4 py-3 text-sm text-[#5e6b58]">
           Gmail connected successfully.
         </div>
       )}
       {params.gmail_error && (
-        <div className="mb-6 rounded-lg border border-red-800 bg-red-950/50 px-4 py-3 text-sm text-red-300">
+        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           Gmail connection failed ({params.gmail_error}). Please try again.
         </div>
       )}
 
-      <section className="rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
+      <section className="rounded-2xl border border-stone-200 bg-white p-6">
         <h2 className="text-lg font-medium">Gmail connection</h2>
-        <p className="mt-1 text-sm text-zinc-400">
-          EventAgent sends quote requests from your Gmail and reads replies to
+        <p className="mt-1 text-sm text-stone-500">
+          Kalas sends quote requests from your Gmail and reads replies to
           collect quotes. Scopes: send &amp; read only.
         </p>
-        <div className="mt-4 flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-950 px-4 py-3">
+        <div className="mt-4 flex items-center justify-between rounded-xl border border-stone-200 bg-[#faf9f6] px-4 py-3">
           {gmail.connected ? (
             <>
               <div className="flex items-center gap-2 text-sm">
-                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                <span className="h-2 w-2 rounded-full bg-[#7c8a76]" />
                 Connected{gmail.email ? ` as ${gmail.email}` : ""}
               </div>
               <a
                 href="/api/gmail/connect"
-                className="rounded-md border border-zinc-700 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800"
+                className="rounded-full border border-stone-300 px-3 py-1.5 text-xs text-stone-600 hover:bg-stone-100"
               >
                 Reconnect
               </a>
             </>
           ) : (
             <>
-              <div className="flex items-center gap-2 text-sm text-zinc-400">
-                <span className="h-2 w-2 rounded-full bg-zinc-600" />
+              <div className="flex items-center gap-2 text-sm text-stone-500">
+                <span className="h-2 w-2 rounded-full bg-stone-300" />
                 Not connected
               </div>
               <a
                 href="/api/gmail/connect"
-                className="rounded-md bg-white px-3 py-1.5 text-xs font-medium text-zinc-900 hover:bg-zinc-200"
+                className="rounded-full bg-stone-900 px-3 py-1.5 text-xs font-medium text-stone-50 hover:bg-stone-700"
               >
                 Connect Gmail
               </a>
@@ -74,9 +74,9 @@ export default async function SettingsPage({
         </div>
       </section>
 
-      <section className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900 p-6">
+      <section className="mt-6 rounded-2xl border border-stone-200 bg-white p-6">
         <h2 className="text-lg font-medium">Account</h2>
-        <p className="mt-1 text-sm text-zinc-400">Signed in as {user.email}</p>
+        <p className="mt-1 text-sm text-stone-500">Signed in as {user.email}</p>
       </section>
     </main>
   );

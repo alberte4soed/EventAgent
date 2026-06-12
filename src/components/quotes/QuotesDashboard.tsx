@@ -14,7 +14,7 @@ export function QuotesDashboard({ venues, outbound, replies }: Props) {
 
   if (liked.length === 0) {
     return (
-      <div className="flex flex-1 items-center justify-center p-10 text-center text-sm text-zinc-500">
+      <div className="flex flex-1 items-center justify-center p-10 text-center text-sm text-stone-500">
         <div>
           <p className="text-3xl">📬</p>
           <p className="mt-3">
@@ -30,7 +30,7 @@ export function QuotesDashboard({ venues, outbound, replies }: Props) {
     <div className="flex-1 overflow-y-auto px-6 py-8">
       <div className="mx-auto w-full max-w-3xl">
         <h2 className="text-lg font-medium">Quote requests</h2>
-        <p className="mt-1 text-xs text-zinc-500">
+        <p className="mt-1 text-xs text-stone-500">
           Replies are checked every few minutes — new quotes appear here
           automatically.
         </p>

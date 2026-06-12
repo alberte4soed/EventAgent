@@ -20,22 +20,26 @@ export default async function EventsPage() {
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-10">
       <div className="mb-8 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Your events</h1>
+        <Link href="/" className="text-lg font-semibold tracking-tight">
+          kalas
+        </Link>
         <div className="flex items-center gap-4">
-          <Link href="/settings" className="text-sm text-zinc-400 hover:text-zinc-200">
+          <Link href="/settings" className="text-sm text-stone-500 hover:text-stone-900">
             Settings
           </Link>
           <Link
             href="/events/new"
-            className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-200"
+            className="rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-stone-50 hover:bg-stone-700"
           >
             + Plan a new event
           </Link>
         </div>
       </div>
 
+      <h1 className="mb-6 text-2xl font-medium tracking-tight">Your events</h1>
+
       {events.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-zinc-800 p-12 text-center text-zinc-500">
+        <div className="rounded-2xl border border-dashed border-stone-300 bg-white/50 p-12 text-center text-stone-500">
           <p className="text-3xl">🗓️</p>
           <p className="mt-3 text-sm">
             No events yet. Start a conversation and the agent will take it from there.
@@ -47,11 +51,11 @@ export default async function EventsPage() {
             <li key={event.id}>
               <Link
                 href={`/events/${event.id}`}
-                className="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-900 px-5 py-4 transition hover:border-zinc-700"
+                className="flex items-center justify-between rounded-2xl border border-stone-200 bg-white px-5 py-4 transition hover:border-stone-300"
               >
                 <div>
                   <div className="font-medium">{event.title}</div>
-                  <div className="mt-0.5 text-xs text-zinc-500">
+                  <div className="mt-0.5 text-xs text-stone-500">
                     {[event.location, event.guest_count && `${event.guest_count} guests`, event.event_date]
                       .filter(Boolean)
                       .join(" · ") || "Details pending"}
