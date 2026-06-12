@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { runAgentTurn } from "@/lib/gemini/agent";
+import { logAgentError } from "@/lib/gemini/log";
 import type { ChatMessageRow, EventRow } from "@/lib/db/types";
 
 export const maxDuration = 120; // agent turns can chain several Gemini calls
@@ -98,7 +99,12 @@ export async function POST(request: NextRequest) {
 
         send("message", saved);
       } catch (err) {
-        console.error("Agent turn failed:", err);
+        logAgentError("api/chat", err, {
+          userId: user.id,
+          eventId: event.id,
+          historyLength: history.length,
+          messageLength: message.length,
+        });
         send("error", { error: err instanceof Error ? err.message : "Agent failed" });
       } finally {
         controller.close();

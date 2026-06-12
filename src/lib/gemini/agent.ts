@@ -1,6 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Content, Part } from "@google/genai";
 import { getGemini, GEMINI_MODEL } from "./client";
+import {
+  logAgentError,
+  summarizeContents,
+  summarizeFunctionCallParts,
+} from "./log";
 import { functionDeclarations } from "./tools";
 import { venueListSchema, quoteSchema, type ExtractedVenue } from "./schemas";
 import {
@@ -57,25 +62,64 @@ export async function runAgentTurn(
   let payload: MessagePayload | null = null;
 
   for (let i = 0; i < MAX_ITERATIONS; i++) {
-    const response = await ai.models.generateContent({
-      model: GEMINI_MODEL,
-      contents,
-      config: {
-        systemInstruction: agentSystemPrompt(currentEvent),
-        tools: [{ functionDeclarations }],
-      },
-    });
+    let response;
+    try {
+      response = await ai.models.generateContent({
+        model: GEMINI_MODEL,
+        contents,
+        config: {
+          systemInstruction: agentSystemPrompt(currentEvent),
+          tools: [{ functionDeclarations }],
+        },
+      });
+    } catch (err) {
+      logAgentError("gemini/agent:generateContent", err, {
+        model: GEMINI_MODEL,
+        iteration: i,
+        eventId: event.id,
+        ...summarizeContents(contents),
+      });
+      throw err;
+    }
 
-    const calls = response.functionCalls ?? [];
+    const finishReason = response.candidates?.[0]?.finishReason;
+    if (finishReason && finishReason !== "STOP") {
+      logAgentError(
+        "gemini/agent:unexpectedFinishReason",
+        new Error(`Unexpected finishReason: ${finishReason}`),
+        {
+          model: GEMINI_MODEL,
+          iteration: i,
+          eventId: event.id,
+          finishReason,
+          promptFeedback: response.promptFeedback,
+        }
+      );
+    }
+
+    const responseContent = response.candidates?.[0]?.content;
+    const calls =
+      responseContent?.parts
+        ?.filter((part) => part.functionCall)
+        .map((part) => part.functionCall!) ??
+      response.functionCalls ??
+      [];
     if (calls.length === 0) {
       return { text: response.text ?? "", payload };
     }
 
-    // Record the model's function-call turn, then execute each call.
-    contents.push({
-      role: "model",
-      parts: calls.map<Part>((fc) => ({ functionCall: fc })),
+    const callSummary = summarizeFunctionCallParts(responseContent?.parts);
+    console.log("[gemini/agent:toolCalls]", {
+      model: GEMINI_MODEL,
+      iteration: i,
+      eventId: event.id,
+      tools: callSummary.names,
+      thoughtSignatures: callSummary.hasThoughtSignature,
+      contentsLength: contents.length,
     });
+
+    // Push the API content verbatim — required for thoughtSignature on Gemini 2.5+/3.x.
+    contents.push(responseContent);
 
     const responseParts: Part[] = [];
     for (const call of calls) {
@@ -110,9 +154,19 @@ export async function runAgentTurn(
             break;
           }
           default:
+            logAgentError("gemini/agent:unknownTool", new Error(`Unknown tool: ${call.name}`), {
+              eventId: event.id,
+              iteration: i,
+            });
             result = { error: `Unknown tool: ${call.name}` };
         }
       } catch (err) {
+        logAgentError("gemini/agent:toolExecution", err, {
+          tool: call.name,
+          eventId: event.id,
+          iteration: i,
+          args,
+        });
         result = { error: err instanceof Error ? err.message : String(err) };
       }
       responseParts.push({
@@ -121,6 +175,13 @@ export async function runAgentTurn(
     }
     contents.push({ role: "user", parts: responseParts });
   }
+
+  logAgentError("gemini/agent:maxIterations", new Error("Tool loop exhausted"), {
+    model: GEMINI_MODEL,
+    eventId: event.id,
+    maxIterations: MAX_ITERATIONS,
+    ...summarizeContents(contents),
+  });
 
   return {
     text: "I got a bit tangled up there — could you rephrase that?",
@@ -166,16 +227,26 @@ async function execSearchVenues(
   if (!location) throw new Error("Location is required before searching");
 
   // Call A: grounded search (no schema/function-calling allowed alongside grounding).
-  const grounded = await ai.models.generateContent({
-    model: GEMINI_MODEL,
-    contents: VENUE_SEARCH_PROMPT({
-      query: String(args.query ?? ""),
+  let grounded;
+  try {
+    grounded = await ai.models.generateContent({
+      model: GEMINI_MODEL,
+      contents: VENUE_SEARCH_PROMPT({
+        query: String(args.query ?? ""),
+        location,
+        guestCount,
+        eventType: event.event_type,
+      }),
+      config: { tools: [{ googleSearch: {} }] },
+    });
+  } catch (err) {
+    logAgentError("gemini/agent:searchVenues:grounded", err, {
+      model: GEMINI_MODEL,
+      eventId: event.id,
       location,
-      guestCount,
-      eventType: event.event_type,
-    }),
-    config: { tools: [{ googleSearch: {} }] },
-  });
+    });
+    throw err;
+  }
 
   const groundedText = grounded.text ?? "";
   if (!groundedText.trim()) throw new Error("Web search returned no results");
@@ -186,14 +257,24 @@ async function execSearchVenues(
       .filter((u): u is string => Boolean(u)) ?? [];
 
   // Call B: structured extraction into venue rows.
-  const extraction = await ai.models.generateContent({
-    model: GEMINI_MODEL,
-    contents: VENUE_EXTRACTION_PROMPT(groundedText),
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: venueListSchema,
-    },
-  });
+  let extraction;
+  try {
+    extraction = await ai.models.generateContent({
+      model: GEMINI_MODEL,
+      contents: VENUE_EXTRACTION_PROMPT(groundedText),
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: venueListSchema,
+      },
+    });
+  } catch (err) {
+    logAgentError("gemini/agent:searchVenues:extraction", err, {
+      model: GEMINI_MODEL,
+      eventId: event.id,
+      groundedTextLength: groundedText.length,
+    });
+    throw err;
+  }
 
   const parsed = JSON.parse(extraction.text ?? "{}") as { venues?: ExtractedVenue[] };
   const venues = (parsed.venues ?? []).filter((v) => v.name?.trim());
