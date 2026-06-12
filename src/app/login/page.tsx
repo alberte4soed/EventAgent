@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -18,21 +19,36 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex flex-1 items-center justify-center bg-zinc-950 text-zinc-100">
-      <div className="w-full max-w-sm rounded-2xl border border-zinc-800 bg-zinc-900 p-8 text-center shadow-xl">
-        <div className="mb-2 text-3xl">🎉</div>
-        <h1 className="text-2xl font-semibold">EventAgent</h1>
-        <p className="mt-2 text-sm text-zinc-400">
-          Chat with an agent that finds venues, emails them from your Gmail,
-          and collects quotes for your event.
-        </p>
-        <button
-          onClick={signInWithGoogle}
-          disabled={loading}
-          className="mt-6 w-full rounded-lg bg-white px-4 py-2.5 text-sm font-medium text-zinc-900 transition hover:bg-zinc-200 disabled:opacity-50"
-        >
-          {loading ? "Redirecting…" : "Continue with Google"}
-        </button>
+    <main className="flex flex-1 flex-col bg-[#faf9f6] text-stone-900">
+      <header className="mx-auto flex w-full max-w-5xl items-center px-6 py-6">
+        <Link href="/" className="text-lg font-semibold tracking-tight">
+          kalas
+        </Link>
+      </header>
+
+      <div className="flex flex-1 items-center justify-center px-6 pb-24">
+        <div className="w-full max-w-sm rounded-3xl border border-stone-200 bg-white p-10 text-center">
+          <p className="text-xs font-medium uppercase tracking-[0.25em] text-[#7c8a76]">
+            Welcome
+          </p>
+          <h1 className="mt-4 text-2xl font-medium tracking-tight">
+            Sign in or create your account
+          </h1>
+          <p className="mt-3 text-sm leading-relaxed text-stone-500">
+            One Google account is all you need — Kalas plans with you and
+            sends quote requests from your own Gmail.
+          </p>
+          <button
+            onClick={signInWithGoogle}
+            disabled={loading}
+            className="mt-8 w-full rounded-full bg-stone-900 px-4 py-3 text-sm font-medium text-stone-50 transition hover:bg-stone-700 disabled:opacity-50"
+          >
+            {loading ? "Redirecting…" : "Continue with Google"}
+          </button>
+          <p className="mt-4 text-xs text-stone-400">
+            New here? The same button creates your account.
+          </p>
+        </div>
       </div>
     </main>
   );

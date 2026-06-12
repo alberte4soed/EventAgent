@@ -1,4 +1,6 @@
-# EventAgent 🎉
+# Kalas 🎉
+
+*From Swedish "kalas" — a celebration.*
 
 A conversational event planner. Chat with an AI agent about the event you're
 planning — it searches the web for real venues, you swipe through them

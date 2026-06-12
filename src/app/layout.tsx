@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "EventAgent",
+  title: "Kalas — celebrate more, coordinate less",
   description:
-    "Plan events conversationally: find venues, swipe, and collect quotes over email.",
+    "Kalas is your event-planning agent: it finds venues, you swipe, and it collects quotes over email from your own Gmail.",
 };
 
 export default function RootLayout({
