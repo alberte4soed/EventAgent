@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { SignOutButton } from "@/components/auth/SignOutButton";
 import { createClient } from "@/lib/supabase/server";
 import { getGmailConnection } from "@/lib/gmail/oauth";
 
@@ -83,6 +84,9 @@ export default async function SettingsPage({
           Account
         </h2>
         <p className="mt-1 text-sm text-[#7a6b5c]">Signed in as {user.email}</p>
+        <div className="mt-4">
+          <SignOutButton />
+        </div>
       </section>
     </main>
   );
