@@ -46,7 +46,7 @@ export function SwipeDeck({ messageId, venues, onSwipe, onFinished }: Props) {
 
   return (
     <div className="w-full max-w-sm select-none">
-      <div className="relative h-72">
+      <div className="relative h-96">
         {/* Static peek of the next card underneath */}
         {pending[1] && (
           <div className="absolute inset-0 translate-y-2 scale-[0.97] opacity-50">

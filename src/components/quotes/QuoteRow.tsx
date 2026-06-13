@@ -46,12 +46,22 @@ export function QuoteRow({ venue, outbound, replies }: Props) {
         onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left"
       >
-        <div className="min-w-0">
-          <div className="truncate font-medium text-stone-900">{venue.name}</div>
-          <div className="mt-0.5 truncate text-xs text-stone-500">
-            {outbound
-              ? `Sent to ${outbound.to_email}${outbound.sent_at ? ` · ${new Date(outbound.sent_at).toLocaleString()}` : ""}`
-              : venue.email ?? "No contact email"}
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="h-11 w-11 shrink-0 overflow-hidden rounded-xl bg-[#eef0ec]">
+            {venue.image_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={venue.image_url} alt={venue.name} className="h-full w-full object-cover" />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-sm">📍</div>
+            )}
+          </div>
+          <div className="min-w-0">
+            <div className="truncate font-medium text-stone-900">{venue.name}</div>
+            <div className="mt-0.5 truncate text-xs text-stone-500">
+              {outbound
+                ? `Sent to ${outbound.to_email}${outbound.sent_at ? ` · ${new Date(outbound.sent_at).toLocaleString()}` : ""}`
+                : venue.email ?? "No contact email"}
+            </div>
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-3">

@@ -8,6 +8,7 @@ import {
 } from "./log";
 import { functionDeclarations } from "./tools";
 import { venueListSchema, quoteSchema, type ExtractedVenue } from "./schemas";
+import { fetchVenuePhotos } from "@/lib/places/photos";
 import {
   agentSystemPrompt,
   VENUE_SEARCH_PROMPT,
@@ -282,10 +283,13 @@ async function execSearchVenues(
   const venues = (parsed.venues ?? []).filter((v) => v.name?.trim());
   if (venues.length === 0) throw new Error("No venues could be extracted from search results");
 
+  // Pull a real photo per venue from Google Places (best-effort, parallel).
+  const photos = await fetchVenuePhotos(venues, location);
+
   const { data, error } = await supabase
     .from("venues")
     .insert(
-      venues.map((v) => ({
+      venues.map((v, i) => ({
         event_id: event.id,
         user_id: event.user_id,
         name: v.name,
@@ -296,6 +300,7 @@ async function execSearchVenues(
         phone: v.phone ?? null,
         capacity: v.capacity ?? null,
         price_hint: v.price_hint ?? null,
+        image_url: photos[i] ?? null,
         source_urls: sourceUrls,
       }))
     )
