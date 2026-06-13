@@ -32,13 +32,13 @@ export function VenueCanvas({
   const proposedDraft = drafts.find((d) => d.status === "proposed");
 
   return (
-    <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-[#f4f1e8]">
-      <header className="flex h-[72px] shrink-0 items-center justify-between border-b border-[#e5e0cf] px-7">
+    <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-[#F6F0E8]">
+      <header className="flex h-[72px] shrink-0 items-center justify-between border-b border-[#D4D6C0] px-7">
         <div className="flex flex-col gap-0.5">
-          <h1 className="font-[family-name:var(--font-fraunces)] text-lg font-semibold tracking-[-0.45px] text-[#3d2b23]">
+          <h1 className="font-[family-name:var(--font-fraunces)] text-lg font-semibold tracking-[-0.45px] text-[#4A4E3C]">
             {event?.title ?? "New event"}
           </h1>
-          <div className="flex items-center gap-3.5 text-[12.5px] text-[#7a6b5c]">
+          <div className="flex items-center gap-3.5 text-[12.5px] text-[#7A8066]">
             {event?.location && (
               <span className="flex items-center gap-1">
                 <svg
@@ -46,7 +46,7 @@ export function VenueCanvas({
                   fill="none"
                   strokeWidth="2"
                   viewBox="0 0 24 24"
-                  className="size-3 text-[#9a8a77]"
+                  className="size-3 text-[#8a8568]"
                 >
                   <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                   <circle cx="12" cy="10" r="3" />
@@ -61,7 +61,7 @@ export function VenueCanvas({
                   fill="none"
                   strokeWidth="2"
                   viewBox="0 0 24 24"
-                  className="size-3 text-[#9a8a77]"
+                  className="size-3 text-[#8a8568]"
                 >
                   <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
                   <circle cx="9" cy="7" r="4" />
@@ -78,7 +78,7 @@ export function VenueCanvas({
                   fill="none"
                   strokeWidth="2"
                   viewBox="0 0 24 24"
-                  className="size-3 text-[#9a8a77]"
+                  className="size-3 text-[#8a8568]"
                 >
                   <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
                   <line x1="16" y1="2" x2="16" y2="6" />
@@ -93,7 +93,7 @@ export function VenueCanvas({
         {batchVenues.length > 0 && (
           <div className="flex h-[34px] items-center gap-2 rounded-full bg-[#ece8db] px-3.5">
             <svg
-              stroke="#ac5239"
+              stroke="#4A4E3C"
               fill="none"
               strokeWidth="2"
               viewBox="0 0 24 24"
@@ -101,7 +101,7 @@ export function VenueCanvas({
             >
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
             </svg>
-            <span className="text-[13px] font-medium text-[#3d2b23]">
+            <span className="text-[13px] font-medium text-[#4A4E3C]">
               {liked.length} liked · {reviewed} of {batchVenues.length} reviewed
             </span>
           </div>
@@ -110,10 +110,10 @@ export function VenueCanvas({
 
       {batchVenues.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-3 px-8 text-center">
-          <p className="font-[family-name:var(--font-fraunces)] text-xl font-semibold text-[#3d2b23]">
+          <p className="font-[family-name:var(--font-fraunces)] text-xl font-semibold text-[#4A4E3C]">
             Your venue board
           </p>
-          <p className="max-w-md text-sm leading-relaxed text-[#7a6b5c]">
+          <p className="max-w-md text-sm leading-relaxed text-[#7A8066]">
             Venues appear here after kalas searches the web. Describe your event in the chat — location,
             guest count, and vibe — and I&apos;ll populate this board for you to swipe through.
           </p>
@@ -132,30 +132,30 @@ export function VenueCanvas({
           </div>
           {pending.length > 1 && (
             <div className="flex w-[252px] shrink-0 flex-col gap-2.5">
-              <p className="text-[11px] font-medium uppercase tracking-[1.1px] text-[#9a8a77]">
+              <p className="text-[11px] font-medium uppercase tracking-[1.1px] text-[#8a8568]">
                 Up next
               </p>
               <div className="flex flex-col gap-2.5 overflow-y-auto">
                 {pending.slice(1, 5).map((venue) => (
                   <div
                     key={venue.id}
-                    className="flex items-center gap-3 rounded-2xl border border-[#e5e0cf] bg-[#fdfbf4] p-2.5"
+                    className="flex items-center gap-3 rounded-2xl border border-[#D4D6C0] bg-[#F6F0E8] p-2.5"
                   >
                     <div
                       className={`size-14 shrink-0 rounded-xl bg-cover bg-center bg-no-repeat ${
                         venue.image_url
                           ? ""
-                          : "bg-gradient-to-br from-[#e0dac7] to-[#cfc8b2]"
+                          : "bg-gradient-to-br from-[#e0dac7] to-[#C4C8AE]"
                       }`}
                       style={
                         venue.image_url ? { backgroundImage: `url('${venue.image_url}')` } : undefined
                       }
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-[13.5px] font-semibold text-[#3d2b23]">
+                      <p className="truncate text-[13.5px] font-semibold text-[#4A4E3C]">
                         {venue.name}
                       </p>
-                      <p className="truncate text-[11.5px] text-[#9a8a77]">
+                      <p className="truncate text-[11.5px] text-[#8a8568]">
                         {venue.capacity ? `${venue.capacity} capacity` : venue.address ?? "Venue"}
                       </p>
                     </div>
@@ -168,20 +168,20 @@ export function VenueCanvas({
       )}
 
       {(liked.length > 0 || proposedDraft) && (
-        <div className="flex shrink-0 items-center gap-3.5 border-t border-[#e5e0cf] bg-[#f0ede0] px-7 py-4">
+        <div className="flex shrink-0 items-center gap-3.5 border-t border-[#D4D6C0] bg-[#ddd6c0] px-7 py-4">
           <div className="shrink-0">
-            <p className="text-[13px] font-semibold text-[#3d2b23]">Liked venues</p>
-            <p className="text-[11.5px] text-[#9a8a77]">Quotes go to these</p>
+            <p className="text-[13px] font-semibold text-[#4A4E3C]">Liked venues</p>
+            <p className="text-[11.5px] text-[#8a8568]">Quotes go to these</p>
           </div>
           <div className="flex min-w-0 flex-1 items-center gap-2.5 overflow-x-auto">
             {liked.map((venue) => (
               <div
                 key={venue.id}
-                className="flex h-11 shrink-0 items-center gap-2.5 rounded-[14px] border border-[#dfd9c6] bg-[#fdfbf4] px-3.5"
+                className="flex h-11 shrink-0 items-center gap-2.5 rounded-[14px] border border-[#D4D6C0] bg-[#F6F0E8] px-3.5"
               >
-                <div className="flex size-6 items-center justify-center rounded-full bg-[#f0e4dd]">
+                <div className="flex size-6 items-center justify-center rounded-full bg-[#c2b280]">
                   <svg
-                    stroke="#ac5239"
+                    stroke="#4A4E3C"
                     fill="none"
                     strokeWidth="2"
                     viewBox="0 0 24 24"
@@ -191,8 +191,8 @@ export function VenueCanvas({
                   </svg>
                 </div>
                 <div>
-                  <p className="text-[12.5px] font-semibold text-[#3d2b23]">{venue.name}</p>
-                  <p className="text-[10.5px] text-[#9a8a77]">Shortlisted</p>
+                  <p className="text-[12.5px] font-semibold text-[#4A4E3C]">{venue.name}</p>
+                  <p className="text-[10.5px] text-[#8a8568]">Shortlisted</p>
                 </div>
               </div>
             ))}
@@ -201,7 +201,7 @@ export function VenueCanvas({
             <button
               type="button"
               onClick={onOpenQuotes}
-              className="flex h-[42px] shrink-0 items-center gap-2 rounded-xl bg-[#ac5239] px-[18px] text-[13.5px] font-medium text-[#f8f4e9] shadow-[0px_3px_10px_rgba(172,82,57,0.3)] transition hover:bg-[#96462f]"
+              className="flex h-[42px] shrink-0 items-center gap-2 rounded-xl bg-[#4A4E3C] px-[18px] text-[13.5px] font-medium text-[#F6F0E8] shadow-[0px_3px_10px_rgba(74,78,60,0.3)] transition hover:bg-[#575B47]"
             >
               <svg
                 stroke="currentColor"
@@ -218,7 +218,7 @@ export function VenueCanvas({
           ) : !gmailConnected ? (
             <Link
               href="/settings"
-              className="flex h-[42px] shrink-0 items-center gap-2 rounded-xl border border-[#ac5239] px-[18px] text-[13.5px] font-medium text-[#ac5239] transition hover:bg-[#f0e4dd]"
+              className="flex h-[42px] shrink-0 items-center gap-2 rounded-xl border border-[#4A4E3C] px-[18px] text-[13.5px] font-medium text-[#4A4E3C] transition hover:bg-[#c2b280]"
             >
               Connect Gmail to send quotes
             </Link>

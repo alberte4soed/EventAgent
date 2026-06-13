@@ -21,10 +21,10 @@ export default async function SettingsPage({
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-10">
       <div className="mb-8 flex items-center justify-between">
-        <h1 className="font-[family-name:var(--font-fraunces)] text-3xl font-semibold tracking-[-0.6px] text-[#3d2b23]">
+        <h1 className="font-[family-name:var(--font-fraunces)] text-3xl font-semibold tracking-[-0.6px] text-[#4A4E3C]">
           Settings
         </h1>
-        <Link href="/home" className="text-sm text-[#7a6b5c] hover:text-[#3d2b23]">
+        <Link href="/home" className="text-sm text-[#7A8066] hover:text-[#4A4E3C]">
           ← Back home
         </Link>
       </div>
@@ -40,37 +40,37 @@ export default async function SettingsPage({
         </div>
       )}
 
-      <section className="rounded-2xl border border-[#dfd9c6] bg-[#fdfbf4] p-6">
-        <h2 className="font-[family-name:var(--font-fraunces)] text-lg font-semibold text-[#3d2b23]">
+      <section className="rounded-2xl border border-[#D4D6C0] bg-[#F6F0E8] p-6">
+        <h2 className="font-[family-name:var(--font-fraunces)] text-lg font-semibold text-[#4A4E3C]">
           Gmail connection
         </h2>
-        <p className="mt-1 text-sm text-[#7a6b5c]">
-          Kalas sends quote requests from your Gmail and reads replies to
+        <p className="mt-1 text-sm text-[#7A8066]">
+          Kalas sends wedding venue quote requests from your Gmail and reads replies to
           collect quotes. Scopes: send &amp; read only.
         </p>
-        <div className="mt-4 flex items-center justify-between rounded-xl border border-[#e5e0cf] bg-[#f4f1e8] px-4 py-3">
+        <div className="mt-4 flex items-center justify-between rounded-xl border border-[#D4D6C0] bg-[#F6F0E8] px-4 py-3">
           {gmail.connected ? (
             <>
-              <div className="flex items-center gap-2 text-sm text-[#3d2b23]">
-                <span className="h-2 w-2 rounded-full bg-[#ac5239]" />
+              <div className="flex items-center gap-2 text-sm text-[#4A4E3C]">
+                <span className="h-2 w-2 rounded-full bg-[#4A4E3C]" />
                 Connected{gmail.email ? ` as ${gmail.email}` : ""}
               </div>
               <a
                 href="/api/gmail/connect"
-                className="rounded-full border border-[#dfd9c6] px-3 py-1.5 text-xs text-[#5c4a3d] hover:bg-[#f0ede0]"
+                className="rounded-full border border-[#D4D6C0] px-3 py-1.5 text-xs text-[#656952] hover:bg-[#ddd6c0]"
               >
                 Reconnect
               </a>
             </>
           ) : (
             <>
-              <div className="flex items-center gap-2 text-sm text-[#9a8a77]">
-                <span className="h-2 w-2 rounded-full bg-[#cfc8b2]" />
+              <div className="flex items-center gap-2 text-sm text-[#8a8568]">
+                <span className="h-2 w-2 rounded-full bg-[#C4C8AE]" />
                 Not connected
               </div>
               <a
                 href="/api/gmail/connect"
-                className="rounded-full bg-[#ac5239] px-3 py-1.5 text-xs font-medium text-[#f8f4e9] hover:bg-[#96462f]"
+                className="rounded-full bg-[#4A4E3C] px-3 py-1.5 text-xs font-medium text-[#F6F0E8] hover:bg-[#575B47]"
               >
                 Connect Gmail
               </a>
@@ -79,11 +79,11 @@ export default async function SettingsPage({
         </div>
       </section>
 
-      <section className="mt-6 rounded-2xl border border-[#dfd9c6] bg-[#fdfbf4] p-6">
-        <h2 className="font-[family-name:var(--font-fraunces)] text-lg font-semibold text-[#3d2b23]">
+      <section className="mt-6 rounded-2xl border border-[#D4D6C0] bg-[#F6F0E8] p-6">
+        <h2 className="font-[family-name:var(--font-fraunces)] text-lg font-semibold text-[#4A4E3C]">
           Account
         </h2>
-        <p className="mt-1 text-sm text-[#7a6b5c]">Signed in as {user.email}</p>
+        <p className="mt-1 text-sm text-[#7A8066]">Signed in as {user.email}</p>
         <div className="mt-4">
           <SignOutButton />
         </div>

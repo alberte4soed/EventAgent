@@ -299,15 +299,15 @@ export function EventWorkspace({
 
       {tab === "quotes" ? (
         <>
-          <header className="flex shrink-0 items-center gap-3 border-b border-[#e5e0cf] bg-[#fdfbf4] px-6 py-4">
+          <header className="flex shrink-0 items-center gap-3 border-b border-[#D4D6C0] bg-[#F6F0E8] px-6 py-4">
             <button
               type="button"
               onClick={() => setTab("chat")}
-              className="text-sm text-[#9a8a77] transition hover:text-[#3d2b23]"
+              className="text-sm text-[#8a8568] transition hover:text-[#4A4E3C]"
             >
               ← Back to workspace
             </button>
-            <h1 className="font-[family-name:var(--font-fraunces)] text-lg font-semibold text-[#3d2b23]">
+            <h1 className="font-[family-name:var(--font-fraunces)] text-lg font-semibold text-[#4A4E3C]">
               Quotes
             </h1>
           </header>

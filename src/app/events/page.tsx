@@ -22,35 +22,35 @@ export default async function EventsPage() {
       <div className="mb-8 flex items-center justify-between">
         <Link
           href="/home"
-          className="font-[family-name:var(--font-fraunces)] text-[22px] font-semibold tracking-[-0.55px] text-[#ac5239]"
+          className="font-[family-name:var(--font-fraunces)] text-[22px] font-semibold tracking-[-0.55px] text-[#4A4E3C]"
         >
           kalas
         </Link>
         <div className="flex items-center gap-4">
-          <Link href="/home" className="text-sm text-[#7a6b5c] hover:text-[#3d2b23]">
+          <Link href="/home" className="text-sm text-[#7A8066] hover:text-[#4A4E3C]">
             Home
           </Link>
-          <Link href="/settings" className="text-sm text-[#7a6b5c] hover:text-[#3d2b23]">
+          <Link href="/settings" className="text-sm text-[#7A8066] hover:text-[#4A4E3C]">
             Settings
           </Link>
           <Link
             href="/events/new"
-            className="rounded-xl bg-[#ac5239] px-4 py-2 text-sm font-medium text-[#f8f4e9] shadow-[0px_3px_10px_rgba(172,82,57,0.3)] transition hover:bg-[#96462f]"
+            className="rounded-xl bg-[#4A4E3C] px-4 py-2 text-sm font-medium text-[#F6F0E8] shadow-[0px_3px_10px_rgba(74,78,60,0.3)] transition hover:bg-[#575B47]"
           >
-            + Plan a new event
+            + Plan a new wedding
           </Link>
         </div>
       </div>
 
-      <h1 className="mb-6 font-[family-name:var(--font-fraunces)] text-3xl font-semibold tracking-[-0.6px] text-[#3d2b23]">
-        Your events
+      <h1 className="mb-6 font-[family-name:var(--font-fraunces)] text-3xl font-semibold tracking-[-0.6px] text-[#4A4E3C]">
+        Your weddings
       </h1>
 
       {events.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-[#cfc8b2] bg-[#fdfbf4]/60 p-12 text-center text-[#7a6b5c]">
-          <p className="text-3xl">🗓️</p>
+        <div className="rounded-2xl border border-dashed border-[#C4C8AE] bg-[#F6F0E8]/60 p-12 text-center text-[#7A8066]">
+          <p className="text-3xl">💍</p>
           <p className="mt-3 text-sm">
-            No events yet. Start a conversation and the agent will take it from there.
+            No weddings yet. Start a conversation and Kalas will take it from there.
           </p>
         </div>
       ) : (
@@ -59,11 +59,11 @@ export default async function EventsPage() {
             <li key={event.id}>
               <Link
                 href={`/events/${event.id}`}
-                className="flex items-center justify-between rounded-2xl border border-[#dfd9c6] bg-[#fdfbf4] px-5 py-4 transition hover:border-[#cfc8b2]"
+                className="flex items-center justify-between rounded-2xl border border-[#D4D6C0] bg-[#F6F0E8] px-5 py-4 transition hover:border-[#C4C8AE]"
               >
                 <div>
-                  <div className="font-semibold text-[#3d2b23]">{event.title}</div>
-                  <div className="mt-0.5 text-xs text-[#9a8a77]">
+                  <div className="font-semibold text-[#4A4E3C]">{event.title}</div>
+                  <div className="mt-0.5 text-xs text-[#8a8568]">
                     {[event.location, event.guest_count && `${event.guest_count} guests`, event.event_date]
                       .filter(Boolean)
                       .join(" · ") || "Details pending"}

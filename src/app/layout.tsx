@@ -13,9 +13,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Kalas — celebrate more, coordinate less",
+  title: "Kalas — plan the wedding, skip the stress",
   description:
-    "Kalas is your event-planning agent: it finds venues, you swipe, and it collects quotes over email from your own Gmail.",
+    "Kalas is your wedding-planning agent: it finds venues, contacts them for quotes, designs invites, and tracks RSVPs — all from your own Gmail.",
 };
 
 export default function RootLayout({
@@ -25,7 +25,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${fraunces.variable} ${inter.variable} h-full antialiased`}>
-      <body className="flex min-h-screen flex-col bg-[#f4f1e8] font-[family-name:var(--font-inter)] text-[#3d2b23]">
+      <body className="flex min-h-screen flex-col bg-cream font-[family-name:var(--font-inter)] text-ink">
         {children}
       </body>
     </html>

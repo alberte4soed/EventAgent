@@ -4,12 +4,12 @@ export const functionDeclarations: FunctionDeclaration[] = [
   {
     name: "update_event_details",
     description:
-      "Save event details the user has revealed. Call whenever new facts appear. Only pass fields you learned; omit unknown ones.",
+      "Save wedding details the user has revealed. Call whenever new facts appear. Only pass fields you learned; omit unknown ones.",
     parameters: {
       type: Type.OBJECT,
       properties: {
-        title: { type: Type.STRING, description: "Short event title, e.g. \"Anna's 50th birthday\"" },
-        event_type: { type: Type.STRING, description: "e.g. birthday party, wedding, conference" },
+        title: { type: Type.STRING, description: "Short wedding title, e.g. \"Emma & James's Wedding\"" },
+        event_type: { type: Type.STRING, description: "e.g. full wedding, ceremony only, elopement, reception" },
         location: { type: Type.STRING, description: "City or area, e.g. Copenhagen" },
         guest_count: { type: Type.INTEGER },
         event_date: { type: Type.STRING, description: "ISO date YYYY-MM-DD if known" },
@@ -25,13 +25,13 @@ export const functionDeclarations: FunctionDeclaration[] = [
   {
     name: "search_venues",
     description:
-      "Search the internet for real venues matching the event. Requires location and guest count to be known. Creates swipeable venue cards for the user.",
+      "Search the internet for real wedding venues matching the wedding. Requires location and guest count to be known. Creates swipeable venue cards for the user.",
     parameters: {
       type: Type.OBJECT,
       properties: {
         query: {
           type: Type.STRING,
-          description: "Search intent including any special requirements, e.g. '50th birthday party venue with dance floor'",
+          description: "Search intent including any special requirements, e.g. 'garden wedding venue with outdoor ceremony space'",
         },
         location: { type: Type.STRING },
         guest_count: { type: Type.INTEGER },

@@ -17,18 +17,18 @@ function statusBadge(outbound?: OutboundEmailRow, latest?: EmailReplyRow) {
       case "no_availability":
         return { label: "Not available", classes: "bg-[#f0e0dc] text-[#a8483a]" };
       case "needs_info":
-        return { label: "Needs info", classes: "bg-[#f3ecd6] text-[#8a6d2f]" };
+        return { label: "Needs info", classes: "bg-[#ddd6c0] text-[#8a6d2f]" };
       default:
         return { label: "Replied", classes: "bg-[#e7ecf1] text-[#4d6175]" };
     }
   }
   switch (outbound?.status) {
     case "sent":
-      return { label: "Sent — awaiting reply", classes: "bg-[#e0dac7] text-[#5c4a3d]" };
+      return { label: "Sent — awaiting reply", classes: "bg-[#e0dac7] text-[#656952]" };
     case "failed":
       return { label: "Send failed", classes: "bg-[#f0e0dc] text-[#a8483a]" };
     default:
-      return { label: "Not contacted", classes: "bg-[#e0dac7] text-[#9a8a77]" };
+      return { label: "Not contacted", classes: "bg-[#e0dac7] text-[#8a8568]" };
   }
 }
 
@@ -41,7 +41,7 @@ export function QuoteRow({ venue, outbound, replies }: Props) {
   const quote = latest?.quote;
 
   return (
-    <div className="rounded-2xl border border-[#dfd9c6] bg-[#fdfbf4]">
+    <div className="rounded-2xl border border-[#D4D6C0] bg-[#F6F0E8]">
       <button
         onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left"
@@ -56,8 +56,8 @@ export function QuoteRow({ venue, outbound, replies }: Props) {
             )}
           </div>
           <div className="min-w-0">
-            <div className="truncate font-semibold text-[#3d2b23]">{venue.name}</div>
-            <div className="mt-0.5 truncate text-xs text-[#9a8a77]">
+            <div className="truncate font-semibold text-[#4A4E3C]">{venue.name}</div>
+            <div className="mt-0.5 truncate text-xs text-[#8a8568]">
               {outbound
                 ? `Sent to ${outbound.to_email}${outbound.sent_at ? ` · ${new Date(outbound.sent_at).toLocaleString()}` : ""}`
                 : venue.email ?? "No contact email"}
@@ -66,10 +66,10 @@ export function QuoteRow({ venue, outbound, replies }: Props) {
         </div>
         <div className="flex shrink-0 items-center gap-3">
           {quote?.has_quote && quote.price_amount != null && (
-            <span className="text-sm font-semibold text-[#ac5239]">
+            <span className="text-sm font-semibold text-[#4A4E3C]">
               {quote.price_amount.toLocaleString()} {quote.currency ?? ""}
               {quote.price_basis ? (
-                <span className="font-normal text-[#9a8a77]"> {quote.price_basis}</span>
+                <span className="font-normal text-[#8a8568]"> {quote.price_basis}</span>
               ) : null}
             </span>
           )}
@@ -80,27 +80,27 @@ export function QuoteRow({ venue, outbound, replies }: Props) {
       </button>
 
       {open && (
-        <div className="border-t border-[#e5e0cf] px-5 py-4 text-sm">
+        <div className="border-t border-[#D4D6C0] px-5 py-4 text-sm">
           {outbound?.status === "failed" && (
             <p className="text-[#a8483a]">Send error: {outbound.error}</p>
           )}
           {latest ? (
             <>
-              {quote?.summary && <p className="text-[#5c4a3d]">{quote.summary}</p>}
+              {quote?.summary && <p className="text-[#656952]">{quote.summary}</p>}
               {quote?.conditions && (
-                <p className="mt-1 text-xs text-[#9a8a77]">Conditions: {quote.conditions}</p>
+                <p className="mt-1 text-xs text-[#8a8568]">Conditions: {quote.conditions}</p>
               )}
               <details className="mt-3">
-                <summary className="cursor-pointer text-xs text-[#9a8a77] hover:text-[#5c4a3d]">
+                <summary className="cursor-pointer text-xs text-[#8a8568] hover:text-[#656952]">
                   Full reply
                 </summary>
-                <pre className="mt-2 max-h-56 overflow-y-auto whitespace-pre-wrap rounded-xl bg-[#f4f1e8] p-3 font-[family-name:var(--font-inter)] text-xs leading-relaxed text-[#7a6b5c]">
+                <pre className="mt-2 max-h-56 overflow-y-auto whitespace-pre-wrap rounded-xl bg-[#F6F0E8] p-3 font-[family-name:var(--font-inter)] text-xs leading-relaxed text-[#7A8066]">
                   {latest.body ?? latest.snippet ?? "(empty)"}
                 </pre>
               </details>
             </>
           ) : (
-            <p className="text-[#9a8a77]">No reply yet.</p>
+            <p className="text-[#8a8568]">No reply yet.</p>
           )}
         </div>
       )}

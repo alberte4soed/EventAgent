@@ -10,7 +10,7 @@ interface Props {
   gmailConnected: boolean;
 }
 
-const ACCENTS = ["🎉", "🎂", "💍", "🥂", "🌿", "🍸", "✨", "🎈"];
+const ACCENTS = ["💍", "💐", "🥂", "✨", "🕊️", "🌿", "💌", "🎊"];
 const TOTAL_STEPS = 4;
 
 export function OnboardingFlow({ initialName, gmailConnected }: Props) {
@@ -63,27 +63,27 @@ export function OnboardingFlow({ initialName, gmailConnected }: Props) {
     step === 3;
 
   return (
-    <main className="relative flex min-h-screen flex-col overflow-hidden bg-[#f4f1e8] text-[#3d2b23]">
+    <main className="relative flex min-h-screen flex-col overflow-hidden bg-[#F6F0E8] text-[#4A4E3C]">
       {/* soft washes */}
       <div className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute -left-20 top-10 h-80 w-80 rounded-full bg-[#f0e4dd] blur-[120px]" />
-        <div className="absolute -right-20 bottom-10 h-80 w-80 rounded-full bg-[#f3ecd6] blur-[120px]" />
+        <div className="absolute -left-20 top-10 h-80 w-80 rounded-full bg-[#c2b280] blur-[120px]" />
+        <div className="absolute -right-20 bottom-10 h-80 w-80 rounded-full bg-[#ddd6c0] blur-[120px]" />
       </div>
 
       <header className="mx-auto flex w-full max-w-xl items-center justify-between px-6 py-6">
-        <span className="font-[family-name:var(--font-fraunces)] text-[22px] font-semibold tracking-[-0.55px] text-[#ac5239]">
+        <span className="font-[family-name:var(--font-fraunces)] text-[22px] font-semibold tracking-[-0.55px] text-[#4A4E3C]">
           kalas
         </span>
-        <span className="text-xs font-medium text-[#9a8a77]">
+        <span className="text-xs font-medium text-[#8a8568]">
           Step {step + 1} of {TOTAL_STEPS}
         </span>
       </header>
 
       {/* progress bar */}
       <div className="mx-auto w-full max-w-xl px-6">
-        <div className="h-1.5 overflow-hidden rounded-full bg-[#e5e0cf]">
+        <div className="h-1.5 overflow-hidden rounded-full bg-[#D4D6C0]">
           <motion.div
-            className="h-full rounded-full bg-[#ac5239]"
+            className="h-full rounded-full bg-[#4A4E3C]"
             animate={{ width: `${((step + 1) / TOTAL_STEPS) * 100}%` }}
             transition={{ ease: [0.22, 1, 0.36, 1], duration: 0.5 }}
           />
@@ -104,7 +104,7 @@ export function OnboardingFlow({ initialName, gmailConnected }: Props) {
               <Step
                 eyebrow="Welcome to Kalas"
                 title="First — what should we call you?"
-                subtitle="So Kalas can greet you like a friend, not a form."
+                subtitle="So Kalas can greet you like a friend, not a spreadsheet."
               >
                 <input
                   autoFocus
@@ -112,7 +112,7 @@ export function OnboardingFlow({ initialName, gmailConnected }: Props) {
                   onChange={(e) => setName(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && canAdvance && go(1)}
                   placeholder="Your name"
-                  className="w-full rounded-2xl border border-[#dfd9c6] bg-[#fdfbf4] px-5 py-4 text-lg outline-none transition focus:border-[#ac5239]"
+                  className="w-full rounded-2xl border border-[#D4D6C0] bg-[#F6F0E8] px-5 py-4 text-lg outline-none transition focus:border-[#4A4E3C]"
                 />
               </Step>
             )}
@@ -120,8 +120,8 @@ export function OnboardingFlow({ initialName, gmailConnected }: Props) {
             {step === 1 && (
               <Step
                 eyebrow={`Hi ${name.split(" ")[0] || "there"} 👋`}
-                title="Where do you usually celebrate?"
-                subtitle="Your home city helps Kalas find venues nearby first."
+                title="Where are you getting married?"
+                subtitle="Your wedding city helps Kalas find venues nearby first."
               >
                 <input
                   autoFocus
@@ -129,7 +129,7 @@ export function OnboardingFlow({ initialName, gmailConnected }: Props) {
                   onChange={(e) => setCity(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && canAdvance && go(2)}
                   placeholder="e.g. Copenhagen"
-                  className="w-full rounded-2xl border border-[#dfd9c6] bg-[#fdfbf4] px-5 py-4 text-lg outline-none transition focus:border-[#ac5239]"
+                  className="w-full rounded-2xl border border-[#D4D6C0] bg-[#F6F0E8] px-5 py-4 text-lg outline-none transition focus:border-[#4A4E3C]"
                 />
               </Step>
             )}
@@ -137,7 +137,7 @@ export function OnboardingFlow({ initialName, gmailConnected }: Props) {
             {step === 2 && (
               <Step
                 eyebrow="Good to know"
-                title="What do you love to throw?"
+                title="What are you planning?"
                 subtitle="Pick a few — we'll keep your favourites one tap away. Optional."
               >
                 <div className="flex flex-wrap gap-2.5">
@@ -150,8 +150,8 @@ export function OnboardingFlow({ initialName, gmailConnected }: Props) {
                         onClick={() => toggleInterest(t.key)}
                         className={`flex items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-medium transition ${
                           on
-                            ? "border-[#ac5239] bg-[#f0e4dd] text-[#ac5239]"
-                            : "border-[#dfd9c6] bg-[#fdfbf4] text-[#5c4a3d] hover:border-[#cfc8b2]"
+                            ? "border-[#4A4E3C] bg-[#c2b280] text-[#4A4E3C]"
+                            : "border-[#D4D6C0] bg-[#F6F0E8] text-[#656952] hover:border-[#C4C8AE]"
                         }`}
                       >
                         <span>{t.emoji}</span> {t.label}
@@ -161,7 +161,7 @@ export function OnboardingFlow({ initialName, gmailConnected }: Props) {
                 </div>
 
                 <div className="mt-8">
-                  <p className="mb-3 text-sm font-medium text-[#7a6b5c]">
+                  <p className="mb-3 text-sm font-medium text-[#7A8066]">
                     Pick a vibe for your account
                   </p>
                   <div className="flex flex-wrap gap-2">
@@ -172,8 +172,8 @@ export function OnboardingFlow({ initialName, gmailConnected }: Props) {
                         onClick={() => setAccent(a)}
                         className={`flex h-11 w-11 items-center justify-center rounded-2xl border text-xl transition ${
                           accent === a
-                            ? "border-[#ac5239] bg-[#f0e4dd] scale-105"
-                            : "border-[#dfd9c6] bg-[#fdfbf4] hover:border-[#cfc8b2]"
+                            ? "border-[#4A4E3C] bg-[#c2b280] scale-105"
+                            : "border-[#D4D6C0] bg-[#F6F0E8] hover:border-[#C4C8AE]"
                         }`}
                       >
                         {a}
@@ -188,23 +188,23 @@ export function OnboardingFlow({ initialName, gmailConnected }: Props) {
               <Step
                 eyebrow="Last thing"
                 title="Connect Gmail to send for you"
-                subtitle="Kalas emails venues for quotes and reads the replies — all from your own inbox. You can also do this later in Settings."
+                subtitle="Kalas emails wedding venues for quotes and reads the replies — all from your own inbox. You can also do this later in Settings."
               >
-                <div className="rounded-2xl border border-[#dfd9c6] bg-[#fdfbf4] p-5">
+                <div className="rounded-2xl border border-[#D4D6C0] bg-[#F6F0E8] p-5">
                   {gmailConnected ? (
-                    <div className="flex items-center gap-2 text-sm font-medium text-[#3d2b23]">
-                      <span className="h-2 w-2 rounded-full bg-[#ac5239]" />
+                    <div className="flex items-center gap-2 text-sm font-medium text-[#4A4E3C]">
+                      <span className="h-2 w-2 rounded-full bg-[#4A4E3C]" />
                       Gmail connected — you&apos;re all set.
                     </div>
                   ) : (
                     <>
                       <a
                         href="/api/gmail/connect"
-                        className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#ac5239] px-4 py-3 text-sm font-medium text-[#f8f4e9] shadow-[0px_3px_10px_rgba(172,82,57,0.3)] transition hover:bg-[#96462f]"
+                        className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#4A4E3C] px-4 py-3 text-sm font-medium text-[#F6F0E8] shadow-[0px_3px_10px_rgba(74,78,60,0.3)] transition hover:bg-[#575B47]"
                       >
                         Connect Gmail
                       </a>
-                      <p className="mt-3 text-center text-xs text-[#9a8a77]">
+                      <p className="mt-3 text-center text-xs text-[#8a8568]">
                         Send &amp; read scopes only. You stay in control of every email.
                       </p>
                     </>
@@ -221,7 +221,7 @@ export function OnboardingFlow({ initialName, gmailConnected }: Props) {
             <button
               type="button"
               onClick={() => go(step - 1)}
-              className="rounded-full px-4 py-2 text-sm text-[#7a6b5c] transition hover:text-[#3d2b23]"
+              className="rounded-full px-4 py-2 text-sm text-[#7A8066] transition hover:text-[#4A4E3C]"
             >
               ← Back
             </button>
@@ -234,7 +234,7 @@ export function OnboardingFlow({ initialName, gmailConnected }: Props) {
               type="button"
               disabled={!canAdvance}
               onClick={() => go(step + 1)}
-              className="rounded-full bg-[#ac5239] px-7 py-3 text-sm font-medium text-[#f8f4e9] shadow-[0px_3px_10px_rgba(172,82,57,0.3)] transition hover:bg-[#96462f] disabled:opacity-40"
+              className="rounded-full bg-[#4A4E3C] px-7 py-3 text-sm font-medium text-[#F6F0E8] shadow-[0px_3px_10px_rgba(74,78,60,0.3)] transition hover:bg-[#575B47] disabled:opacity-40"
             >
               Continue
             </button>
@@ -243,7 +243,7 @@ export function OnboardingFlow({ initialName, gmailConnected }: Props) {
               type="button"
               disabled={saving}
               onClick={finish}
-              className="rounded-full bg-[#ac5239] px-7 py-3 text-sm font-medium text-[#f8f4e9] shadow-[0px_3px_10px_rgba(172,82,57,0.3)] transition hover:bg-[#96462f] disabled:opacity-50"
+              className="rounded-full bg-[#4A4E3C] px-7 py-3 text-sm font-medium text-[#F6F0E8] shadow-[0px_3px_10px_rgba(74,78,60,0.3)] transition hover:bg-[#575B47] disabled:opacity-50"
             >
               {saving ? "Setting up…" : "Enter Kalas →"}
             </button>
@@ -267,13 +267,13 @@ function Step({
 }) {
   return (
     <div>
-      <p className="text-[11px] font-medium uppercase tracking-[1.5px] text-[#ac5239]">
+      <p className="text-[11px] font-medium uppercase tracking-[1.5px] text-[#4A4E3C]">
         {eyebrow}
       </p>
-      <h1 className="mt-3 font-[family-name:var(--font-fraunces)] text-3xl font-semibold tracking-[-0.7px] text-[#3d2b23] sm:text-4xl">
+      <h1 className="mt-3 font-[family-name:var(--font-fraunces)] text-3xl font-semibold tracking-[-0.7px] text-[#4A4E3C] sm:text-4xl">
         {title}
       </h1>
-      <p className="mt-3 text-[15px] leading-relaxed text-[#7a6b5c]">{subtitle}</p>
+      <p className="mt-3 text-[15px] leading-relaxed text-[#7A8066]">{subtitle}</p>
       <div className="mt-7">{children}</div>
     </div>
   );

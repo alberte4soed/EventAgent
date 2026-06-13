@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { motion, useScroll, useMotionValueEvent } from "framer-motion";
+import { useScroll, useMotionValueEvent } from "framer-motion";
 import { useState } from "react";
+import { BlurFade } from "@/components/ui/blur-fade";
 
 export function Nav() {
   const { scrollY } = useScroll();
@@ -10,41 +11,39 @@ export function Nav() {
   useMotionValueEvent(scrollY, "change", (y) => setScrolled(y > 24));
 
   return (
-    <motion.header
-      initial={{ y: -80, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-      className="fixed inset-x-0 top-0 z-50"
-    >
+    <BlurFade delay={0.05} duration={0.6} className="fixed inset-x-0 top-0 z-50">
       <div
-        className={`mx-auto mt-3 flex w-[min(64rem,calc(100%-1.5rem))] items-center justify-between rounded-full px-5 py-2.5 transition-all duration-300 ${
+        className={`mx-auto mt-3 flex w-[min(80rem,calc(100%-2rem))] items-center justify-between rounded-full px-6 py-2.5 transition-all duration-300 sm:px-8 ${
           scrolled
-            ? "border border-[#e5e0cf] bg-[#fdfbf4]/80 shadow-[0_8px_30px_rgba(61,43,35,0.06)] backdrop-blur-xl"
+            ? "border border-border bg-surface/80 shadow-[0_8px_30px_rgba(74,78,60,0.06)] backdrop-blur-xl"
             : "border border-transparent"
         }`}
       >
         <Link
           href="/"
-          className="flex items-center gap-2 font-[family-name:var(--font-fraunces)] text-xl font-semibold tracking-[-0.5px] text-[#ac5239]"
+          className={`flex items-center gap-2 font-[family-name:var(--font-fraunces)] text-xl font-semibold tracking-[-0.5px] transition-colors duration-300 ${
+            scrolled ? "text-ink" : "text-surface drop-shadow-[0_1px_8px_rgba(0,0,0,0.25)]"
+          }`}
         >
-          <span>🎉</span> kalas
+          kalas
         </Link>
         <nav className="flex items-center gap-1.5">
           <Link
             href="/login"
-            className="rounded-full px-4 py-2 text-sm text-[#5c4a3d] transition hover:text-[#3d2b23]"
+            className={`rounded-full px-4 py-2 text-sm transition-colors duration-300 ${
+              scrolled ? "text-ink-body hover:text-ink" : "text-surface/90 hover:text-surface"
+            }`}
           >
             Sign in
           </Link>
           <Link
             href="/login"
-            className="group relative overflow-hidden rounded-full bg-[#ac5239] px-4 py-2 text-sm font-medium text-[#f8f4e9]"
+            className="rounded-full bg-blue px-4 py-2 text-sm font-medium text-on-ink transition hover:bg-blue-light"
           >
-            <span className="relative z-10">Get started</span>
-            <span className="absolute inset-0 -translate-x-full bg-[#3d2b23] transition-transform duration-300 group-hover:translate-x-0" />
+            Get started
           </Link>
         </nav>
       </div>
-    </motion.header>
+    </BlurFade>
   );
 }

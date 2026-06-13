@@ -52,24 +52,24 @@ export function HomeDashboard({ profile, events, stats, gmailConnected }: Props)
   const done = events.filter((e) => e.status === "done");
 
   return (
-    <main className="min-h-screen bg-[#f4f1e8] text-[#3d2b23]">
+    <main className="min-h-screen bg-[#F6F0E8] text-[#4A4E3C]">
       {/* Header */}
-      <header className="sticky top-0 z-30 border-b border-[#e5e0cf] bg-[#f4f1e8]/85 backdrop-blur-xl">
+      <header className="sticky top-0 z-30 border-b border-[#D4D6C0] bg-[#F6F0E8]/85 backdrop-blur-xl">
         <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-4">
           <Link
             href="/home"
-            className="font-[family-name:var(--font-fraunces)] text-[22px] font-semibold tracking-[-0.55px] text-[#ac5239]"
+            className="font-[family-name:var(--font-fraunces)] text-[22px] font-semibold tracking-[-0.55px] text-[#4A4E3C]"
           >
             kalas
           </Link>
           <nav className="flex items-center gap-1">
-            <Link href="/events" className="rounded-full px-3.5 py-2 text-sm text-[#5c4a3d] transition hover:bg-[#ece8db]">
-              Events
+            <Link href="/events" className="rounded-full px-3.5 py-2 text-sm text-[#656952] transition hover:bg-[#ece8db]">
+              Weddings
             </Link>
-            <Link href="/settings" className="rounded-full px-3.5 py-2 text-sm text-[#5c4a3d] transition hover:bg-[#ece8db]">
+            <Link href="/settings" className="rounded-full px-3.5 py-2 text-sm text-[#656952] transition hover:bg-[#ece8db]">
               Settings
             </Link>
-            <span className="ml-1 flex h-9 w-9 items-center justify-center rounded-full border border-[#dfd9c6] bg-[#fdfbf4] text-lg">
+            <span className="ml-1 flex h-9 w-9 items-center justify-center rounded-full border border-[#D4D6C0] bg-[#F6F0E8] text-lg">
               {profile.accent}
             </span>
           </nav>
@@ -86,8 +86,8 @@ export function HomeDashboard({ profile, events, stats, gmailConnected }: Props)
           <h1 className="font-[family-name:var(--font-fraunces)] text-4xl font-semibold tracking-[-0.9px] sm:text-5xl">
             {greeting()}, {firstName}.
           </h1>
-          <p className="mt-2 text-[15px] text-[#7a6b5c]">
-            What are we celebrating{profile.home_city ? ` in ${profile.home_city}` : ""}?
+          <p className="mt-2 text-[15px] text-[#7A8066]">
+            Where are you in the wedding planning{profile.home_city ? ` — ${profile.home_city}` : ""}?
           </p>
         </motion.div>
 
@@ -96,19 +96,19 @@ export function HomeDashboard({ profile, events, stats, gmailConnected }: Props)
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.08 }}
-          className="mt-7 rounded-3xl border border-[#dfd9c6] bg-[#fdfbf4] p-5 shadow-[0px_4px_20px_rgba(61,43,35,0.05)]"
+          className="mt-7 rounded-3xl border border-[#D4D6C0] bg-[#F6F0E8] p-5 shadow-[0px_4px_20px_rgba(74,78,60,0.05)]"
         >
-          <div className="flex items-center gap-2 rounded-2xl border border-[#e5e0cf] bg-[#f4f1e8] px-4 py-3">
+          <div className="flex items-center gap-2 rounded-2xl border border-[#D4D6C0] bg-[#F6F0E8] px-4 py-3">
             <input
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && start(prompt)}
-              placeholder="Describe your event — “50th birthday in Copenhagen for 80 people”"
-              className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[#9a8a77]"
+              placeholder='Describe your wedding — "Garden ceremony in Copenhagen for 120 guests"'
+              className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[#8a8568]"
             />
             <button
               onClick={() => start(prompt)}
-              className="shrink-0 rounded-xl bg-[#ac5239] px-4 py-2 text-sm font-medium text-[#f8f4e9] shadow-[0px_3px_10px_rgba(172,82,57,0.3)] transition hover:bg-[#96462f]"
+              className="shrink-0 rounded-xl bg-[#4A4E3C] px-4 py-2 text-sm font-medium text-[#F6F0E8] shadow-[0px_3px_10px_rgba(74,78,60,0.3)] transition hover:bg-[#575B47]"
             >
               Start →
             </button>
@@ -124,8 +124,8 @@ export function HomeDashboard({ profile, events, stats, gmailConnected }: Props)
                 onClick={() => start(t.prompt)}
                 className={`flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-[13px] font-medium transition ${
                   favored.includes(t.key)
-                    ? "border-[#ac5239]/40 bg-[#f0e4dd] text-[#ac5239]"
-                    : "border-[#dfd9c6] bg-[#fdfbf4] text-[#5c4a3d] hover:border-[#cfc8b2]"
+                    ? "border-[#4A4E3C]/40 bg-[#c2b280] text-[#4A4E3C]"
+                    : "border-[#D4D6C0] bg-[#F6F0E8] text-[#656952] hover:border-[#C4C8AE]"
                 }`}
               >
                 <span>{t.emoji}</span> {t.label}
@@ -143,11 +143,11 @@ export function HomeDashboard({ profile, events, stats, gmailConnected }: Props)
             className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#e6c4bc] bg-[#f7ebe5] px-5 py-3.5"
           >
             <p className="text-sm text-[#a8483a]">
-              Connect Gmail so Kalas can email venues and gather quotes for you.
+              Connect Gmail so Kalas can email wedding venues and gather quotes for you.
             </p>
             <Link
               href="/settings"
-              className="shrink-0 rounded-full bg-[#ac5239] px-4 py-2 text-xs font-medium text-[#f8f4e9] transition hover:bg-[#96462f]"
+              className="shrink-0 rounded-full bg-[#4A4E3C] px-4 py-2 text-xs font-medium text-[#F6F0E8] transition hover:bg-[#575B47]"
             >
               Connect Gmail
             </Link>
@@ -156,7 +156,7 @@ export function HomeDashboard({ profile, events, stats, gmailConnected }: Props)
 
         {/* Stats */}
         <div className="mt-8 grid grid-cols-3 gap-4">
-          <Stat label="Events planned" value={events.length} emoji="🗓️" delay={0.15} />
+          <Stat label="Weddings planned" value={events.length} emoji="💍" delay={0.15} />
           <Stat label="Venues liked" value={stats.venuesLiked} emoji="❤️" delay={0.22} />
           <Stat label="Quotes in" value={stats.quotesIn} emoji="📊" delay={0.29} />
         </div>
@@ -165,10 +165,10 @@ export function HomeDashboard({ profile, events, stats, gmailConnected }: Props)
         <section className="mt-10">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="font-[family-name:var(--font-fraunces)] text-xl font-semibold tracking-[-0.4px]">
-              {active.length > 0 ? "In progress" : "Your events"}
+              {active.length > 0 ? "In progress" : "Your weddings"}
             </h2>
             {events.length > 0 && (
-              <Link href="/events" className="text-sm text-[#7a6b5c] hover:text-[#3d2b23]">
+              <Link href="/events" className="text-sm text-[#7A8066] hover:text-[#4A4E3C]">
                 View all →
               </Link>
             )}
@@ -186,7 +186,7 @@ export function HomeDashboard({ profile, events, stats, gmailConnected }: Props)
 
           {active.length > 0 && done.length > 0 && (
             <>
-              <h3 className="mb-4 mt-10 text-sm font-medium uppercase tracking-[1px] text-[#9a8a77]">
+              <h3 className="mb-4 mt-10 text-sm font-medium uppercase tracking-[1px] text-[#8a8568]">
                 Wrapped up
               </h3>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -218,13 +218,13 @@ function Stat({
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay }}
-      className="rounded-2xl border border-[#dfd9c6] bg-[#fdfbf4] p-5"
+      className="rounded-2xl border border-[#D4D6C0] bg-[#F6F0E8] p-5"
     >
       <div className="text-xl">{emoji}</div>
-      <div className="mt-2 font-[family-name:var(--font-fraunces)] text-3xl font-semibold tracking-[-0.5px] text-[#3d2b23]">
+      <div className="mt-2 font-[family-name:var(--font-fraunces)] text-3xl font-semibold tracking-[-0.5px] text-[#4A4E3C]">
         <CountUp value={value} />
       </div>
-      <div className="mt-0.5 text-xs text-[#9a8a77]">{label}</div>
+      <div className="mt-0.5 text-xs text-[#8a8568]">{label}</div>
     </motion.div>
   );
 }
@@ -254,22 +254,22 @@ function EventCard({ event, delay }: { event: EventRow; delay: number }) {
     >
       <Link
         href={`/events/${event.id}`}
-        className="block rounded-2xl border border-[#dfd9c6] bg-[#fdfbf4] p-5 transition-shadow hover:shadow-[0px_16px_40px_-20px_rgba(61,43,35,0.3)]"
+        className="block rounded-2xl border border-[#D4D6C0] bg-[#F6F0E8] p-5 transition-shadow hover:shadow-[0px_16px_40px_-20px_rgba(74,78,60,0.3)]"
       >
         <div className="flex items-start justify-between gap-3">
-          <h3 className="font-[family-name:var(--font-fraunces)] text-lg font-semibold tracking-[-0.3px] text-[#3d2b23]">
+          <h3 className="font-[family-name:var(--font-fraunces)] text-lg font-semibold tracking-[-0.3px] text-[#4A4E3C]">
             {event.title}
           </h3>
           <StatusChip status={event.status} />
         </div>
-        <p className="mt-1 text-xs text-[#9a8a77]">
+        <p className="mt-1 text-xs text-[#8a8568]">
           {[event.location, event.guest_count && `${event.guest_count} guests`, event.event_date]
             .filter(Boolean)
             .join(" · ") || "Details pending"}
         </p>
         <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-[#ece8db]">
           <motion.div
-            className="h-full rounded-full bg-[#ac5239]"
+            className="h-full rounded-full bg-[#4A4E3C]"
             initial={{ width: 0 }}
             animate={{ width: `${pct}%` }}
             transition={{ duration: 0.8, delay: delay + 0.2, ease: [0.22, 1, 0.36, 1] }}
@@ -286,25 +286,25 @@ function EmptyState({ onStart }: { onStart: () => void }) {
       initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.5 }}
-      className="rounded-3xl border border-dashed border-[#cfc8b2] bg-[#fdfbf4]/60 p-12 text-center"
+      className="rounded-3xl border border-dashed border-[#C4C8AE] bg-[#F6F0E8]/60 p-12 text-center"
     >
       <motion.div
         animate={{ rotate: [0, 12, -8, 0] }}
         transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
         className="text-4xl"
       >
-        🎉
+        💍
       </motion.div>
-      <p className="mt-4 font-[family-name:var(--font-fraunces)] text-xl font-semibold text-[#3d2b23]">
-        Let&apos;s plan your first event
+      <p className="mt-4 font-[family-name:var(--font-fraunces)] text-xl font-semibold text-[#4A4E3C]">
+        Let&apos;s plan your wedding
       </p>
-      <p className="mx-auto mt-2 max-w-sm text-sm text-[#7a6b5c]">
-        Pick a template above or just tell Kalas what you&apos;re celebrating — it
+      <p className="mx-auto mt-2 max-w-sm text-sm text-[#7A8066]">
+        Pick a template above or tell Kalas about your wedding — it
         takes it from there.
       </p>
       <button
         onClick={onStart}
-        className="mt-6 rounded-full bg-[#ac5239] px-6 py-3 text-sm font-medium text-[#f8f4e9] shadow-[0px_3px_10px_rgba(172,82,57,0.3)] transition hover:bg-[#96462f]"
+        className="mt-6 rounded-full bg-[#4A4E3C] px-6 py-3 text-sm font-medium text-[#F6F0E8] shadow-[0px_3px_10px_rgba(74,78,60,0.3)] transition hover:bg-[#575B47]"
       >
         Start planning
       </button>

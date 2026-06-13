@@ -29,12 +29,12 @@ export function FeaturedVenueDeck({ messageId, venues, onSwipe, onFinished }: Pr
 
   if (pending.length === 0) {
     return (
-      <div className="flex flex-1 items-center justify-center rounded-3xl border border-[#dfd9c6] bg-[#fdfbf4] p-8 text-center">
+      <div className="flex flex-1 items-center justify-center rounded-3xl border border-[#D4D6C0] bg-[#F6F0E8] p-8 text-center">
         <div>
-          <p className="font-[family-name:var(--font-fraunces)] text-lg font-semibold text-[#3d2b23]">
+          <p className="font-[family-name:var(--font-fraunces)] text-lg font-semibold text-[#4A4E3C]">
             All venues reviewed
           </p>
-          <p className="mt-2 text-sm text-[#7a6b5c]">
+          <p className="mt-2 text-sm text-[#7A8066]">
             {liked} liked · {rejected} passed — ask kalas to draft your quote email.
           </p>
         </div>
@@ -102,29 +102,29 @@ function FeaturedCard({
     >
       <motion.div
         style={{ opacity: likeOpacity }}
-        className="absolute left-6 top-6 z-10 rotate-[-8deg] rounded-md border-2 border-[#ac5239] px-3 py-1 text-lg font-bold text-[#ac5239]"
+        className="absolute left-6 top-6 z-10 rotate-[-8deg] rounded-md border-2 border-[#4A4E3C] px-3 py-1 text-lg font-bold text-[#4A4E3C]"
       >
         LIKE
       </motion.div>
       <motion.div
         style={{ opacity: nopeOpacity }}
-        className="absolute right-6 top-6 z-10 rotate-[8deg] rounded-md border-2 border-[#7a6b5c] px-3 py-1 text-lg font-bold text-[#7a6b5c]"
+        className="absolute right-6 top-6 z-10 rotate-[8deg] rounded-md border-2 border-[#7A8066] px-3 py-1 text-lg font-bold text-[#7A8066]"
       >
         PASS
       </motion.div>
 
-      <div className="flex h-full flex-col overflow-hidden rounded-3xl border border-[#dfd9c6] bg-[#fdfbf4] shadow-[0px_4px_12px_rgba(61,43,35,0.07),0px_16px_40px_rgba(61,43,35,0.08)]">
+      <div className="flex h-full flex-col overflow-hidden rounded-3xl border border-[#D4D6C0] bg-[#F6F0E8] shadow-[0px_4px_12px_rgba(74,78,60,0.07),0px_16px_40px_rgba(74,78,60,0.08)]">
         <div
           className={`relative h-[280px] shrink-0 bg-cover bg-center bg-no-repeat ${
-            venue.image_url ? "" : "bg-gradient-to-br from-[#d4cbb8] via-[#e8e2d4] to-[#cfc8b2]"
+            venue.image_url ? "" : "bg-gradient-to-br from-[#d4cbb8] via-[#e8e2d4] to-[#C4C8AE]"
           }`}
           style={venue.image_url ? { backgroundImage: `url('${venue.image_url}')` } : undefined}
         >
-          <div className="absolute left-4 top-4 flex h-7 items-center rounded-full bg-[#ac5239] px-3">
-            <span className="text-xs font-semibold text-[#f8f4e9]">On your board</span>
+          <div className="absolute left-4 top-4 flex h-7 items-center rounded-full bg-[#4A4E3C] px-3">
+            <span className="text-xs font-semibold text-[#F6F0E8]">On your board</span>
           </div>
           <div className="absolute right-4 top-4 flex h-6 items-center rounded-full bg-[#2218128c] px-2.5">
-            <span className="text-[11.5px] font-medium text-[#f8f4e9]">
+            <span className="text-[11.5px] font-medium text-[#F6F0E8]">
               {index} / {total}
             </span>
           </div>
@@ -133,17 +133,17 @@ function FeaturedCard({
         <div className="flex flex-1 flex-col gap-3 p-[22px]">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <h3 className="font-[family-name:var(--font-fraunces)] text-[22px] font-semibold tracking-[-0.55px] text-[#3d2b23]">
+              <h3 className="font-[family-name:var(--font-fraunces)] text-[22px] font-semibold tracking-[-0.55px] text-[#4A4E3C]">
                 {venue.name}
               </h3>
               {venue.address && (
-                <p className="mt-1 flex items-center gap-1 text-[13px] text-[#7a6b5c]">
+                <p className="mt-1 flex items-center gap-1 text-[13px] text-[#7A8066]">
                   <svg
                     stroke="currentColor"
                     fill="none"
                     strokeWidth="2"
                     viewBox="0 0 24 24"
-                    className="size-[13px] shrink-0 text-[#9a8a77]"
+                    className="size-[13px] shrink-0 text-[#8a8568]"
                   >
                     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                     <circle cx="12" cy="10" r="3" />
@@ -158,7 +158,7 @@ function FeaturedCard({
                 target="_blank"
                 rel="noopener noreferrer"
                 onPointerDownCapture={(e) => e.stopPropagation()}
-                className="flex h-8 shrink-0 items-center gap-1.5 rounded-[10px] border border-[#e5e0cf] px-3 text-[12.5px] font-medium text-[#5c4a3d] transition hover:bg-[#f0ede0]"
+                className="flex h-8 shrink-0 items-center gap-1.5 rounded-[10px] border border-[#D4D6C0] px-3 text-[12.5px] font-medium text-[#656952] transition hover:bg-[#ddd6c0]"
               >
                 Website
               </a>
@@ -170,7 +170,7 @@ function FeaturedCard({
               {chips.map((chip) => (
                 <span
                   key={chip}
-                  className="flex h-7 items-center rounded-full border border-[#e5e0cf] bg-[#f0ede0] px-3 text-xs font-medium text-[#5c4a3d]"
+                  className="flex h-7 items-center rounded-full border border-[#D4D6C0] bg-[#ddd6c0] px-3 text-xs font-medium text-[#656952]"
                 >
                   {chip}
                 </span>
@@ -179,7 +179,7 @@ function FeaturedCard({
           )}
 
           {venue.description && (
-            <p className="line-clamp-3 text-[13.5px] leading-[1.6] text-[#5c4a3d]">
+            <p className="line-clamp-3 text-[13.5px] leading-[1.6] text-[#656952]">
               {venue.description}
             </p>
           )}
@@ -189,7 +189,7 @@ function FeaturedCard({
               type="button"
               aria-label="Pass venue"
               onClick={() => onDecide("rejected")}
-              className="flex size-14 items-center justify-center rounded-full border border-[#dfd9c6] bg-[#fdfbf4] text-[#7a6b5c] shadow-[0px_2px_8px_rgba(61,43,35,0.08)] transition hover:scale-105"
+              className="flex size-14 items-center justify-center rounded-full border border-[#D4D6C0] bg-[#F6F0E8] text-[#7A8066] shadow-[0px_2px_8px_rgba(74,78,60,0.08)] transition hover:scale-105"
             >
               <svg
                 stroke="currentColor"
@@ -206,7 +206,7 @@ function FeaturedCard({
               type="button"
               aria-label="Like venue"
               onClick={() => onDecide("liked")}
-              className="flex size-16 items-center justify-center rounded-full bg-[#ac5239] text-[#f8f4e9] shadow-[0px_4px_14px_rgba(172,82,57,0.35)] transition hover:scale-105"
+              className="flex size-16 items-center justify-center rounded-full bg-[#4A4E3C] text-[#F6F0E8] shadow-[0px_4px_14px_rgba(74,78,60,0.35)] transition hover:scale-105"
             >
               <svg
                 stroke="currentColor"
