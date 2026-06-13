@@ -52,8 +52,7 @@ monitors the replies and extracts quotes automatically.
    user); scopes: `gmail.send`, `gmail.readonly`, `openid`, `email`, `profile`.
 3. Create an **OAuth 2.0 Client ID** (Web application) with redirect URIs:
    - `https://<project-ref>.supabase.co/auth/v1/callback` (app login)
-   - `http://localhost:3000/api/gmail/callback` (Gmail connect, dev)
-   - `https://<your-domain>/api/gmail/callback` (Gmail connect, prod)
+   - `https://<your-app-url>/api/gmail/callback` (Gmail connect)
 
 ### 3. Gemini
 
