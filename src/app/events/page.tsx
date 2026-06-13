@@ -21,12 +21,15 @@ export default async function EventsPage() {
     <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-10">
       <div className="mb-8 flex items-center justify-between">
         <Link
-          href="/"
+          href="/home"
           className="font-[family-name:var(--font-fraunces)] text-[22px] font-semibold tracking-[-0.55px] text-[#ac5239]"
         >
           kalas
         </Link>
         <div className="flex items-center gap-4">
+          <Link href="/home" className="text-sm text-[#7a6b5c] hover:text-[#3d2b23]">
+            Home
+          </Link>
           <Link href="/settings" className="text-sm text-[#7a6b5c] hover:text-[#3d2b23]">
             Settings
           </Link>

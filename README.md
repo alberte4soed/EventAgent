@@ -37,7 +37,8 @@ monitors the replies and extracts quotes automatically.
 ### 1. Supabase
 
 1. Create a project at [supabase.com](https://supabase.com).
-2. Run `supabase/migrations/0001_init.sql` in the SQL editor.
+2. Run the SQL migrations in `supabase/migrations/` in order
+   (`0001_init.sql`, then `0002_profiles.sql`) in the SQL editor.
 3. Note the project URL, anon key and service-role key (Settings → API).
 4. Enable the **Google** auth provider (Authentication → Providers) using the
    OAuth client from step 2 below, and add your site URL(s) under

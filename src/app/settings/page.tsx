@@ -23,8 +23,8 @@ export default async function SettingsPage({
         <h1 className="font-[family-name:var(--font-fraunces)] text-3xl font-semibold tracking-[-0.6px] text-[#3d2b23]">
           Settings
         </h1>
-        <Link href="/events" className="text-sm text-[#7a6b5c] hover:text-[#3d2b23]">
-          ← Back to events
+        <Link href="/home" className="text-sm text-[#7a6b5c] hover:text-[#3d2b23]">
+          ← Back home
         </Link>
       </div>
 

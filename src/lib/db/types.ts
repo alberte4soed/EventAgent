@@ -117,6 +117,17 @@ export interface EmailReplyRow {
   created_at: string;
 }
 
+export interface ProfileRow {
+  user_id: string;
+  display_name: string | null;
+  home_city: string | null;
+  event_interests: string[];
+  accent: string;
+  onboarded: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface GoogleTokensRow {
   user_id: string;
   google_email: string | null;

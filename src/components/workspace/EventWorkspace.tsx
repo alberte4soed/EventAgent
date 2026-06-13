@@ -23,6 +23,7 @@ interface Props {
   initialOutbound: OutboundEmailRow[];
   initialReplies: EmailReplyRow[];
   gmailConnected: boolean;
+  initialPrompt?: string | null;
 }
 
 function upsertById<T extends { id: string }>(rows: T[], row: T): T[] {
@@ -41,6 +42,7 @@ export function EventWorkspace({
   initialOutbound,
   initialReplies,
   gmailConnected,
+  initialPrompt = null,
 }: Props) {
   const supabase = useMemo(() => createClient(), []);
   const [event, setEvent] = useState<EventRow | null>(initialEvent);
@@ -175,6 +177,15 @@ export function EventWorkspace({
     },
     [agentStatus, refreshEvent, refreshSideData]
   );
+
+  // Auto-send a quick-start prompt (from the home dashboard) exactly once.
+  const firedInitialRef = useRef(false);
+  useEffect(() => {
+    if (initialPrompt && !firedInitialRef.current && messages.length === 0) {
+      firedInitialRef.current = true;
+      sendMessage(initialPrompt);
+    }
+  }, [initialPrompt, messages.length, sendMessage]);
 
   // ── Swipes ───────────────────────────────────────────────────────────
   const swipedDecksRef = useRef<Set<string>>(new Set());
