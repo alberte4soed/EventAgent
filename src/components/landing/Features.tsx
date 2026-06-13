@@ -7,13 +7,13 @@ const features = [
     emoji: "🔎",
     title: "Finds the right places",
     body: "Describe your event in plain words. Kalas searches the live web for real venues that fit your size, city and vibe — with photos, not just links.",
-    tint: "#e8efe3",
+    tint: "#f0e4dd",
   },
   {
     emoji: "✉️",
     title: "Reaches out for you",
     body: "Approve one message and it emails every venue you liked from your own Gmail — personalised, polite, and signed by you.",
-    tint: "#f3e2d6",
+    tint: "#f3ecd6",
   },
   {
     emoji: "📊",
@@ -25,13 +25,13 @@ const features = [
     emoji: "🤝",
     title: "Coordinates with you",
     body: "It chats through trade-offs, nudges slow venues, and helps you land on the one that's right — no spreadsheet, no phone tag.",
-    tint: "#f1e6ef",
+    tint: "#efe2ee",
   },
   {
     emoji: "💌",
     title: "Designs the invites",
     body: "Once you've picked a place, Kalas drafts beautiful invitations matched to your event and sends them to your guest list.",
-    tint: "#f3ecd6",
+    tint: "#e0dac7",
   },
   {
     emoji: "✅",
@@ -51,12 +51,12 @@ export function Features() {
         transition={{ duration: 0.6 }}
         className="mx-auto max-w-2xl text-center"
       >
-        <p className="text-xs font-medium uppercase tracking-[0.25em] text-[#7c8a76]">
+        <p className="text-[11px] font-medium uppercase tracking-[1.5px] text-[#ac5239]">
           One agent, the whole party
         </p>
-        <h2 className="mt-4 text-4xl font-medium tracking-tight sm:text-5xl">
+        <h2 className="mt-4 font-[family-name:var(--font-fraunces)] text-4xl font-semibold tracking-[-0.8px] text-[#3d2b23] sm:text-5xl">
           Everything an event needs —{" "}
-          <span className="text-stone-300">handled.</span>
+          <span className="text-[#c9bda4]">handled.</span>
         </h2>
       </motion.div>
 
@@ -69,7 +69,7 @@ export function Features() {
             viewport={{ once: true, margin: "-60px" }}
             transition={{ duration: 0.5, delay: (i % 3) * 0.1 }}
             whileHover={{ y: -6 }}
-            className="group rounded-3xl border border-stone-200 bg-white p-7 transition-shadow hover:shadow-[0_20px_50px_-24px_rgba(40,38,34,0.3)]"
+            className="group rounded-3xl border border-[#dfd9c6] bg-[#fdfbf4] p-7 transition-shadow hover:shadow-[0_20px_50px_-24px_rgba(61,43,35,0.3)]"
           >
             <div
               className="flex h-14 w-14 items-center justify-center rounded-2xl text-2xl transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6"
@@ -77,8 +77,10 @@ export function Features() {
             >
               {f.emoji}
             </div>
-            <h3 className="mt-5 text-lg font-medium tracking-tight">{f.title}</h3>
-            <p className="mt-2 text-sm leading-relaxed text-stone-500">{f.body}</p>
+            <h3 className="mt-5 font-[family-name:var(--font-fraunces)] text-lg font-semibold tracking-[-0.3px] text-[#3d2b23]">
+              {f.title}
+            </h3>
+            <p className="mt-2 text-sm leading-relaxed text-[#7a6b5c]">{f.body}</p>
           </motion.div>
         ))}
       </div>

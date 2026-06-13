@@ -27,7 +27,7 @@ const steps = [
 
 export function HowItWorks() {
   return (
-    <section className="bg-white">
+    <section className="bg-[#fdfbf4]">
       <div className="mx-auto w-full max-w-5xl px-6 py-24">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -36,17 +36,17 @@ export function HowItWorks() {
           transition={{ duration: 0.6 }}
           className="max-w-2xl"
         >
-          <p className="text-xs font-medium uppercase tracking-[0.25em] text-[#7c8a76]">
+          <p className="text-[11px] font-medium uppercase tracking-[1.5px] text-[#ac5239]">
             From idea to invitation
           </p>
-          <h2 className="mt-4 text-4xl font-medium tracking-tight sm:text-5xl">
+          <h2 className="mt-4 font-[family-name:var(--font-fraunces)] text-4xl font-semibold tracking-[-0.8px] text-[#3d2b23] sm:text-5xl">
             Four steps. Mostly yours to skip.
           </h2>
         </motion.div>
 
         <div className="relative mt-16">
           {/* Vertical line */}
-          <div className="absolute left-[27px] top-2 bottom-2 w-px bg-stone-200 sm:left-1/2" />
+          <div className="absolute left-[27px] top-2 bottom-2 w-px bg-[#e5e0cf] sm:left-1/2" />
           <div className="space-y-12">
             {steps.map((s, i) => (
               <motion.div
@@ -65,13 +65,15 @@ export function HowItWorks() {
                   whileInView={{ scale: [0.6, 1.15, 1] }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.5 }}
-                  className="z-10 flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-stone-200 bg-[#faf9f6] text-sm font-semibold text-[#7c8a76] sm:absolute sm:left-1/2 sm:-translate-x-1/2"
+                  className="z-10 flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-[#e5e0cf] bg-[#f4f1e8] font-[family-name:var(--font-fraunces)] text-sm font-semibold text-[#ac5239] sm:absolute sm:left-1/2 sm:-translate-x-1/2"
                 >
                   {s.n}
                 </motion.div>
                 <div>
-                  <h3 className="text-xl font-medium tracking-tight">{s.title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-stone-500">{s.body}</p>
+                  <h3 className="font-[family-name:var(--font-fraunces)] text-xl font-semibold tracking-[-0.4px] text-[#3d2b23]">
+                    {s.title}
+                  </h3>
+                  <p className="mt-2 text-sm leading-relaxed text-[#7a6b5c]">{s.body}</p>
                 </div>
               </motion.div>
             ))}

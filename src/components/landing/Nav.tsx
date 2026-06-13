@@ -19,26 +19,29 @@ export function Nav() {
       <div
         className={`mx-auto mt-3 flex w-[min(64rem,calc(100%-1.5rem))] items-center justify-between rounded-full px-5 py-2.5 transition-all duration-300 ${
           scrolled
-            ? "border border-stone-200 bg-white/80 shadow-[0_8px_30px_rgba(40,38,34,0.06)] backdrop-blur-xl"
+            ? "border border-[#e5e0cf] bg-[#fdfbf4]/80 shadow-[0_8px_30px_rgba(61,43,35,0.06)] backdrop-blur-xl"
             : "border border-transparent"
         }`}
       >
-        <Link href="/" className="flex items-center gap-2 text-lg font-semibold tracking-tight">
-          <span className="text-xl">🎉</span> kalas
+        <Link
+          href="/"
+          className="flex items-center gap-2 font-[family-name:var(--font-fraunces)] text-xl font-semibold tracking-[-0.5px] text-[#ac5239]"
+        >
+          <span>🎉</span> kalas
         </Link>
         <nav className="flex items-center gap-1.5">
           <Link
             href="/login"
-            className="rounded-full px-4 py-2 text-sm text-stone-600 transition hover:text-stone-900"
+            className="rounded-full px-4 py-2 text-sm text-[#5c4a3d] transition hover:text-[#3d2b23]"
           >
             Sign in
           </Link>
           <Link
             href="/login"
-            className="group relative overflow-hidden rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-stone-50"
+            className="group relative overflow-hidden rounded-full bg-[#ac5239] px-4 py-2 text-sm font-medium text-[#f8f4e9]"
           >
             <span className="relative z-10">Get started</span>
-            <span className="absolute inset-0 -translate-x-full bg-[#7c8a76] transition-transform duration-300 group-hover:translate-x-0" />
+            <span className="absolute inset-0 -translate-x-full bg-[#3d2b23] transition-transform duration-300 group-hover:translate-x-0" />
           </Link>
         </nav>
       </div>

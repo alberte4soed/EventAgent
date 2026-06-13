@@ -11,20 +11,20 @@ const stats = [
 export function ValueBand() {
   return (
     <section className="mx-auto w-full max-w-6xl px-6 py-20">
-      <div className="relative overflow-hidden rounded-[2rem] border border-stone-200 bg-[#7c8a76] px-8 py-14 text-center text-white">
-        {/* playful floating dots */}
+      <div className="relative overflow-hidden rounded-[2rem] border border-[#9c4631] bg-[#ac5239] px-8 py-14 text-center text-[#f8f4e9]">
+        {/* playful floating glyphs */}
         {[..."✶✦✶✦✶"].map((c, i) => (
           <motion.span
             key={i}
-            className="absolute select-none text-white/30"
+            className="absolute select-none text-[#f8f4e9]/25"
             style={{ left: `${12 + i * 18}%`, top: i % 2 ? "18%" : "64%", fontSize: 28 }}
-            animate={{ y: [0, -14, 0], opacity: [0.3, 0.7, 0.3] }}
+            animate={{ y: [0, -14, 0], opacity: [0.25, 0.6, 0.25] }}
             transition={{ duration: 4 + i, repeat: Infinity, ease: "easeInOut" }}
           >
             {c}
           </motion.span>
         ))}
-        <h2 className="relative text-3xl font-medium tracking-tight sm:text-4xl">
+        <h2 className="relative font-[family-name:var(--font-fraunces)] text-3xl font-semibold tracking-[-0.6px] sm:text-4xl">
           Best bang for your buck.
           <br className="hidden sm:block" /> Without lifting a finger.
         </h2>
@@ -37,10 +37,10 @@ export function ValueBand() {
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: i * 0.12 }}
             >
-              <div className="text-4xl font-semibold tracking-tight sm:text-5xl">
+              <div className="font-[family-name:var(--font-fraunces)] text-4xl font-semibold tracking-[-0.5px] sm:text-5xl">
                 {s.value}
               </div>
-              <div className="mt-2 text-sm text-white/80">{s.label}</div>
+              <div className="mt-2 text-sm text-[#f8f4e9]/80">{s.label}</div>
             </motion.div>
           ))}
         </div>

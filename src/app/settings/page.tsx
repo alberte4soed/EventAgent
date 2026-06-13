@@ -20,52 +20,56 @@ export default async function SettingsPage({
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-10">
       <div className="mb-8 flex items-center justify-between">
-        <h1 className="text-2xl font-medium tracking-tight">Settings</h1>
-        <Link href="/events" className="text-sm text-stone-500 hover:text-stone-900">
+        <h1 className="font-[family-name:var(--font-fraunces)] text-3xl font-semibold tracking-[-0.6px] text-[#3d2b23]">
+          Settings
+        </h1>
+        <Link href="/events" className="text-sm text-[#7a6b5c] hover:text-[#3d2b23]">
           ← Back to events
         </Link>
       </div>
 
       {params.connected && (
-        <div className="mb-6 rounded-xl border border-[#cdd6c8] bg-[#eef0ec] px-4 py-3 text-sm text-[#5e6b58]">
+        <div className="mb-6 rounded-xl border border-[#cdd9cf] bg-[#e3ece8] px-4 py-3 text-sm text-[#4d6b5c]">
           Gmail connected successfully.
         </div>
       )}
       {params.gmail_error && (
-        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="mb-6 rounded-xl border border-[#e6c4bc] bg-[#f0e0dc] px-4 py-3 text-sm text-[#a8483a]">
           Gmail connection failed ({params.gmail_error}). Please try again.
         </div>
       )}
 
-      <section className="rounded-2xl border border-stone-200 bg-white p-6">
-        <h2 className="text-lg font-medium">Gmail connection</h2>
-        <p className="mt-1 text-sm text-stone-500">
+      <section className="rounded-2xl border border-[#dfd9c6] bg-[#fdfbf4] p-6">
+        <h2 className="font-[family-name:var(--font-fraunces)] text-lg font-semibold text-[#3d2b23]">
+          Gmail connection
+        </h2>
+        <p className="mt-1 text-sm text-[#7a6b5c]">
           Kalas sends quote requests from your Gmail and reads replies to
           collect quotes. Scopes: send &amp; read only.
         </p>
-        <div className="mt-4 flex items-center justify-between rounded-xl border border-stone-200 bg-[#faf9f6] px-4 py-3">
+        <div className="mt-4 flex items-center justify-between rounded-xl border border-[#e5e0cf] bg-[#f4f1e8] px-4 py-3">
           {gmail.connected ? (
             <>
-              <div className="flex items-center gap-2 text-sm">
-                <span className="h-2 w-2 rounded-full bg-[#7c8a76]" />
+              <div className="flex items-center gap-2 text-sm text-[#3d2b23]">
+                <span className="h-2 w-2 rounded-full bg-[#ac5239]" />
                 Connected{gmail.email ? ` as ${gmail.email}` : ""}
               </div>
               <a
                 href="/api/gmail/connect"
-                className="rounded-full border border-stone-300 px-3 py-1.5 text-xs text-stone-600 hover:bg-stone-100"
+                className="rounded-full border border-[#dfd9c6] px-3 py-1.5 text-xs text-[#5c4a3d] hover:bg-[#f0ede0]"
               >
                 Reconnect
               </a>
             </>
           ) : (
             <>
-              <div className="flex items-center gap-2 text-sm text-stone-500">
-                <span className="h-2 w-2 rounded-full bg-stone-300" />
+              <div className="flex items-center gap-2 text-sm text-[#9a8a77]">
+                <span className="h-2 w-2 rounded-full bg-[#cfc8b2]" />
                 Not connected
               </div>
               <a
                 href="/api/gmail/connect"
-                className="rounded-full bg-stone-900 px-3 py-1.5 text-xs font-medium text-stone-50 hover:bg-stone-700"
+                className="rounded-full bg-[#ac5239] px-3 py-1.5 text-xs font-medium text-[#f8f4e9] hover:bg-[#96462f]"
               >
                 Connect Gmail
               </a>
@@ -74,9 +78,11 @@ export default async function SettingsPage({
         </div>
       </section>
 
-      <section className="mt-6 rounded-2xl border border-stone-200 bg-white p-6">
-        <h2 className="text-lg font-medium">Account</h2>
-        <p className="mt-1 text-sm text-stone-500">Signed in as {user.email}</p>
+      <section className="mt-6 rounded-2xl border border-[#dfd9c6] bg-[#fdfbf4] p-6">
+        <h2 className="font-[family-name:var(--font-fraunces)] text-lg font-semibold text-[#3d2b23]">
+          Account
+        </h2>
+        <p className="mt-1 text-sm text-[#7a6b5c]">Signed in as {user.email}</p>
       </section>
     </main>
   );

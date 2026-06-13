@@ -20,26 +20,31 @@ export default async function EventsPage() {
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-10">
       <div className="mb-8 flex items-center justify-between">
-        <Link href="/" className="text-lg font-semibold tracking-tight">
+        <Link
+          href="/"
+          className="font-[family-name:var(--font-fraunces)] text-[22px] font-semibold tracking-[-0.55px] text-[#ac5239]"
+        >
           kalas
         </Link>
         <div className="flex items-center gap-4">
-          <Link href="/settings" className="text-sm text-stone-500 hover:text-stone-900">
+          <Link href="/settings" className="text-sm text-[#7a6b5c] hover:text-[#3d2b23]">
             Settings
           </Link>
           <Link
             href="/events/new"
-            className="rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-stone-50 hover:bg-stone-700"
+            className="rounded-xl bg-[#ac5239] px-4 py-2 text-sm font-medium text-[#f8f4e9] shadow-[0px_3px_10px_rgba(172,82,57,0.3)] transition hover:bg-[#96462f]"
           >
             + Plan a new event
           </Link>
         </div>
       </div>
 
-      <h1 className="mb-6 text-2xl font-medium tracking-tight">Your events</h1>
+      <h1 className="mb-6 font-[family-name:var(--font-fraunces)] text-3xl font-semibold tracking-[-0.6px] text-[#3d2b23]">
+        Your events
+      </h1>
 
       {events.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-stone-300 bg-white/50 p-12 text-center text-stone-500">
+        <div className="rounded-2xl border border-dashed border-[#cfc8b2] bg-[#fdfbf4]/60 p-12 text-center text-[#7a6b5c]">
           <p className="text-3xl">🗓️</p>
           <p className="mt-3 text-sm">
             No events yet. Start a conversation and the agent will take it from there.
@@ -51,11 +56,11 @@ export default async function EventsPage() {
             <li key={event.id}>
               <Link
                 href={`/events/${event.id}`}
-                className="flex items-center justify-between rounded-2xl border border-stone-200 bg-white px-5 py-4 transition hover:border-stone-300"
+                className="flex items-center justify-between rounded-2xl border border-[#dfd9c6] bg-[#fdfbf4] px-5 py-4 transition hover:border-[#cfc8b2]"
               >
                 <div>
-                  <div className="font-medium">{event.title}</div>
-                  <div className="mt-0.5 text-xs text-stone-500">
+                  <div className="font-semibold text-[#3d2b23]">{event.title}</div>
+                  <div className="mt-0.5 text-xs text-[#9a8a77]">
                     {[event.location, event.guest_count && `${event.guest_count} guests`, event.event_date]
                       .filter(Boolean)
                       .join(" · ") || "Details pending"}

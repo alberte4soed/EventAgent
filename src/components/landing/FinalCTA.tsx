@@ -7,8 +7,8 @@ export function FinalCTA() {
   return (
     <section className="relative overflow-hidden px-6 py-28">
       <div className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute left-1/4 top-0 h-72 w-72 rounded-full bg-[#f3e2d6] blur-[110px]" />
-        <div className="absolute right-1/4 bottom-0 h-72 w-72 rounded-full bg-[#e8efe3] blur-[110px]" />
+        <div className="absolute left-1/4 top-0 h-72 w-72 rounded-full bg-[#f3ecd6] blur-[110px]" />
+        <div className="absolute right-1/4 bottom-0 h-72 w-72 rounded-full bg-[#f0e4dd] blur-[110px]" />
       </div>
 
       <motion.div
@@ -25,21 +25,21 @@ export function FinalCTA() {
         >
           🎉
         </motion.div>
-        <h2 className="text-4xl font-medium leading-tight tracking-tight sm:text-6xl">
+        <h2 className="font-[family-name:var(--font-fraunces)] text-4xl font-semibold leading-tight tracking-[-0.8px] text-[#3d2b23] sm:text-6xl">
           Your next celebration,
           <br />
-          <span className="text-[#7c8a76]">basically planned already.</span>
+          <span className="text-[#ac5239]">basically planned already.</span>
         </h2>
-        <p className="mx-auto mt-6 max-w-md text-lg text-stone-500">
+        <p className="mx-auto mt-6 max-w-md text-lg text-[#7a6b5c]">
           Sign in with Google and tell Kalas what you&apos;re celebrating. The first
           quotes can be in your inbox today.
         </p>
         <Link
           href="/login"
-          className="group relative mt-10 inline-flex overflow-hidden rounded-full bg-stone-900 px-10 py-4 text-sm font-medium text-stone-50"
+          className="group relative mt-10 inline-flex overflow-hidden rounded-full bg-[#ac5239] px-10 py-4 text-sm font-medium text-[#f8f4e9] shadow-[0px_4px_14px_rgba(172,82,57,0.3)]"
         >
           <span className="relative z-10">Start planning — it&apos;s free</span>
-          <span className="absolute inset-0 -translate-x-full bg-[#7c8a76] transition-transform duration-300 group-hover:translate-x-0" />
+          <span className="absolute inset-0 -translate-x-full bg-[#3d2b23] transition-transform duration-300 group-hover:translate-x-0" />
         </Link>
       </motion.div>
     </section>
