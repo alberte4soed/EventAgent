@@ -41,6 +41,9 @@ yarn-error.log*
 .netlify
 deploy-*.zip
 
+# local skill clone (not part of app)
+ui-ux-pro-max-skill/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
