@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Fraunces, Inter } from "next/font/google";
+import { Cormorant_Garamond, Fraunces, Hanken_Grotesk, Inter } from "next/font/google";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -9,6 +9,19 @@ const fraunces = Fraunces({
 
 const inter = Inter({
   variable: "--font-inter",
+  subsets: ["latin"],
+});
+
+// Kalas app typography (used inside .theme-kalas subtrees).
+const cormorant = Cormorant_Garamond({
+  variable: "--font-cormorant",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  style: ["normal", "italic"],
+});
+
+const hanken = Hanken_Grotesk({
+  variable: "--font-hanken",
   subsets: ["latin"],
 });
 
@@ -24,7 +37,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${fraunces.variable} ${inter.variable} h-full antialiased`}>
+    <html lang="en" className={`${fraunces.variable} ${inter.variable} ${cormorant.variable} ${hanken.variable} h-full antialiased`}>
       <body className="flex min-h-screen flex-col bg-cream font-[family-name:var(--font-inter)] text-ink">
         {children}
       </body>

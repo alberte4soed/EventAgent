@@ -32,7 +32,6 @@ export default async function proxy(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
   const isProtected =
-    pathname.startsWith("/events") ||
     pathname.startsWith("/settings") ||
     pathname.startsWith("/home") ||
     pathname.startsWith("/onboarding");
