@@ -2,6 +2,7 @@
 
 import type { ChatMessageRow, EmailDraftRow, VenueRow } from "@/lib/db/types";
 import { DraftApprovalCard } from "@/components/draft/DraftApprovalCard";
+import { InviteBriefCard } from "@/components/chat/InviteBriefCard";
 
 interface Props {
   message: ChatMessageRow;
@@ -97,6 +98,16 @@ export function MessageBubble({
             </div>
           );
         })()}
+
+      {message.payload?.kind === "invite_brief" && (
+        <div className="ml-10">
+          <InviteBriefCard
+            wording={message.payload.wording}
+            style={message.payload.style}
+            eventId={message.event_id}
+          />
+        </div>
+      )}
 
       {message.payload?.kind === "send_report" && (
         <div className="ml-10 flex gap-2 text-xs">

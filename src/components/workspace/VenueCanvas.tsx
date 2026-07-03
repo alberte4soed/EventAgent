@@ -13,6 +13,7 @@ interface Props {
   onSwipe: (venueId: string, decision: "liked" | "rejected") => void;
   onDeckFinished: (messageId: string, liked: number, rejected: number) => void;
   onOpenQuotes: () => void;
+  onChooseVenue?: (venueId: string) => void;
 }
 
 export function VenueCanvas({
@@ -24,6 +25,7 @@ export function VenueCanvas({
   onSwipe,
   onDeckFinished,
   onOpenQuotes,
+  onChooseVenue,
 }: Props) {
   const batchVenues = venues;
   const pending = batchVenues.filter((v) => v.swipe_status === "pending");
@@ -155,9 +157,17 @@ export function VenueCanvas({
                       <p className="truncate text-[13.5px] font-semibold text-[#4A4E3C]">
                         {venue.name}
                       </p>
-                      <p className="truncate text-[11.5px] text-[#8a8568]">
-                        {venue.capacity ? `${venue.capacity} capacity` : venue.address ?? "Venue"}
-                      </p>
+                      {venue.rating != null ? (
+                        <p className="truncate text-[11.5px] text-[#8a8568]">
+                          ★ {Number(venue.rating).toFixed(1)}
+                          {venue.review_count ? ` (${venue.review_count})` : ""}
+                          {venue.capacity ? ` · ${venue.capacity}` : ""}
+                        </p>
+                      ) : (
+                        <p className="truncate text-[11.5px] text-[#8a8568]">
+                          {venue.capacity ? `${venue.capacity} capacity` : venue.address ?? "Venue"}
+                        </p>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -174,28 +184,48 @@ export function VenueCanvas({
             <p className="text-[11.5px] text-[#8a8568]">Quotes go to these</p>
           </div>
           <div className="flex min-w-0 flex-1 items-center gap-2.5 overflow-x-auto">
-            {liked.map((venue) => (
-              <div
-                key={venue.id}
-                className="flex h-11 shrink-0 items-center gap-2.5 rounded-[14px] border border-[#D4D6C0] bg-[#F6F0E8] px-3.5"
-              >
-                <div className="flex size-6 items-center justify-center rounded-full bg-[#c2b280]">
-                  <svg
-                    stroke="#4A4E3C"
-                    fill="none"
-                    strokeWidth="2"
-                    viewBox="0 0 24 24"
-                    className="size-3"
-                  >
-                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                  </svg>
+            {liked.map((venue) => {
+              const isChosen = event?.chosen_venue_id === venue.id;
+              return (
+                <div
+                  key={venue.id}
+                  className={`flex h-11 shrink-0 items-center gap-2.5 rounded-[14px] border px-3.5 ${
+                    isChosen
+                      ? "border-[#4A4E3C] bg-[#c2b280]"
+                      : "border-[#D4D6C0] bg-[#F6F0E8]"
+                  }`}
+                >
+                  <div className="flex size-6 items-center justify-center rounded-full bg-[#c2b280]">
+                    <svg
+                      stroke="#4A4E3C"
+                      fill="none"
+                      strokeWidth="2"
+                      viewBox="0 0 24 24"
+                      className="size-3"
+                    >
+                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-[12.5px] font-semibold text-[#4A4E3C]">{venue.name}</p>
+                    {isChosen ? (
+                      <p className="text-[10.5px] font-medium text-[#4A4E3C]">Your venue 🎉</p>
+                    ) : (
+                      <p className="text-[10.5px] text-[#8a8568]">Shortlisted</p>
+                    )}
+                  </div>
+                  {!isChosen && !event?.chosen_venue_id && onChooseVenue && (
+                    <button
+                      type="button"
+                      onClick={() => onChooseVenue(venue.id)}
+                      className="ml-1 rounded-full border border-[#4A4E3C] px-2.5 py-1 text-[10.5px] font-medium text-[#4A4E3C] transition hover:bg-[#c2b280]"
+                    >
+                      Choose 🎉
+                    </button>
+                  )}
                 </div>
-                <div>
-                  <p className="text-[12.5px] font-semibold text-[#4A4E3C]">{venue.name}</p>
-                  <p className="text-[10.5px] text-[#8a8568]">Shortlisted</p>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
           {proposedDraft ? (
             <button

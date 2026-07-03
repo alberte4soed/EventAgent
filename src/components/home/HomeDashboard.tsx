@@ -7,12 +7,16 @@ import { animate, motion, useMotionValue } from "framer-motion";
 import type { EventRow, EventStatus, ProfileRow } from "@/lib/db/types";
 import { EVENT_TEMPLATES } from "@/lib/db/profile";
 import { StatusChip } from "@/components/ui/StatusChip";
+import { JourneyTimeline } from "@/components/home/JourneyTimeline";
+import type { JourneyExtras } from "@/lib/journey";
 
 interface Props {
   profile: ProfileRow;
   events: EventRow[];
   stats: { venuesLiked: number; quotesIn: number; emailsSent: number };
   gmailConnected: boolean;
+  activeEvent: EventRow | null;
+  activeExtras: JourneyExtras;
 }
 
 const PROGRESS: Record<EventStatus, number> = {
@@ -32,10 +36,33 @@ function greeting() {
   return "Good evening";
 }
 
-export function HomeDashboard({ profile, events, stats, gmailConnected }: Props) {
+function daysUntil(iso: string): number | null {
+  const target = new Date(`${iso}T00:00:00`);
+  if (Number.isNaN(target.getTime())) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.round((target.getTime() - today.getTime()) / 86_400_000);
+}
+
+export function HomeDashboard({
+  profile,
+  events,
+  stats,
+  gmailConnected,
+  activeEvent,
+  activeExtras,
+}: Props) {
   const router = useRouter();
   const [prompt, setPrompt] = useState("");
   const firstName = (profile.display_name ?? "").split(" ")[0] || "there";
+  const partnerFirst = (profile.partner_name ?? "").split(" ")[0] || null;
+
+  const countdown = activeEvent?.event_date ? daysUntil(activeEvent.event_date) : null;
+  const dateLine = activeEvent
+    ? countdown !== null && countdown >= 0
+      ? `${countdown} day${countdown === 1 ? "" : "s"} to go`
+      : activeEvent.date_hint ?? null
+    : null;
 
   // Favourite templates first, then the rest — capped for a tidy row.
   const favored = profile.event_interests ?? [];
@@ -77,62 +104,40 @@ export function HomeDashboard({ profile, events, stats, gmailConnected }: Props)
       </header>
 
       <div className="mx-auto w-full max-w-5xl px-6 py-10">
-        {/* Greeting */}
+        {/* Greeting / wedding hero */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <h1 className="font-[family-name:var(--font-fraunces)] text-4xl font-semibold tracking-[-0.9px] sm:text-5xl">
-            {greeting()}, {firstName}.
-          </h1>
-          <p className="mt-2 text-[15px] text-[#7A8066]">
-            Where are you in the wedding planning{profile.home_city ? ` — ${profile.home_city}` : ""}?
-          </p>
+          {activeEvent ? (
+            <>
+              <h1 className="font-[family-name:var(--font-fraunces)] text-4xl font-semibold tracking-[-0.9px] sm:text-5xl">
+                {partnerFirst ? `${firstName} & ${partnerFirst}` : `${greeting()}, ${firstName}`}
+              </h1>
+              <p className="mt-2 flex flex-wrap items-center gap-2 text-[15px] text-[#7A8066]">
+                {activeEvent.location && <span>{activeEvent.location}</span>}
+                {dateLine && (
+                  <span className="rounded-full bg-[#c2b280] px-3 py-1 text-xs font-semibold text-[#4A4E3C]">
+                    {dateLine}
+                  </span>
+                )}
+              </p>
+            </>
+          ) : (
+            <>
+              <h1 className="font-[family-name:var(--font-fraunces)] text-4xl font-semibold tracking-[-0.9px] sm:text-5xl">
+                {greeting()}, {firstName}.
+              </h1>
+              <p className="mt-2 text-[15px] text-[#7A8066]">
+                Where are you in the wedding planning{profile.home_city ? ` — ${profile.home_city}` : ""}?
+              </p>
+            </>
+          )}
         </motion.div>
 
-        {/* Quick-start */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.08 }}
-          className="mt-7 rounded-3xl border border-[#D4D6C0] bg-[#F6F0E8] p-5 shadow-[0px_4px_20px_rgba(74,78,60,0.05)]"
-        >
-          <div className="flex items-center gap-2 rounded-2xl border border-[#D4D6C0] bg-[#F6F0E8] px-4 py-3">
-            <input
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && start(prompt)}
-              placeholder='Describe your wedding — "Garden ceremony in Copenhagen for 120 guests"'
-              className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[#8a8568]"
-            />
-            <button
-              onClick={() => start(prompt)}
-              className="shrink-0 rounded-xl bg-[#4A4E3C] px-4 py-2 text-sm font-medium text-[#F6F0E8] shadow-[0px_3px_10px_rgba(74,78,60,0.3)] transition hover:bg-[#575B47]"
-            >
-              Start →
-            </button>
-          </div>
-          <div className="mt-3.5 flex flex-wrap gap-2">
-            {templates.map((t, i) => (
-              <motion.button
-                key={t.key}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.12 + i * 0.03 }}
-                whileHover={{ y: -2 }}
-                onClick={() => start(t.prompt)}
-                className={`flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-[13px] font-medium transition ${
-                  favored.includes(t.key)
-                    ? "border-[#4A4E3C]/40 bg-[#c2b280] text-[#4A4E3C]"
-                    : "border-[#D4D6C0] bg-[#F6F0E8] text-[#656952] hover:border-[#C4C8AE]"
-                }`}
-              >
-                <span>{t.emoji}</span> {t.label}
-              </motion.button>
-            ))}
-          </div>
-        </motion.div>
+        {/* Journey */}
+        {activeEvent && <JourneyTimeline event={activeEvent} extras={activeExtras} />}
 
         {/* Gmail nudge */}
         {!gmailConnected && (
@@ -152,6 +157,17 @@ export function HomeDashboard({ profile, events, stats, gmailConnected }: Props)
               Connect Gmail
             </Link>
           </motion.div>
+        )}
+
+        {/* Quick-start stays front and center only when no wedding is active */}
+        {!activeEvent && (
+          <QuickStart
+            templates={templates}
+            favored={favored}
+            prompt={prompt}
+            setPrompt={setPrompt}
+            onStart={start}
+          />
         )}
 
         {/* Stats */}
@@ -197,8 +213,82 @@ export function HomeDashboard({ profile, events, stats, gmailConnected }: Props)
             </>
           )}
         </section>
+
+        {/* Demoted quick-start when a wedding is already underway */}
+        {activeEvent && (
+          <section className="mt-12">
+            <h2 className="mb-4 font-[family-name:var(--font-fraunces)] text-xl font-semibold tracking-[-0.4px]">
+              Planning something else?
+            </h2>
+            <QuickStart
+              templates={templates}
+              favored={favored}
+              prompt={prompt}
+              setPrompt={setPrompt}
+              onStart={start}
+            />
+          </section>
+        )}
       </div>
     </main>
+  );
+}
+
+function QuickStart({
+  templates,
+  favored,
+  prompt,
+  setPrompt,
+  onStart,
+}: {
+  templates: (typeof EVENT_TEMPLATES)[number][];
+  favored: string[];
+  prompt: string;
+  setPrompt: (v: string) => void;
+  onStart: (text: string) => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: 0.08 }}
+      className="mt-7 rounded-3xl border border-[#D4D6C0] bg-[#F6F0E8] p-5 shadow-[0px_4px_20px_rgba(74,78,60,0.05)]"
+    >
+      <div className="flex items-center gap-2 rounded-2xl border border-[#D4D6C0] bg-[#F6F0E8] px-4 py-3">
+        <input
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && onStart(prompt)}
+          placeholder='Describe your wedding — "Garden ceremony in Copenhagen for 120 guests"'
+          className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[#8a8568]"
+        />
+        <button
+          onClick={() => onStart(prompt)}
+          className="shrink-0 rounded-xl bg-[#4A4E3C] px-4 py-2 text-sm font-medium text-[#F6F0E8] shadow-[0px_3px_10px_rgba(74,78,60,0.3)] transition hover:bg-[#575B47]"
+        >
+          Start →
+        </button>
+      </div>
+      <div className="mt-3.5 flex flex-wrap gap-2">
+        {templates.map((t, i) => (
+          <motion.button
+            key={t.key}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.12 + i * 0.03 }}
+            whileHover={{ y: -2 }}
+            onClick={() => onStart(t.prompt)}
+            className={`flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-[13px] font-medium transition ${
+              favored.includes(t.key)
+                ? "border-[#4A4E3C]/40 bg-[#c2b280] text-[#4A4E3C]"
+                : "border-[#D4D6C0] bg-[#F6F0E8] text-[#656952] hover:border-[#C4C8AE]"
+            }`}
+          >
+            <span>{t.emoji}</span> {t.label}
+          </motion.button>
+        ))}
+      </div>
+    </motion.div>
   );
 }
 

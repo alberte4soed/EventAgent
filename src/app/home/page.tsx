@@ -32,16 +32,59 @@ export default async function HomePage() {
     getGmailConnection(user.id),
   ]);
 
+  const allEvents = (events ?? []) as EventRow[];
+
+  // The journey hub follows the profile's active wedding, falling back to
+  // the most recent one still in flight.
+  const activeEvent =
+    allEvents.find((e) => e.id === profile.active_event_id) ??
+    allEvents.find((e) => e.status !== "done") ??
+    null;
+
+  let activeLiked = 0;
+  let activeQuotes = 0;
+  let inviteOrderStatus: string | null = null;
+  if (activeEvent) {
+    const [likedActive, quotesActive, orderRes] = await Promise.all([
+      supabase
+        .from("venues")
+        .select("id", { count: "exact", head: true })
+        .eq("event_id", activeEvent.id)
+        .eq("swipe_status", "liked"),
+      supabase
+        .from("email_replies")
+        .select("id", { count: "exact", head: true })
+        .eq("event_id", activeEvent.id)
+        .eq("quote_status", "quoted"),
+      supabase
+        .from("invite_orders")
+        .select("status")
+        .eq("event_id", activeEvent.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+    activeLiked = likedActive.count ?? 0;
+    activeQuotes = quotesActive.count ?? 0;
+    inviteOrderStatus = (orderRes.data?.status as string | undefined) ?? null;
+  }
+
   return (
     <HomeDashboard
       profile={profile}
-      events={(events ?? []) as EventRow[]}
+      events={allEvents}
       stats={{
         venuesLiked: likedRes.count ?? 0,
         quotesIn: quotedRes.count ?? 0,
         emailsSent: sentRes.count ?? 0,
       }}
       gmailConnected={gmail.connected}
+      activeEvent={activeEvent}
+      activeExtras={{
+        likedVenues: activeLiked,
+        quotesIn: activeQuotes,
+        inviteOrderStatus,
+      }}
     />
   );
 }

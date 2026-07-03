@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useMotionValue, useTransform } from "framer-motion";
 import type { VenueRow } from "@/lib/db/types";
+import { RatingStars } from "@/components/ui/RatingStars";
+import { CATEGORY_META } from "@/lib/journey";
 
 interface Props {
   messageId: string;
@@ -77,10 +79,23 @@ function FeaturedCard({
   const likeOpacity = useTransform(x, [40, 140], [0, 1]);
   const nopeOpacity = useTransform(x, [-140, -40], [1, 0]);
   const [exitX, setExitX] = useState(0);
+  const [photoIdx, setPhotoIdx] = useState(0);
+
+  const photos =
+    venue.photo_urls?.length > 0
+      ? venue.photo_urls
+      : venue.image_url
+        ? [venue.image_url]
+        : [];
+  const photo = photos[Math.min(photoIdx, photos.length - 1)] ?? null;
 
   const chips = [venue.capacity && `${venue.capacity}`, venue.price_hint].filter(
     Boolean
   ) as string[];
+
+  const review = venue.reviews?.find((r) => r.text);
+  const categoryMeta =
+    venue.category && venue.category !== "venue" ? CATEGORY_META[venue.category] : null;
 
   return (
     <motion.div
@@ -116,18 +131,36 @@ function FeaturedCard({
       <div className="flex h-full flex-col overflow-hidden rounded-3xl border border-[#D4D6C0] bg-[#F6F0E8] shadow-[0px_4px_12px_rgba(74,78,60,0.07),0px_16px_40px_rgba(74,78,60,0.08)]">
         <div
           className={`relative h-[280px] shrink-0 bg-cover bg-center bg-no-repeat ${
-            venue.image_url ? "" : "bg-gradient-to-br from-[#d4cbb8] via-[#e8e2d4] to-[#C4C8AE]"
+            photo ? "" : "bg-gradient-to-br from-[#d4cbb8] via-[#e8e2d4] to-[#C4C8AE]"
           }`}
-          style={venue.image_url ? { backgroundImage: `url('${venue.image_url}')` } : undefined}
+          style={photo ? { backgroundImage: `url('${photo}')` } : undefined}
         >
           <div className="absolute left-4 top-4 flex h-7 items-center rounded-full bg-[#4A4E3C] px-3">
-            <span className="text-xs font-semibold text-[#F6F0E8]">On your board</span>
+            <span className="text-xs font-semibold text-[#F6F0E8]">
+              {categoryMeta ? `${categoryMeta.emoji} ${categoryMeta.label}` : "On your board"}
+            </span>
           </div>
           <div className="absolute right-4 top-4 flex h-6 items-center rounded-full bg-[#2218128c] px-2.5">
             <span className="text-[11.5px] font-medium text-[#F6F0E8]">
               {index} / {total}
             </span>
           </div>
+          {photos.length > 1 && (
+            <div className="absolute inset-x-0 bottom-3 flex justify-center gap-1.5">
+              {photos.map((p, i) => (
+                <button
+                  key={p}
+                  type="button"
+                  aria-label={`Photo ${i + 1}`}
+                  onPointerDownCapture={(e) => e.stopPropagation()}
+                  onClick={() => setPhotoIdx(i)}
+                  className={`h-1.5 rounded-full transition-all ${
+                    i === photoIdx ? "w-5 bg-[#F6F0E8]" : "w-1.5 bg-[#F6F0E8]/60"
+                  }`}
+                />
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="flex flex-1 flex-col gap-3 p-[22px]">
@@ -136,6 +169,11 @@ function FeaturedCard({
               <h3 className="font-[family-name:var(--font-fraunces)] text-[22px] font-semibold tracking-[-0.55px] text-[#4A4E3C]">
                 {venue.name}
               </h3>
+              {venue.rating != null && (
+                <div className="mt-1">
+                  <RatingStars rating={Number(venue.rating)} count={venue.review_count} />
+                </div>
+              )}
               {venue.address && (
                 <p className="mt-1 flex items-center gap-1 text-[13px] text-[#7A8066]">
                   <svg
@@ -178,9 +216,24 @@ function FeaturedCard({
             </div>
           )}
 
+          {venue.why_fit && (
+            <p className="rounded-xl bg-[#ece8db] px-3.5 py-2.5 text-[12.5px] leading-[1.55] text-[#4A4E3C]">
+              <span className="font-semibold">Why Kalas picked it: </span>
+              {venue.why_fit}
+            </p>
+          )}
+
           {venue.description && (
-            <p className="line-clamp-3 text-[13.5px] leading-[1.6] text-[#656952]">
+            <p
+              className={`${review ? "line-clamp-2" : "line-clamp-3"} text-[13.5px] leading-[1.6] text-[#656952]`}
+            >
               {venue.description}
+            </p>
+          )}
+
+          {review?.text && (
+            <p className="line-clamp-2 text-[12.5px] italic leading-[1.55] text-[#7A8066]">
+              “{review.text}”{review.author ? ` — ${review.author}` : ""}
             </p>
           )}
 

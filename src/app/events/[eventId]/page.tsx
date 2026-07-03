@@ -13,9 +13,12 @@ import type {
 
 export default async function EventPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ eventId: string }>;
+  searchParams: Promise<{ prompt?: string }>;
 }) {
+  const { prompt } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -53,6 +56,7 @@ export default async function EventPage({
       initialOutbound={(outbound ?? []) as OutboundEmailRow[]}
       initialReplies={(replies ?? []) as EmailReplyRow[]}
       gmailConnected={gmail.connected}
+      initialPrompt={prompt ?? null}
     />
   );
 }

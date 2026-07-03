@@ -1,66 +1,131 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { EVENT_TEMPLATES } from "@/lib/db/profile";
+import { ChipButton, ChipGroup } from "@/components/ui/Chip";
+import {
+  BUDGET_BANDS,
+  GUEST_BANDS,
+  VIBES,
+  seasonChips,
+  weddingTitle,
+  type OnboardingDate,
+} from "@/lib/onboarding";
 
 interface Props {
   initialName: string;
-  gmailConnected: boolean;
 }
 
-const ACCENTS = ["💍", "💐", "🥂", "✨", "🕊️", "🌿", "💌", "🎊"];
-const TOTAL_STEPS = 4;
+const TOTAL_STEPS = 7;
 
-export function OnboardingFlow({ initialName, gmailConnected }: Props) {
+export function OnboardingFlow({ initialName }: Props) {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [dir, setDir] = useState(1);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [name, setName] = useState(initialName);
+  const [partner, setPartner] = useState("");
   const [city, setCity] = useState("");
-  const [interests, setInterests] = useState<string[]>([]);
-  const [accent, setAccent] = useState("🎉");
+  const [dateChoice, setDateChoice] = useState<string | null>(null); // chip key | "exact" | "undecided"
+  const [exactDate, setExactDate] = useState("");
+  const [guestBand, setGuestBand] = useState<string | null>(null);
+  const [budgetBand, setBudgetBand] = useState<string | null>(null);
+  const [customBudget, setCustomBudget] = useState("");
+  const [budgetOther, setBudgetOther] = useState(false);
+  const [vibes, setVibes] = useState<string[]>([]);
+  const [customVibe, setCustomVibe] = useState("");
+  const [vibeOther, setVibeOther] = useState(false);
+
+  const dateOptions = useMemo(() => seasonChips(8), []);
 
   function go(next: number) {
     setDir(next > step ? 1 : -1);
     setStep(next);
   }
 
-  function toggleInterest(key: string) {
-    setInterests((cur) =>
-      cur.includes(key) ? cur.filter((k) => k !== key) : [...cur, key]
-    );
+  const canAdvance =
+    (step === 0 && name.trim().length > 0) ||
+    (step === 1 && city.trim().length > 0) ||
+    (step === 2 && (dateChoice === "exact" ? exactDate.length > 0 : dateChoice !== null)) ||
+    (step === 3 && guestBand !== null) ||
+    step === 4 ||
+    step === 5 ||
+    step === 6;
+
+  function buildDate(): OnboardingDate {
+    if (dateChoice === "exact" && exactDate) {
+      return { precision: "exact", iso: exactDate };
+    }
+    const chip = dateOptions.find((c) => c.key === dateChoice);
+    if (chip) return { precision: "season", hint: chip.label };
+    return { precision: "undecided" };
+  }
+
+  function buildBudget(): string | null {
+    if (budgetOther && customBudget.trim()) return customBudget.trim();
+    const band = BUDGET_BANDS.find((b) => b.key === budgetBand);
+    if (!band || band.key === "private") return null;
+    return band.label;
+  }
+
+  function buildVibes(): string[] {
+    const picked: string[] = vibes
+      .map((k) => VIBES.find((v) => v.key === k)?.label as string | undefined)
+      .filter((v): v is string => Boolean(v));
+    if (vibeOther && customVibe.trim()) picked.push(customVibe.trim());
+    return picked;
   }
 
   async function finish() {
     setSaving(true);
+    setError(null);
     try {
-      await fetch("/api/profile", {
-        method: "PATCH",
+      const res = await fetch("/api/onboarding", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          display_name: name,
-          home_city: city,
-          event_interests: interests,
-          accent,
-          onboarded: true,
+          name: name.trim(),
+          partner_name: partner.trim() || null,
+          city: city.trim(),
+          date: buildDate(),
+          guest_band: guestBand,
+          budget: buildBudget(),
+          vibes: buildVibes(),
         }),
       });
+      if (!res.ok) throw new Error("Could not finish setup");
       router.push("/home");
       router.refresh();
     } catch {
+      setError("Something went wrong — try again.");
       setSaving(false);
     }
   }
 
-  const canAdvance =
-    (step === 0 && name.trim().length > 0) ||
-    (step === 1 && city.trim().length > 0) ||
-    step === 2 ||
-    step === 3;
+  // Summary line for the final step.
+  const summary = [
+    weddingTitle(name, partner).replace(/'s wedding$/, "").replace(/ wedding$/, ""),
+    city.trim(),
+    dateChoice === "exact" && exactDate
+      ? new Date(exactDate).toLocaleDateString(undefined, {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        })
+      : dateOptions.find((c) => c.key === dateChoice)?.label,
+    GUEST_BANDS.find((b) => b.key === guestBand)?.count
+      ? `~${GUEST_BANDS.find((b) => b.key === guestBand)!.count} guests`
+      : null,
+    buildVibes()[0]?.toLowerCase(),
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  const skippable = step === 4 || step === 5;
+  const firstName = name.split(" ")[0] || "there";
 
   return (
     <main className="relative flex min-h-screen flex-col overflow-hidden bg-[#F6F0E8] text-[#4A4E3C]">
@@ -103,7 +168,7 @@ export function OnboardingFlow({ initialName, gmailConnected }: Props) {
             {step === 0 && (
               <Step
                 eyebrow="Welcome to Kalas"
-                title="First — what should we call you?"
+                title="Who's getting married?"
                 subtitle="So Kalas can greet you like a friend, not a spreadsheet."
               >
                 <input
@@ -114,14 +179,21 @@ export function OnboardingFlow({ initialName, gmailConnected }: Props) {
                   placeholder="Your name"
                   className="w-full rounded-2xl border border-[#D4D6C0] bg-[#F6F0E8] px-5 py-4 text-lg outline-none transition focus:border-[#4A4E3C]"
                 />
+                <input
+                  value={partner}
+                  onChange={(e) => setPartner(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && canAdvance && go(1)}
+                  placeholder="Your partner's name (optional)"
+                  className="mt-3 w-full rounded-2xl border border-[#D4D6C0] bg-[#F6F0E8] px-5 py-4 text-lg outline-none transition focus:border-[#4A4E3C]"
+                />
               </Step>
             )}
 
             {step === 1 && (
               <Step
-                eyebrow={`Hi ${name.split(" ")[0] || "there"} 👋`}
-                title="Where are you getting married?"
-                subtitle="Your wedding city helps Kalas find venues nearby first."
+                eyebrow={`Hi ${firstName} 👋`}
+                title="Where's the wedding?"
+                subtitle="A city, a region, or 'not sure between Copenhagen and Aarhus' — all fine. Everything local starts from here."
               >
                 <input
                   autoFocus
@@ -136,80 +208,175 @@ export function OnboardingFlow({ initialName, gmailConnected }: Props) {
 
             {step === 2 && (
               <Step
-                eyebrow="Good to know"
-                title="What are you planning?"
-                subtitle="Pick a few — we'll keep your favourites one tap away. Optional."
+                eyebrow="No pressure"
+                title="When are you thinking?"
+                subtitle="A season is plenty to work with — you can lock the date later."
               >
                 <div className="flex flex-wrap gap-2.5">
-                  {EVENT_TEMPLATES.map((t) => {
-                    const on = interests.includes(t.key);
-                    return (
-                      <button
-                        key={t.key}
-                        type="button"
-                        onClick={() => toggleInterest(t.key)}
-                        className={`flex items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-medium transition ${
-                          on
-                            ? "border-[#4A4E3C] bg-[#c2b280] text-[#4A4E3C]"
-                            : "border-[#D4D6C0] bg-[#F6F0E8] text-[#656952] hover:border-[#C4C8AE]"
-                        }`}
-                      >
-                        <span>{t.emoji}</span> {t.label}
-                      </button>
-                    );
-                  })}
+                  {dateOptions.map((c) => (
+                    <ChipButton
+                      key={c.key}
+                      label={c.label}
+                      selected={dateChoice === c.key}
+                      onClick={() => setDateChoice(dateChoice === c.key ? null : c.key)}
+                    />
+                  ))}
+                  <ChipButton
+                    label="We have an exact date"
+                    emoji="📅"
+                    selected={dateChoice === "exact"}
+                    onClick={() => setDateChoice(dateChoice === "exact" ? null : "exact")}
+                  />
+                  <ChipButton
+                    label="No idea yet"
+                    emoji="🤷"
+                    selected={dateChoice === "undecided"}
+                    onClick={() =>
+                      setDateChoice(dateChoice === "undecided" ? null : "undecided")
+                    }
+                  />
                 </div>
-
-                <div className="mt-8">
-                  <p className="mb-3 text-sm font-medium text-[#7A8066]">
-                    Pick a vibe for your account
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {ACCENTS.map((a) => (
-                      <button
-                        key={a}
-                        type="button"
-                        onClick={() => setAccent(a)}
-                        className={`flex h-11 w-11 items-center justify-center rounded-2xl border text-xl transition ${
-                          accent === a
-                            ? "border-[#4A4E3C] bg-[#c2b280] scale-105"
-                            : "border-[#D4D6C0] bg-[#F6F0E8] hover:border-[#C4C8AE]"
-                        }`}
-                      >
-                        {a}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                {dateChoice === "exact" && (
+                  <motion.input
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    type="date"
+                    value={exactDate}
+                    onChange={(e) => setExactDate(e.target.value)}
+                    className="mt-4 w-full rounded-2xl border border-[#D4D6C0] bg-[#F6F0E8] px-5 py-4 text-lg outline-none transition focus:border-[#4A4E3C]"
+                  />
+                )}
               </Step>
             )}
 
             {step === 3 && (
               <Step
-                eyebrow="Last thing"
-                title="Connect Gmail to send for you"
-                subtitle="Kalas emails wedding venues for quotes and reads the replies — all from your own inbox. You can also do this later in Settings."
+                eyebrow="Roughly is fine"
+                title="How many guests?"
+                subtitle="This shapes which venues fit — a rough band is all Kalas needs."
               >
-                <div className="rounded-2xl border border-[#D4D6C0] bg-[#F6F0E8] p-5">
-                  {gmailConnected ? (
-                    <div className="flex items-center gap-2 text-sm font-medium text-[#4A4E3C]">
-                      <span className="h-2 w-2 rounded-full bg-[#4A4E3C]" />
-                      Gmail connected — you&apos;re all set.
+                <ChipGroup
+                  options={GUEST_BANDS}
+                  value={guestBand ? [guestBand] : []}
+                  onChange={(keys) => setGuestBand(keys[0] ?? null)}
+                  mode="single"
+                />
+              </Step>
+            )}
+
+            {step === 4 && (
+              <Step
+                eyebrow="Optional"
+                title="A budget in mind?"
+                subtitle="Helps Kalas steer venue and vendor suggestions. Skip if you'd rather not."
+              >
+                <div className="flex flex-wrap gap-2.5">
+                  {BUDGET_BANDS.map((b) => (
+                    <ChipButton
+                      key={b.key}
+                      label={b.label}
+                      emoji={b.emoji}
+                      selected={!budgetOther && budgetBand === b.key}
+                      onClick={() => {
+                        setBudgetOther(false);
+                        setBudgetBand(budgetBand === b.key ? null : b.key);
+                      }}
+                    />
+                  ))}
+                  <ChipButton
+                    label="Other — type it"
+                    emoji="✏️"
+                    selected={budgetOther}
+                    onClick={() => {
+                      setBudgetOther(!budgetOther);
+                      setBudgetBand(null);
+                    }}
+                  />
+                </div>
+                {budgetOther && (
+                  <motion.input
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    autoFocus
+                    value={customBudget}
+                    onChange={(e) => setCustomBudget(e.target.value)}
+                    placeholder="e.g. around 150k DKK all-in"
+                    className="mt-4 w-full rounded-2xl border border-[#D4D6C0] bg-[#F6F0E8] px-5 py-4 text-lg outline-none transition focus:border-[#4A4E3C]"
+                  />
+                )}
+              </Step>
+            )}
+
+            {step === 5 && (
+              <Step
+                eyebrow="The fun part"
+                title="What's the vibe?"
+                subtitle="Pick as many as feel right — Kalas uses these to find venues that actually match."
+              >
+                <div className="flex flex-wrap gap-2.5">
+                  {VIBES.map((v) => (
+                    <ChipButton
+                      key={v.key}
+                      label={v.label}
+                      emoji={v.emoji}
+                      selected={vibes.includes(v.key)}
+                      onClick={() =>
+                        setVibes((cur) =>
+                          cur.includes(v.key)
+                            ? cur.filter((k) => k !== v.key)
+                            : [...cur, v.key]
+                        )
+                      }
+                    />
+                  ))}
+                  <ChipButton
+                    label="Something else…"
+                    emoji="✏️"
+                    selected={vibeOther}
+                    onClick={() => setVibeOther(!vibeOther)}
+                  />
+                </div>
+                {vibeOther && (
+                  <motion.input
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    autoFocus
+                    value={customVibe}
+                    onChange={(e) => setCustomVibe(e.target.value)}
+                    placeholder="Describe it in a few words"
+                    className="mt-4 w-full rounded-2xl border border-[#D4D6C0] bg-[#F6F0E8] px-5 py-4 text-lg outline-none transition focus:border-[#4A4E3C]"
+                  />
+                )}
+              </Step>
+            )}
+
+            {step === 6 && (
+              <Step
+                eyebrow="You're set"
+                title="Here's what Kalas knows"
+                subtitle="First stop: the venue. Everything local — flowers, music, catering — depends on where you say 'I do'."
+              >
+                <div className="rounded-2xl border border-[#D4D6C0] bg-[#F6F0E8] p-6 shadow-[0px_4px_20px_rgba(74,78,60,0.05)]">
+                  <p className="font-[family-name:var(--font-fraunces)] text-xl font-semibold tracking-[-0.4px] text-[#4A4E3C]">
+                    {weddingTitle(name, partner)}
+                  </p>
+                  <p className="mt-2 text-sm leading-relaxed text-[#7A8066]">
+                    {summary || "We'll fill in the details together."}
+                  </p>
+                  {buildVibes().length > 0 && (
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {buildVibes().map((v) => (
+                        <span
+                          key={v}
+                          className="flex h-7 items-center rounded-full border border-[#D4D6C0] bg-[#ddd6c0] px-3 text-xs font-medium text-[#656952]"
+                        >
+                          {v}
+                        </span>
+                      ))}
                     </div>
-                  ) : (
-                    <>
-                      <a
-                        href="/api/gmail/connect"
-                        className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#4A4E3C] px-4 py-3 text-sm font-medium text-[#F6F0E8] shadow-[0px_3px_10px_rgba(74,78,60,0.3)] transition hover:bg-[#575B47]"
-                      >
-                        Connect Gmail
-                      </a>
-                      <p className="mt-3 text-center text-xs text-[#8a8568]">
-                        Send &amp; read scopes only. You stay in control of every email.
-                      </p>
-                    </>
                   )}
                 </div>
+                {error && <p className="mt-3 text-sm text-[#a8483a]">{error}</p>}
               </Step>
             )}
           </motion.div>
@@ -229,25 +396,36 @@ export function OnboardingFlow({ initialName, gmailConnected }: Props) {
             <span />
           )}
 
-          {step < TOTAL_STEPS - 1 ? (
-            <button
-              type="button"
-              disabled={!canAdvance}
-              onClick={() => go(step + 1)}
-              className="rounded-full bg-[#4A4E3C] px-7 py-3 text-sm font-medium text-[#F6F0E8] shadow-[0px_3px_10px_rgba(74,78,60,0.3)] transition hover:bg-[#575B47] disabled:opacity-40"
-            >
-              Continue
-            </button>
-          ) : (
-            <button
-              type="button"
-              disabled={saving}
-              onClick={finish}
-              className="rounded-full bg-[#4A4E3C] px-7 py-3 text-sm font-medium text-[#F6F0E8] shadow-[0px_3px_10px_rgba(74,78,60,0.3)] transition hover:bg-[#575B47] disabled:opacity-50"
-            >
-              {saving ? "Setting up…" : "Enter Kalas →"}
-            </button>
-          )}
+          <div className="flex items-center gap-3">
+            {skippable && (
+              <button
+                type="button"
+                onClick={() => go(step + 1)}
+                className="rounded-full px-4 py-2 text-sm text-[#7A8066] transition hover:text-[#4A4E3C]"
+              >
+                Skip for now
+              </button>
+            )}
+            {step < TOTAL_STEPS - 1 ? (
+              <button
+                type="button"
+                disabled={!canAdvance}
+                onClick={() => go(step + 1)}
+                className="rounded-full bg-[#4A4E3C] px-7 py-3 text-sm font-medium text-[#F6F0E8] shadow-[0px_3px_10px_rgba(74,78,60,0.3)] transition hover:bg-[#575B47] disabled:opacity-40"
+              >
+                Continue
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled={saving}
+                onClick={finish}
+                className="rounded-full bg-[#4A4E3C] px-7 py-3 text-sm font-medium text-[#F6F0E8] shadow-[0px_3px_10px_rgba(74,78,60,0.3)] transition hover:bg-[#575B47] disabled:opacity-50"
+              >
+                {saving ? "Setting up…" : "Start with the venue →"}
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </main>

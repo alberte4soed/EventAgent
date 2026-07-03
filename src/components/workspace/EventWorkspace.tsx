@@ -178,14 +178,20 @@ export function EventWorkspace({
     [agentStatus, refreshEvent, refreshSideData]
   );
 
-  // Auto-send a quick-start prompt (from the home dashboard) exactly once.
+  // Auto-send a quick-start / journey deep-link prompt exactly once.
   const firedInitialRef = useRef(false);
   useEffect(() => {
-    if (initialPrompt && !firedInitialRef.current && messages.length === 0) {
+    if (initialPrompt && !firedInitialRef.current) {
       firedInitialRef.current = true;
+      // Drop the prompt from the URL so a refresh doesn't re-send it.
+      const url = new URL(window.location.href);
+      if (url.searchParams.has("prompt")) {
+        url.searchParams.delete("prompt");
+        window.history.replaceState(null, "", url.pathname + url.search);
+      }
       sendMessage(initialPrompt);
     }
-  }, [initialPrompt, messages.length, sendMessage]);
+  }, [initialPrompt, sendMessage]);
 
   // ── Swipes ───────────────────────────────────────────────────────────
   const swipedDecksRef = useRef<Set<string>>(new Set());
@@ -214,6 +220,18 @@ export function EventWorkspace({
     },
     [sendMessage]
   );
+
+  // ── Choose the venue (unlocks vendors + invites on the journey) ──────
+  const handleChooseVenue = useCallback(async (venueId: string) => {
+    const id = eventIdRef.current;
+    if (!id) return;
+    const res = await fetch(`/api/events/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chosen_venue_id: venueId }),
+    });
+    if (res.ok) setEvent((await res.json()) as EventRow);
+  }, []);
 
   // ── Draft approval ───────────────────────────────────────────────────
   const [approving, setApproving] = useState(false);
@@ -311,7 +329,13 @@ export function EventWorkspace({
               Quotes
             </h1>
           </header>
-          <QuotesDashboard venues={venues} outbound={outbound} replies={replies} />
+          <QuotesDashboard
+            venues={venues}
+            outbound={outbound}
+            replies={replies}
+            chosenVenueId={event?.chosen_venue_id ?? null}
+            onChooseVenue={handleChooseVenue}
+          />
         </>
       ) : (
         <div className="flex min-h-0 flex-1">
@@ -335,6 +359,7 @@ export function EventWorkspace({
             onSwipe={handleSwipe}
             onDeckFinished={handleDeckFinished}
             onOpenQuotes={() => setTab("chat")}
+            onChooseVenue={handleChooseVenue}
           />
         </div>
       )}

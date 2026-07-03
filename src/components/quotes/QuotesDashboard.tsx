@@ -7,9 +7,17 @@ interface Props {
   venues: VenueRow[];
   outbound: OutboundEmailRow[];
   replies: EmailReplyRow[];
+  chosenVenueId?: string | null;
+  onChooseVenue?: (venueId: string) => void;
 }
 
-export function QuotesDashboard({ venues, outbound, replies }: Props) {
+export function QuotesDashboard({
+  venues,
+  outbound,
+  replies,
+  chosenVenueId = null,
+  onChooseVenue,
+}: Props) {
   const liked = venues.filter((v) => v.swipe_status === "liked");
 
   if (liked.length === 0) {
@@ -43,6 +51,9 @@ export function QuotesDashboard({ venues, outbound, replies }: Props) {
               venue={venue}
               outbound={outbound.find((o) => o.venue_id === venue.id)}
               replies={replies.filter((r) => r.venue_id === venue.id)}
+              chosen={chosenVenueId === venue.id}
+              canChoose={!chosenVenueId && Boolean(onChooseVenue)}
+              onChoose={onChooseVenue}
             />
           ))}
         </div>

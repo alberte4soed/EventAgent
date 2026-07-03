@@ -25,7 +25,7 @@ export const functionDeclarations: FunctionDeclaration[] = [
   {
     name: "search_venues",
     description:
-      "Search the internet for real wedding venues matching the wedding. Requires location and guest count to be known. Creates swipeable venue cards for the user.",
+      "Research real wedding venues or local vendors on the internet, verified against Google Places (ratings, reviews, photos, contact info). Creates swipeable cards for the user. Venues require location and guest count. Non-venue categories (florist, photographer, musician, caterer) should only be searched once the venue or at least the location is settled — vendors are local to it.",
     parameters: {
       type: Type.OBJECT,
       properties: {
@@ -35,8 +35,28 @@ export const functionDeclarations: FunctionDeclaration[] = [
         },
         location: { type: Type.STRING },
         guest_count: { type: Type.INTEGER },
+        category: {
+          type: Type.STRING,
+          enum: ["venue", "florist", "photographer", "musician", "caterer", "planner", "other"],
+          description: "What to search for. Defaults to venue.",
+        },
       },
       required: ["query", "location"],
+    },
+  },
+  {
+    name: "mark_venue_chosen",
+    description:
+      "Record that the couple has decided on their wedding venue. Call when the user clearly commits to one venue ('we're going with X'). Unlocks the vendors and invites stages. Pass the venue id from the board; if they booked a venue outside Kalas, omit venue_id and set booked_externally instead.",
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        venue_id: { type: Type.STRING, description: "Id of the chosen venue on the board" },
+        booked_externally: {
+          type: Type.BOOLEAN,
+          description: "True when the venue was booked outside Kalas",
+        },
+      },
     },
   },
   {
@@ -51,6 +71,25 @@ export const functionDeclarations: FunctionDeclaration[] = [
         website: { type: Type.STRING },
       },
       required: ["venue_id", "venue_name"],
+    },
+  },
+  {
+    name: "draft_invite_text",
+    description:
+      "Draft the couple's wedding invitation wording. Only call once venue and date are known (or the user insists). Write warm, correctly formatted invitation text using the couple's names, date and venue. The user reviews the wording card and orders prints from the invites page.",
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        wording: {
+          type: Type.STRING,
+          description: "Complete invitation text, line-broken as it should appear on the card",
+        },
+        style: {
+          type: Type.STRING,
+          description: "Short style label, e.g. 'classic formal', 'playful garden'",
+        },
+      },
+      required: ["wording"],
     },
   },
   {

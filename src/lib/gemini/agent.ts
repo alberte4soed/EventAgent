@@ -8,10 +8,17 @@ import {
 } from "./log";
 import { functionDeclarations } from "./tools";
 import { venueListSchema, quoteSchema, type ExtractedVenue } from "./schemas";
-import { fetchVenuePhotos } from "@/lib/places/photos";
+import {
+  matchPlace,
+  getDetails,
+  resolvePhotoUrls,
+  mapReviews,
+  emailMatchesWebsite,
+  type PlaceResult,
+} from "@/lib/places/client";
 import {
   agentSystemPrompt,
-  VENUE_SEARCH_PROMPT,
+  VENDOR_SEARCH_PROMPT,
   VENUE_EXTRACTION_PROMPT,
   FIND_EMAIL_PROMPT,
   PERSONALIZE_PROMPT,
@@ -22,6 +29,7 @@ import type {
   EventRow,
   MessagePayload,
   QuoteExtraction,
+  VendorCategory,
 } from "@/lib/db/types";
 
 const MAX_ITERATIONS = 6;
@@ -137,18 +145,61 @@ export async function runAgentTurn(
             delete result.event;
             break;
           case "search_venues": {
-            onStatus("Searching the web for venues…");
-            const search = await execSearchVenues(supabase, currentEvent, args);
+            onStatus("Researching options on the web…");
+            const search = await execSearchVenues(supabase, currentEvent, args, onStatus);
             result = { venue_count: search.venueIds.length, venue_names: search.names };
             if (search.venueIds.length > 0) {
               payload = { kind: "venue_batch", venue_ids: search.venueIds };
             }
             break;
           }
+          case "mark_venue_chosen":
+            onStatus("Marking your venue as chosen…");
+            result = await execMarkVenueChosen(supabase, currentEvent, args);
+            currentEvent = (result.event as EventRow) ?? currentEvent;
+            delete result.event;
+            break;
           case "find_venue_email":
             onStatus(`Looking up contact email for ${String(args.venue_name ?? "venue")}…`);
             result = await execFindVenueEmail(supabase, args);
             break;
+          case "draft_invite_text": {
+            onStatus("Drafting your invitation wording…");
+            const wording = String(args.wording ?? "").trim();
+            if (!wording) {
+              result = { error: "wording is required" };
+              break;
+            }
+            const style = typeof args.style === "string" ? args.style : null;
+            // Persist the latest brief on the event for the invites page.
+            await supabase
+              .from("events")
+              .update({
+                requirements: {
+                  ...currentEvent.requirements,
+                  invites: {
+                    ...((currentEvent.requirements?.invites as object) ?? {}),
+                    wording,
+                    style,
+                  },
+                },
+              })
+              .eq("id", currentEvent.id);
+            currentEvent = {
+              ...currentEvent,
+              requirements: {
+                ...currentEvent.requirements,
+                invites: {
+                  ...((currentEvent.requirements?.invites as object) ?? {}),
+                  wording,
+                  style,
+                },
+              },
+            };
+            payload = { kind: "invite_brief", wording, style };
+            result = { ok: true };
+            break;
+          }
           case "propose_email_draft": {
             onStatus("Drafting the quote-request email…");
             const draft = await execProposeDraft(supabase, currentEvent, args);
@@ -218,27 +269,89 @@ async function execUpdateEventDetails(
   return { ok: true, event: data as EventRow };
 }
 
-/** Two-step grounded search: Call A (Google Search grounding) → Call B (structured extraction). */
+const VENDOR_CATEGORIES: VendorCategory[] = [
+  "venue",
+  "florist",
+  "photographer",
+  "musician",
+  "caterer",
+  "planner",
+  "other",
+];
+
+interface EnrichedCandidate {
+  extracted: ExtractedVenue;
+  place: PlaceResult | null;
+  photoUrls: string[];
+  score: number;
+}
+
+/** Bayesian-smoothed rating so a 5.0 with 3 reviews doesn't beat a 4.8 with 400. */
+function ratingScore(rating?: number, reviewCount?: number): number {
+  if (!rating) return 4.1; // unrated: just below the prior, not buried
+  const n = reviewCount ?? 0;
+  return (rating * n + 4.2 * 10) / (n + 10);
+}
+
+function rankScore(
+  candidate: { extracted: ExtractedVenue; place: PlaceResult | null },
+  guestCount: number | null | undefined,
+  vibes: string[]
+): number {
+  let score = ratingScore(candidate.place?.rating, candidate.place?.userRatingCount);
+
+  // Capacity fit: any number in the capacity text that covers the guest count.
+  if (guestCount && candidate.extracted.capacity) {
+    const numbers = candidate.extracted.capacity.match(/\d+/g)?.map(Number) ?? [];
+    if (numbers.some((n) => n >= guestCount)) score += 0.1;
+  }
+
+  // Vibe keywords appearing in the description / fit sentence.
+  const text = `${candidate.extracted.description ?? ""} ${candidate.extracted.why_fit ?? ""}`.toLowerCase();
+  const hits = vibes.filter((v) => text.includes(v.toLowerCase())).length;
+  score += Math.min(hits, 3) * 0.05;
+
+  return score;
+}
+
+/**
+ * Grounded research → structured extraction → Google Places verification.
+ * Gemini decides which options fit the couple; Places supplies the facts
+ * (existence, canonical contact info, rating, reviews, photos, coordinates).
+ */
 async function execSearchVenues(
   supabase: SupabaseClient,
   event: EventRow,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
+  onStatus: StatusFn = () => {}
 ): Promise<{ venueIds: string[]; names: string[] }> {
   const ai = getGemini();
   const location = String(args.location ?? event.location ?? "");
   const guestCount = (args.guest_count as number | undefined) ?? event.guest_count;
+  const category: VendorCategory = VENDOR_CATEGORIES.includes(
+    args.category as VendorCategory
+  )
+    ? (args.category as VendorCategory)
+    : "venue";
   if (!location) throw new Error("Location is required before searching");
+
+  const vibes = Array.isArray(event.requirements?.vibes)
+    ? (event.requirements.vibes as string[])
+    : [];
 
   // Call A: grounded search (no schema/function-calling allowed alongside grounding).
   let grounded;
   try {
     grounded = await ai.models.generateContent({
       model: GEMINI_MODEL,
-      contents: VENUE_SEARCH_PROMPT({
+      contents: VENDOR_SEARCH_PROMPT({
+        category,
         query: String(args.query ?? ""),
         location,
         guestCount,
         eventType: event.event_type,
+        vibes,
+        budget: event.budget,
       }),
       config: { tools: [{ googleSearch: {} }] },
     });
@@ -247,6 +360,7 @@ async function execSearchVenues(
       model: GEMINI_MODEL,
       eventId: event.id,
       location,
+      category,
     });
     throw err;
   }
@@ -280,30 +394,97 @@ async function execSearchVenues(
   }
 
   const parsed = JSON.parse(extraction.text ?? "{}") as { venues?: ExtractedVenue[] };
-  const venues = (parsed.venues ?? []).filter((v) => v.name?.trim());
-  if (venues.length === 0) throw new Error("No venues could be extracted from search results");
+  const extractedList = (parsed.venues ?? []).filter((v) => v.name?.trim());
+  if (extractedList.length === 0) {
+    throw new Error("No venues could be extracted from search results");
+  }
 
-  // Pull a real photo per venue from Google Places (best-effort, parallel).
-  const photos = await fetchVenuePhotos(venues, location);
+  // Verify against Google Places: existence, canonical facts, dedupe.
+  onStatus("Verifying on Google Places…");
+  const matches = await Promise.all(
+    extractedList.map((v) => matchPlace(v.name, location))
+  );
+
+  // Skip places already on this event's board (repeat searches) and
+  // duplicates within the batch; drop permanently closed businesses.
+  const { data: existingRows } = await supabase
+    .from("venues")
+    .select("place_id")
+    .eq("event_id", event.id)
+    .not("place_id", "is", null);
+  const seenPlaceIds = new Set(
+    (existingRows ?? []).map((r) => r.place_id as string)
+  );
+
+  const candidates: { extracted: ExtractedVenue; place: PlaceResult | null }[] = [];
+  for (let i = 0; i < extractedList.length; i++) {
+    const place = matches[i];
+    if (place) {
+      if (place.businessStatus && place.businessStatus !== "OPERATIONAL") continue;
+      if (seenPlaceIds.has(place.id)) continue;
+      seenPlaceIds.add(place.id);
+    }
+    // Unmatched candidates are kept (small-town coverage gaps) but unverified.
+    candidates.push({ extracted: extractedList[i], place });
+  }
+  if (candidates.length === 0) {
+    throw new Error("All found venues were already on the board or closed");
+  }
+
+  // Details (reviews) + photos only for the places we're keeping.
+  onStatus("Pulling reviews and photos…");
+  const enriched: EnrichedCandidate[] = await Promise.all(
+    candidates.map(async (c) => {
+      const details = c.place ? await getDetails(c.place.id) : null;
+      const place = details ?? c.place;
+      const photoUrls = await resolvePhotoUrls(place?.photos, 4);
+      return {
+        extracted: c.extracted,
+        place,
+        photoUrls,
+        score: rankScore({ extracted: c.extracted, place }, guestCount, vibes),
+      };
+    })
+  );
+  enriched.sort((a, b) => b.score - a.score);
+
+  const rows = enriched.map(({ extracted: v, place, photoUrls }) => {
+    const website = place?.websiteUri ?? v.website ?? null;
+    const email = v.email ?? null;
+    const emailVerified = emailMatchesWebsite(email, website);
+    return {
+      event_id: event.id,
+      user_id: event.user_id,
+      name: place?.displayName?.text ?? v.name,
+      description: v.description ?? place?.editorialSummary?.text ?? null,
+      address: place?.formattedAddress ?? v.address ?? null,
+      website,
+      // Keep a Gemini-found email only when its domain matches the
+      // canonical website; otherwise leave it for find_venue_email.
+      email: emailVerified ? email : null,
+      phone: place?.nationalPhoneNumber ?? v.phone ?? null,
+      capacity: v.capacity ?? null,
+      price_hint: v.price_hint ?? null,
+      image_url: photoUrls[0] ?? null,
+      source_urls: sourceUrls,
+      place_id: place?.id ?? null,
+      rating: place?.rating ?? null,
+      review_count: place?.userRatingCount ?? null,
+      reviews: place ? mapReviews(place) : [],
+      photo_urls: photoUrls,
+      lat: place?.location?.latitude ?? null,
+      lng: place?.location?.longitude ?? null,
+      price_level: place?.priceLevel ?? null,
+      business_status: place?.businessStatus ?? null,
+      why_fit: v.why_fit ?? null,
+      contact_verified: emailVerified,
+      category,
+    };
+  });
 
   const { data, error } = await supabase
     .from("venues")
-    .insert(
-      venues.map((v, i) => ({
-        event_id: event.id,
-        user_id: event.user_id,
-        name: v.name,
-        description: v.description ?? null,
-        address: v.address ?? null,
-        website: v.website ?? null,
-        email: v.email ?? null,
-        phone: v.phone ?? null,
-        capacity: v.capacity ?? null,
-        price_hint: v.price_hint ?? null,
-        image_url: photos[i] ?? null,
-        source_urls: sourceUrls,
-      }))
-    )
+    .insert(rows)
     .select("id, name");
   if (error) throw new Error(error.message);
 
@@ -315,25 +496,83 @@ async function execSearchVenues(
   };
 }
 
+/** Record the venue decision — the fact that unlocks vendors and invites. */
+async function execMarkVenueChosen(
+  supabase: SupabaseClient,
+  event: EventRow,
+  args: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  const venueId = typeof args.venue_id === "string" ? args.venue_id : null;
+  const patch: Record<string, unknown> = {};
+
+  if (venueId) {
+    const { data: venue } = await supabase
+      .from("venues")
+      .select("id, name")
+      .eq("id", venueId)
+      .eq("event_id", event.id)
+      .maybeSingle();
+    if (!venue) return { error: "That venue is not on this wedding's board" };
+    patch.chosen_venue_id = venueId;
+  } else if (args.booked_externally) {
+    patch.journey_overrides = { ...event.journey_overrides, venue: "complete" };
+  } else {
+    return { error: "Pass venue_id, or booked_externally when booked outside Kalas" };
+  }
+
+  const { data, error } = await supabase
+    .from("events")
+    .update(patch)
+    .eq("id", event.id)
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  return { ok: true, event: data as EventRow };
+}
+
 async function execFindVenueEmail(
   supabase: SupabaseClient,
   args: Record<string, unknown>
 ): Promise<Record<string, unknown>> {
   const venueId = String(args.venue_id ?? "");
   const venueName = String(args.venue_name ?? "");
-  const email = await findVenueEmail(venueName, args.website as string | undefined);
+
+  // Prefer the Places-canonical website stored on the row over whatever
+  // the model passed — it is the ground truth for domain validation.
+  const { data: venueRow } = await supabase
+    .from("venues")
+    .select("website")
+    .eq("id", venueId)
+    .maybeSingle();
+  const website =
+    (venueRow?.website as string | null) ?? (args.website as string | undefined) ?? null;
+
+  const email = await findVenueEmail(venueName, website);
+  const verified = emailMatchesWebsite(email, website);
 
   await supabase
     .from("venues")
     .update({
       email: email ?? undefined,
       email_lookup_status: email ? "found" : "not_found",
+      contact_verified: verified,
     })
     .eq("id", venueId);
 
-  return email
-    ? { found: true, email }
-    : { found: false, note: "No contact email found; this venue will be skipped when sending." };
+  if (!email) {
+    return {
+      found: false,
+      note: "No contact email found; this venue will be skipped when sending.",
+    };
+  }
+  return verified
+    ? { found: true, email, verified: true }
+    : {
+        found: true,
+        email,
+        verified: false,
+        note: "Email domain does not match the venue's website — double-check before sending.",
+      };
 }
 
 /** Grounded lookup of a single venue's contact email. Exported for reuse. */

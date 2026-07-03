@@ -7,6 +7,9 @@ interface Props {
   venue: VenueRow;
   outbound?: OutboundEmailRow;
   replies: EmailReplyRow[];
+  chosen?: boolean;
+  canChoose?: boolean;
+  onChoose?: (venueId: string) => void;
 }
 
 function statusBadge(outbound?: OutboundEmailRow, latest?: EmailReplyRow) {
@@ -32,7 +35,14 @@ function statusBadge(outbound?: OutboundEmailRow, latest?: EmailReplyRow) {
   }
 }
 
-export function QuoteRow({ venue, outbound, replies }: Props) {
+export function QuoteRow({
+  venue,
+  outbound,
+  replies,
+  chosen = false,
+  canChoose = false,
+  onChoose,
+}: Props) {
   const [open, setOpen] = useState(false);
   const latest = [...replies].sort((a, b) =>
     (b.received_at ?? b.created_at).localeCompare(a.received_at ?? a.created_at)
@@ -56,7 +66,20 @@ export function QuoteRow({ venue, outbound, replies }: Props) {
             )}
           </div>
           <div className="min-w-0">
-            <div className="truncate font-semibold text-[#4A4E3C]">{venue.name}</div>
+            <div className="flex items-center gap-2">
+              <span className="truncate font-semibold text-[#4A4E3C]">{venue.name}</span>
+              {venue.rating != null && (
+                <span className="shrink-0 rounded-full bg-[#ece8db] px-2 py-0.5 text-[11px] font-medium text-[#656952]">
+                  ★ {Number(venue.rating).toFixed(1)}
+                  {venue.review_count ? ` (${venue.review_count})` : ""}
+                </span>
+              )}
+              {chosen && (
+                <span className="shrink-0 rounded-full bg-[#c2b280] px-2 py-0.5 text-[11px] font-semibold text-[#4A4E3C]">
+                  Your venue 🎉
+                </span>
+              )}
+            </div>
             <div className="mt-0.5 truncate text-xs text-[#8a8568]">
               {outbound
                 ? `Sent to ${outbound.to_email}${outbound.sent_at ? ` · ${new Date(outbound.sent_at).toLocaleString()}` : ""}`
@@ -101,6 +124,15 @@ export function QuoteRow({ venue, outbound, replies }: Props) {
             </>
           ) : (
             <p className="text-[#8a8568]">No reply yet.</p>
+          )}
+          {canChoose && !chosen && onChoose && (
+            <button
+              type="button"
+              onClick={() => onChoose(venue.id)}
+              className="mt-4 rounded-full bg-[#4A4E3C] px-4 py-2 text-xs font-medium text-[#F6F0E8] shadow-[0px_3px_10px_rgba(74,78,60,0.3)] transition hover:bg-[#575B47]"
+            >
+              Choose this venue 🎉
+            </button>
           )}
         </div>
       )}

@@ -10,6 +10,8 @@ export type EventStatus =
   | "awaiting_replies"
   | "done";
 
+export type DatePrecision = "exact" | "month" | "season" | "undecided";
+
 export interface EventRow {
   id: string;
   user_id: string;
@@ -18,9 +20,13 @@ export interface EventRow {
   location: string | null;
   guest_count: number | null;
   event_date: string | null;
+  date_precision: DatePrecision;
+  date_hint: string | null;
   budget: string | null;
   requirements: Record<string, unknown>;
   status: EventStatus;
+  chosen_venue_id: string | null;
+  journey_overrides: Record<string, string>;
   created_at: string;
 }
 
@@ -30,7 +36,8 @@ export type MessageRole = "user" | "assistant" | "system" | "tool";
 export type MessagePayload =
   | { kind: "venue_batch"; venue_ids: string[] }
   | { kind: "draft"; draft_id: string }
-  | { kind: "send_report"; sent: number; failed: number; skipped: number };
+  | { kind: "send_report"; sent: number; failed: number; skipped: number }
+  | { kind: "invite_brief"; wording: string; style: string | null };
 
 export interface ChatMessageRow {
   id: string;
@@ -43,6 +50,22 @@ export interface ChatMessageRow {
 }
 
 export type SwipeStatus = "pending" | "liked" | "rejected";
+
+export type VendorCategory =
+  | "venue"
+  | "florist"
+  | "photographer"
+  | "musician"
+  | "caterer"
+  | "planner"
+  | "other";
+
+export interface VenueReview {
+  author: string | null;
+  rating: number | null;
+  text: string | null;
+  relative_time: string | null;
+}
 
 export interface VenueRow {
   id: string;
@@ -60,6 +83,18 @@ export interface VenueRow {
   source_urls: string[];
   swipe_status: SwipeStatus;
   email_lookup_status: "not_needed" | "pending" | "found" | "not_found";
+  place_id: string | null;
+  rating: number | null;
+  review_count: number | null;
+  reviews: VenueReview[];
+  photo_urls: string[];
+  lat: number | null;
+  lng: number | null;
+  price_level: string | null;
+  business_status: string | null;
+  why_fit: string | null;
+  contact_verified: boolean;
+  category: VendorCategory;
   created_at: string;
 }
 
@@ -120,12 +155,39 @@ export interface EmailReplyRow {
 export interface ProfileRow {
   user_id: string;
   display_name: string | null;
+  partner_name: string | null;
   home_city: string | null;
   event_interests: string[];
   accent: string;
   onboarded: boolean;
+  active_event_id: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export type InviteOrderStatus =
+  | "draft"
+  | "pending_payment"
+  | "paid"
+  | "submitted_to_print"
+  | "shipped"
+  | "canceled";
+
+export interface InviteOrderRow {
+  id: string;
+  event_id: string;
+  user_id: string;
+  style: string | null;
+  palette: string | null;
+  wording: string | null;
+  quantity: number;
+  design_file_url: string | null;
+  amount_cents: number | null;
+  currency: string;
+  stripe_session_id: string | null;
+  stripe_payment_intent: string | null;
+  status: InviteOrderStatus;
+  created_at: string;
 }
 
 export interface GoogleTokensRow {
