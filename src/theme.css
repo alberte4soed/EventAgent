@@ -1,0 +1,110 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Hanken+Grotesk:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap');
+@import "tailwindcss";
+
+/* ── Kalas design tokens — Brand DNA ──────────────────────────────────────
+   Type: Cormorant Garamond (serif) · Hanken Grotesk (sans).
+   Colour: #F3F1E6 cream · #3A4F37 forest · #AEB080 sage · #4A4E3C olive.   */
+@theme {
+  --font-serif: "Cormorant Garamond", ui-serif, Georgia, serif;
+  --font-sans: "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-logo: "Fraunces", "Cormorant Garamond", ui-serif, serif;
+
+  /* Landing-page match — warm ivory · sage · deep forest green */
+  --color-canvas: #F5EFE5;          /* main background — warm ivory       */
+  --color-card: #EDE6D6;            /* raised paper                       */
+  --color-blush: #F1EADD;           /* alt warm section                   */
+  --color-shell: #E3DAC5;           /* sidebar / inset                    */
+
+  --color-ink: #3B432A;             /* headings + strong text (forest)    */
+  --color-ink-soft: #4D5638;        /* body (olive)                       */
+  --color-muted: #6B6E55;           /* meta + tracked labels (AA)         */
+  --color-faint: #AEAB93;           /* disabled / placeholder             */
+
+  --color-sage: #A9B380;            /* primary action (sage)              */
+  --color-sage-strong: #8F9A64;     /* hover / active                     */
+  --color-sage-tint: #DCE0C6;       /* sage wash                          */
+
+  --color-line: #3B432A24;          /* hairline rule — forest @ ~14%      */
+  --color-line-strong: #3B432A42;
+
+  --color-clay: #9c8a63;            /* warm khaki accent (awaiting)       */
+  --color-terracotta: #364528;      /* deep forest — CTAs / decisions     */
+  --color-terracotta-tint: #E2E6D2; /* forest wash                        */
+  --color-success: #3F5C33;         /* deep olive-green                   */
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    @apply bg-canvas text-ink font-sans;
+    font-feature-settings: "ss01", "cv01";
+  }
+  ::selection {
+    background: var(--color-sage-tint);
+    color: var(--color-ink);
+  }
+  h1, h2, h3, h4 {
+    @apply font-serif;
+    font-weight: 500;
+    letter-spacing: -0.005em;
+  }
+}
+
+/* ── Utilities ───────────────────────────────────────────────────────── */
+
+/* Hairline rules — the Aesop signature. Never a heavy shadowed box.      */
+.rule {
+  border: 0.5px solid var(--color-line);
+}
+.rule-t { border-top: 0.5px solid var(--color-line); }
+.rule-b { border-bottom: 0.5px solid var(--color-line); }
+.rule-l { border-left: 0.5px solid var(--color-line); }
+.rule-r { border-right: 0.5px solid var(--color-line); }
+
+/* Editorial tracked label (uppercase eyebrow). */
+.eyebrow {
+  font-family: var(--font-sans);
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--color-muted);
+}
+
+/* Big editorial display serif. Cormorant reads best at medium weight. */
+.display {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  line-height: 1.0;
+  letter-spacing: -0.015em;
+}
+
+/* Mid-hierarchy label — small-caps sans for section titles below H1.
+   Provides contrast against the serif display without competing with it. */
+.subheading {
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+}
+
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Soft focus ring tuned to the palette. Kept OUTSIDE @layer so it also
+   wins over `focus:outline-none` utilities — keyboard users always see
+   where they are. */
+:focus-visible {
+  outline: 2px solid var(--color-sage-strong);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
