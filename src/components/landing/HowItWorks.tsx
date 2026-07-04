@@ -17,7 +17,7 @@ const steps = [
   {
     n: "03",
     title: "Let it negotiate",
-    body: "Kalas emails your favourites, gathers quotes, and lays them out so the best fit is impossible to miss.",
+    body: "Ava emails your favourites, gathers quotes, and lays them out so the best fit is impossible to miss.",
   },
   {
     n: "04",

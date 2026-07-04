@@ -26,6 +26,7 @@ export async function POST(request: NextRequest) {
     palette?: string | null;
     wording?: string | null;
     quantity?: number;
+    designId?: string | null;
   };
   const eventId = body.eventId ?? "";
   const quantity = Number(body.quantity);
@@ -41,6 +42,18 @@ export async function POST(request: NextRequest) {
     .maybeSingle();
   if (!event) return Response.json({ error: "Event not found" }, { status: 404 });
 
+  // A selected design's storage path becomes the (future) Gelato print file.
+  let designPath: string | null = null;
+  if (body.designId) {
+    const { data: design } = await supabase
+      .from("invite_designs")
+      .select("storage_path")
+      .eq("id", body.designId)
+      .eq("event_id", eventId)
+      .maybeSingle();
+    designPath = (design?.storage_path as string | null) ?? null;
+  }
+
   const amountCents = orderAmountCents(quantity);
 
   const { data: order, error: orderError } = await supabase
@@ -52,6 +65,7 @@ export async function POST(request: NextRequest) {
       palette: body.palette ?? null,
       wording: body.wording ?? null,
       quantity,
+      design_file_url: designPath,
       amount_cents: amountCents,
       currency: "usd",
       status: "pending_payment",

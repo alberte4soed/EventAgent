@@ -59,7 +59,7 @@ export function WorksEverywhere() {
             <span className="text-accent">you live.</span>
           </h2>
           <p className="mx-auto mt-5 max-w-lg text-base leading-relaxed text-[#7A8066]">
-            Kalas searches the live web for real wedding venues in your city — then handles
+            Ava searches the live web for real wedding venues in your city — then handles
             outreach, quotes and invites from wherever you are.
           </p>
         </BlurFade>

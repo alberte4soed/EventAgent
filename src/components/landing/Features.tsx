@@ -7,13 +7,13 @@ const features = [
   {
     emoji: "🔎",
     title: "Finds the right venues",
-    body: "Describe your wedding in plain words. Kalas searches the live web for real venues that fit your guest count, city and vibe — with photos, not just links.",
+    body: "Describe your wedding in plain words. Ava searches the live web for real venues that fit your guest count, city and vibe — verified on Google with ratings, reviews and photos.",
     tint: "#c2b280",
   },
   {
     emoji: "✉️",
     title: "Reaches out for you",
-    body: "Approve one message and it emails every venue you liked from your own Gmail — personalised, polite, and signed by you.",
+    body: "Approve the outreach and Ava emails every venue you liked from her own concierge inbox — a personal note to each, replies tracked in one place.",
     tint: "#ddd6c0",
   },
   {
@@ -31,7 +31,7 @@ const features = [
   {
     emoji: "💌",
     title: "Designs the invites",
-    body: "Once you've picked a venue, Kalas drafts beautiful wedding invitations matched to your style and sends them to your guest list.",
+    body: "Once you've picked a venue, Ava designs beautiful wedding invitations matched to your style — ready to order and send.",
     tint: "#c2b280",
   },
   {

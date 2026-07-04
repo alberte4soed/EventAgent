@@ -218,7 +218,7 @@ function FeaturedCard({
 
           {venue.why_fit && (
             <p className="rounded-xl bg-[#ece8db] px-3.5 py-2.5 text-[12.5px] leading-[1.55] text-[#4A4E3C]">
-              <span className="font-semibold">Why Kalas picked it: </span>
+              <span className="font-semibold">Why Ava picked it: </span>
               {venue.why_fit}
             </p>
           )}

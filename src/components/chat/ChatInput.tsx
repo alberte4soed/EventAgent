@@ -31,7 +31,7 @@ export function ChatInput({
             }
           }}
           rows={2}
-          placeholder="Tell kalas more about the party…"
+          placeholder="Tell Ava more about the wedding…"
           disabled={disabled}
           className="max-h-32 min-h-[2.5rem] w-full resize-none bg-transparent text-sm leading-normal text-[#4A4E3C] outline-none placeholder:text-[#8a8568] disabled:opacity-50"
         />

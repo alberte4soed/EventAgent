@@ -14,7 +14,6 @@ interface Props {
   profile: ProfileRow;
   events: EventRow[];
   stats: { venuesLiked: number; quotesIn: number; emailsSent: number };
-  gmailConnected: boolean;
   activeEvent: EventRow | null;
   activeExtras: JourneyExtras;
 }
@@ -48,7 +47,6 @@ export function HomeDashboard({
   profile,
   events,
   stats,
-  gmailConnected,
   activeEvent,
   activeExtras,
 }: Props) {
@@ -138,26 +136,6 @@ export function HomeDashboard({
 
         {/* Journey */}
         {activeEvent && <JourneyTimeline event={activeEvent} extras={activeExtras} />}
-
-        {/* Gmail nudge */}
-        {!gmailConnected && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#e6c4bc] bg-[#f7ebe5] px-5 py-3.5"
-          >
-            <p className="text-sm text-[#a8483a]">
-              Connect Gmail so Kalas can email wedding venues and gather quotes for you.
-            </p>
-            <Link
-              href="/settings"
-              className="shrink-0 rounded-full bg-[#4A4E3C] px-4 py-2 text-xs font-medium text-[#F6F0E8] transition hover:bg-[#575B47]"
-            >
-              Connect Gmail
-            </Link>
-          </motion.div>
-        )}
 
         {/* Quick-start stays front and center only when no wedding is active */}
         {!activeEvent && (
@@ -389,7 +367,7 @@ function EmptyState({ onStart }: { onStart: () => void }) {
         Let&apos;s plan your wedding
       </p>
       <p className="mx-auto mt-2 max-w-sm text-sm text-[#7A8066]">
-        Pick a template above or tell Kalas about your wedding — it
+        Pick a template above or tell Ava about your wedding — she
         takes it from there.
       </p>
       <button

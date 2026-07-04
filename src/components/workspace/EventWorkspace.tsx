@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type {
@@ -22,8 +21,8 @@ interface Props {
   initialDrafts: EmailDraftRow[];
   initialOutbound: OutboundEmailRow[];
   initialReplies: EmailReplyRow[];
-  gmailConnected: boolean;
   initialPrompt?: string | null;
+  initialContextReplyId?: string | null;
 }
 
 function upsertById<T extends { id: string }>(rows: T[], row: T): T[] {
@@ -41,8 +40,8 @@ export function EventWorkspace({
   initialDrafts,
   initialOutbound,
   initialReplies,
-  gmailConnected,
   initialPrompt = null,
+  initialContextReplyId = null,
 }: Props) {
   const supabase = useMemo(() => createClient(), []);
   const [event, setEvent] = useState<EventRow | null>(initialEvent);
@@ -102,7 +101,7 @@ export function EventWorkspace({
 
   // ── Chat: send a message, consume the SSE stream ────────────────────
   const sendMessage = useCallback(
-    async (text: string) => {
+    async (text: string, ctx?: { contextReplyId?: string }) => {
       const trimmed = text.trim();
       if (!trimmed || agentStatus !== null) return;
 
@@ -122,7 +121,11 @@ export function EventWorkspace({
         const res = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ eventId: eventIdRef.current ?? undefined, message: trimmed }),
+          body: JSON.stringify({
+            eventId: eventIdRef.current ?? undefined,
+            message: trimmed,
+            contextReplyId: ctx?.contextReplyId,
+          }),
         });
         if (!res.ok || !res.body) {
           const err = await res.json().catch(() => ({}));
@@ -183,15 +186,19 @@ export function EventWorkspace({
   useEffect(() => {
     if (initialPrompt && !firedInitialRef.current) {
       firedInitialRef.current = true;
-      // Drop the prompt from the URL so a refresh doesn't re-send it.
+      // Drop the prompt/replyId from the URL so a refresh doesn't re-send it.
       const url = new URL(window.location.href);
-      if (url.searchParams.has("prompt")) {
+      if (url.searchParams.has("prompt") || url.searchParams.has("replyId")) {
         url.searchParams.delete("prompt");
+        url.searchParams.delete("replyId");
         window.history.replaceState(null, "", url.pathname + url.search);
       }
-      sendMessage(initialPrompt);
+      sendMessage(
+        initialPrompt,
+        initialContextReplyId ? { contextReplyId: initialContextReplyId } : undefined
+      );
     }
-  }, [initialPrompt, sendMessage]);
+  }, [initialPrompt, initialContextReplyId, sendMessage]);
 
   // ── Swipes ───────────────────────────────────────────────────────────
   const swipedDecksRef = useRef<Set<string>>(new Set());
@@ -238,16 +245,12 @@ export function EventWorkspace({
   const handleApproveDraft = useCallback(
     async (draftId: string) => {
       setApproving(true);
-      setAgentStatus("Sending emails through your Gmail…");
+      setAgentStatus("Sending emails from Ava's Kalas mailbox…");
       try {
         const res = await fetch(`/api/drafts/${draftId}/approve`, { method: "POST" });
         const data = await res.json();
         if (!res.ok) {
-          throw new Error(
-            data.error === "gmail_not_connected"
-              ? "Gmail isn't connected — connect it in Settings first."
-              : data.error ?? "Sending failed"
-          );
+          throw new Error(data.message ?? data.error ?? "Sending failed");
         }
         // The route writes a summary chat message; pull fresh state.
         const id = eventIdRef.current;
@@ -305,16 +308,6 @@ export function EventWorkspace({
 
   return (
     <div className="flex h-screen flex-col overflow-hidden">
-      {!gmailConnected && (
-        <div className="shrink-0 border-b border-amber-200 bg-amber-50 px-6 py-2 text-center text-xs text-amber-800">
-          Gmail isn&apos;t connected yet — you can chat and swipe, but connect it in{" "}
-          <Link href="/settings" className="underline">
-            Settings
-          </Link>{" "}
-          before sending quote requests.
-        </div>
-      )}
-
       {tab === "quotes" ? (
         <>
           <header className="flex shrink-0 items-center gap-3 border-b border-[#D4D6C0] bg-[#F6F0E8] px-6 py-4">
@@ -355,7 +348,6 @@ export function EventWorkspace({
             venues={batchVenues}
             drafts={drafts}
             messageId={activeVenueBatch?.messageId ?? null}
-            gmailConnected={gmailConnected}
             onSwipe={handleSwipe}
             onDeckFinished={handleDeckFinished}
             onOpenQuotes={() => setTab("chat")}

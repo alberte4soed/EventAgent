@@ -14,10 +14,17 @@ import {
 } from "@/lib/invites";
 import { dateKnown, venueChosen } from "@/lib/journey";
 
+export interface DesignPreview {
+  id: string;
+  url: string | null;
+  selected: boolean;
+}
+
 interface Props {
   event: EventRow;
   orders: InviteOrderRow[];
   checkoutResult: string | null;
+  initialDesigns: DesignPreview[];
 }
 
 const ORDER_STATUS_LABELS: Record<string, string> = {
@@ -28,7 +35,7 @@ const ORDER_STATUS_LABELS: Record<string, string> = {
   canceled: "Canceled",
 };
 
-export function InvitesPlanner({ event, orders, checkoutResult }: Props) {
+export function InvitesPlanner({ event, orders, checkoutResult, initialDesigns }: Props) {
   const inviteBrief =
     (event.requirements?.invites as { wording?: string; style?: string } | undefined) ??
     {};
@@ -52,11 +59,49 @@ export function InvitesPlanner({ event, orders, checkoutResult }: Props) {
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [designs, setDesigns] = useState<DesignPreview[]>(initialDesigns);
+  const [generating, setGenerating] = useState(false);
+  const [designError, setDesignError] = useState<string | null>(null);
+  const selectedDesign = designs.find((d) => d.selected) ?? null;
+
   const amount = orderAmountCents(quantity);
   const openOrder = orders.find((o) =>
     ["paid", "submitted_to_print", "shipped"].includes(o.status)
   );
   const ready = venueChosen(event) && dateKnown(event);
+
+  async function generateDesigns() {
+    setGenerating(true);
+    setDesignError(null);
+    try {
+      const res = await fetch("/api/invites/design", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eventId: event.id, style, palette, wording: wording.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message ?? data.error ?? "Design generation failed");
+      }
+      const fresh: DesignPreview[] = (data.designs as { id: string; url: string | null }[]).map(
+        (d) => ({ ...d, selected: false })
+      );
+      setDesigns((prev) => [...fresh, ...prev]);
+    } catch (err) {
+      setDesignError(err instanceof Error ? err.message : "Design generation failed");
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  async function selectDesign(id: string) {
+    setDesigns((prev) => prev.map((d) => ({ ...d, selected: d.id === id })));
+    await fetch("/api/invites/design/select", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ designId: id }),
+    });
+  }
 
   async function checkout() {
     setPaying(true);
@@ -71,6 +116,7 @@ export function InvitesPlanner({ event, orders, checkoutResult }: Props) {
           palette,
           wording: wording.trim() || null,
           quantity,
+          designId: selectedDesign?.id ?? null,
         }),
       });
       const data = await res.json();
@@ -90,7 +136,7 @@ export function InvitesPlanner({ event, orders, checkoutResult }: Props) {
           Send the invites
         </h1>
         <p className="mt-2 text-[15px] text-[#7A8066]">
-          Pick a style, settle the wording, order the prints — Kalas fills in your
+          Pick a style, settle the wording, order the prints — Ava fills in your
           date and venue automatically.
         </p>
       </motion.div>
@@ -196,7 +242,7 @@ export function InvitesPlanner({ event, orders, checkoutResult }: Props) {
             )}`}
             className="text-xs font-medium text-[#7A8066] underline-offset-2 hover:underline"
           >
-            Draft it with Kalas →
+            Draft it with Ava →
           </Link>
         </div>
         <textarea
@@ -208,6 +254,70 @@ export function InvitesPlanner({ event, orders, checkoutResult }: Props) {
           }
           className="mt-3 w-full rounded-2xl border border-[#D4D6C0] bg-[#F6F0E8] px-5 py-4 text-center font-[family-name:var(--font-fraunces)] text-[15px] leading-[1.8] outline-none transition focus:border-[#4A4E3C]"
         />
+      </section>
+
+      <section className="mt-7">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold uppercase tracking-[1px] text-[#8a8568]">
+            Design
+          </h2>
+          <button
+            type="button"
+            disabled={generating || !wording.trim()}
+            onClick={generateDesigns}
+            className="rounded-full bg-[#4A4E3C] px-4 py-2 text-xs font-medium text-[#F6F0E8] shadow-[0px_3px_10px_rgba(74,78,60,0.3)] transition hover:bg-[#575B47] disabled:opacity-40"
+          >
+            {generating
+              ? "Designing…"
+              : designs.length > 0
+                ? "Generate more"
+                : "Generate designs"}
+          </button>
+        </div>
+        <p className="mt-1 text-xs text-[#8a8568]">
+          Ava renders a few options from your style, palette and wording — pick your
+          favourite. {designs.length > 0 && "Tap a design to select it."}
+        </p>
+
+        {designError && <p className="mt-2 text-xs text-[#a8483a]">{designError}</p>}
+
+        {designs.length > 0 && (
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {designs.map((d) => (
+              <button
+                key={d.id}
+                type="button"
+                onClick={() => selectDesign(d.id)}
+                className={`relative aspect-[3/4] overflow-hidden rounded-xl border-2 transition ${
+                  d.selected ? "border-[#C2B280]" : "border-[#D4D6C0] hover:border-[#C4C8AE]"
+                }`}
+              >
+                {d.url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={d.url} alt="Invitation design" className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-[#ece8db] text-xs text-[#8a8568]">
+                    preview expired
+                  </div>
+                )}
+                {d.selected && (
+                  <span className="absolute right-1.5 top-1.5 flex size-5 items-center justify-center rounded-full bg-[#4A4E3C] text-[#F6F0E8]">
+                    <svg stroke="currentColor" fill="none" strokeWidth="3" viewBox="0 0 24 24" className="size-3">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </span>
+                )}
+              </button>
+            ))}
+            {generating &&
+              [0, 1, 2].map((i) => (
+                <div
+                  key={`skeleton-${i}`}
+                  className="aspect-[3/4] animate-pulse rounded-xl border border-[#D4D6C0] bg-[#ece8db]"
+                />
+              ))}
+          </div>
+        )}
       </section>
 
       <section className="mt-8 flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-[#D4D6C0] bg-[#F6F0E8] p-5 shadow-[0px_4px_20px_rgba(74,78,60,0.05)]">
@@ -229,7 +339,7 @@ export function InvitesPlanner({ event, orders, checkoutResult }: Props) {
         </button>
         {!wording.trim() && (
           <p className="w-full text-xs text-[#8a8568]">
-            Add your wording (or have Kalas draft it) to continue.
+            Add your wording (or have Ava draft it) to continue.
           </p>
         )}
         {error && <p className="w-full text-xs text-[#a8483a]">{error}</p>}

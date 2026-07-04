@@ -9,9 +9,10 @@ interface Props {
   stage: JourneyStage;
   eventId: string;
   index: number;
+  unread?: number;
 }
 
-export function JourneyStageCard({ stage, eventId, index }: Props) {
+export function JourneyStageCard({ stage, eventId, index, unread = 0 }: Props) {
   const locked = stage.status === "locked";
   const complete = stage.status === "complete";
 
@@ -50,20 +51,33 @@ export function JourneyStageCard({ stage, eventId, index }: Props) {
       <p className="mt-1 text-xs leading-relaxed text-[#7A8066]">{stage.hint}</p>
 
       {stage.key === "vendors" && stage.status === "active" ? (
-        <div className="mt-4 flex flex-wrap gap-1.5">
-          {HUB_VENDOR_CATEGORIES.map((c) => {
-            const meta = CATEGORY_META[c];
-            return (
-              <Link
-                key={c}
-                href={`/events/${eventId}?prompt=${encodeURIComponent(meta.prompt)}`}
-                className="flex items-center gap-1 rounded-full border border-[#D4D6C0] bg-[#F6F0E8] px-2.5 py-1.5 text-[11.5px] font-medium text-[#656952] transition hover:border-[#4A4E3C] hover:bg-[#c2b280] hover:text-[#4A4E3C]"
-              >
-                <span>{meta.emoji}</span> {meta.label}
-              </Link>
-            );
-          })}
-        </div>
+        <>
+          <div className="mt-4 flex flex-wrap gap-1.5">
+            {HUB_VENDOR_CATEGORIES.map((c) => {
+              const meta = CATEGORY_META[c];
+              return (
+                <Link
+                  key={c}
+                  href={`/events/${eventId}?prompt=${encodeURIComponent(meta.prompt)}`}
+                  className="flex items-center gap-1 rounded-full border border-[#D4D6C0] bg-[#F6F0E8] px-2.5 py-1.5 text-[11.5px] font-medium text-[#656952] transition hover:border-[#4A4E3C] hover:bg-[#c2b280] hover:text-[#4A4E3C]"
+                >
+                  <span>{meta.emoji}</span> {meta.label}
+                </Link>
+              );
+            })}
+          </div>
+          <Link
+            href={`/events/${eventId}/outreach`}
+            className="mt-3 inline-flex w-fit items-center gap-1.5 rounded-full bg-[#4A4E3C] px-4 py-2 text-xs font-medium text-[#F6F0E8] shadow-[0px_3px_10px_rgba(74,78,60,0.3)] transition hover:bg-[#575B47]"
+          >
+            Open outreach
+            {unread > 0 && (
+              <span className="flex min-w-[18px] items-center justify-center rounded-full bg-[#a8483a] px-1 text-[10px] font-semibold">
+                {unread}
+              </span>
+            )}
+          </Link>
+        </>
       ) : (
         !locked && (
           <Link

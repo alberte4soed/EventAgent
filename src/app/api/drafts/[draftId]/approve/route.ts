@@ -1,11 +1,18 @@
 import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getAccessToken, GmailNotConnectedError } from "@/lib/gmail/oauth";
+import { GmailNotConnectedError } from "@/lib/gmail/oauth";
+import {
+  getPlatformAccessToken,
+  getPlatformEmail,
+  ensureReplyTag,
+  plusAddress,
+} from "@/lib/gmail/platform";
 import { sendEmail } from "@/lib/gmail/send";
-import { personalizeEmail, findVenueEmail } from "@/lib/gemini/agent";
-import type { EmailDraftRow, VenueRow } from "@/lib/db/types";
+import { labelOutreachThread } from "@/lib/gmail/labels";
+import { composeOutreachEmail, findVenueEmail } from "@/lib/gemini/agent";
+import type { EmailDraftRow, EventRow, VenueRow } from "@/lib/db/types";
 
-export const maxDuration = 300; // personalize + send per venue, sequentially
+export const maxDuration = 300; // compose + send per vendor, sequentially
 
 interface VenueResult {
   venueId: string;
@@ -15,8 +22,9 @@ interface VenueResult {
 }
 
 /**
- * POST /api/drafts/[draftId]/approve — approve the master draft, then
- * personalize and send it to every liked venue with a contact email.
+ * POST /api/drafts/[draftId]/approve — approve the master draft, then compose
+ * and send an individual email to every liked vendor in the draft's category,
+ * from the platform Kalas mailbox.
  */
 export async function POST(
   _request: NextRequest,
@@ -40,36 +48,65 @@ export async function POST(
     return Response.json({ error: `Draft already ${draft.status}` }, { status: 409 });
   }
 
+  const { data: eventData } = await supabase
+    .from("events")
+    .select("*")
+    .eq("id", draft.event_id)
+    .single();
+  const event = eventData as EventRow | null;
+  if (!event) return Response.json({ error: "Event not found" }, { status: 404 });
+
+  // Liked vendors in this draft's category, minus those already contacted.
   const { data: venuesData } = await supabase
     .from("venues")
     .select("*")
     .eq("event_id", draft.event_id)
-    .eq("swipe_status", "liked");
-  const venues = (venuesData ?? []) as VenueRow[];
+    .eq("swipe_status", "liked")
+    .eq("category", draft.category);
+  const { data: contactedData } = await supabase
+    .from("outbound_emails")
+    .select("venue_id")
+    .eq("event_id", draft.event_id)
+    .in("status", ["sent", "replied"]);
+  const contacted = new Set(
+    ((contactedData ?? []) as { venue_id: string }[]).map((r) => r.venue_id)
+  );
+  const venues = ((venuesData ?? []) as VenueRow[]).filter((v) => !contacted.has(v.id));
   if (venues.length === 0) {
-    return Response.json({ error: "No liked venues to contact" }, { status: 400 });
+    return Response.json(
+      { error: `No uncontacted liked ${draft.category}s to reach out to` },
+      { status: 400 }
+    );
   }
 
-  // Verify Gmail connectivity before marking anything approved.
+  // Verify the platform mailbox before marking anything approved.
   let accessToken: string;
+  let platformEmail: string | null;
   try {
-    accessToken = await getAccessToken(user.id);
+    accessToken = await getPlatformAccessToken();
+    platformEmail = await getPlatformEmail();
   } catch (err) {
     if (err instanceof GmailNotConnectedError) {
       return Response.json(
-        { error: "gmail_not_connected", message: err.message },
-        { status: 412 }
+        {
+          error: "outreach_unavailable",
+          message: "Ava's outreach mailbox is being set up — try again shortly.",
+        },
+        { status: 503 }
       );
     }
     throw err;
   }
+
+  const replyTag = await ensureReplyTag(supabase, event);
+  const replyTo = platformEmail ? plusAddress(platformEmail, replyTag) : undefined;
 
   await supabase.from("email_drafts").update({ status: "approved" }).eq("id", draftId);
   await supabase.from("events").update({ status: "sending" }).eq("id", draft.event_id);
 
   const results: VenueResult[] = [];
   for (const venue of venues) {
-    // Last-chance email lookup for liked venues still missing one.
+    // Last-chance email lookup for liked vendors still missing one.
     let toEmail = venue.email;
     if (!toEmail) {
       try {
@@ -95,16 +132,11 @@ export async function POST(
       continue;
     }
 
-    let body: string;
-    try {
-      body = await personalizeEmail({
-        template: draft.body_template,
-        venueName: venue.name,
-        venueDescription: venue.description,
-      });
-    } catch {
-      body = draft.body_template.replaceAll("{{venue_name}}", venue.name);
-    }
+    const body = await composeOutreachEmail({
+      template: draft.body_template,
+      event,
+      venue,
+    });
 
     const { data: outboundData } = await supabase
       .from("outbound_emails")
@@ -116,6 +148,7 @@ export async function POST(
         to_email: toEmail,
         subject: draft.subject,
         body,
+        kind: "outreach",
       })
       .select("id")
       .single();
@@ -125,6 +158,9 @@ export async function POST(
         to: toEmail,
         subject: draft.subject,
         body,
+        fromName: "Ava at Kalas",
+        fromEmail: platformEmail ?? undefined,
+        replyTo,
       });
       await supabase
         .from("outbound_emails")
@@ -135,6 +171,7 @@ export async function POST(
           sent_at: new Date().toISOString(),
         })
         .eq("id", outboundData!.id);
+      await labelOutreachThread(accessToken, sent.threadId, replyTag);
       results.push({ venueId: venue.id, venueName: venue.name, status: "sent" });
     } catch (err) {
       const reason = err instanceof Error ? err.message : "Send failed";
@@ -162,8 +199,8 @@ export async function POST(
     role: "assistant",
     content:
       sentCount > 0
-        ? `I've sent your quote request to ${sentCount} venue${sentCount === 1 ? "" : "s"}. I'll keep an eye on the replies and collect quotes in the dashboard.`
-        : "I couldn't send any emails — check the venue contact details and your Gmail connection, then approve again.",
+        ? `I've reached out to ${sentCount} ${draft.category}${sentCount === 1 ? "" : "s"} from my Kalas mailbox — replies come straight to me and I'll flag each one for you in the outreach inbox.`
+        : "I couldn't send any emails — check the contact details and approve again.",
     payload: {
       kind: "send_report",
       sent: sentCount,

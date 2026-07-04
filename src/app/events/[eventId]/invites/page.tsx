@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { InvitesPlanner } from "@/components/invites/InvitesPlanner";
-import type { EventRow, InviteOrderRow } from "@/lib/db/types";
+import { InvitesPlanner, type DesignPreview } from "@/components/invites/InvitesPlanner";
+import type { EventRow, InviteDesignRow, InviteOrderRow } from "@/lib/db/types";
 
 export default async function InvitesPage({
   params,
@@ -20,7 +20,7 @@ export default async function InvitesPage({
   const { eventId } = await params;
   const { checkout } = await searchParams;
 
-  const [{ data: event }, { data: orders }] = await Promise.all([
+  const [{ data: event }, { data: orders }, { data: designRows }] = await Promise.all([
     supabase.from("events").select("*").eq("id", eventId).maybeSingle(),
     supabase
       .from("invite_orders")
@@ -28,8 +28,24 @@ export default async function InvitesPage({
       .eq("event_id", eventId)
       .order("created_at", { ascending: false })
       .limit(5),
+    supabase
+      .from("invite_designs")
+      .select("*")
+      .eq("event_id", eventId)
+      .order("created_at", { ascending: false })
+      .limit(12),
   ]);
   if (!event) notFound();
+
+  // Sign URLs for the most recent designs so previews survive reload.
+  const designs: DesignPreview[] = await Promise.all(
+    ((designRows ?? []) as InviteDesignRow[]).map(async (d) => {
+      const { data: signed } = await supabase.storage
+        .from("invite-designs")
+        .createSignedUrl(d.storage_path, 3600);
+      return { id: d.id, url: signed?.signedUrl ?? null, selected: d.selected };
+    })
+  );
 
   return (
     <main className="min-h-screen bg-[#F6F0E8] text-[#4A4E3C]">
@@ -53,6 +69,7 @@ export default async function InvitesPage({
         event={event as EventRow}
         orders={(orders ?? []) as InviteOrderRow[]}
         checkoutResult={checkout ?? null}
+        initialDesigns={designs}
       />
     </main>
   );

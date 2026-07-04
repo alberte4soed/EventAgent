@@ -1,9 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getOrCreateProfile } from "@/lib/db/profile";
-import { getGmailConnection } from "@/lib/gmail/oauth";
 import { HomeDashboard } from "@/components/home/HomeDashboard";
-import type { EventRow } from "@/lib/db/types";
+import type { EventRow, VendorCategory } from "@/lib/db/types";
 
 export default async function HomePage() {
   const supabase = await createClient();
@@ -15,7 +14,7 @@ export default async function HomePage() {
   const profile = await getOrCreateProfile(supabase, user.id);
   if (!profile.onboarded) redirect("/onboarding");
 
-  const [{ data: events }, likedRes, quotedRes, sentRes, gmail] = await Promise.all([
+  const [{ data: events }, likedRes, quotedRes, sentRes] = await Promise.all([
     supabase.from("events").select("*").order("created_at", { ascending: false }),
     supabase
       .from("venues")
@@ -29,7 +28,6 @@ export default async function HomePage() {
       .from("outbound_emails")
       .select("id", { count: "exact", head: true })
       .in("status", ["sent", "replied"]),
-    getGmailConnection(user.id),
   ]);
 
   const allEvents = (events ?? []) as EventRow[];
@@ -44,29 +42,68 @@ export default async function HomePage() {
   let activeLiked = 0;
   let activeQuotes = 0;
   let inviteOrderStatus: string | null = null;
+  const bookedByCategory: Partial<Record<VendorCategory, number>> = {};
+  const contactedByCategory: Partial<Record<VendorCategory, number>> = {};
+  let unreadReplies = 0;
+
   if (activeEvent) {
-    const [likedActive, quotesActive, orderRes] = await Promise.all([
-      supabase
-        .from("venues")
-        .select("id", { count: "exact", head: true })
-        .eq("event_id", activeEvent.id)
-        .eq("swipe_status", "liked"),
-      supabase
-        .from("email_replies")
-        .select("id", { count: "exact", head: true })
-        .eq("event_id", activeEvent.id)
-        .eq("quote_status", "quoted"),
-      supabase
-        .from("invite_orders")
-        .select("status")
-        .eq("event_id", activeEvent.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-    ]);
+    const [likedActive, quotesActive, orderRes, venuesRes, outboundRes, unreadRes] =
+      await Promise.all([
+        supabase
+          .from("venues")
+          .select("id", { count: "exact", head: true })
+          .eq("event_id", activeEvent.id)
+          .eq("swipe_status", "liked"),
+        supabase
+          .from("email_replies")
+          .select("id", { count: "exact", head: true })
+          .eq("event_id", activeEvent.id)
+          .eq("quote_status", "quoted"),
+        supabase
+          .from("invite_orders")
+          .select("status")
+          .eq("event_id", activeEvent.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from("venues")
+          .select("id, category, booked_at")
+          .eq("event_id", activeEvent.id),
+        supabase
+          .from("outbound_emails")
+          .select("venue_id")
+          .eq("event_id", activeEvent.id)
+          .in("status", ["sent", "replied"]),
+        supabase
+          .from("email_replies")
+          .select("id", { count: "exact", head: true })
+          .eq("event_id", activeEvent.id)
+          .is("read_at", null),
+      ]);
     activeLiked = likedActive.count ?? 0;
     activeQuotes = quotesActive.count ?? 0;
     inviteOrderStatus = (orderRes.data?.status as string | undefined) ?? null;
+    unreadReplies = unreadRes.count ?? 0;
+
+    const venueCategory = new Map<string, VendorCategory>();
+    for (const v of (venuesRes.data ?? []) as {
+      id: string;
+      category: VendorCategory;
+      booked_at: string | null;
+    }[]) {
+      venueCategory.set(v.id, v.category);
+      if (v.booked_at) {
+        bookedByCategory[v.category] = (bookedByCategory[v.category] ?? 0) + 1;
+      }
+    }
+    const contactedVenueIds = new Set(
+      ((outboundRes.data ?? []) as { venue_id: string }[]).map((o) => o.venue_id)
+    );
+    for (const venueId of contactedVenueIds) {
+      const cat = venueCategory.get(venueId);
+      if (cat) contactedByCategory[cat] = (contactedByCategory[cat] ?? 0) + 1;
+    }
   }
 
   return (
@@ -78,12 +115,14 @@ export default async function HomePage() {
         quotesIn: quotedRes.count ?? 0,
         emailsSent: sentRes.count ?? 0,
       }}
-      gmailConnected={gmail.connected}
       activeEvent={activeEvent}
       activeExtras={{
         likedVenues: activeLiked,
         quotesIn: activeQuotes,
         inviteOrderStatus,
+        bookedByCategory,
+        contactedByCategory,
+        unreadReplies,
       }}
     />
   );

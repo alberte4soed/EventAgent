@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import type { EmailDraftRow, EventRow, VenueRow } from "@/lib/db/types";
 import { FeaturedVenueDeck } from "@/components/swipe/FeaturedVenueDeck";
 
@@ -9,7 +8,6 @@ interface Props {
   venues: VenueRow[];
   drafts: EmailDraftRow[];
   messageId: string | null;
-  gmailConnected: boolean;
   onSwipe: (venueId: string, decision: "liked" | "rejected") => void;
   onDeckFinished: (messageId: string, liked: number, rejected: number) => void;
   onOpenQuotes: () => void;
@@ -21,7 +19,6 @@ export function VenueCanvas({
   venues,
   drafts,
   messageId,
-  gmailConnected,
   onSwipe,
   onDeckFinished,
   onOpenQuotes,
@@ -245,13 +242,6 @@ export function VenueCanvas({
               </svg>
               Review draft in chat
             </button>
-          ) : !gmailConnected ? (
-            <Link
-              href="/settings"
-              className="flex h-[42px] shrink-0 items-center gap-2 rounded-xl border border-[#4A4E3C] px-[18px] text-[13.5px] font-medium text-[#4A4E3C] transition hover:bg-[#c2b280]"
-            >
-              Connect Gmail to send quotes
-            </Link>
           ) : null}
         </div>
       )}

@@ -5,9 +5,40 @@
 // Cost shape: one Text Search per candidate (matchPlace), one Place Details
 // (reviews SKU) only for places we actually keep.
 
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { VenueReview } from "@/lib/db/types";
 
 const PLACES_BASE = "https://places.googleapis.com/v1";
+const CACHE_TTL_MS = 7 * 24 * 3600 * 1000; // Places facts are stable for a week
+
+/** Best-effort read from places_cache; null on miss/expiry/error. */
+async function cacheGet<T>(key: string): Promise<T | null> {
+  try {
+    const admin = createAdminClient();
+    const { data } = await admin
+      .from("places_cache")
+      .select("payload, fetched_at")
+      .eq("cache_key", key)
+      .maybeSingle();
+    if (!data) return null;
+    if (Date.now() - new Date(data.fetched_at as string).getTime() > CACHE_TTL_MS) return null;
+    return data.payload as T;
+  } catch {
+    return null;
+  }
+}
+
+/** Best-effort write to places_cache; failures are swallowed. */
+async function cacheSet(key: string, payload: unknown): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    await admin
+      .from("places_cache")
+      .upsert({ cache_key: key, payload, fetched_at: new Date().toISOString() });
+  } catch {
+    // best-effort
+  }
+}
 
 const SEARCH_FIELD_MASK = [
   "places.id",
@@ -75,6 +106,10 @@ export async function searchText(
 ): Promise<PlaceResult[]> {
   const key = apiKey();
   if (!key || !query.trim()) return [];
+  const max = opts.maxResults ?? 3;
+  const cacheKey = `search:${query.toLowerCase().trim()}:${max}`;
+  const cached = await cacheGet<PlaceResult[]>(cacheKey);
+  if (cached) return cached;
   try {
     const res = await fetch(`${PLACES_BASE}/places:searchText`, {
       method: "POST",
@@ -85,12 +120,14 @@ export async function searchText(
       },
       body: JSON.stringify({
         textQuery: query,
-        maxResultCount: opts.maxResults ?? 3,
+        maxResultCount: max,
       }),
     });
     if (!res.ok) return [];
     const data = (await res.json()) as { places?: PlaceResult[] };
-    return data.places ?? [];
+    const places = data.places ?? [];
+    await cacheSet(cacheKey, places);
+    return places;
   } catch {
     return [];
   }
@@ -100,6 +137,9 @@ export async function searchText(
 export async function getDetails(placeId: string): Promise<PlaceResult | null> {
   const key = apiKey();
   if (!key || !placeId) return null;
+  const cacheKey = `details:${placeId}`;
+  const cached = await cacheGet<PlaceResult>(cacheKey);
+  if (cached) return cached;
   try {
     const res = await fetch(`${PLACES_BASE}/places/${placeId}`, {
       headers: {
@@ -108,7 +148,9 @@ export async function getDetails(placeId: string): Promise<PlaceResult | null> {
       },
     });
     if (!res.ok) return null;
-    return (await res.json()) as PlaceResult;
+    const details = (await res.json()) as PlaceResult;
+    await cacheSet(cacheKey, details);
+    return details;
   } catch {
     return null;
   }
@@ -138,7 +180,7 @@ export async function resolvePhotoUrls(
   return urls.filter((u): u is string => Boolean(u));
 }
 
-function normalizeTokens(s: string): Set<string> {
+export function normalizeTokens(s: string): Set<string> {
   return new Set(
     s
       .toLowerCase()
@@ -151,7 +193,7 @@ function normalizeTokens(s: string): Set<string> {
 }
 
 /** Token-overlap similarity in [0, 1] against the smaller name. */
-function nameSimilarity(a: string, b: string): number {
+export function nameSimilarity(a: string, b: string): number {
   const ta = normalizeTokens(a);
   const tb = normalizeTokens(b);
   if (ta.size === 0 || tb.size === 0) return 0;

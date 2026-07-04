@@ -16,6 +16,7 @@ import {
   emailMatchesWebsite,
   type PlaceResult,
 } from "@/lib/places/client";
+import { rankScore } from "@/lib/ranking";
 import {
   agentSystemPrompt,
   VENDOR_SEARCH_PROMPT,
@@ -23,13 +24,19 @@ import {
   FIND_EMAIL_PROMPT,
   PERSONALIZE_PROMPT,
   QUOTE_EXTRACTION_PROMPT,
+  COMPOSE_OUTREACH_PROMPT,
+  REPLY_PROPOSAL_PROMPT,
 } from "./prompts";
 import type {
   ChatMessageRow,
+  EmailReplyRow,
   EventRow,
   MessagePayload,
+  OutboundEmailRow,
   QuoteExtraction,
+  ReplyProposalRow,
   VendorCategory,
+  VenueRow,
 } from "@/lib/db/types";
 
 const MAX_ITERATIONS = 6;
@@ -52,7 +59,8 @@ export async function runAgentTurn(
   event: EventRow,
   history: ChatMessageRow[],
   userMessage: string,
-  onStatus: StatusFn = () => {}
+  onStatus: StatusFn = () => {},
+  extraContext?: string
 ): Promise<AgentTurnResult> {
   const ai = getGemini();
 
@@ -77,7 +85,9 @@ export async function runAgentTurn(
         model: GEMINI_MODEL,
         contents,
         config: {
-          systemInstruction: agentSystemPrompt(currentEvent),
+          systemInstruction:
+            agentSystemPrompt(currentEvent) +
+            (extraContext ? `\n\n${extraContext}` : ""),
           tools: [{ functionDeclarations }],
         },
       });
@@ -201,10 +211,33 @@ export async function runAgentTurn(
             break;
           }
           case "propose_email_draft": {
-            onStatus("Drafting the quote-request email…");
+            onStatus("Drafting the outreach email…");
             const draft = await execProposeDraft(supabase, currentEvent, args);
             result = { draft_id: draft.id, version: draft.version };
             payload = { kind: "draft", draft_id: draft.id };
+            break;
+          }
+          case "mark_vendor_booked":
+            onStatus("Marking the vendor as booked…");
+            result = await execMarkVendorBooked(supabase, currentEvent, args);
+            currentEvent = (result.event as EventRow) ?? currentEvent;
+            delete result.event;
+            break;
+          case "mark_stage_complete":
+            onStatus("Updating your journey…");
+            result = await execMarkStageComplete(supabase, currentEvent, args);
+            currentEvent = (result.event as EventRow) ?? currentEvent;
+            delete result.event;
+            break;
+          case "propose_vendor_reply": {
+            onStatus("Drafting a reply to the vendor…");
+            const proposal = await execProposeVendorReply(supabase, currentEvent, args);
+            if (proposal) {
+              result = { proposal_id: proposal.id };
+              payload = { kind: "reply_proposal", proposal_id: proposal.id };
+            } else {
+              result = { error: "Could not find that vendor reply to respond to" };
+            }
             break;
           }
           default:
@@ -254,6 +287,15 @@ async function execUpdateEventDetails(
   for (const key of ["title", "event_type", "location", "guest_count", "event_date", "budget"]) {
     if (args[key] !== undefined && args[key] !== null) patch[key] = args[key];
   }
+  // Keep date_precision / date_hint consistent with event_date so journey
+  // gating and the hub countdown never read stale values.
+  if (patch.event_date) {
+    patch.date_precision = "exact";
+    patch.date_hint = null;
+  } else if (typeof args.date_hint === "string" && args.date_hint.trim()) {
+    patch.date_hint = args.date_hint.trim();
+    if (event.date_precision === "undecided") patch.date_precision = "season";
+  }
   if (args.requirements && typeof args.requirements === "object") {
     patch.requirements = { ...event.requirements, ...(args.requirements as object) };
   }
@@ -284,34 +326,6 @@ interface EnrichedCandidate {
   place: PlaceResult | null;
   photoUrls: string[];
   score: number;
-}
-
-/** Bayesian-smoothed rating so a 5.0 with 3 reviews doesn't beat a 4.8 with 400. */
-function ratingScore(rating?: number, reviewCount?: number): number {
-  if (!rating) return 4.1; // unrated: just below the prior, not buried
-  const n = reviewCount ?? 0;
-  return (rating * n + 4.2 * 10) / (n + 10);
-}
-
-function rankScore(
-  candidate: { extracted: ExtractedVenue; place: PlaceResult | null },
-  guestCount: number | null | undefined,
-  vibes: string[]
-): number {
-  let score = ratingScore(candidate.place?.rating, candidate.place?.userRatingCount);
-
-  // Capacity fit: any number in the capacity text that covers the guest count.
-  if (guestCount && candidate.extracted.capacity) {
-    const numbers = candidate.extracted.capacity.match(/\d+/g)?.map(Number) ?? [];
-    if (numbers.some((n) => n >= guestCount)) score += 0.1;
-  }
-
-  // Vibe keywords appearing in the description / fit sentence.
-  const text = `${candidate.extracted.description ?? ""} ${candidate.extracted.why_fit ?? ""}`.toLowerCase();
-  const hits = vibes.filter((v) => text.includes(v.toLowerCase())).length;
-  score += Math.min(hits, 3) * 0.05;
-
-  return score;
 }
 
 /**
@@ -517,7 +531,7 @@ async function execMarkVenueChosen(
   } else if (args.booked_externally) {
     patch.journey_overrides = { ...event.journey_overrides, venue: "complete" };
   } else {
-    return { error: "Pass venue_id, or booked_externally when booked outside Kalas" };
+    return { error: "Pass venue_id, or booked_externally when booked outside the app" };
   }
 
   const { data, error } = await supabase
@@ -528,6 +542,105 @@ async function execMarkVenueChosen(
     .single();
   if (error) throw new Error(error.message);
   return { ok: true, event: data as EventRow };
+}
+
+/** Record that a vendor (or venue) has been booked. */
+async function execMarkVendorBooked(
+  supabase: SupabaseClient,
+  event: EventRow,
+  args: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  const venueId = typeof args.venue_id === "string" ? args.venue_id : null;
+  if (!venueId) return { error: "Pass the vendor's venue_id" };
+
+  const { data: venue } = await supabase
+    .from("venues")
+    .select("id, name, category")
+    .eq("id", venueId)
+    .eq("event_id", event.id)
+    .maybeSingle();
+  if (!venue) return { error: "That vendor is not on this wedding's board" };
+
+  await supabase
+    .from("venues")
+    .update({ booked_at: new Date().toISOString() })
+    .eq("id", venueId);
+
+  // Booking a venue also settles the venue stage if not already chosen.
+  if (venue.category === "venue" && !event.chosen_venue_id) {
+    const { data } = await supabase
+      .from("events")
+      .update({ chosen_venue_id: venueId })
+      .eq("id", event.id)
+      .select()
+      .single();
+    return { ok: true, booked: venue.name, event: data as EventRow };
+  }
+  return { ok: true, booked: venue.name };
+}
+
+/** Manually mark a whole journey stage complete via journey_overrides. */
+async function execMarkStageComplete(
+  supabase: SupabaseClient,
+  event: EventRow,
+  args: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  const stage = String(args.stage ?? "");
+  if (!["venue", "vendors", "invites"].includes(stage)) {
+    return { error: "stage must be venue, vendors or invites" };
+  }
+  const { data, error } = await supabase
+    .from("events")
+    .update({
+      journey_overrides: { ...event.journey_overrides, [stage]: "complete" },
+    })
+    .eq("id", event.id)
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  return { ok: true, event: data as EventRow };
+}
+
+/** Draft a revised reply proposal for a vendor reply the user is discussing. */
+async function execProposeVendorReply(
+  supabase: SupabaseClient,
+  event: EventRow,
+  args: Record<string, unknown>
+): Promise<ReplyProposalRow | null> {
+  const replyId = typeof args.reply_id === "string" ? args.reply_id : null;
+  const body = String(args.body ?? "").trim();
+  if (!replyId || !body) return null;
+
+  const { data: reply } = await supabase
+    .from("email_replies")
+    .select("*")
+    .eq("id", replyId)
+    .eq("event_id", event.id)
+    .maybeSingle();
+  if (!reply) return null;
+  const replyRow = reply as EmailReplyRow;
+
+  // Supersede any pending proposal for this reply, then insert the new one.
+  await supabase
+    .from("reply_proposals")
+    .update({ status: "superseded" })
+    .eq("email_reply_id", replyId)
+    .eq("status", "proposed");
+
+  const { data: proposal, error } = await supabase
+    .from("reply_proposals")
+    .insert({
+      email_reply_id: replyRow.id,
+      outbound_email_id: replyRow.outbound_email_id,
+      venue_id: replyRow.venue_id,
+      event_id: replyRow.event_id,
+      user_id: replyRow.user_id,
+      body,
+    })
+    .select()
+    .single();
+  if (error) return null;
+  return proposal as ReplyProposalRow;
 }
 
 async function execFindVenueEmail(
@@ -592,6 +705,16 @@ export async function findVenueEmail(
   return match[0].toLowerCase();
 }
 
+const VENDOR_CATEGORY_SET = new Set<VendorCategory>([
+  "venue",
+  "florist",
+  "photographer",
+  "musician",
+  "caterer",
+  "planner",
+  "other",
+]);
+
 async function execProposeDraft(
   supabase: SupabaseClient,
   event: EventRow,
@@ -603,6 +726,9 @@ async function execProposeDraft(
   if (!body.includes("{{venue_name}}")) {
     throw new Error("body_template must contain the {{venue_name}} placeholder");
   }
+  const category: VendorCategory = VENDOR_CATEGORY_SET.has(args.category as VendorCategory)
+    ? (args.category as VendorCategory)
+    : "venue";
 
   const { data: latest } = await supabase
     .from("email_drafts")
@@ -621,6 +747,7 @@ async function execProposeDraft(
       subject,
       body_template: body,
       version,
+      category,
     })
     .select("id, version")
     .single();
@@ -631,6 +758,21 @@ async function execProposeDraft(
 }
 
 // ── Standalone Gemini helpers used outside the chat loop ────────────────
+
+/** One-line summary of the wedding facts for outreach/reply prompts. */
+export function eventFactsLine(event: EventRow): string {
+  return (
+    [
+      event.event_type,
+      event.location && `in ${event.location}`,
+      event.guest_count && `${event.guest_count} guests`,
+      event.event_date ? `on ${event.event_date}` : event.date_hint,
+      event.budget && `budget ${event.budget}`,
+    ]
+      .filter(Boolean)
+      .join(", ") || "details still being gathered"
+  );
+}
 
 /** Personalize the approved master template for one venue (plain call, no tools). */
 export async function personalizeEmail(args: {
@@ -646,6 +788,104 @@ export async function personalizeEmail(args: {
   const text = (response.text ?? "").trim();
   // Fall back to simple substitution if the model returns nothing usable.
   return text || args.template.replaceAll("{{venue_name}}", args.venueName);
+}
+
+/**
+ * Compose a genuinely individual outreach email for one vendor, using the
+ * approved master draft as the brief. Falls back to plain substitution.
+ */
+export async function composeOutreachEmail(args: {
+  template: string;
+  event: EventRow;
+  venue: Pick<
+    VenueRow,
+    "name" | "description" | "why_fit" | "reviews" | "category"
+  >;
+}): Promise<string> {
+  try {
+    const ai = getGemini();
+    const response = await ai.models.generateContent({
+      model: GEMINI_MODEL,
+      contents: COMPOSE_OUTREACH_PROMPT({
+        template: args.template,
+        venueName: args.venue.name,
+        category: args.venue.category === "venue" ? "venue" : args.venue.category,
+        venueDescription: args.venue.description,
+        whyFit: args.venue.why_fit,
+        reviewSnippet: args.venue.reviews?.find((r) => r.text)?.text?.slice(0, 200) ?? null,
+        eventFacts: eventFactsLine(args.event),
+      }),
+    });
+    const text = (response.text ?? "").trim();
+    if (text) return text;
+  } catch (err) {
+    logAgentError("gemini/agent:composeOutreach", err, { venue: args.venue.name });
+  }
+  return args.template.replaceAll("{{venue_name}}", args.venue.name);
+}
+
+/**
+ * Draft Ava's proposed response to a vendor reply and persist it as a
+ * reply_proposals row (superseding earlier proposals for the same reply).
+ * Best-effort: returns null on any failure, never throws.
+ */
+export async function generateReplyProposal(
+  admin: SupabaseClient,
+  reply: EmailReplyRow
+): Promise<ReplyProposalRow | null> {
+  try {
+    const [{ data: event }, { data: venue }, { data: outbound }] = await Promise.all([
+      admin.from("events").select("*").eq("id", reply.event_id).single(),
+      admin.from("venues").select("*").eq("id", reply.venue_id).single(),
+      admin.from("outbound_emails").select("*").eq("id", reply.outbound_email_id).single(),
+    ]);
+    if (!event || !venue || !outbound) return null;
+    const eventRow = event as EventRow;
+    const venueRow = venue as VenueRow;
+    const outboundRow = outbound as OutboundEmailRow;
+
+    const coupleName = eventRow.title.replace(/'s wedding$/i, "").trim() || "the couple";
+
+    const ai = getGemini();
+    const response = await ai.models.generateContent({
+      model: GEMINI_MODEL,
+      contents: REPLY_PROPOSAL_PROMPT({
+        venueName: venueRow.name,
+        category: venueRow.category === "venue" ? "venue" : venueRow.category,
+        coupleName,
+        eventFacts: eventFactsLine(eventRow),
+        ourLastMessage: outboundRow.body.slice(0, 1500),
+        vendorReply: (reply.body ?? reply.snippet ?? "").slice(0, 3000),
+        quoteSummary: reply.quote?.summary ?? null,
+      }),
+    });
+    const body = (response.text ?? "").trim();
+    if (!body) return null;
+
+    await admin
+      .from("reply_proposals")
+      .update({ status: "superseded" })
+      .eq("email_reply_id", reply.id)
+      .eq("status", "proposed");
+
+    const { data: proposal, error } = await admin
+      .from("reply_proposals")
+      .insert({
+        email_reply_id: reply.id,
+        outbound_email_id: reply.outbound_email_id,
+        venue_id: reply.venue_id,
+        event_id: reply.event_id,
+        user_id: reply.user_id,
+        body,
+      })
+      .select()
+      .single();
+    if (error) return null;
+    return proposal as ReplyProposalRow;
+  } catch (err) {
+    logAgentError("gemini/agent:generateReplyProposal", err, { replyId: reply.id });
+    return null;
+  }
 }
 
 /** Extract quote details from a venue's reply (structured output). */

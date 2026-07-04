@@ -18,28 +18,28 @@ const steps: Step[] = [
     key: "venue",
     eyebrow: "01 · Find the venue",
     title: "Start with the venue",
-    body: "Describe your wedding in plain words. Kalas searches the live web for real venues that fit your guest count, city and budget — and lays them out as cards you can swipe.",
+    body: "Describe your wedding in plain words. Ava searches the live web for real venues that fit your guest count, city and budget — and lays them out as cards you can swipe.",
     accent: "#c2b280",
   },
   {
     key: "catering",
     eyebrow: "02 · Sort the catering",
     title: "Get the catering",
-    body: "Once the venue is locked, Kalas lines up caterers that match your headcount and taste — menus, dietary needs and per-head pricing compared side by side.",
+    body: "Once the venue is locked, Ava lines up caterers that match your headcount and taste — menus, dietary needs and per-head pricing compared side by side.",
     accent: "#ddd6c0",
   },
   {
     key: "event",
     eyebrow: "03 · Lock the details",
     title: "Create the event",
-    body: "Ceremony time, reception schedule, headcount and run-of-show come together in one place. Kalas keeps every moving piece aligned so nothing slips through the cracks.",
+    body: "Ceremony time, reception schedule, headcount and run-of-show come together in one place. Ava keeps every moving piece aligned so nothing slips through the cracks.",
     accent: "#cfc8ae",
   },
   {
     key: "invites",
     eyebrow: "04 · Design the invites",
     title: "Create the invitations",
-    body: "Kalas drafts beautiful wedding invitations matched to your style and gets them ready for your full guest list — no design tools, no copy-paste.",
+    body: "Ava designs beautiful wedding invitations matched to your style and gets them ready to order — no design tools, no copy-paste.",
     accent: "#c5bea6",
   },
   {
@@ -58,7 +58,7 @@ function StepVisual({ step }: { step: Step }) {
         <div className="relative w-full overflow-hidden rounded-2xl bg-[#DFE0CC]">
           <Image
             src="/process/venue-search.png"
-            alt="Describe your wedding in plain words — Kalas searches the live web and surfaces venue cards to swipe"
+            alt="Describe your wedding in plain words — Ava searches the live web and surfaces venue cards to swipe"
             width={960}
             height={540}
             className="h-auto w-full object-contain"

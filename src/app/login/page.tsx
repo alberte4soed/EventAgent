@@ -38,8 +38,8 @@ export default function LoginPage() {
             Sign in or create your account
           </h1>
           <p className="mt-3 text-sm leading-relaxed text-[#7A8066]">
-            One Google account is all you need — Kalas plans your wedding with you and
-            sends venue quote requests from your own Gmail.
+            One Google account is all you need — Ava plans your wedding with you and
+            reaches out to venues and vendors from her own concierge inbox.
           </p>
           <button
             onClick={signInWithGoogle}

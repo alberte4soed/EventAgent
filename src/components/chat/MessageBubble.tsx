@@ -1,24 +1,29 @@
 "use client";
 
+import Link from "next/link";
 import type { ChatMessageRow, EmailDraftRow, VenueRow } from "@/lib/db/types";
 import { DraftApprovalCard } from "@/components/draft/DraftApprovalCard";
 import { InviteBriefCard } from "@/components/chat/InviteBriefCard";
+import { ReplyProposalChatCard } from "@/components/chat/ReplyProposalChatCard";
 
 interface Props {
   message: ChatMessageRow;
-  venues: VenueRow[];
-  drafts: EmailDraftRow[];
-  isActiveDraft: boolean;
-  approving: boolean;
-  onApproveDraft: (draftId: string) => void;
-  onRequestChanges: () => void;
+  /** Omitted in the lightweight sidebar — payload cards fall back to links. */
+  venues?: VenueRow[];
+  drafts?: EmailDraftRow[];
+  isActiveDraft?: boolean;
+  approving?: boolean;
+  onApproveDraft?: (draftId: string) => void;
+  onRequestChanges?: () => void;
+  /** When true, rich payload cards collapse to links into the workspace. */
+  compact?: boolean;
 }
 
 function AgentAvatar() {
   return (
     <div className="flex size-7 shrink-0 items-center justify-center rounded-full border border-[#dbd5c2] bg-[#F6F0E8]">
       <span className="font-[family-name:var(--font-fraunces)] text-[13px] font-semibold text-[#4A4E3C]">
-        k
+        a
       </span>
     </div>
   );
@@ -28,10 +33,11 @@ export function MessageBubble({
   message,
   venues,
   drafts,
-  isActiveDraft,
-  approving,
+  isActiveDraft = false,
+  approving = false,
   onApproveDraft,
   onRequestChanges,
+  compact = false,
 }: Props) {
   const isUser = message.role === "user";
 
@@ -57,23 +63,11 @@ export function MessageBubble({
               {message.content}
             </p>
             {message.payload?.kind === "venue_batch" && (
-              <div className="flex h-[26px] w-fit items-center gap-1.5 rounded-full bg-[#e0dac7] px-2.5">
-                <svg
-                  stroke="#7A8066"
-                  fill="none"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
-                  className="size-3"
-                >
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="2" y1="12" x2="22" y2="12" />
-                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                </svg>
-                <span className="text-[11.5px] font-medium text-[#656952]">
-                  {(message.payload as { venue_ids: string[] }).venue_ids.length} venues on your
-                  board
-                </span>
-              </div>
+              <VenueBatchPill
+                count={(message.payload as { venue_ids: string[] }).venue_ids.length}
+                eventId={message.event_id}
+                compact={compact}
+              />
             )}
           </div>
         </div>
@@ -81,10 +75,16 @@ export function MessageBubble({
 
       {message.payload?.kind === "draft" &&
         (() => {
-          const draft = drafts.find(
+          const draft = drafts?.find(
             (d) => d.id === (message.payload as { draft_id: string }).draft_id
           );
-          if (!draft) return null;
+          if (compact || !draft || !venues) {
+            return (
+              <div className="ml-10">
+                <WorkspaceLink eventId={message.event_id} label="Review the email draft" />
+              </div>
+            );
+          }
           return (
             <div className="ml-10">
               <DraftApprovalCard
@@ -92,8 +92,8 @@ export function MessageBubble({
                 venues={venues}
                 active={isActiveDraft && draft.status === "proposed"}
                 approving={approving}
-                onApprove={() => onApproveDraft(draft.id)}
-                onRequestChanges={onRequestChanges}
+                onApprove={() => onApproveDraft?.(draft.id)}
+                onRequestChanges={() => onRequestChanges?.()}
               />
             </div>
           );
@@ -106,6 +106,12 @@ export function MessageBubble({
             style={message.payload.style}
             eventId={message.event_id}
           />
+        </div>
+      )}
+
+      {message.payload?.kind === "reply_proposal" && (
+        <div className="ml-10">
+          <ReplyProposalChatCard proposalId={message.payload.proposal_id} />
         </div>
       )}
 
@@ -127,5 +133,52 @@ export function MessageBubble({
         </div>
       )}
     </div>
+  );
+}
+
+function VenueBatchPill({
+  count,
+  eventId,
+  compact,
+}: {
+  count: number;
+  eventId: string;
+  compact: boolean;
+}) {
+  const inner = (
+    <>
+      <svg stroke="#7A8066" fill="none" strokeWidth="2" viewBox="0 0 24 24" className="size-3">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="2" y1="12" x2="22" y2="12" />
+        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+      </svg>
+      <span className="text-[11.5px] font-medium text-[#656952]">{count} on your board</span>
+    </>
+  );
+  if (compact) {
+    return (
+      <Link
+        href={`/events/${eventId}`}
+        className="flex h-[26px] w-fit items-center gap-1.5 rounded-full bg-[#e0dac7] px-2.5 transition hover:bg-[#ddd6c0]"
+      >
+        {inner}
+      </Link>
+    );
+  }
+  return (
+    <div className="flex h-[26px] w-fit items-center gap-1.5 rounded-full bg-[#e0dac7] px-2.5">
+      {inner}
+    </div>
+  );
+}
+
+function WorkspaceLink({ eventId, label }: { eventId: string; label: string }) {
+  return (
+    <Link
+      href={`/events/${eventId}`}
+      className="inline-flex items-center gap-1.5 rounded-full bg-[#e0dac7] px-3 py-1.5 text-[11.5px] font-medium text-[#656952] transition hover:bg-[#ddd6c0]"
+    >
+      {label} →
+    </Link>
   );
 }

@@ -26,7 +26,7 @@ export function FinalCTA() {
           <span className="text-butter-muted">basically planned already.</span>
         </h2>
         <p className="mx-auto mt-6 max-w-md text-lg text-velvet-muted">
-          Sign in with Google and tell Kalas about your wedding. The first
+          Sign in with Google and tell Ava about your wedding. The first
           venue quotes can be in your inbox today.
         </p>
         <Link

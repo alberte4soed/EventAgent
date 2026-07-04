@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getGmailConnection } from "@/lib/gmail/oauth";
 import { EventWorkspace } from "@/components/workspace/EventWorkspace";
 
 export default async function NewEventPage({
@@ -15,7 +14,6 @@ export default async function NewEventPage({
   if (!user) redirect("/login");
 
   const { prompt } = await searchParams;
-  const gmail = await getGmailConnection(user.id);
 
   return (
     <EventWorkspace
@@ -25,7 +23,6 @@ export default async function NewEventPage({
       initialDrafts={[]}
       initialOutbound={[]}
       initialReplies={[]}
-      gmailConnected={gmail.connected}
       initialPrompt={prompt ?? null}
     />
   );

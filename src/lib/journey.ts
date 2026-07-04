@@ -25,6 +25,12 @@ export interface JourneyExtras {
   likedVenues: number;
   quotesIn: number;
   inviteOrderStatus?: string | null;
+  /** Count of booked vendors per category (from venues.booked_at). */
+  bookedByCategory?: Partial<Record<VendorCategory, number>>;
+  /** Count of contacted vendors per category (has an outreach email). */
+  contactedByCategory?: Partial<Record<VendorCategory, number>>;
+  /** Unread vendor replies across the wedding. */
+  unreadReplies?: number;
 }
 
 /** Display metadata for vendor categories (badges, hub chips, prompts). */
@@ -82,15 +88,50 @@ export function dateKnown(event: EventRow): boolean {
   return Boolean(event.event_date) || event.date_precision !== "undecided";
 }
 
+const NON_VENUE_CATEGORIES: VendorCategory[] = [
+  "florist",
+  "photographer",
+  "musician",
+  "caterer",
+  "planner",
+  "other",
+];
+
 export function computeJourney(event: EventRow, extras: JourneyExtras): JourneyStage[] {
   const basicsComplete = Boolean(event.location && event.guest_count);
   const venueComplete = venueChosen(event);
   const vendorsUnlocked = venueComplete;
   const invitesUnlocked = venueComplete && dateKnown(event);
-  const vendorsComplete = event.journey_overrides?.vendors === "complete";
+
+  // A non-venue category is "engaged" once the couple has liked or contacted a
+  // vendor in it. Vendors are complete when every engaged category has a
+  // booking (and at least one category is engaged) — or via manual override.
+  const booked = extras.bookedByCategory ?? {};
+  const contacted = extras.contactedByCategory ?? {};
+  const engagedCategories = NON_VENUE_CATEGORIES.filter(
+    (c) => (contacted[c] ?? 0) > 0 || (booked[c] ?? 0) > 0
+  );
+  const vendorsComplete =
+    event.journey_overrides?.vendors === "complete" ||
+    (engagedCategories.length > 0 &&
+      engagedCategories.every((c) => (booked[c] ?? 0) > 0));
+
   const invitesComplete =
     event.journey_overrides?.invites === "complete" ||
     ["paid", "submitted_to_print", "shipped"].includes(extras.inviteOrderStatus ?? "");
+
+  const vendorsHint = vendorsComplete
+    ? "All your vendors are booked 🎉"
+    : engagedCategories.length > 0
+      ? engagedCategories
+          .map((c) => {
+            const meta = CATEGORY_META[c as Exclude<VendorCategory, "venue">];
+            const label = meta?.label ?? c;
+            if ((booked[c] ?? 0) > 0) return `${label} booked`;
+            return `${label} ${contacted[c] ?? 0} contacted`;
+          })
+          .join(" · ")
+      : "Flowers, photos, music and catering — all local to your venue";
 
   const workspace = `/events/${event.id}`;
 
@@ -134,11 +175,9 @@ export function computeJourney(event: EventRow, extras: JourneyExtras): JourneyS
       label: "Book the vendors",
       emoji: "💐",
       status: vendorsComplete ? "complete" : vendorsUnlocked ? "active" : "locked",
-      hint: vendorsUnlocked
-        ? "Flowers, photos, music and catering — all local to your venue"
-        : "Unlocks when you've chosen a venue",
-      href: workspace,
-      cta: "Find vendors",
+      hint: vendorsUnlocked ? vendorsHint : "Unlocks when you've chosen a venue",
+      href: `/events/${event.id}/outreach`,
+      cta: (extras.unreadReplies ?? 0) > 0 ? "Open outreach" : "Find vendors",
     },
     {
       key: "invites",

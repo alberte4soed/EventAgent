@@ -25,7 +25,13 @@ export function JourneyTimeline({ event, extras }: Props) {
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stages.map((stage, i) => (
-          <JourneyStageCard key={stage.key} stage={stage} eventId={event.id} index={i} />
+          <JourneyStageCard
+            key={stage.key}
+            stage={stage}
+            eventId={event.id}
+            index={i}
+            unread={stage.key === "vendors" ? extras.unreadReplies ?? 0 : 0}
+          />
         ))}
       </div>
     </section>

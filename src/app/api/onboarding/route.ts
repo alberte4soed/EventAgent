@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
   ].filter(Boolean);
   const welcome =
     `Hi ${name.split(" ")[0]}${partner ? ` & ${partner.split(" ")[0]}` : ""}! ` +
-    `I'm Kalas, your wedding planner. Here's what I've got so far: ${knowns.join(", ")}. ` +
+    `I'm Ava, your wedding planner. Here's what I've got so far: ${knowns.join(", ")}. ` +
     `The venue anchors everything else — flowers, music, catering are all local to it. ` +
     `Shall I start researching venues in ${city}?`;
   await supabase.from("chat_messages").insert({

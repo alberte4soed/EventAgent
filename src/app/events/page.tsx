@@ -50,7 +50,7 @@ export default async function EventsPage() {
         <div className="rounded-2xl border border-dashed border-[#C4C8AE] bg-[#F6F0E8]/60 p-12 text-center text-[#7A8066]">
           <p className="text-3xl">💍</p>
           <p className="mt-3 text-sm">
-            No weddings yet. Start a conversation and Kalas will take it from there.
+            No weddings yet. Start a conversation and Ava will take it from there.
           </p>
         </div>
       ) : (

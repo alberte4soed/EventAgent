@@ -169,7 +169,7 @@ export function OnboardingFlow({ initialName }: Props) {
               <Step
                 eyebrow="Welcome to Kalas"
                 title="Who's getting married?"
-                subtitle="So Kalas can greet you like a friend, not a spreadsheet."
+                subtitle="So Ava can greet you like a friend, not a spreadsheet."
               >
                 <input
                   autoFocus
@@ -253,7 +253,7 @@ export function OnboardingFlow({ initialName }: Props) {
               <Step
                 eyebrow="Roughly is fine"
                 title="How many guests?"
-                subtitle="This shapes which venues fit — a rough band is all Kalas needs."
+                subtitle="This shapes which venues fit — a rough band is all Ava needs."
               >
                 <ChipGroup
                   options={GUEST_BANDS}
@@ -268,7 +268,7 @@ export function OnboardingFlow({ initialName }: Props) {
               <Step
                 eyebrow="Optional"
                 title="A budget in mind?"
-                subtitle="Helps Kalas steer venue and vendor suggestions. Skip if you'd rather not."
+                subtitle="Helps Ava steer venue and vendor suggestions. Skip if you'd rather not."
               >
                 <div className="flex flex-wrap gap-2.5">
                   {BUDGET_BANDS.map((b) => (
@@ -311,7 +311,7 @@ export function OnboardingFlow({ initialName }: Props) {
               <Step
                 eyebrow="The fun part"
                 title="What's the vibe?"
-                subtitle="Pick as many as feel right — Kalas uses these to find venues that actually match."
+                subtitle="Pick as many as feel right — Ava uses these to find venues that actually match."
               >
                 <div className="flex flex-wrap gap-2.5">
                   {VIBES.map((v) => (
@@ -353,7 +353,7 @@ export function OnboardingFlow({ initialName }: Props) {
             {step === 6 && (
               <Step
                 eyebrow="You're set"
-                title="Here's what Kalas knows"
+                title="Here's what Ava knows"
                 subtitle="First stop: the venue. Everything local — flowers, music, catering — depends on where you say 'I do'."
               >
                 <div className="rounded-2xl border border-[#D4D6C0] bg-[#F6F0E8] p-6 shadow-[0px_4px_20px_rgba(74,78,60,0.05)]">

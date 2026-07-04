@@ -70,8 +70,8 @@ export function Hero() {
 
         <BlurFade delay={0.65} duration={0.5} className="mx-auto mt-7 max-w-xl">
           <p className="text-lg leading-relaxed text-on-velvet/90 drop-shadow-[0_1px_12px_rgba(0,0,0,0.3)]">
-            Tell Kalas about your wedding. It finds the venues, contacts them
-            for you, compares the quotes, designs the invites and tracks every RSVP —
+            Tell Ava about your wedding. She finds the venues, reaches out to
+            them for you, compares the quotes and designs the invites —
             so you can focus on each other.
           </p>
         </BlurFade>

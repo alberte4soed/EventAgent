@@ -102,7 +102,7 @@ export function Marquee() {
             Built for every kind of wedding
           </h2>
           <p className="mt-5 text-base leading-relaxed text-[#7A8066] sm:text-[17px]">
-            From intimate elopements to grand receptions, Kalas finds the
+            From intimate elopements to grand receptions, Ava finds the
             venue, handles outreach, and tracks every detail — so you can focus on
             each other.
           </p>

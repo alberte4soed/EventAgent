@@ -12,7 +12,8 @@ export const functionDeclarations: FunctionDeclaration[] = [
         event_type: { type: Type.STRING, description: "e.g. full wedding, ceremony only, elopement, reception" },
         location: { type: Type.STRING, description: "City or area, e.g. Copenhagen" },
         guest_count: { type: Type.INTEGER },
-        event_date: { type: Type.STRING, description: "ISO date YYYY-MM-DD if known" },
+        event_date: { type: Type.STRING, description: "ISO date YYYY-MM-DD if a firm date is set" },
+        date_hint: { type: Type.STRING, description: "Rough timing when no firm date, e.g. 'Summer 2027'" },
         budget: { type: Type.STRING, description: "Free-form budget, e.g. 'around 50k DKK'" },
         requirements: {
           type: Type.OBJECT,
@@ -47,14 +48,14 @@ export const functionDeclarations: FunctionDeclaration[] = [
   {
     name: "mark_venue_chosen",
     description:
-      "Record that the couple has decided on their wedding venue. Call when the user clearly commits to one venue ('we're going with X'). Unlocks the vendors and invites stages. Pass the venue id from the board; if they booked a venue outside Kalas, omit venue_id and set booked_externally instead.",
+      "Record that the couple has decided on their wedding venue. Call when the user clearly commits to one venue ('we're going with X'). Unlocks the vendors and invites stages. Pass the venue id from the board; if they booked a venue outside the app, omit venue_id and set booked_externally instead.",
     parameters: {
       type: Type.OBJECT,
       properties: {
         venue_id: { type: Type.STRING, description: "Id of the chosen venue on the board" },
         booked_externally: {
           type: Type.BOOLEAN,
-          description: "True when the venue was booked outside Kalas",
+          description: "True when the venue was booked outside the app",
         },
       },
     },
@@ -95,7 +96,7 @@ export const functionDeclarations: FunctionDeclaration[] = [
   {
     name: "propose_email_draft",
     description:
-      "Propose the master quote-request email that will be personalized and sent to every liked venue. The body MUST contain the {{venue_name}} placeholder. The user reviews it in the UI before anything is sent.",
+      "Propose the master outreach email for one category of liked vendors. Ava composes an individual email per recipient from this brief and sends them from the Kalas mailbox after the user approves. The body MUST contain the {{venue_name}} placeholder. Set category to match which liked vendors this goes to (venue, florist, photographer, musician, caterer).",
     parameters: {
       type: Type.OBJECT,
       properties: {
@@ -104,8 +105,56 @@ export const functionDeclarations: FunctionDeclaration[] = [
           type: Type.STRING,
           description: "Plain-text email body containing {{venue_name}}",
         },
+        category: {
+          type: Type.STRING,
+          enum: ["venue", "florist", "photographer", "musician", "caterer", "planner", "other"],
+          description: "Which liked vendor category this outreach targets. Defaults to venue.",
+        },
       },
       required: ["subject", "body_template"],
+    },
+  },
+  {
+    name: "mark_vendor_booked",
+    description:
+      "Record that the couple has booked a vendor (florist, photographer, etc.) or venue. Call when the user confirms they've committed to one. Pass the venue/vendor id from the board.",
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        venue_id: { type: Type.STRING },
+      },
+      required: ["venue_id"],
+    },
+  },
+  {
+    name: "mark_stage_complete",
+    description:
+      "Manually mark a whole journey stage complete when the user says they've finished it their own way (e.g. booked a venue or vendors outside the app, or finished with invites). Use sparingly — prefer mark_venue_chosen / mark_vendor_booked for specific items.",
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        stage: {
+          type: Type.STRING,
+          enum: ["venue", "vendors", "invites"],
+        },
+      },
+      required: ["stage"],
+    },
+  },
+  {
+    name: "propose_vendor_reply",
+    description:
+      "Draft a revised reply to a vendor the user is discussing with you. Use when the user wants to change how you respond to a specific vendor reply. The user reviews and approves it before it sends. Pass the reply_id being discussed.",
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        reply_id: { type: Type.STRING },
+        body: {
+          type: Type.STRING,
+          description: "The full revised email body to send back to the vendor",
+        },
+      },
+      required: ["reply_id", "body"],
     },
   },
 ];

@@ -20,7 +20,7 @@ export function agentSystemPrompt(event: EventRow): string {
     computeJourney(event, { likedVenues: 0, quotesIn: 0 })
   );
 
-  return `You are Kalas, a friendly and efficient wedding-planning assistant.
+  return `You are Ava, the friendly and efficient wedding planner at Kalas.
 You help couples plan their wedding end-to-end: understand what they need, find real
 venues and local vendors on the internet, and request quotes by email on their behalf.
 
@@ -46,7 +46,7 @@ How to behave:
   the user insists — vendors depend on the final location.
 - When the user clearly commits to one venue ("we're going with X", "we booked
   X"), call mark_venue_chosen with that venue's id (or booked_externally if it
-  happened outside Kalas). This unlocks the vendors and invites stages.
+  happened outside the app). This unlocks the vendors and invites stages.
 - After search_venues succeeds, tell the user how many options you found and
   that they can swipe through them (right/yes to shortlist, left/no to skip).
   Do NOT list the venues in text — the UI shows them as cards.
@@ -152,6 +152,59 @@ export const FIND_EMAIL_PROMPT = (venueName: string, website?: string | null) =>
 Reply with ONLY the email address, nothing else. If you cannot find a real
 email address for this exact venue, reply with exactly: NOT_FOUND`;
 
+export const COMPOSE_OUTREACH_PROMPT = (args: {
+  template: string;
+  venueName: string;
+  category: string;
+  venueDescription?: string | null;
+  whyFit?: string | null;
+  reviewSnippet?: string | null;
+  eventFacts: string;
+}) => `Write ONE individual outreach email to "${args.venueName}" (a wedding ${args.category}).
+Use the master draft below as the brief — keep its asks, facts and sign-off,
+but write a genuinely personal email for this recipient, not a mail-merge.
+${args.venueDescription ? `About them: ${args.venueDescription}` : ""}
+${args.whyFit ? `Why the couple is interested: ${args.whyFit}` : ""}
+${args.reviewSnippet ? `A reviewer said: "${args.reviewSnippet}" — you may reference this naturally (at most once).` : ""}
+Wedding facts you may use: ${args.eventFacts}
+
+Rules: plain text only, no subject line, no placeholders, 90-160 words,
+warm and professional, one specific reference to this recipient maximum
+(no flattery pile-up). Reply with ONLY the email body.
+
+Master draft:
+${args.template}`;
+
+export const REPLY_PROPOSAL_PROMPT = (args: {
+  venueName: string;
+  category: string;
+  coupleName: string;
+  eventFacts: string;
+  ourLastMessage: string;
+  vendorReply: string;
+  quoteSummary?: string | null;
+}) => `You are Ava, the wedding planner at Kalas, coordinating vendors on behalf
+of ${args.coupleName}. The ${args.category} "${args.venueName}" just replied to
+your outreach. Draft the next email in the thread.
+
+Wedding facts: ${args.eventFacts}
+Your previous message to them:
+${args.ourLastMessage}
+
+Their reply:
+${args.vendorReply}
+${args.quoteSummary ? `\nExtracted quote summary: ${args.quoteSummary}` : ""}
+
+Guidelines:
+- If they quoted: acknowledge it and ask the natural next question (holding
+  the date, what exactly is included, viewing/tasting availability).
+- If they asked for information: answer from the wedding facts; if a fact is
+  genuinely unknown, say the couple will confirm it.
+- If they declined or are unavailable: thank them briefly and close warmly.
+- Plain text, 60-130 words, no subject line, sign off as
+  "Ava, on behalf of ${args.coupleName}".
+Reply with ONLY the email body.`;
+
 export const PERSONALIZE_PROMPT = (args: {
   template: string;
   venueName: string;
@@ -165,6 +218,38 @@ final email body, no subject line, no commentary.
 
 Template:
 ${args.template}`;
+
+/** Palette key → concrete colour description for image generation. */
+const PALETTE_DESCRIPTIONS: Record<string, string> = {
+  cream_sage: "soft cream background with sage green and olive accents",
+  ivory_gold: "ivory background with warm gold foil accents",
+  white_ink: "crisp white background with black ink lettering",
+  blush: "blush pink and dusty rose tones",
+  forest: "deep forest green with ivory lettering",
+};
+
+export const INVITE_DESIGN_PROMPT = (args: {
+  style: string;
+  palette: string;
+  wording: string;
+  vibes: string[];
+}) => {
+  const palette = PALETTE_DESCRIPTIONS[args.palette] ?? args.palette;
+  return `Design the front of a printed wedding invitation card.
+Style: ${args.style}. Colour palette: ${palette}.${
+    args.vibes.length ? ` Overall wedding vibe: ${args.vibes.join(", ")}.` : ""
+  }
+
+Render this exact wording on the card, beautifully typeset and correctly spelled:
+"""
+${args.wording}
+"""
+
+Requirements: flat front-of-card artwork only (portrait orientation, like a
+5×7 invitation); elegant, readable typography; tasteful decorative elements
+that match the style and palette. Do NOT show a mockup, hands, a table, an
+envelope, or any 3D scene — just the flat card face filling the frame.`;
+};
 
 export const QUOTE_EXTRACTION_PROMPT = (args: {
   venueName: string;

@@ -1,6 +1,7 @@
 "use client";
 
 import type { EmailDraftRow, VenueRow } from "@/lib/db/types";
+import { CATEGORY_META } from "@/lib/journey";
 
 interface Props {
   draft: EmailDraftRow;
@@ -19,7 +20,14 @@ export function DraftApprovalCard({
   onApprove,
   onRequestChanges,
 }: Props) {
-  const recipients = venues.filter((v) => v.swipe_status === "liked");
+  const category = draft.category ?? "venue";
+  const categoryMeta =
+    category !== "venue" ? CATEGORY_META[category] : null;
+  const categoryNoun = categoryMeta ? categoryMeta.label.toLowerCase() : "venue";
+  // Recipients are liked vendors in this draft's category not yet contacted.
+  const recipients = venues.filter(
+    (v) => v.swipe_status === "liked" && v.category === category
+  );
   const missingEmail = recipients.filter((v) => !v.email);
 
   return (
@@ -28,11 +36,18 @@ export function DraftApprovalCard({
         <span className="text-[11px] font-medium uppercase tracking-[1.1px] text-[#4A4E3C]">
           Email draft · v{draft.version}
         </span>
-        {draft.status !== "proposed" && (
-          <span className="rounded-full bg-[#e0dac7] px-2 py-0.5 text-xs text-[#656952]">
-            {draft.status}
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {categoryMeta && (
+            <span className="rounded-full bg-[#ece8db] px-2 py-0.5 text-xs font-medium text-[#656952]">
+              {categoryMeta.emoji} {categoryMeta.label}
+            </span>
+          )}
+          {draft.status !== "proposed" && (
+            <span className="rounded-full bg-[#e0dac7] px-2 py-0.5 text-xs text-[#656952]">
+              {draft.status}
+            </span>
+          )}
+        </div>
       </div>
 
       <p className="mt-3 text-sm font-semibold text-[#4A4E3C]">{draft.subject}</p>
@@ -41,8 +56,8 @@ export function DraftApprovalCard({
       </pre>
 
       <div className="mt-3 text-xs text-[#7A8066]">
-        Will be personalized and sent to{" "}
-        <span className="font-medium text-[#4A4E3C]">{recipients.length}</span> liked venue
+        Ava will write an individual email to{" "}
+        <span className="font-medium text-[#4A4E3C]">{recipients.length}</span> liked {categoryNoun}
         {recipients.length === 1 ? "" : "s"}
         {recipients.length > 0 && (
           <span>: {recipients.map((v) => v.name).join(", ")}</span>

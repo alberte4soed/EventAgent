@@ -1,6 +1,5 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getGmailConnection } from "@/lib/gmail/oauth";
 import { EventWorkspace } from "@/components/workspace/EventWorkspace";
 import type {
   ChatMessageRow,
@@ -16,9 +15,9 @@ export default async function EventPage({
   searchParams,
 }: {
   params: Promise<{ eventId: string }>;
-  searchParams: Promise<{ prompt?: string }>;
+  searchParams: Promise<{ prompt?: string; replyId?: string }>;
 }) {
-  const { prompt } = await searchParams;
+  const { prompt, replyId } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -33,7 +32,7 @@ export default async function EventPage({
     .maybeSingle();
   if (!event) notFound();
 
-  const [{ data: messages }, { data: venues }, { data: drafts }, { data: outbound }, { data: replies }, gmail] =
+  const [{ data: messages }, { data: venues }, { data: drafts }, { data: outbound }, { data: replies }] =
     await Promise.all([
       supabase
         .from("chat_messages")
@@ -44,7 +43,6 @@ export default async function EventPage({
       supabase.from("email_drafts").select("*").eq("event_id", eventId),
       supabase.from("outbound_emails").select("*").eq("event_id", eventId),
       supabase.from("email_replies").select("*").eq("event_id", eventId),
-      getGmailConnection(user.id),
     ]);
 
   return (
@@ -55,8 +53,8 @@ export default async function EventPage({
       initialDrafts={(drafts ?? []) as EmailDraftRow[]}
       initialOutbound={(outbound ?? []) as OutboundEmailRow[]}
       initialReplies={(replies ?? []) as EmailReplyRow[]}
-      gmailConnected={gmail.connected}
       initialPrompt={prompt ?? null}
+      initialContextReplyId={replyId ?? null}
     />
   );
 }

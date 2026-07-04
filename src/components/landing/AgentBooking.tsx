@@ -12,20 +12,20 @@ export function AgentBooking() {
             While you live your life
           </p>
           <h2 className="mt-4 font-[family-name:var(--font-fraunces)] text-4xl font-semibold tracking-[-0.8px] text-[#4A4E3C] sm:text-5xl">
-            Watch Kalas get you{" "}
+            Watch Ava get you{" "}
             <span className="text-accent">booked.</span>
           </h2>
           <p className="mt-5 text-base leading-relaxed text-[#7A8066]">
             From your first message to a confirmed venue and invites in the wild —
-            Kalas keeps you in the loop with a live feed of everything it&apos;s
+            Ava keeps you in the loop with a live feed of everything she&apos;s
             doing behind the scenes.
           </p>
           <ul className="mt-8 space-y-3 text-sm text-[#656952]">
             {[
               "Finds and shortlists real wedding venues",
-              "Emails on your behalf from Gmail",
+              "Reaches out to vendors from her concierge inbox",
               "Compares quotes and recommends the best fit",
-              "Handles invites and RSVPs once you're booked",
+              "Designs and orders your invites once you're booked",
             ].map((item) => (
               <li key={item} className="flex items-start gap-2.5">
                 <span className="mt-0.5 text-[#4A4E3C]">✓</span>
