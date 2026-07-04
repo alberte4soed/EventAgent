@@ -17,6 +17,11 @@ export const venueListSchema: Schema = {
           phone: { type: Type.STRING, nullable: true },
           capacity: { type: Type.STRING, nullable: true },
           price_hint: { type: Type.STRING, nullable: true },
+          why_fit: {
+            type: Type.STRING,
+            nullable: true,
+            description: "One sentence on why this option fits the couple",
+          },
         },
         required: ["name"],
       },
@@ -34,6 +39,7 @@ export interface ExtractedVenue {
   phone?: string | null;
   capacity?: string | null;
   price_hint?: string | null;
+  why_fit?: string | null;
 }
 
 /** responseSchema for quote extraction from venue replies. */

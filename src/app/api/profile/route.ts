@@ -11,6 +11,7 @@ export async function PATCH(request: NextRequest) {
 
   const body = (await request.json()) as {
     display_name?: string;
+    partner_name?: string;
     home_city?: string;
     event_interests?: string[];
     accent?: string;
@@ -19,6 +20,7 @@ export async function PATCH(request: NextRequest) {
 
   const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (typeof body.display_name === "string") patch.display_name = body.display_name.trim() || null;
+  if (typeof body.partner_name === "string") patch.partner_name = body.partner_name.trim() || null;
   if (typeof body.home_city === "string") patch.home_city = body.home_city.trim() || null;
   if (Array.isArray(body.event_interests)) patch.event_interests = body.event_interests.slice(0, 12);
   if (typeof body.accent === "string") patch.accent = body.accent.slice(0, 8);

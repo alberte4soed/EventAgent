@@ -1,10 +1,58 @@
 import { NextRequest } from "next/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { runAgentTurn } from "@/lib/gemini/agent";
 import { logAgentError } from "@/lib/gemini/log";
-import type { ChatMessageRow, EventRow } from "@/lib/db/types";
+import type {
+  ChatMessageRow,
+  EmailReplyRow,
+  EventRow,
+  ReplyProposalRow,
+  VenueRow,
+} from "@/lib/db/types";
 
 export const maxDuration = 120; // agent turns can chain several Gemini calls
+
+/** System-prompt context block describing the vendor reply under discussion. */
+async function buildReplyContext(
+  supabase: SupabaseClient,
+  replyId: string,
+  eventId: string
+): Promise<string | undefined> {
+  const { data: reply } = await supabase
+    .from("email_replies")
+    .select("*")
+    .eq("id", replyId)
+    .eq("event_id", eventId)
+    .maybeSingle();
+  if (!reply) return undefined;
+  const replyRow = reply as EmailReplyRow;
+
+  const [{ data: venue }, { data: proposal }] = await Promise.all([
+    supabase.from("venues").select("name, category").eq("id", replyRow.venue_id).maybeSingle(),
+    supabase
+      .from("reply_proposals")
+      .select("*")
+      .eq("email_reply_id", replyId)
+      .eq("status", "proposed")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+  const venueRow = venue as Pick<VenueRow, "name" | "category"> | null;
+  const proposalRow = proposal as ReplyProposalRow | null;
+
+  return [
+    `DISCUSSION CONTEXT — the user is talking about a reply from "${venueRow?.name ?? "a vendor"}"${
+      venueRow?.category && venueRow.category !== "venue" ? ` (${venueRow.category})` : ""
+    } (reply_id: ${replyId}).`,
+    `Their message: ${(replyRow.body ?? replyRow.snippet ?? "").slice(0, 1500)}`,
+    proposalRow
+      ? `Your current proposed reply: ${proposalRow.body.slice(0, 800)}`
+      : "There is no proposed reply yet.",
+    `If the user wants to change the reply, call propose_vendor_reply with reply_id "${replyId}" and the revised body.`,
+  ].join("\n");
+}
 
 /**
  * POST /api/chat — run one agent turn.
@@ -22,9 +70,10 @@ export async function POST(request: NextRequest) {
   } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { eventId, message } = (await request.json()) as {
+  const { eventId, message, contextReplyId } = (await request.json()) as {
     eventId?: string;
     message?: string;
+    contextReplyId?: string;
   };
   if (!message?.trim()) {
     return Response.json({ error: "message is required" }, { status: 400 });
@@ -62,6 +111,12 @@ export async function POST(request: NextRequest) {
     .limit(50);
   const history = (historyData ?? []) as ChatMessageRow[];
 
+  // When the user is discussing a specific vendor reply (from the outreach
+  // inbox), give the agent that thread's context so it can revise the response.
+  const extraContext = contextReplyId
+    ? await buildReplyContext(supabase, contextReplyId, event.id)
+    : undefined;
+
   await supabase.from("chat_messages").insert({
     event_id: event.id,
     user_id: user.id,
@@ -80,8 +135,13 @@ export async function POST(request: NextRequest) {
       try {
         if (!eventId) send("event", { eventId: event.id });
 
-        const result = await runAgentTurn(supabase, event, history, message, (status) =>
-          send("status", { status })
+        const result = await runAgentTurn(
+          supabase,
+          event,
+          history,
+          message,
+          (status) => send("status", { status }),
+          extraContext
         );
 
         const { data: saved, error } = await supabase
