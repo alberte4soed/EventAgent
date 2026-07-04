@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { AnimatePresence, MotionConfig } from 'motion/react';
 import Shell, { type ScreenId } from './Shell';
 import { KalasProvider, useKalas } from './store';
+import { WeddingProvider } from './useWedding';
 import Home from './screens/Home';
 import Ava from './screens/Ava';
 import Inspiration from './screens/Moodboard';
@@ -22,11 +23,13 @@ import Seating from './screens/Seating';
 export default function KalasRoot() {
   return (
     <MotionConfig reducedMotion="user">
-      <KalasProvider>
-        <div className="theme-kalas min-h-screen bg-canvas font-sans text-ink">
-          <AppInner />
-        </div>
-      </KalasProvider>
+      <WeddingProvider>
+        <KalasProvider>
+          <div className="theme-kalas min-h-screen bg-canvas font-sans text-ink">
+            <AppInner />
+          </div>
+        </KalasProvider>
+      </WeddingProvider>
     </MotionConfig>
   );
 }

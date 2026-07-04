@@ -13,7 +13,7 @@ export type Answers = Record<string, string>;
 type Stage = 'basics' | 'describe' | 'partner' | 'aha';
 type ChatMsg = { id: string; role: 'ava' | 'user'; text: string };
 
-type FormState = {
+export type FormState = {
   email: string; password: string;
   nameA: string; nameB: string;
   location: string; date: string; guests: string; budget: string;
@@ -38,7 +38,7 @@ const inputCls = 'w-full rounded-2xl border border-[var(--color-line-strong)] bg
 /* ══════════════════════════════════════════════════════════════════════
    MAIN EXPORT
 ══════════════════════════════════════════════════════════════════════ */
-export default function Onboarding({ onEnter }: { onEnter: (s?: ScreenId) => void }) {
+export default function Onboarding({ onEnter }: { onEnter: (form: FormState, s?: ScreenId) => void }) {
   const [stage, setStage] = useState<Stage>('basics');
   const [form, setForm] = useState<FormState>({
     email: '', password: '',
@@ -95,7 +95,7 @@ export default function Onboarding({ onEnter }: { onEnter: (s?: ScreenId) => voi
     return (
       <div className="min-h-screen bg-canvas">
         <AnimatePresence mode="wait">
-          <AhaStage key="aha" form={form} onUnlock={() => onEnter('home')} />
+          <AhaStage key="aha" form={form} onUnlock={() => onEnter(form, 'home')} />
         </AnimatePresence>
       </div>
     );

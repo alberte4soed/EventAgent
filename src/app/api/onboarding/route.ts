@@ -7,9 +7,15 @@ interface OnboardingBody {
   partner_name?: string | null;
   city?: string;
   date?: OnboardingDate;
+  /** Direct guest count (Kalas interview) — takes precedence over guest_band. */
+  guest_count?: number | null;
   guest_band?: string | null;
   budget?: string | null;
   vibes?: string[];
+  /** Free-text dream description (Kalas interview) → requirements. */
+  description?: string | null;
+  /** Co-planner email (Kalas interview) → requirements. */
+  partner_email?: string | null;
 }
 
 /**
@@ -33,12 +39,20 @@ export async function POST(request: NextRequest) {
   }
 
   const band = GUEST_BANDS.find((b) => b.key === body.guest_band);
+  const guestCount =
+    typeof body.guest_count === "number" && body.guest_count > 0
+      ? Math.round(body.guest_count)
+      : band?.count ?? null;
   const vibes = (body.vibes ?? []).filter((v) => typeof v === "string").slice(0, 12);
   const date = body.date ?? { precision: "undecided" as const };
+  const description = (body.description ?? "").trim();
+  const partnerEmail = (body.partner_email ?? "").trim();
 
   const requirements: Record<string, unknown> = {};
   if (vibes.length > 0) requirements.vibes = vibes;
   if (band) requirements.guest_band = band.label;
+  if (description) requirements.description = description;
+  if (partnerEmail) requirements.partner_email = partnerEmail;
 
   const { data: event, error: eventError } = await supabase
     .from("events")
@@ -47,7 +61,7 @@ export async function POST(request: NextRequest) {
       title: weddingTitle(name, partner),
       event_type: "wedding",
       location: city,
-      guest_count: band?.count ?? null,
+      guest_count: guestCount,
       event_date: date.precision === "exact" ? date.iso ?? null : null,
       date_precision: date.precision,
       date_hint: date.precision === "season" ? date.hint ?? null : null,
@@ -63,18 +77,20 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Welcome message so the workspace opens mid-conversation, not empty.
+  // Danish welcome so Ava's chat opens mid-conversation, matching the app.
+  const firstName = name.split(" ")[0];
+  const partnerFirst = partner ? partner.split(" ")[0] : null;
   const knowns = [
     city,
     date.precision === "exact" ? date.iso : date.hint,
-    band?.count ? `around ${band.count} guests` : null,
-    vibes.length > 0 ? `a ${vibes[0].toLowerCase()} feel` : null,
+    guestCount ? `omkring ${guestCount} gæster` : null,
+    description ? `jeres stil: "${description.slice(0, 80)}"` : null,
   ].filter(Boolean);
   const welcome =
-    `Hi ${name.split(" ")[0]}${partner ? ` & ${partner.split(" ")[0]}` : ""}! ` +
-    `I'm Ava, your wedding planner. Here's what I've got so far: ${knowns.join(", ")}. ` +
-    `The venue anchors everything else — flowers, music, catering are all local to it. ` +
-    `Shall I start researching venues in ${city}?`;
+    `Hej ${firstName}${partnerFirst ? ` & ${partnerFirst}` : ""}! ` +
+    `Jeg er Ava, jeres bryllupsplanlægger. Her er hvad jeg har indtil videre: ${knowns.join(", ")}. ` +
+    `Venuet forankrer alt det andet — blomster, musik og catering er alle lokale til det. ` +
+    `Skal jeg begynde at researche venues nær ${city}?`;
   await supabase.from("chat_messages").insert({
     event_id: event.id,
     user_id: user.id,
