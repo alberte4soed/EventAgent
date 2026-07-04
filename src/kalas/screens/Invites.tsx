@@ -1,9 +1,14 @@
+"use client";
+
 import { useState, useEffect, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Check, Sparkles, Send, Shuffle, Download, Share2, Mail } from 'lucide-react';
-import { couple } from '../data';
+import { useWedding } from '../useWedding';
 import { Eyebrow, Pill, cn } from '../ui';
 import OnboardingHint from '../OnboardingHint';
+import { suggestedQuantity } from '@/lib/invites';
+
+interface InviteCouple { a: string; b: string; dateLabel: string; guests: number }
 
 /* ─── Load extra Google Fonts for pairings ─────────────────────────── */
 function useInviteFonts() {
@@ -147,10 +152,9 @@ function InviteCard({
 }
 
 /* ─── Card back — program + RSVP, same palette & type ───────────────── */
-function InviteBack({ paletteId, fontId }: { paletteId: PaletteId; fontId: FontId }) {
+function InviteBack({ paletteId, fontId, domain }: { paletteId: PaletteId; fontId: FontId; domain: string }) {
   const pal  = PALETTES.find(p => p.id === paletteId) ?? PALETTES[0];
   const font = FONTS.find(f => f.id === fontId) ?? FONTS[0];
-  const domain = `${couple.a.toLowerCase()}-${couple.b.toLowerCase()}.kalas.dk`;
 
   const row = (time: string, label: string) => (
     <div key={time} style={{ display:'flex', alignItems:'baseline', gap:12, justifyContent:'center' }}>
@@ -243,6 +247,23 @@ const rand = <T,>(arr: readonly T[]) => arr[Math.floor(Math.random() * arr.lengt
    MAIN
 ══════════════════════════════════════════════════════════════════════ */
 export default function Invites() {
+  const { loading, couple, venues, event } = useWedding();
+  if (loading) {
+    return <div className="flex min-h-screen items-center justify-center text-[0.85rem] text-muted">Indlæser…</div>;
+  }
+  const chosen =
+    venues.find((v) => v.id === event?.chosen_venue_id) ??
+    venues.find((v) => v.category === 'venue' && v.swipe_status === 'liked');
+  return (
+    <InvitesStudio
+      couple={{ a: couple.a, b: couple.b, dateLabel: couple.dateLabel, guests: couple.guests }}
+      venueName={chosen?.name ?? ''}
+      eventId={event?.id ?? null}
+    />
+  );
+}
+
+function InvitesStudio({ couple, venueName, eventId }: { couple: InviteCouple; venueName: string; eventId: string | null }) {
   useInviteFonts();
 
   const [mode,      setMode]   = useState<'browse' | 'edit'>('browse');
@@ -254,14 +275,42 @@ export default function Invites() {
   const [paperId,   setPaper]  = useState('digital');
   const [avaDraft,  setAva]    = useState(false);
   const [sent,      setSent]   = useState(false);
+  const [busy,      setBusy]   = useState(false);
   const [side,      setSide]   = useState<'front' | 'back'>('front');
   const [presetId,  setPreset] = useState<string | null>(null);
 
   const [eyebrow, setEyebrow] = useState('Vi skal giftes');
-  const [names,   setNames]   = useState(`${couple.a} & ${couple.b}`);
-  const [date,    setDate]    = useState(couple.dateLabel);
-  const [venue,   setVenue]   = useState('Sonnerupgaard Gods · kl. 14');
+  const [names,   setNames]   = useState(couple.b ? `${couple.a} & ${couple.b}` : couple.a || 'Vores navne');
+  const [date,    setDate]    = useState(couple.dateLabel || 'Vores dato');
+  const [venue,   setVenue]   = useState(venueName || 'Vores venue');
   const [closing, setClosing] = useState('og vi ville elske at fejre dagen med jer');
+
+  const domain = `${(couple.a || 'os').toLowerCase()}${couple.b ? `-${couple.b.toLowerCase()}` : ''}.kalas.dk`;
+
+  async function submitOrder() {
+    if (paperId === 'digital' || !eventId) { setSent(true); return; }
+    setBusy(true);
+    try {
+      const wording = [eyebrow, names, date, venue, closing].filter(Boolean).join('\n');
+      const res = await fetch('/api/invites/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          eventId,
+          style: `${paletteId} · ${fontId}`,
+          palette: paletteId,
+          wording,
+          quantity: suggestedQuantity(couple.guests || null),
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.url) { window.location.href = data.url; return; }
+      // Stripe not configured yet (503) — mark queued locally so the flow isn't blocked.
+      setSent(true);
+    } finally {
+      setBusy(false);
+    }
+  }
 
   const applyPreset = (p: typeof PRESETS[number]) => {
     setPreset(p.id);
@@ -572,12 +621,16 @@ export default function Invites() {
               </div>
 
               <div className="rule-t pt-6">
-                <Pill arrow onClick={() => setSent(true)} className="w-full">
-                  {sent ? <><Check size={15}/> Sendt til {couple.guests} gæster</> : <><Send size={15}/> Godkend &amp; send</>}
+                <Pill arrow onClick={() => { if (!busy && !sent) void submitOrder(); }} className="w-full">
+                  {sent
+                    ? <><Check size={15}/> {paperId==='digital' ? `Klar til ${couple.guests} gæster` : 'Bestilling registreret'}</>
+                    : busy
+                      ? <>Behandler…</>
+                      : <><Send size={15}/> {paperId==='digital' ? 'Godkend' : 'Godkend & bestil tryk'}</>}
                 </Pill>
                 <p className="mt-3 text-center text-[0.74rem] text-muted">
                   {paperId==='digital'
-                    ? 'RSVP-svar lander automatisk i Gæster'
+                    ? 'Digital deling — RSVP kommer snart'
                     : `${paper.name} trykkes og afsendes af Kalas Atelier`}
                 </p>
               </div>
@@ -597,7 +650,7 @@ export default function Invites() {
               className="mx-auto max-w-[300px]">
               <FlipCard side={side}
                 front={<InviteCard {...{ paletteId, fontId, alignment, composition:comp, eyebrow, names, date, venue, closing }} />}
-                back={<InviteBack paletteId={paletteId} fontId={fontId} />}
+                back={<InviteBack paletteId={paletteId} fontId={fontId} domain={domain} />}
               />
             </motion.div>
           </AnimatePresence>
@@ -634,7 +687,7 @@ export default function Invites() {
             style={{ width:'100%', maxWidth:300, padding:'0 20px' }}>
             <FlipCard side={side}
               front={<InviteCard {...{ paletteId, fontId, alignment, composition:comp, eyebrow, names, date, venue, closing }} />}
-              back={<InviteBack paletteId={paletteId} fontId={fontId} />}
+              back={<InviteBack paletteId={paletteId} fontId={fontId} domain={domain} />}
             />
           </motion.div>
         </AnimatePresence>
