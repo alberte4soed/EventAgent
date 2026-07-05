@@ -1,10 +1,11 @@
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Plus, Upload, Utensils, Send, Users, Clock, CheckCheck, ChevronRight, Trash2, Search, X, Check } from 'lucide-react';
-import { guests, rsvpStats, couple, type Guest } from '../data';
-import { Eyebrow, Pill, Chip, cn } from '../ui';
+import { guests, rsvpStats, type Guest } from '../data';
+import { Eyebrow, Pill, Chip, PreviewNote, cn } from '../ui';
 import AnimateNumber from '../AnimateNumber';
 import OnboardingHint from '../OnboardingHint';
+import { useWedding } from '../useWedding';
 
 type Tab = 'gæsteliste' | 'beskeder';
 type Filter = 'alle' | 'ja' | 'afventer' | 'afbud';
@@ -20,11 +21,14 @@ const THREADS: MessageThread[] = [
   { id: 'm3', subject: 'Praktisk info om dagen', preview: 'Her er alt I skal vide: parkering, overnatning og dresscode...', recipientLabel: 'Alle gæster', sentAt: undefined, status: 'draft', replies: 0 },
 ];
 
-const TEMPLATES = [
-  { id: 'tp1', label: 'Praktisk info', subject: 'Alt du skal vide om dagen', recipients: 'Alle gæster', body: `Kære [navn],\n\nVi glæder os enormt til at fejre vores store dag med dig!\n\nHer er de vigtigste praktiske informationer:\n\n📍 Sted: [venue]\n🕐 Ceremoni starter kl. [tid]\n🚗 Parkering: [info]\n\nKontakt os hvis du har spørgsmål.\n\nMed kærlig hilsen,\n${couple.a} & ${couple.b}` },
-  { id: 'tp2', label: 'Rykker – RSVP', subject: 'Mangler stadig dit svar 💌', recipients: 'Afventende svar', body: `Hej [navn],\n\nVi mangler stadig at høre om du kan komme til vores bryllup den ${couple.dateLabel}.\n\nVil du svare inden [dato]?\n\nMed håb om at se dig,\n${couple.a} & ${couple.b}` },
-  { id: 'tp3', label: 'Tak for svar', subject: 'Tak for dit svar! 🙏', recipients: 'Bekræftede', body: `Kære [navn],\n\nTusen tak — vi er så glade for at du kommer!\n\nKærlig hilsen,\n${couple.a} & ${couple.b}` },
-];
+function makeTemplates(a: string, b: string, dateLabel: string) {
+  const sign = `${a} & ${b}`;
+  return [
+    { id: 'tp1', label: 'Praktisk info', subject: 'Alt du skal vide om dagen', recipients: 'Alle gæster', body: `Kære [navn],\n\nVi glæder os enormt til at fejre vores store dag med dig!\n\nHer er de vigtigste praktiske informationer:\n\n📍 Sted: [venue]\n🕐 Ceremoni starter kl. [tid]\n🚗 Parkering: [info]\n\nKontakt os hvis du har spørgsmål.\n\nMed kærlig hilsen,\n${sign}` },
+    { id: 'tp2', label: 'Rykker – RSVP', subject: 'Mangler stadig dit svar 💌', recipients: 'Afventende svar', body: `Hej [navn],\n\nVi mangler stadig at høre om du kan komme til vores bryllup den ${dateLabel}.\n\nVil du svare inden [dato]?\n\nMed håb om at se dig,\n${sign}` },
+    { id: 'tp3', label: 'Tak for svar', subject: 'Tak for dit svar! 🙏', recipients: 'Bekræftede', body: `Kære [navn],\n\nTusen tak — vi er så glade for at du kommer!\n\nKærlig hilsen,\n${sign}` },
+  ];
+}
 
 export default function Guests() {
   const [tab, setTab] = useState<Tab>('gæsteliste');
@@ -56,6 +60,7 @@ export default function Guests() {
 
   return (
     <div className="px-6 py-8 sm:px-10 lg:px-16 lg:py-12">
+      <PreviewNote />
       {/* Header */}
       <div className="flex items-end justify-between gap-6">
         <div>
@@ -264,6 +269,8 @@ function GuestRow({ g, i, onRemove }: { g: Guest; i: number; onRemove: () => voi
 }
 
 function MessagingPanel() {
+  const { couple } = useWedding();
+  const TEMPLATES = makeTemplates(couple.a, couple.b, couple.dateLabel);
   const [activeThread, setActiveThread] = useState<string | null>(null);
   const [composing, setComposing] = useState(false);
   const [messageBody, setMessageBody] = useState('');

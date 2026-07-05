@@ -5,9 +5,16 @@ import {
   Lock, Copy, Eye, EyeOff, MapPin, Gift, HelpCircle, Bed,
   Camera, Clock, BookOpen, Image, QrCode,
 } from 'lucide-react';
-import { IMAGES as IMG, couple, moodboard, guests, TODAY } from '../data';
-import { Eyebrow, cn } from '../ui';
+import { IMAGES as IMG, moodboard, guests, TODAY } from '../data';
+import { Eyebrow, PreviewNote, cn } from '../ui';
 import OnboardingHint from '../OnboardingHint';
+import { useWedding } from '../useWedding';
+import type { Couple } from '../useWedding';
+
+const slugify = (s: string) =>
+  s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/æ/g, 'ae').replace(/ø/g, 'oe').replace(/å/g, 'aa')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'os';
 
 /* ── Types ───────────────────────────────────────────────────────────── */
 type ProgramEvent = { id: string; time: string; label: string; sublabel: string };
@@ -96,6 +103,7 @@ const GALLERY_KEYS: (keyof typeof IMG)[] = ['florals', 'olive', 'candles', 'arch
    MAIN EXPORT
 ══════════════════════════════════════════════════════════════════════ */
 export default function Website() {
+  const { couple } = useWedding();
   const [tab,      setTab]      = useState<WTab>('design');
 
   /* Design */
@@ -125,7 +133,7 @@ export default function Website() {
   const [hotels,       setHotels]       = useState<HotelItem[]>(INIT_HOTELS);
 
   /* Publish */
-  const [domain,      setDomain]      = useState('emma-frederik');
+  const [domain,      setDomain]      = useState(`${slugify(couple.a)}-${slugify(couple.b)}`);
   const [published,   setPublished]   = useState(false);
   const [pwProtected, setPwProtected] = useState(false);
   const [sitePassword,setSitePassword]= useState('');
@@ -152,6 +160,7 @@ export default function Website() {
 
   const preview = (
     <SitePreview
+      couple={couple}
       lens={lens} colors={colors} font={font} layoutId={layoutId}
       sections={enabledSections} heroTagline={heroTagline}
       storyText={storyText} program={program} domain={domain}
@@ -197,6 +206,10 @@ export default function Website() {
             {published ? '● Live' : 'Publicér'}
           </button>
         </div>
+      </div>
+
+      <div className="px-6 pt-6 sm:px-10 lg:px-16">
+        <PreviewNote>Forhåndsvisning — jeres bryllupsside går live når denne del bliver interaktiv. Ændringer gemmes endnu ikke.</PreviewNote>
       </div>
 
       {/* ── Tab content ───────────────────────────────────────────────── */}
@@ -973,9 +986,10 @@ function ToggleRow({ label, value, onChange }: { label: string; value: boolean; 
 
 /* ── Live preview ─────────────────────────────────────────────────────── */
 function SitePreview({
-  lens, colors, font, layoutId, sections, heroTagline, storyText, program, domain, countdown, galleryKeys,
+  couple, lens, colors, font, layoutId, sections, heroTagline, storyText, program, domain, countdown, galleryKeys,
   showBranding, onBrandingClick, onRsvpClick,
 }: {
+  couple: Couple;
   lens: typeof LENSES[number];
   colors: WebColor;
   font: WebFont;
@@ -991,7 +1005,9 @@ function SitePreview({
   onBrandingClick?: () => void;
   onRsvpClick?: () => void;
 }) {
-  const daysLeft = Math.ceil((new Date(couple.dateISO).getTime() - TODAY.getTime()) / 86400000);
+  const daysLeft = couple.dateISO
+    ? Math.ceil((new Date(couple.dateISO).getTime() - TODAY.getTime()) / 86400000)
+    : 0;
 
   return (
     <motion.div layout

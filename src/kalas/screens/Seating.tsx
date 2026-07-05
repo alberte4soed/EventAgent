@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Plus, X, Minus, Check, Download, Share2, ChevronDown, Trash2 } from 'lucide-react';
-import { Eyebrow, Pill, cn } from '../ui';
+import { Eyebrow, Pill, PreviewNote, cn } from '../ui';
 import OnboardingHint from '../OnboardingHint';
 
 /* ── Types ─────────────────────────────────────────────────────────── */
@@ -200,6 +200,7 @@ export default function Seating() {
     <div className="pb-24">
       {/* ── Header ──────────────────────────────────────────────────── */}
       <div className="px-6 py-8 sm:px-10 lg:px-16 lg:py-12">
+        <PreviewNote />
         <Eyebrow>Bordplan</Eyebrow>
         <h1 className="display mt-4 text-[clamp(2.5rem,5vw,4rem)] text-ink">
           Byg jeres <span className="italic">opstilling.</span>

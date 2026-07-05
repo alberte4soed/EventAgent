@@ -2,7 +2,7 @@ import { useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform } from 'motion/react';
 import { Heart, X, Plus, ArrowLeft, ArrowRight, Image as ImageIcon } from 'lucide-react';
 import { IMAGES } from '../data';
-import { Eyebrow, Pill, cn } from '../ui';
+import { Eyebrow, Pill, PreviewNote, cn } from '../ui';
 import OnboardingHint from '../OnboardingHint';
 
 /* ── Inspiration swipe deck ──────────────────────────────────────────── */
@@ -83,6 +83,7 @@ export default function Moodboard({ onNavigate }: { onNavigate?: (s: import('../
 
       {/* ── Page header ─────────────────────────────────────────────── */}
       <div className="px-6 pt-10 sm:px-10 lg:px-16">
+        <PreviewNote />
         <Eyebrow>Moodboard · Stilanalyse</Eyebrow>
         <h1 className="display mt-3 text-[clamp(2.5rem,5vw,4rem)] text-ink">
           Find jeres <span className="italic">stil.</span>

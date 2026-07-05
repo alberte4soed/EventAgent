@@ -2,9 +2,10 @@ import * as React from 'react';
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { RotateCcw, Plus, Trash2, Check } from 'lucide-react';
-import { couple, daysUntil, TODAY, type Task } from '../data';
+import { TODAY, type Task } from '../data';
 import { useKalas } from '../store';
-import { Eyebrow, cn } from '../ui';
+import { useWedding } from '../useWedding';
+import { Eyebrow, PreviewNote, cn } from '../ui';
 
 const AVA_CELEBRATION: Record<string, string> = {
   't3':  'Venue booket. Det er det sværeste skridt — nu ruller det.',
@@ -36,6 +37,10 @@ const EMPTY_COPY: Record<Filter, string> = {
 };
 
 export default function Planning() {
+  const { couple } = useWedding();
+  const daysUntil = couple.dateISO
+    ? Math.max(0, Math.round((new Date(couple.dateISO).getTime() - TODAY.getTime()) / 86400000))
+    : 0;
   const { tasks, setTasks, doneIds, toggleDone, resetTimeline } = useKalas();
   const [filter, setFilter] = useState<Filter>('alle');
   const [celebration, setCelebration] = useState<{ title: string; msg: string } | null>(null);
@@ -123,6 +128,7 @@ export default function Planning() {
 
   return (
     <div className="px-6 py-8 sm:px-10 lg:px-16 lg:py-12">
+      <PreviewNote />
       <Eyebrow>Tidslinje</Eyebrow>
       <h1 className="display mt-4 text-[clamp(2.5rem,5vw,4rem)] text-ink leading-[1.1]">
         Jeres rejse mod <span className="italic">dagen</span>

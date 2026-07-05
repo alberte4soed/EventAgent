@@ -1,10 +1,11 @@
 import { useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Plus, X, ChevronDown, ArrowRight, Check } from 'lucide-react';
-import { budgetLines, couple, type BudgetLine } from '../data';
-import { Eyebrow, Chip, Pill, cn } from '../ui';
+import { budgetLines, type BudgetLine } from '../data';
+import { Eyebrow, Chip, Pill, PreviewNote, cn } from '../ui';
 import AnimateNumber from '../AnimateNumber';
 import OnboardingHint from '../OnboardingHint';
+import { useWedding } from '../useWedding';
 
 /* ── Benchmark fordeling (dansk gennemsnit) ──────────────────────────── */
 const BENCHMARK_DIST = [
@@ -33,6 +34,7 @@ const PAYMENTS: { label: string; when: string; amount: number | null; paid: bool
 ];
 
 export default function Budget({ onNavigate }: { onNavigate?: (s: import('../Shell').ScreenId) => void }) {
+  const { couple } = useWedding();
   const [estimatorDone, setEstimatorDone] = useState(false);
   const [estimatorOpen, setEstimatorOpen] = useState(false);
   const [estGuests, setEstGuests] = useState(couple.guests);
@@ -85,6 +87,7 @@ export default function Budget({ onNavigate }: { onNavigate?: (s: import('../She
 
   return (
     <div className="px-6 py-8 sm:px-10 lg:px-16 lg:py-12">
+      <PreviewNote />
       <Eyebrow>Budget · Avas fordeling</Eyebrow>
       <h1 className="display mt-4 text-[clamp(2.5rem,5vw,4rem)] text-ink">
         Mit forslag — <span className="italic">jeres at justere</span>

@@ -119,6 +119,18 @@ export function Chip({
   );
 }
 
+/* ── Preview note ────────────────────────────────────────────────────────
+   Marks a design-only screen: the layout is real, but nothing here is saved
+   to the couple's wedding yet. Keeps the app honest about what persists. */
+export function PreviewNote({ children }: { children?: React.ReactNode }) {
+  return (
+    <div className="mx-auto mb-6 flex max-w-fit items-center gap-2 rounded-full bg-sage-tint px-4 py-2 text-[0.72rem] font-medium tracking-[0.04em] text-ink">
+      <span className="inline-block h-1.5 w-1.5 rounded-full bg-sage-strong" />
+      {children ?? 'Forhåndsvisning — Ava arbejder på at gøre denne del interaktiv. Ændringer gemmes endnu ikke.'}
+    </div>
+  );
+}
+
 /* ── Animated screen wrapper ─────────────────────────────────────────── */
 export function Screen({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
