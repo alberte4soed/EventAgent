@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SignOutButton } from "@/components/auth/SignOutButton";
+import { LanguageSetting } from "@/components/settings/LanguageSetting";
 import { createClient } from "@/lib/supabase/server";
+import { getOrCreateProfile } from "@/lib/db/profile";
 import { getPlatformConnection, isPlatformAdmin } from "@/lib/gmail/platform";
 
 export default async function SettingsPage({
@@ -16,6 +18,7 @@ export default async function SettingsPage({
   if (!user) redirect("/login");
 
   const params = await searchParams;
+  const profile = await getOrCreateProfile(supabase, user.id);
   const admin = isPlatformAdmin(user.email);
   const platform = admin ? await getPlatformConnection() : null;
 
@@ -91,6 +94,20 @@ export default async function SettingsPage({
           </div>
         </section>
       )}
+
+      <section className="mt-6 rounded-2xl border border-[#D4D6C0] bg-[#F6F0E8] p-6">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h2 className="font-[family-name:var(--font-fraunces)] text-lg font-semibold text-[#4A4E3C]">
+              Language
+            </h2>
+            <p className="mt-1 text-sm text-[#7A8066]">
+              The language of the app and of Ava's replies. Takes effect across Kalas.
+            </p>
+          </div>
+          <LanguageSetting initial={profile.language ?? "da"} />
+        </div>
+      </section>
 
       <section className="mt-6 rounded-2xl border border-[#D4D6C0] bg-[#F6F0E8] p-6">
         <h2 className="font-[family-name:var(--font-fraunces)] text-lg font-semibold text-[#4A4E3C]">

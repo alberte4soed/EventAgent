@@ -16,6 +16,8 @@ interface OnboardingBody {
   description?: string | null;
   /** Co-planner email (Kalas interview) → requirements. */
   partner_email?: string | null;
+  /** UI + assistant language chosen during onboarding. */
+  language?: string;
 }
 
 /**
@@ -47,6 +49,7 @@ export async function POST(request: NextRequest) {
   const date = body.date ?? { precision: "undecided" as const };
   const description = (body.description ?? "").trim();
   const partnerEmail = (body.partner_email ?? "").trim();
+  const language = body.language === "en" ? "en" : "da";
 
   const requirements: Record<string, unknown> = {};
   if (vibes.length > 0) requirements.vibes = vibes;
@@ -77,20 +80,29 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Danish welcome so Ava's chat opens mid-conversation, matching the app.
+  // Welcome so Ava's chat opens mid-conversation, matching the app language.
   const firstName = name.split(" ")[0];
   const partnerFirst = partner ? partner.split(" ")[0] : null;
-  const knowns = [
-    city,
-    date.precision === "exact" ? date.iso : date.hint,
-    guestCount ? `omkring ${guestCount} gæster` : null,
-    description ? `jeres stil: "${description.slice(0, 80)}"` : null,
-  ].filter(Boolean);
+  const names = `${firstName}${partnerFirst ? ` & ${partnerFirst}` : ""}`;
+  const dateKnown = date.precision === "exact" ? date.iso : date.hint;
   const welcome =
-    `Hej ${firstName}${partnerFirst ? ` & ${partnerFirst}` : ""}! ` +
-    `Jeg er Ava, jeres bryllupsplanlægger. Her er hvad jeg har indtil videre: ${knowns.join(", ")}. ` +
-    `Venuet forankrer alt det andet — blomster, musik og catering er alle lokale til det. ` +
-    `Skal jeg begynde at researche venues nær ${city}?`;
+    language === "en"
+      ? `Hi ${names}! I'm Ava, your wedding planner. Here's what I have so far: ${[
+          city,
+          dateKnown,
+          guestCount ? `around ${guestCount} guests` : null,
+          description ? `your style: "${description.slice(0, 80)}"` : null,
+        ]
+          .filter(Boolean)
+          .join(", ")}. The venue anchors everything else — flowers, music and catering are all local to it. Shall I start researching venues near ${city}?`
+      : `Hej ${names}! Jeg er Ava, jeres bryllupsplanlægger. Her er hvad jeg har indtil videre: ${[
+          city,
+          dateKnown,
+          guestCount ? `omkring ${guestCount} gæster` : null,
+          description ? `jeres stil: "${description.slice(0, 80)}"` : null,
+        ]
+          .filter(Boolean)
+          .join(", ")}. Venuet forankrer alt det andet — blomster, musik og catering er alle lokale til det. Skal jeg begynde at researche venues nær ${city}?`;
   await supabase.from("chat_messages").insert({
     event_id: event.id,
     user_id: user.id,
@@ -106,6 +118,7 @@ export async function POST(request: NextRequest) {
       home_city: city,
       active_event_id: event.id,
       onboarded: true,
+      language,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "user_id" }

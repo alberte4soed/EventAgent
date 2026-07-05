@@ -8,6 +8,7 @@ import { AnimatePresence, MotionConfig } from 'motion/react';
 import Shell, { type ScreenId } from './Shell';
 import { KalasProvider, useKalas } from './store';
 import { WeddingProvider } from './useWedding';
+import { LanguageProvider, type Lang } from './i18n';
 import Home from './screens/Home';
 import Ava from './screens/Ava';
 import Inspiration from './screens/Moodboard';
@@ -21,16 +22,18 @@ import Invites from './screens/Invites';
 import Seating from './screens/Seating';
 import Inbox from './screens/Inbox';
 
-export default function KalasRoot() {
+export default function KalasRoot({ initialLang = 'da' }: { initialLang?: Lang }) {
   return (
     <MotionConfig reducedMotion="user">
-      <WeddingProvider>
-        <KalasProvider>
-          <div className="theme-kalas min-h-screen bg-canvas font-sans text-ink">
-            <AppInner />
-          </div>
-        </KalasProvider>
-      </WeddingProvider>
+      <LanguageProvider initialLang={initialLang}>
+        <WeddingProvider>
+          <KalasProvider>
+            <div className="theme-kalas min-h-screen bg-canvas font-sans text-ink">
+              <AppInner />
+            </div>
+          </KalasProvider>
+        </WeddingProvider>
+      </LanguageProvider>
     </MotionConfig>
   );
 }

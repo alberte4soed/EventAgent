@@ -220,9 +220,12 @@ export interface ProfileRow {
   accent: string;
   onboarded: boolean;
   active_event_id: string | null;
+  language: AppLanguage;
   created_at: string;
   updated_at: string;
 }
+
+export type AppLanguage = "da" | "en";
 
 export type InviteOrderStatus =
   | "draft"

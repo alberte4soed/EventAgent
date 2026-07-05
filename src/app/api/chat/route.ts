@@ -113,9 +113,21 @@ export async function POST(request: NextRequest) {
 
   // When the user is discussing a specific vendor reply (from the outreach
   // inbox), give the agent that thread's context so it can revise the response.
-  const extraContext = contextReplyId
+  const replyContext = contextReplyId
     ? await buildReplyContext(supabase, contextReplyId, event.id)
     : undefined;
+
+  // Respond in the couple's chosen language.
+  const { data: prof } = await supabase
+    .from("profiles")
+    .select("language")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const languageDirective =
+    prof?.language === "en"
+      ? "Always reply to the couple in English."
+      : "Svar altid parret på dansk.";
+  const extraContext = [languageDirective, replyContext].filter(Boolean).join("\n\n");
 
   await supabase.from("chat_messages").insert({
     event_id: event.id,
