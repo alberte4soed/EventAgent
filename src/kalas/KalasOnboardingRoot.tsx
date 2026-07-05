@@ -6,27 +6,15 @@
    navigation to /home so the server gate re-reads profiles.onboarded. */
 import { AnimatePresence, MotionConfig } from 'motion/react';
 import { type ScreenId } from './Shell';
-import Onboarding, { type FormState } from './screens/Onboarding';
+import Onboarding, { type FormState, toOnboardingPayload } from './screens/Onboarding';
 
 export default function KalasOnboardingRoot() {
   const enter = async (form: FormState, s?: ScreenId) => {
-    const guests = Number.parseInt(form.guests, 10);
     try {
       await fetch('/api/onboarding', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: form.nameA,
-          partner_name: form.nameB || null,
-          city: form.location,
-          date: form.date
-            ? { precision: 'exact', iso: form.date }
-            : { precision: 'undecided' },
-          guest_count: Number.isFinite(guests) ? guests : null,
-          budget: form.budget || null,
-          description: form.description || null,
-          partner_email: form.partnerEmail || null,
-        }),
+        body: JSON.stringify(toOnboardingPayload(form)),
       });
     } catch {
       // Non-fatal: fall back to just marking onboarded so the gate lets them in.

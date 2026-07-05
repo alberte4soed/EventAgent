@@ -1,36 +1,131 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  Check, Eye, EyeOff, ArrowLeft, ArrowRight, Lock, Sparkles, MapPin, ListChecks,
+  Check, ArrowLeft, ArrowRight, Sparkles, MapPin, ListChecks,
 } from 'lucide-react';
-import { couple, timeline, budgetLines, IMAGES } from '../data';
+import { couple, timeline } from '../data';
+import { GUEST_BANDS, type OnboardingDate } from '@/lib/onboarding';
 import type { ScreenId } from '../Shell';
-import { Eyebrow, Pill, Bleed, cn } from '../ui';
-import AnimateNumber from '../AnimateNumber';
+import { cn } from '../ui';
 
-export type Answers = Record<string, string>;
-
-type Stage = 'basics' | 'describe' | 'partner' | 'aha';
+type Stage = 'basics' | 'scope' | 'describe' | 'partner' | 'aha';
 type ChatMsg = { id: string; role: 'ava' | 'user'; text: string };
 
+/* Structured onboarding state — chips + bands instead of loose text, so the
+   journey logic and Ava's briefs get clean, bounded inputs. */
 export type FormState = {
-  email: string; password: string;
   nameA: string; nameB: string;
-  location: string; date: string; guests: string; budget: string;
-  description: string; partnerEmail: string;
+  location: string;
+  dateChoice: string;   // '' | season key | 'exact' | 'undecided'
+  exactDate: string;    // ISO, when dateChoice === 'exact'
+  guestBand: string;    // '' | GUEST_BANDS key
+  budgetBand: string;   // '' | BUDGET_BANDS key
+  vibes: string[];      // Danish vibe labels (multi-select)
+  description: string;
+  partnerEmail: string;
 };
 
-const STEP_STAGES: Stage[] = ['basics', 'describe', 'partner'];
-const TOTAL = STEP_STAGES.length;
+export const EMPTY_FORM: FormState = {
+  nameA: '', nameB: '',
+  location: '', dateChoice: '', exactDate: '',
+  guestBand: '', budgetBand: '', vibes: [],
+  description: '', partnerEmail: '',
+};
 
+/* ── Danish chip vocabularies (reuse the shared band keys for the backend) ─ */
+const GUEST_LABELS_DA: Record<string, string> = {
+  just_us: 'Kun os to',
+  under_50: 'Under 50',
+  '50_100': '50–100',
+  '100_150': '100–150',
+  '150_plus': '150+',
+  not_sure: 'Ved ikke endnu',
+};
+
+type BudgetBand = { key: string; label: string; emoji: string; amount: number | null };
+const BUDGET_BANDS_DA: BudgetBand[] = [
+  { key: 'lean',     label: 'Nøjsomt',            emoji: '🌱', amount: 100000 },
+  { key: 'mid',      label: 'Mellemklasse',       emoji: '⚖️', amount: 200000 },
+  { key: 'generous', label: 'Rundhåndet',         emoji: '🥂', amount: 350000 },
+  { key: 'sky',      label: 'Himlen er grænsen',  emoji: '🌟', amount: 600000 },
+  { key: 'private',  label: 'Vil helst ikke sige', emoji: '🤫', amount: null },
+];
+
+type Vibe = { key: string; label: string; emoji: string };
+const VIBE_OPTIONS: Vibe[] = [
+  { key: 'garden',      label: 'Have',              emoji: '🌿' },
+  { key: 'rustic',      label: 'Rustik lade',       emoji: '🌾' },
+  { key: 'modern',      label: 'Moderne loft',      emoji: '🏙️' },
+  { key: 'ballroom',    label: 'Klassisk balsal',   emoji: '💃' },
+  { key: 'beach',       label: 'Strand',            emoji: '🌊' },
+  { key: 'castle',      label: 'Slot / herregård',  emoji: '🏰' },
+  { key: 'intimate',    label: 'Intimt',            emoji: '🕯️' },
+  { key: 'boho',        label: 'Boho',              emoji: '🪶' },
+  { key: 'destination', label: 'Destination',       emoji: '✈️' },
+];
+
+const SEASONS_DA = ['Forår', 'Sommer', 'Efterår', 'Vinter'] as const;
+const SEASON_START_MONTH = [2, 5, 8, 11]; // Mar, Jun, Sep, Dec
+
+type DateChip = { key: string; label: string };
+/** The next `count` season-year chips starting from the upcoming season. */
+function seasonChipsDa(count = 6, from = new Date()): DateChip[] {
+  const chips: DateChip[] = [];
+  let year = from.getFullYear();
+  let idx = SEASON_START_MONTH.findIndex((m) => m > from.getMonth());
+  if (idx === -1) { idx = 0; year += 1; }
+  while (chips.length < count) {
+    chips.push({ key: `${SEASONS_DA[idx].toLowerCase()}_${year}`, label: `${SEASONS_DA[idx]} ${year}` });
+    idx += 1;
+    if (idx === SEASONS_DA.length) { idx = 0; year += 1; }
+  }
+  return chips;
+}
+const DATE_CHIPS = seasonChipsDa(6);
+
+/* ── Payload builders (all band/date logic lives here) ─────────────────── */
+function buildDate(form: FormState): OnboardingDate {
+  if (form.dateChoice === 'exact' && form.exactDate) return { precision: 'exact', iso: form.exactDate };
+  const chip = DATE_CHIPS.find((c) => c.key === form.dateChoice);
+  if (chip) return { precision: 'season', hint: chip.label };
+  return { precision: 'undecided' };
+}
+function buildBudget(form: FormState): string | null {
+  const band = BUDGET_BANDS_DA.find((b) => b.key === form.budgetBand);
+  return band?.amount != null ? String(band.amount) : null;
+}
+export function toOnboardingPayload(form: FormState) {
+  return {
+    name: form.nameA.trim(),
+    partner_name: form.nameB.trim() || null,
+    city: form.location.trim(),
+    date: buildDate(form),
+    guest_band: form.guestBand || null,
+    budget: buildBudget(form),
+    vibes: form.vibes,
+    description: form.description.trim() || null,
+    partner_email: form.partnerEmail.trim() || null,
+  };
+}
+
+/* ── Display helpers ─────────────────────────────────────────────────── */
+const STEP_STAGES: Stage[] = ['basics', 'scope', 'describe', 'partner'];
+const TOTAL = STEP_STAGES.length;
 function stepOf(s: Stage) {
   const i = STEP_STAGES.indexOf(s);
   return i === -1 ? 0 : i + 1;
 }
-
-function fmtDate(iso: string) {
-  if (!iso) return '';
-  return new Date(iso).toLocaleDateString('da-DK', { day: 'numeric', month: 'long', year: 'numeric' });
+function dateLabelOf(form: FormState): string {
+  const d = buildDate(form);
+  if (d.precision === 'exact' && d.iso) {
+    return new Date(d.iso).toLocaleDateString('da-DK', { day: 'numeric', month: 'long', year: 'numeric' });
+  }
+  if (d.precision === 'season' && d.hint) return d.hint;
+  return 'snart';
+}
+function guestCountOf(form: FormState): number {
+  const band = GUEST_BANDS.find((b) => b.key === form.guestBand);
+  return band?.count ?? couple.guests;
 }
 
 const inputCls = 'w-full rounded-2xl border border-[var(--color-line-strong)] bg-canvas px-4 py-3.5 text-[1rem] text-ink placeholder:text-muted focus:border-ink focus:outline-none transition-colors';
@@ -40,42 +135,48 @@ const inputCls = 'w-full rounded-2xl border border-[var(--color-line-strong)] bg
 ══════════════════════════════════════════════════════════════════════ */
 export default function Onboarding({ onEnter }: { onEnter: (form: FormState, s?: ScreenId) => void }) {
   const [stage, setStage] = useState<Stage>('basics');
-  const [form, setForm] = useState<FormState>({
-    email: '', password: '',
-    nameA: '', nameB: '',
-    location: '', date: '', guests: '', budget: '',
-    description: '', partnerEmail: '',
-  });
+  const [form, setForm] = useState<FormState>(EMPTY_FORM);
 
   const [chat, setChat] = useState<ChatMsg[]>([
     { id: 'ava-0', role: 'ava', text: 'Hej! Jeg er Ava — din personlige bryllupsassistent. Lad os starte med det vigtigste: hvem er I, og hvornår er den store dag?' },
   ]);
 
   const set = (k: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-    setForm(f => ({ ...f, [k]: e.target.value }));
+    setForm((f) => ({ ...f, [k]: e.target.value }));
+  const setField = <K extends keyof FormState>(k: K, v: FormState[K]) =>
+    setForm((f) => ({ ...f, [k]: v }));
+  const toggleVibe = (label: string) =>
+    setForm((f) => ({ ...f, vibes: f.vibes.includes(label) ? f.vibes.filter((v) => v !== label) : [...f.vibes, label] }));
 
   const addChat = (msgs: Omit<ChatMsg, 'id'>[]) =>
-    setChat(prev => [...prev, ...msgs.map((m, i) => ({ ...m, id: `msg-${Date.now()}-${i}` }))]);
+    setChat((prev) => [...prev, ...msgs.map((m, i) => ({ ...m, id: `msg-${Date.now()}-${i}` }))]);
+
+  const goScope = () => {
+    const dateStr = dateLabelOf(form);
+    addChat([
+      { role: 'user', text: `Vi er ${form.nameA || 'A'} & ${form.nameB || 'B'} — vi gifter os ${dateStr}${form.location ? ` nær ${form.location}` : ''}.` },
+      { role: 'ava', text: 'Dejligt! Hvor stort tænker I det — og hvad er rammen budgetmæssigt? Bare et pejlemærke, det kan altid justeres.' },
+    ]);
+    setStage('scope');
+  };
 
   const goDescribe = () => {
-    const gStr = form.guests ? `~${form.guests} gæster` : 'et selskab';
-    const locStr = form.location ? `nær ${form.location}` : '';
-    const dateStr = fmtDate(form.date);
+    const guests = GUEST_BANDS.find((b) => b.key === form.guestBand);
+    const budget = BUDGET_BANDS_DA.find((b) => b.key === form.budgetBand);
     addChat([
-      { role: 'user', text: `Vi er ${form.nameA || 'A'} & ${form.nameB || 'B'}${gStr ? ` — ${gStr}` : ''}${locStr ? ` ${locStr}` : ''}${dateStr ? `. Dato: ${dateStr}.` : '.'}` },
-      { role: 'ava', text: `${form.guests || '...'} gæster ${locStr} — godt udgangspunkt. Nu til det sjove: hvad drømmer I om? Stil, stemning, et enkelt billede i ord.` },
+      { role: 'user', text: `${guests ? GUEST_LABELS_DA[guests.key] + ' gæster' : 'Et selskab'}${budget && budget.amount != null ? `, ${budget.label.toLowerCase()} budget` : ''}.` },
+      { role: 'ava', text: 'Godt udgangspunkt. Nu til det sjove: hvad drømmer I om? Vælg de stemninger der rammer jer — og beskriv gerne med egne ord.' },
     ]);
     setStage('describe');
   };
 
   const goPartner = () => {
+    const picked = form.vibes.slice(0, 3).join(', ');
     const raw = form.description.trim();
-    const excerpt = raw ? (raw.length > 110 ? raw.slice(0, 110) + '…' : raw) : null;
+    const excerpt = raw ? (raw.length > 90 ? raw.slice(0, 90) + '…' : raw) : null;
     addChat([
-      { role: 'user', text: excerpt ? `"${excerpt}"` : 'Vi springer over for nu — tilføjer stil-beskrivelse senere.' },
-      { role: 'ava', text: excerpt
-        ? 'Smuk beskrivelse — jeg noterer det til jeres leverandør-briefs og hjemmeside. Planlægger I det to, eller er du alene om det?'
-        : 'Ingen stress — I kan altid tilføje det fra moodboard-siden. Er I to om planlægningen?' },
+      { role: 'user', text: [picked && `Stil: ${picked}`, excerpt && `"${excerpt}"`].filter(Boolean).join(' · ') || 'Vi finder stilen undervejs.' },
+      { role: 'ava', text: 'Smukt — jeg noterer det til jeres leverandør-briefs og hjemmeside. Planlægger I det to?' },
     ]);
     setStage('partner');
   };
@@ -89,8 +190,7 @@ export default function Onboarding({ onEnter }: { onEnter: (form: FormState, s?:
     setStage('aha');
   };
 
-  /* Aha: full-screen single column — straight into the app, no paywall.
-     Payment happens at the send moment inside the app. */
+  /* Aha: full-screen single column — straight into the app, no paywall. */
   if (stage === 'aha') {
     return (
       <div className="min-h-screen bg-canvas">
@@ -104,13 +204,9 @@ export default function Onboarding({ onEnter }: { onEnter: (form: FormState, s?:
   /* Chat stages: split layout */
   return (
     <div className="min-h-screen bg-canvas grid lg:grid-cols-[1fr_480px]">
-
-      {/* ── Left: persistent chat thread ──────────────────────────────── */}
       <ChatPanel chat={chat} />
 
-      {/* ── Right: animated form ──────────────────────────────────────── */}
       <div className="rule-t lg:rule-t-0 lg:rule-l flex flex-col min-h-screen">
-        {/* Progress */}
         <div className="px-8 pt-8 pb-0">
           <ProgressBar stage={stage} />
         </div>
@@ -124,19 +220,16 @@ export default function Onboarding({ onEnter }: { onEnter: (form: FormState, s?:
             className="flex flex-1 flex-col px-8 pb-10">
 
             {stage === 'basics' && (
-              <BasicsForm form={form} set={set}
-                onBack={undefined}
-                onNext={goDescribe} />
+              <BasicsForm form={form} set={set} setField={setField} onNext={goScope} />
+            )}
+            {stage === 'scope' && (
+              <ScopeForm form={form} setField={setField} onBack={() => setStage('basics')} onNext={goDescribe} />
             )}
             {stage === 'describe' && (
-              <DescribeForm form={form} set={set}
-                onBack={() => setStage('basics')}
-                onNext={goPartner} />
+              <DescribeForm form={form} set={set} toggleVibe={toggleVibe} onBack={() => setStage('scope')} onNext={goPartner} />
             )}
             {stage === 'partner' && (
-              <PartnerForm form={form} set={set}
-                onBack={() => setStage('describe')}
-                onNext={goAha} />
+              <PartnerForm form={form} set={set} onBack={() => setStage('describe')} onNext={goAha} />
             )}
 
           </motion.div>
@@ -149,19 +242,14 @@ export default function Onboarding({ onEnter }: { onEnter: (form: FormState, s?:
 /* ── Left panel: growing chat thread ────────────────────────────────── */
 function ChatPanel({ chat }: { chat: ChatMsg[] }) {
   const endRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-  }, [chat]);
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }); }, [chat]);
 
   return (
     <div className="hidden lg:flex flex-col bg-shell min-h-screen">
-      {/* Logo */}
       <div className="px-10 py-10 shrink-0">
         <span className="text-[1.4rem] lowercase text-ink" style={{ fontFamily: 'var(--font-logo)', fontWeight: 500, letterSpacing: '0.02em' }}>kalas</span>
       </div>
 
-      {/* Thread */}
       <div className="flex-1 overflow-y-auto px-10 pb-10 space-y-4 hide-scrollbar">
         <AnimatePresence initial={false}>
           {chat.map((msg) => (
@@ -191,7 +279,6 @@ function ChatPanel({ chat }: { chat: ChatMsg[] }) {
         <div ref={endRef} />
       </div>
 
-      {/* Bottom brand whisper */}
       <div className="px-10 py-8 shrink-0">
         <p className="font-serif text-[0.85rem] italic text-muted">
           Planlagt med ro — af Ava, godkendt af jer.
@@ -208,21 +295,18 @@ function ProgressBar({ stage }: { stage: Stage }) {
   return (
     <div className="flex items-center gap-3 mb-8">
       <div className="flex-1 h-1 bg-shell rounded-full overflow-hidden">
-        <motion.div
-          className="h-full rounded-full bg-ink"
+        <motion.div className="h-full rounded-full bg-ink"
           animate={{ width: `${(step / TOTAL) * 100}%` }}
-          transition={{ duration: 0.4, ease: 'easeOut' }}
-        />
+          transition={{ duration: 0.4, ease: 'easeOut' }} />
       </div>
       <span className="text-[0.72rem] font-medium text-muted shrink-0">{step} / {TOTAL}</span>
     </div>
   );
 }
 
-/* ── Shared nav buttons ──────────────────────────────────────────────── */
+/* ── Shared bits ─────────────────────────────────────────────────────── */
 function NavRow({ onBack, onNext, nextLabel = 'Næste', nextDisabled }: {
-  onBack?: () => void; onNext?: () => void;
-  nextLabel?: string; nextDisabled?: boolean;
+  onBack?: () => void; onNext?: () => void; nextLabel?: string; nextDisabled?: boolean;
 }) {
   return (
     <div className="mt-10 flex gap-3">
@@ -234,12 +318,8 @@ function NavRow({ onBack, onNext, nextLabel = 'Næste', nextDisabled }: {
       )}
       {onNext && (
         <button onClick={onNext} disabled={nextDisabled}
-          className={cn(
-            'flex flex-1 items-center justify-center gap-2 rounded-2xl py-3.5 text-[0.9rem] font-medium transition-colors cursor-pointer',
-            nextDisabled
-              ? 'bg-shell text-muted cursor-not-allowed'
-              : 'bg-ink text-canvas hover:bg-ink/90',
-          )}>
+          className={cn('flex flex-1 items-center justify-center gap-2 rounded-2xl py-3.5 text-[0.9rem] font-medium transition-colors cursor-pointer',
+            nextDisabled ? 'bg-shell text-muted cursor-not-allowed' : 'bg-ink text-canvas hover:bg-ink/90')}>
           {nextLabel} {!nextDisabled && <ArrowRight size={15} />}
         </button>
       )}
@@ -247,7 +327,6 @@ function NavRow({ onBack, onNext, nextLabel = 'Næste', nextDisabled }: {
   );
 }
 
-/* ── Field wrapper ───────────────────────────────────────────────────── */
 function Field({ label, children, hint }: { label: string; children: React.ReactNode; hint?: string }) {
   return (
     <label className="block">
@@ -258,14 +337,26 @@ function Field({ label, children, hint }: { label: string; children: React.React
   );
 }
 
+function Chip({ selected, onClick, children }: { selected: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button type="button" onClick={onClick}
+      className={cn('rounded-full border px-4 py-2 text-[0.85rem] transition-colors cursor-pointer',
+        selected
+          ? 'border-ink bg-sage-tint text-ink font-medium'
+          : 'border-[var(--color-line-strong)] text-ink-soft hover:bg-shell')}>
+      {children}
+    </button>
+  );
+}
+
 /* ══════════════════════════════════════════════════════════════════════
-   LOGIN
+   STAGE 1 — BASICS (names · location · date chips)
 ══════════════════════════════════════════════════════════════════════ */
-/* ══════════════════════════════════════════════════════════════════════
-   BASICS FORM
-══════════════════════════════════════════════════════════════════════ */
-function BasicsForm({ form, set, onBack, onNext }: { form: FormState; set: any; onBack?: () => void; onNext: () => void }) {
-  const ready = form.nameA.trim() && form.nameB.trim() && form.location.trim() && form.date && form.guests.trim();
+function BasicsForm({ form, set, setField, onNext }: {
+  form: FormState; set: any; setField: <K extends keyof FormState>(k: K, v: FormState[K]) => void; onNext: () => void;
+}) {
+  const dateReady = form.dateChoice === 'exact' ? Boolean(form.exactDate) : Boolean(form.dateChoice);
+  const ready = form.nameA.trim() && form.nameB.trim() && form.location.trim() && dateReady;
   return (
     <div className="flex flex-col flex-1">
       <div className="mt-2">
@@ -285,65 +376,119 @@ function BasicsForm({ form, set, onBack, onNext }: { form: FormState; set: any; 
           </Field>
         </div>
 
-        <Field label="Bryllupsdato">
-          <input type="date" value={form.date} onChange={set('date')} className={inputCls} />
-        </Field>
-
         <Field label="Lokation" hint="Hjemland eller udland — skriv hvad I drømmer om.">
           <input value={form.location} onChange={set('location')}
-            placeholder="f.eks. nær København · Toscana · Sydfrankrig"
-            className={inputCls} />
+            placeholder="f.eks. nær København · Toscana · Sydfrankrig" className={inputCls} />
         </Field>
 
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Gæster">
-            <input type="number" min="1" value={form.guests} onChange={set('guests')}
-              placeholder="120" className={inputCls} />
-          </Field>
-          <Field label="Budget (kr)">
-            <input value={form.budget} onChange={set('budget')}
-              placeholder="250.000" className={inputCls} />
-          </Field>
-        </div>
+        <Field label="Hvornår?" hint="En sæson er fint — I behøver ikke en præcis dato endnu.">
+          <div className="flex flex-wrap gap-2">
+            {DATE_CHIPS.map((c) => (
+              <Chip key={c.key} selected={form.dateChoice === c.key}
+                onClick={() => setField('dateChoice', c.key)}>{c.label}</Chip>
+            ))}
+            <Chip selected={form.dateChoice === 'exact'} onClick={() => setField('dateChoice', 'exact')}>Præcis dato</Chip>
+            <Chip selected={form.dateChoice === 'undecided'} onClick={() => setField('dateChoice', 'undecided')}>Ved ikke endnu</Chip>
+          </div>
+          <AnimatePresence>
+            {form.dateChoice === 'exact' && (
+              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden">
+                <input type="date" value={form.exactDate} onChange={set('exactDate')} className={cn(inputCls, 'mt-3')} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </Field>
       </div>
 
-      <NavRow onBack={onBack} onNext={onNext} nextLabel="Det lyder godt" nextDisabled={!ready} />
+      <NavRow onNext={onNext} nextLabel="Det lyder godt" nextDisabled={!ready} />
     </div>
   );
 }
 
 /* ══════════════════════════════════════════════════════════════════════
-   DESCRIBE FORM
+   STAGE 2 — SCOPE (guest band · budget band)
+══════════════════════════════════════════════════════════════════════ */
+function ScopeForm({ form, setField, onBack, onNext }: {
+  form: FormState; setField: <K extends keyof FormState>(k: K, v: FormState[K]) => void; onBack: () => void; onNext: () => void;
+}) {
+  const ready = Boolean(form.guestBand);
+  return (
+    <div className="flex flex-col flex-1">
+      <div className="mt-2">
+        <h2 className="display text-[clamp(1.8rem,4vw,2.6rem)] text-ink leading-tight">Hvor stort <span className="italic">tænker I?</span></h2>
+        <p className="mt-2 text-[0.88rem] text-ink-soft">Bare et pejlemærke — Ava bruger det til at forme venues, budget og tidslinje.</p>
+      </div>
+
+      <div className="mt-8 flex-1 space-y-7">
+        <Field label="Antal gæster">
+          <div className="flex flex-wrap gap-2">
+            {GUEST_BANDS.map((b) => (
+              <Chip key={b.key} selected={form.guestBand === b.key} onClick={() => setField('guestBand', b.key)}>
+                {GUEST_LABELS_DA[b.key] ?? b.label}
+              </Chip>
+            ))}
+          </div>
+        </Field>
+
+        <Field label="Budget" hint="Valgfrit — hjælper Ava med at fordele pengene fornuftigt.">
+          <div className="flex flex-wrap gap-2">
+            {BUDGET_BANDS_DA.map((b) => (
+              <Chip key={b.key} selected={form.budgetBand === b.key} onClick={() => setField('budgetBand', b.key)}>
+                <span className="mr-1">{b.emoji}</span>{b.label}
+              </Chip>
+            ))}
+          </div>
+        </Field>
+      </div>
+
+      <NavRow onBack={onBack} onNext={onNext} nextLabel="Videre" nextDisabled={!ready} />
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   STAGE 3 — DESCRIBE (vibe chips · free description)
 ══════════════════════════════════════════════════════════════════════ */
 const MAX_DESC = 250;
-function DescribeForm({ form, set, onBack, onNext }: { form: FormState; set: any; onBack: () => void; onNext: () => void }) {
+function DescribeForm({ form, set, toggleVibe, onBack, onNext }: {
+  form: FormState; set: any; toggleVibe: (label: string) => void; onBack: () => void; onNext: () => void;
+}) {
   const len = form.description.length;
   return (
     <div className="flex flex-col flex-1">
       <div className="mt-2">
         <h2 className="display text-[clamp(1.8rem,4vw,2.6rem)] text-ink leading-tight">Jeres drømmebyllup</h2>
         <p className="mt-2 text-[0.88rem] text-ink-soft">
-          Beskriv det med egne ord. Ava bruger dette til leverandør-briefs og til at forme jeres stil.
+          Vælg de stemninger der rammer jer — og beskriv gerne med egne ord. Ava bruger det til briefs og stil.
         </p>
       </div>
 
-      <div className="mt-8 flex-1">
-        <div className="relative">
-          <textarea
-            value={form.description}
-            onChange={(e) => { if (e.target.value.length <= MAX_DESC) set('description')(e); }}
-            placeholder="Vi drømmer om et bryllup i en gammel avlsgård med lange borde, levende lys og en varm, afslappet stemning…"
-            rows={8}
-            className={cn(inputCls, 'resize-none leading-relaxed')}
-          />
-          <span className={cn('absolute bottom-3 right-4 text-[0.7rem]',
-            len >= MAX_DESC ? 'text-clay' : 'text-muted')}>
-            {len}/{MAX_DESC}
-          </span>
-        </div>
-        <p className="mt-3 text-[0.78rem] text-muted leading-relaxed">
-          Ingen inspiration endnu? Spring over — I kan bygge moodboard bagefter.
-        </p>
+      <div className="mt-8 flex-1 space-y-6">
+        <Field label="Stemning" hint="Vælg gerne flere.">
+          <div className="flex flex-wrap gap-2">
+            {VIBE_OPTIONS.map((v) => (
+              <Chip key={v.key} selected={form.vibes.includes(v.label)} onClick={() => toggleVibe(v.label)}>
+                <span className="mr-1">{v.emoji}</span>{v.label}
+              </Chip>
+            ))}
+          </div>
+        </Field>
+
+        <Field label="Med egne ord">
+          <div className="relative">
+            <textarea
+              value={form.description}
+              onChange={(e) => { if (e.target.value.length <= MAX_DESC) set('description')(e); }}
+              placeholder="Vi drømmer om et bryllup i en gammel avlsgård med lange borde, levende lys og en varm, afslappet stemning…"
+              rows={6}
+              className={cn(inputCls, 'resize-none leading-relaxed')}
+            />
+            <span className={cn('absolute bottom-3 right-4 text-[0.7rem]', len >= MAX_DESC ? 'text-clay' : 'text-muted')}>
+              {len}/{MAX_DESC}
+            </span>
+          </div>
+        </Field>
       </div>
 
       <NavRow onBack={onBack} onNext={onNext} nextLabel="Videre" />
@@ -352,7 +497,7 @@ function DescribeForm({ form, set, onBack, onNext }: { form: FormState; set: any
 }
 
 /* ══════════════════════════════════════════════════════════════════════
-   PARTNER FORM
+   STAGE 4 — PARTNER
 ══════════════════════════════════════════════════════════════════════ */
 function PartnerForm({ form, set, onBack, onNext }: { form: FormState; set: any; onBack: () => void; onNext: () => void }) {
   const [sent, setSent] = useState(false);
@@ -361,9 +506,7 @@ function PartnerForm({ form, set, onBack, onNext }: { form: FormState; set: any;
   return (
     <div className="flex flex-col flex-1">
       <div className="mt-2">
-        <h2 className="display text-[clamp(1.8rem,4vw,2.6rem)] text-ink leading-tight">
-          Giv {nameB} adgang
-        </h2>
+        <h2 className="display text-[clamp(1.8rem,4vw,2.6rem)] text-ink leading-tight">Giv {nameB} adgang</h2>
         <p className="mt-2 text-[0.88rem] text-ink-soft">
           I deler samme plan — ingen duplikerede lister eller beskedkopiering.
         </p>
@@ -373,8 +516,7 @@ function PartnerForm({ form, set, onBack, onNext }: { form: FormState; set: any;
         <Field label={`${nameB}s e-mail`}>
           <div className="flex gap-2">
             <input type="email" value={form.partnerEmail} onChange={set('partnerEmail')}
-              placeholder="partner@email.dk"
-              className={cn(inputCls, 'flex-1')} disabled={sent} />
+              placeholder="partner@email.dk" className={cn(inputCls, 'flex-1')} disabled={sent} />
             <button onClick={() => form.partnerEmail.includes('@') && setSent(true)}
               disabled={sent || !form.partnerEmail.includes('@')}
               className={cn('rounded-2xl px-5 py-3.5 text-[0.88rem] font-medium shrink-0 transition-colors cursor-pointer',
@@ -388,8 +530,7 @@ function PartnerForm({ form, set, onBack, onNext }: { form: FormState; set: any;
 
         <AnimatePresence>
           {sent && (
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-              className="rounded-2xl bg-sage-tint p-4">
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl bg-sage-tint p-4">
               <p className="text-[0.88rem] text-ink leading-relaxed">
                 Invitation sendt til <strong>{form.partnerEmail}</strong>. {nameB} får et link til at oprette adgang.
               </p>
@@ -421,10 +562,8 @@ function AhaStage({ form, onUnlock }: { form: FormState; onUnlock: () => void })
   const nameA = form.nameA || couple.a;
   const nameB = form.nameB || couple.b;
   const location = form.location || 'Sjælland';
-  const guests = form.guests || String(couple.guests);
-  const dateLabel = form.date
-    ? new Date(form.date).toLocaleDateString('da-DK', { day: 'numeric', month: 'long', year: 'numeric' })
-    : couple.dateLabel;
+  const guests = String(guestCountOf(form));
+  const dateLabel = dateLabelOf(form);
 
   return (
     <motion.div
@@ -432,14 +571,11 @@ function AhaStage({ form, onUnlock }: { form: FormState; onUnlock: () => void })
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
       className="mx-auto max-w-2xl px-6 py-12 sm:py-16"
     >
-      {/* Ava kicker */}
       <div className="flex items-center gap-3 mb-8">
         <div className="h-9 w-9 rounded-full bg-ink flex items-center justify-center shrink-0">
           <span className="font-serif text-[1.1rem] leading-none text-canvas">K</span>
         </div>
-        <div>
-          <p className="text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-muted">Ava · Poderede imens I svarede</p>
-        </div>
+        <p className="text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-muted">Ava · Arbejdede imens I svarede</p>
       </div>
 
       <h1 className="display text-[clamp(2rem,5vw,3.2rem)] text-ink leading-tight">
@@ -449,15 +585,9 @@ function AhaStage({ form, onUnlock }: { form: FormState; onUnlock: () => void })
         Baseret på {guests} gæster nær {location} og jeres stil. Ét klik for at se det hele.
       </p>
 
-      {/* 3 prepared items */}
       <div className="mt-10 space-y-3">
-
-        {/* 1 — Timeline */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-          className="rule rounded-2xl bg-card px-5 py-4 flex items-center gap-4"
-        >
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+          className="rule rounded-2xl bg-card px-5 py-4 flex items-center gap-4">
           <div className="h-10 w-10 rounded-full bg-sage-tint flex items-center justify-center shrink-0">
             <ListChecks size={17} className="text-ink" />
           </div>
@@ -468,12 +598,8 @@ function AhaStage({ form, onUnlock }: { form: FormState; onUnlock: () => void })
           <Check size={15} className="text-sage shrink-0" />
         </motion.div>
 
-        {/* 2 — Venues */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25 }}
-          className="rule rounded-2xl bg-card px-5 py-4 flex items-center gap-4"
-        >
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
+          className="rule rounded-2xl bg-card px-5 py-4 flex items-center gap-4">
           <div className="h-10 w-10 rounded-full bg-sage-tint flex items-center justify-center shrink-0">
             <MapPin size={17} className="text-ink" />
           </div>
@@ -484,13 +610,8 @@ function AhaStage({ form, onUnlock }: { form: FormState; onUnlock: () => void })
           <Check size={15} className="text-sage shrink-0" />
         </motion.div>
 
-        {/* 3 — Email draft — the hero, partially locked */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35 }}
-          className="rule rounded-2xl bg-card overflow-hidden"
-        >
-          {/* Email header */}
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
+          className="rule rounded-2xl bg-card overflow-hidden">
           <div className="flex items-center justify-between px-5 py-3 rule-b">
             <div className="flex items-center gap-2">
               <Sparkles size={13} className="text-muted" />
@@ -499,7 +620,6 @@ function AhaStage({ form, onUnlock }: { form: FormState; onUnlock: () => void })
             <span className="rounded-full bg-sage px-2.5 py-0.5 text-[0.58rem] font-semibold uppercase tracking-[0.1em] text-ink">Klar til send</span>
           </div>
 
-          {/* Email meta */}
           <div className="px-5 py-3 rule-b space-y-2">
             <div className="flex items-baseline gap-3">
               <span className="w-10 shrink-0 text-[0.64rem] font-semibold uppercase tracking-[0.14em] text-muted">Til</span>
@@ -511,28 +631,22 @@ function AhaStage({ form, onUnlock }: { form: FormState; onUnlock: () => void })
             </div>
           </div>
 
-          {/* Email body — fades out into lock */}
           <div className="relative px-5 py-4 text-[0.84rem] text-ink-soft leading-relaxed space-y-3">
             <p>Kære Sonnerupgaard Gods,</p>
             <p>
-              Vi er {nameA} & {nameB} og planlægger vores bryllup den{' '}
+              Vi er {nameA} & {nameB} og planlægger vores bryllup{' '}
               <span className="text-ink font-medium">{dateLabel}</span>. Vi er{' '}
               <span className="text-ink font-medium">{guests} gæster</span> og søger en venue
               der afspejler vores stil og stemning.
             </p>
             <p className="opacity-40">Vi er interesserede i jeres weekendpakke og vil gerne...</p>
-
-            {/* Fade-to-lock overlay */}
             <div className="absolute bottom-0 inset-x-0 h-20 bg-gradient-to-t from-card to-transparent" />
           </div>
 
-          {/* Enter CTA */}
           <div className="px-5 pb-5 pt-1">
-            <button
-              onClick={onUnlock}
+            <button onClick={onUnlock}
               className="group w-full flex items-center justify-between rounded-2xl px-5 py-4 text-canvas transition-all cursor-pointer hover:opacity-90"
-              style={{ background: 'var(--color-terracotta)' }}
-            >
+              style={{ background: 'var(--color-terracotta)' }}>
               <div className="text-left">
                 <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] opacity-75">Gå ind i Kalas</p>
                 <p className="font-serif text-[1.1rem] leading-snug mt-0.5">Se hvad Ava har forberedt</p>
@@ -549,4 +663,3 @@ function AhaStage({ form, onUnlock }: { form: FormState; onUnlock: () => void })
     </motion.div>
   );
 }
-
