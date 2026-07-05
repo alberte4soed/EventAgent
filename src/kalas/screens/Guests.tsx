@@ -1,11 +1,13 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Plus, Upload, Utensils, Send, Users, Clock, CheckCheck, ChevronRight, Trash2, Search, X, Check } from 'lucide-react';
-import { guests, rsvpStats, type Guest } from '../data';
-import { Eyebrow, Pill, Chip, PreviewNote, cn } from '../ui';
+import { Eyebrow, Pill, Chip, cn } from '../ui';
 import AnimateNumber from '../AnimateNumber';
 import OnboardingHint from '../OnboardingHint';
 import { useWedding } from '../useWedding';
+import type { GuestRow as GuestRecord, RsvpStatus } from '@/lib/db/types';
+
+const RSVP_CYCLE: Record<RsvpStatus, RsvpStatus> = { afventer: 'ja', ja: 'nej', nej: 'afventer' };
 
 type Tab = 'gæsteliste' | 'beskeder';
 type Filter = 'alle' | 'ja' | 'afventer' | 'afbud';
@@ -31,14 +33,21 @@ function makeTemplates(a: string, b: string, dateLabel: string) {
 }
 
 export default function Guests() {
+  const { couple, guests: guestList, addGuest: addGuestRow, updateGuest, deleteGuest } = useWedding();
   const [tab, setTab] = useState<Tab>('gæsteliste');
   const [filter, setFilter] = useState<Filter>('alle');
-  const [guestList, setGuestList] = useState<Guest[]>(guests);
   const [query, setQuery] = useState('');
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState('');
-  const [newSide, setNewSide] = useState<Guest['side']>('Fælles');
+  const [newSide, setNewSide] = useState('Fælles');
   const addInputRef = useRef<HTMLInputElement>(null);
+
+  const rsvpStats = useMemo(() => ({
+    invited: guestList.length,
+    ja: guestList.filter((g) => g.rsvp === 'ja').length,
+    afventer: guestList.filter((g) => g.rsvp === 'afventer').length,
+    nej: guestList.filter((g) => g.rsvp === 'nej').length,
+  }), [guestList]);
 
   const rsvpFilter = filter === 'afbud' ? 'nej' : filter;
   const list = guestList
@@ -50,17 +59,18 @@ export default function Guests() {
   const addGuest = () => {
     const name = newName.trim();
     if (!name) { setAdding(false); return; }
-    setGuestList((prev) => [{ id: `g_${Date.now()}`, name, side: newSide, rsvp: 'afventer' }, ...prev]);
+    void addGuestRow({ name, side: newSide });
     setNewName('');
     setAdding(false);
   };
 
-  const removeGuest = (id: string) =>
-    setGuestList((prev) => prev.filter((g) => g.id !== id));
+  const removeGuest = (id: string) => void deleteGuest(id);
+  const cycleRsvp = (g: GuestRecord) => void updateGuest(g.id, { rsvp: RSVP_CYCLE[g.rsvp] });
+
+  const sides = ['Fælles', couple.a || 'Partner 1', couple.b || 'Partner 2'].filter(Boolean);
 
   return (
     <div className="px-6 py-8 sm:px-10 lg:px-16 lg:py-12">
-      <PreviewNote />
       {/* Header */}
       <div className="flex items-end justify-between gap-6">
         <div>
@@ -140,7 +150,7 @@ export default function Guests() {
                       placeholder="Gæstens navn…" aria-label="Gæstens navn"
                       className="flex-1 min-w-[160px] bg-transparent font-serif text-[1.05rem] text-ink placeholder:text-muted border-b border-[var(--color-line)] pb-1 focus:outline-none focus:border-ink" />
                     <div className="flex gap-1.5">
-                      {(['Emma', 'Frederik', 'Fælles'] as const).map((s) => (
+                      {sides.map((s) => (
                         <button key={s} onClick={() => setNewSide(s)}
                           className={cn('rounded-full px-3 py-1.5 text-[0.72rem] transition-colors cursor-pointer',
                             newSide === s ? 'bg-ink text-canvas' : 'rule text-ink-soft hover:bg-shell')}>
@@ -205,7 +215,7 @@ export default function Guests() {
               <span className="text-[0.62rem] font-semibold tracking-[0.2em] uppercase text-muted">—</span>
             </div>
             <div className="divide-y divide-[var(--color-line)]">
-              {list.map((g, i) => <GuestRow key={g.id} g={g} i={i} onRemove={() => removeGuest(g.id)} />)}
+              {list.map((g, i) => <GuestRow key={g.id} g={g} i={i} onRemove={() => removeGuest(g.id)} onCycle={() => cycleRsvp(g)} />)}
             </div>
             {list.length === 0 && (
               <p className="py-10 text-center font-serif text-[1.1rem] italic text-muted">
@@ -225,7 +235,7 @@ export default function Guests() {
   );
 }
 
-function GuestRow({ g, i, onRemove }: { g: Guest; i: number; onRemove: () => void }) {
+function GuestRow({ g, i, onRemove, onCycle }: { g: GuestRecord; i: number; onRemove: () => void; onCycle: () => void }) {
   const isAfbud = g.rsvp === 'nej';
   const rsvpLabel = isAfbud ? 'afbud' : g.rsvp;
   const tone = g.rsvp === 'ja' ? 'success' : g.rsvp === 'afventer' ? 'clay' : 'neutral';
@@ -244,13 +254,14 @@ function GuestRow({ g, i, onRemove }: { g: Guest; i: number; onRemove: () => voi
         <div className="text-[0.76rem] text-muted">{g.side}</div>
       </div>
 
-      <div>
+      <button onClick={onCycle} aria-label={`Skift RSVP for ${g.name}`}
+        className="text-left cursor-pointer" title="Klik for at skifte svar">
         {isAfbud ? (
           <span className="text-[0.82rem] text-muted line-through">{rsvpLabel}</span>
         ) : (
           <Chip tone={tone}>{rsvpLabel}</Chip>
         )}
-      </div>
+      </button>
 
       <div>
         {g.meal ? (

@@ -258,3 +258,74 @@ export interface GoogleTokensRow {
   scopes: string[];
   updated_at: string;
 }
+
+// ── Planning tables (migration 0007) ────────────────────────────────────
+
+export interface BudgetItemRow {
+  id: string;
+  event_id: string;
+  user_id: string;
+  category: string;
+  label: string;
+  planned_amount: number;
+  paid_amount: number;
+  sort: number;
+  created_at: string;
+}
+
+export type RsvpStatus = "afventer" | "ja" | "nej";
+
+export interface GuestRow {
+  id: string;
+  event_id: string;
+  user_id: string;
+  name: string;
+  side: string;
+  email: string | null;
+  phone: string | null;
+  rsvp: RsvpStatus;
+  meal: string | null;
+  plus_one: boolean;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface TimelineTaskRow {
+  id: string;
+  event_id: string;
+  user_id: string;
+  title: string;
+  due_date: string | null;
+  done: boolean;
+  category: string | null;
+  sort: number;
+  created_at: string;
+}
+
+export interface MoodboardItemRow {
+  id: string;
+  event_id: string;
+  user_id: string;
+  image_key: string | null;
+  image_url: string | null;
+  note: string | null;
+  created_at: string;
+}
+
+export interface WeddingSiteRow {
+  id: string;
+  event_id: string;
+  user_id: string;
+  config: Record<string, unknown>;
+  domain: string | null;
+  published: boolean;
+  updated_at: string;
+}
+
+export interface SeatingPlanRow {
+  id: string;
+  event_id: string;
+  user_id: string;
+  data: Record<string, unknown>;
+  updated_at: string;
+}

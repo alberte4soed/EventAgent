@@ -1,8 +1,9 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Plus, X, Minus, Check, Download, Share2, ChevronDown, Trash2 } from 'lucide-react';
-import { Eyebrow, Pill, PreviewNote, cn } from '../ui';
+import { Eyebrow, Pill, cn } from '../ui';
 import OnboardingHint from '../OnboardingHint';
+import { useWedding } from '../useWedding';
 
 /* ── Types ─────────────────────────────────────────────────────────── */
 type Shape = 'round' | 'rect' | 'horseshoe';
@@ -33,6 +34,15 @@ const GROUP_COLORS: Record<string, string> = {
   'Frederiks kolleger': '#5A7A5A',
   'Brudepar':           '#3A4F37',
 };
+
+// Stable colour for any group label (real guest sides fall outside the map).
+const GROUP_PALETTE = ['#6A8C5A', '#9B7040', '#4A7A9B', '#8A5A6A', '#5A7A5A', '#3A4F37', '#7A6A9B'];
+function colorFor(group: string): string {
+  if (GROUP_COLORS[group]) return GROUP_COLORS[group];
+  let h = 0;
+  for (let i = 0; i < group.length; i++) h = (h * 31 + group.charCodeAt(i)) >>> 0;
+  return GROUP_PALETTE[h % GROUP_PALETTE.length];
+}
 
 const ALL_GUESTS: Guest[] = [
   { id: 'b1',  name: 'Emma',          group: 'Brudepar' },
@@ -104,9 +114,34 @@ function tablePositions(tables: TableDef[]) {
    MAIN EXPORT
 ══════════════════════════════════════════════════════════════════════ */
 export default function Seating() {
+  const { loading, guests, seatingPlan, saveSeating } = useWedding();
   const [tables, setTables]     = useState<TableDef[]>(INIT_TABLES);
   const [positions, setPositions] = useState<Record<string, { x: number; y: number }>>({});
   const [activeId, setActiveId] = useState<string>('t1');
+
+  // Seat the real guest list; fall back to the demo roster only when the
+  // couple hasn't added anyone yet.
+  const pool: Guest[] = guests.length
+    ? guests.map((g) => ({ id: g.id, name: g.name, group: g.side || 'Gæster' }))
+    : ALL_GUESTS;
+
+  // Hydrate the saved plan once, then autosave (debounced) as it changes.
+  const readyRef = useRef(false);
+  useEffect(() => {
+    if (readyRef.current || loading) return;
+    readyRef.current = true;
+    const d = (seatingPlan?.data ?? {}) as { tables?: TableDef[]; positions?: Record<string, { x: number; y: number }>; activeId?: string };
+    if (d.tables) setTables(d.tables);
+    if (d.positions) setPositions(d.positions);
+    if (d.activeId) setActiveId(d.activeId);
+  }, [loading, seatingPlan]);
+
+  const planData = useMemo(() => ({ tables, positions, activeId }), [tables, positions, activeId]);
+  useEffect(() => {
+    if (!readyRef.current) return;
+    const t = setTimeout(() => { void saveSeating(planData); }, 800);
+    return () => clearTimeout(t);
+  }, [planData, saveSeating]);
 
   const moveTable = (id: string, x: number, y: number) =>
     setPositions((prev) => ({ ...prev, [id]: { x, y } }));
@@ -114,7 +149,7 @@ export default function Seating() {
   const [exported, setExported] = useState(false);
 
   const assignedIds = new Set(tables.flatMap((t) => t.guestIds));
-  const unassigned  = ALL_GUESTS.filter((g) => !assignedIds.has(g.id));
+  const unassigned  = pool.filter((g) => !assignedIds.has(g.id));
   const totalSeated = assignedIds.size;
   const activeTable = tables.find((t) => t.id === activeId);
 
@@ -165,9 +200,9 @@ export default function Seating() {
     setTables((prev) => {
       const next = prev.map((t) => ({ ...t, guestIds: [...t.guestIds] }));
       const seated = new Set(next.flatMap((t) => t.guestIds));
-      const guestGroup = Object.fromEntries(ALL_GUESTS.map((g) => [g.id, g.group]));
+      const guestGroup = Object.fromEntries(pool.map((g) => [g.id, g.group]));
 
-      for (const g of ALL_GUESTS) {
+      for (const g of pool) {
         if (seated.has(g.id)) continue;
         let target = next
           .filter((t) => t.guestIds.length < t.capacity)
@@ -190,17 +225,16 @@ export default function Seating() {
   };
 
   /* ── Groups of guests by group label ──────────────────────────────── */
-  const groups = Array.from(new Set(ALL_GUESTS.map((g) => g.group))).map((grp) => ({
+  const groups = Array.from(new Set(pool.map((g) => g.group))).map((grp) => ({
     name: grp,
-    color: GROUP_COLORS[grp] ?? '#888',
-    guests: ALL_GUESTS.filter((g) => g.group === grp),
+    color: colorFor(grp),
+    guests: pool.filter((g) => g.group === grp),
   }));
 
   return (
     <div className="pb-24">
       {/* ── Header ──────────────────────────────────────────────────── */}
       <div className="px-6 py-8 sm:px-10 lg:px-16 lg:py-12">
-        <PreviewNote />
         <Eyebrow>Bordplan</Eyebrow>
         <h1 className="display mt-4 text-[clamp(2.5rem,5vw,4rem)] text-ink">
           Byg jeres <span className="italic">opstilling.</span>
@@ -214,7 +248,7 @@ export default function Seating() {
         <div className="mt-6 flex flex-wrap items-center gap-3">
           <div className="rule rounded-2xl bg-card px-5 py-3">
             <p className="eyebrow">Placeret</p>
-            <p className="mt-0.5 font-serif text-[1.5rem] leading-none text-ink">{totalSeated} / {ALL_GUESTS.length}</p>
+            <p className="mt-0.5 font-serif text-[1.5rem] leading-none text-ink">{totalSeated} / {pool.length}</p>
           </div>
           <div className="rule rounded-2xl bg-card px-5 py-3">
             <p className="eyebrow">Borde</p>
@@ -246,10 +280,10 @@ export default function Seating() {
         <div className="mt-5 max-w-md">
           <div className="flex justify-between items-center mb-1.5">
             <span className="eyebrow text-[0.62rem]">Placeret</span>
-            <span className="text-[0.74rem] text-muted">{Math.round((totalSeated / ALL_GUESTS.length) * 100)}%</span>
+            <span className="text-[0.74rem] text-muted">{Math.round((totalSeated / pool.length) * 100)}%</span>
           </div>
           <div className="h-1 rounded-full bg-shell overflow-hidden">
-            <motion.div animate={{ width: `${(totalSeated / ALL_GUESTS.length) * 100}%` }}
+            <motion.div animate={{ width: `${(totalSeated / pool.length) * 100}%` }}
               transition={{ duration: 0.5, ease: 'easeOut' }} className="h-full rounded-full bg-sage" />
           </div>
         </div>
@@ -294,7 +328,7 @@ export default function Seating() {
             <TableCard
               key={t.id}
               table={t}
-              guests={ALL_GUESTS}
+              guests={pool}
               isActive={activeId === t.id}
               isExpanded={expanded === t.id}
               onSelect={() => { setActiveId(t.id); setExpanded(t.id); }}
@@ -653,7 +687,7 @@ function TableCard({
                 {tableGuests.length > 0 ? tableGuests.map((g) => (
                   <div key={g.id} className="group flex items-center gap-2.5 px-4 py-2.5">
                     <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[0.58rem] font-medium text-canvas"
-                      style={{ background: GROUP_COLORS[g.group] ?? '#888' }}>
+                      style={{ background: colorFor(g.group) }}>
                       {g.name.split(' ').map((n) => n[0]).join('').slice(0, 2)}
                     </div>
                     <span className="flex-1 text-[0.86rem] text-ink">{g.name}</span>

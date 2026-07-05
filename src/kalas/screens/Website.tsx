@@ -1,4 +1,4 @@
-import { useState, useId } from 'react';
+import { useState, useId, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Check, Globe, Smartphone, Plus, X, ChevronDown, Trash2,
@@ -6,7 +6,7 @@ import {
   Camera, Clock, BookOpen, Image, QrCode,
 } from 'lucide-react';
 import { IMAGES as IMG, moodboard, guests, TODAY } from '../data';
-import { Eyebrow, PreviewNote, cn } from '../ui';
+import { Eyebrow, cn } from '../ui';
 import OnboardingHint from '../OnboardingHint';
 import { useWedding } from '../useWedding';
 import type { Couple } from '../useWedding';
@@ -103,7 +103,7 @@ const GALLERY_KEYS: (keyof typeof IMG)[] = ['florals', 'olive', 'candles', 'arch
    MAIN EXPORT
 ══════════════════════════════════════════════════════════════════════ */
 export default function Website() {
-  const { couple } = useWedding();
+  const { couple, loading, weddingSite, saveSite } = useWedding();
   const [tab,      setTab]      = useState<WTab>('design');
 
   /* Design */
@@ -142,6 +142,60 @@ export default function Website() {
   const [showLanding, setShowLanding] = useState(false);
   const [mobileView,  setMobileView]  = useState(false);
   const [showRsvp,    setShowRsvp]    = useState(false);
+
+  // ── Persistence ──────────────────────────────────────────────────────
+  // Hydrate the whole builder from the saved config once the wedding loads,
+  // then autosave the config (debounced) as the couple edits.
+  const readyRef = useRef(false);
+  useEffect(() => {
+    if (readyRef.current || loading) return;
+    readyRef.current = true;
+    const c = (weddingSite?.config ?? {}) as Record<string, unknown>;
+    if (weddingSite && Object.keys(c).length > 0) {
+      if (typeof c.lensId === 'string') setLensId(c.lensId);
+      if (typeof c.colorId === 'string') setColorId(c.colorId);
+      if (typeof c.fontId === 'string') setFontId(c.fontId);
+      if (typeof c.layoutId === 'string') setLayoutId(c.layoutId);
+      if (Array.isArray(c.sections)) setSections(c.sections as SectionMeta[]);
+      if (typeof c.heroTagline === 'string') setHeroTagline(c.heroTagline);
+      if (typeof c.storyText === 'string') setStoryText(c.storyText);
+      if (typeof c.countdown === 'boolean') setCountdown(c.countdown);
+      if (Array.isArray(c.program)) setProgram(c.program as ProgramEvent[]);
+      if (typeof c.rsvpDeadline === 'string') setRsvpDeadline(c.rsvpDeadline);
+      if (typeof c.rsvpPlusOne === 'boolean') setRsvpPlusOne(c.rsvpPlusOne);
+      if (typeof c.rsvpMeal === 'boolean') setRsvpMeal(c.rsvpMeal);
+      if (typeof c.rsvpDietary === 'boolean') setRsvpDietary(c.rsvpDietary);
+      if (Array.isArray(c.galleryKeys)) setGalleryKeys(new Set(c.galleryKeys as (keyof typeof IMG)[]));
+      if (typeof c.transport === 'string') setTransport(c.transport);
+      if (typeof c.dresscode === 'string') setDresscode(c.dresscode);
+      if (typeof c.giftsText === 'string') setGiftsText(c.giftsText);
+      if (typeof c.giftsUrl === 'string') setGiftsUrl(c.giftsUrl);
+      if (Array.isArray(c.faq)) setFaq(c.faq as FAQItem[]);
+      if (Array.isArray(c.hotels)) setHotels(c.hotels as HotelItem[]);
+      if (typeof c.pwProtected === 'boolean') setPwProtected(c.pwProtected);
+      if (typeof c.sitePassword === 'string') setSitePassword(c.sitePassword);
+      if (typeof c.hideBranding === 'boolean') setHideBranding(c.hideBranding);
+    }
+    if (weddingSite?.domain) setDomain(weddingSite.domain);
+    if (weddingSite) setPublished(weddingSite.published);
+  }, [loading, weddingSite]);
+
+  const config = useMemo(
+    () => ({
+      lensId, colorId, fontId, layoutId, sections, heroTagline, storyText, countdown,
+      program, rsvpDeadline, rsvpPlusOne, rsvpMeal, rsvpDietary, galleryKeys: [...galleryKeys],
+      transport, dresscode, giftsText, giftsUrl, faq, hotels, pwProtected, sitePassword, hideBranding,
+    }),
+    [lensId, colorId, fontId, layoutId, sections, heroTagline, storyText, countdown, program,
+     rsvpDeadline, rsvpPlusOne, rsvpMeal, rsvpDietary, galleryKeys, transport, dresscode,
+     giftsText, giftsUrl, faq, hotels, pwProtected, sitePassword, hideBranding]
+  );
+
+  useEffect(() => {
+    if (!readyRef.current) return;
+    const t = setTimeout(() => { void saveSite({ config, domain, published }); }, 800);
+    return () => clearTimeout(t);
+  }, [config, domain, published, saveSite]);
 
   const lens   = LENSES.find((l) => l.id === lensId)    ?? LENSES[0];
   const colors = WEBSITE_COLORS.find((c) => c.id === colorId) ?? WEBSITE_COLORS[0];
@@ -206,10 +260,6 @@ export default function Website() {
             {published ? '● Live' : 'Publicér'}
           </button>
         </div>
-      </div>
-
-      <div className="px-6 pt-6 sm:px-10 lg:px-16">
-        <PreviewNote>Forhåndsvisning — jeres bryllupsside går live når denne del bliver interaktiv. Ændringer gemmes endnu ikke.</PreviewNote>
       </div>
 
       {/* ── Tab content ───────────────────────────────────────────────── */}

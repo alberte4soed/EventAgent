@@ -11,16 +11,22 @@ import { createContext, useContext, useEffect, useMemo, useState, useCallback } 
 import { createClient } from "@/lib/supabase/client";
 import { computeJourney, type JourneyStage } from "@/lib/journey";
 import type {
+  BudgetItemRow,
   EmailDraftRow,
   EmailReplyRow,
   EventRow,
+  GuestRow,
   InviteDesignRow,
   InviteOrderRow,
+  MoodboardItemRow,
   OutboundEmailRow,
   ProfileRow,
   ReplyProposalRow,
+  SeatingPlanRow,
+  TimelineTaskRow,
   VendorCategory,
   VenueRow,
+  WeddingSiteRow,
 } from "@/lib/db/types";
 
 /** Adapter shaped like the old mock `couple` so screens swap in easily. */
@@ -50,7 +56,35 @@ interface WeddingData {
   inviteOrders: InviteOrderRow[];
   inviteDesigns: InviteDesignRow[];
   journey: JourneyStage[];
+
+  // Planning tables (migration 0007) — the couple's own editable data.
+  budgetItems: BudgetItemRow[];
+  guests: GuestRow[];
+  timelineTasks: TimelineTaskRow[];
+  moodboardItems: MoodboardItemRow[];
+  weddingSite: WeddingSiteRow | null;
+  seatingPlan: SeatingPlanRow | null;
+
   refresh: () => Promise<void>;
+  updateEvent: (patch: Partial<EventRow>) => Promise<void>;
+
+  saveBudgetItem: (item: { category: string; label: string; planned_amount?: number; paid_amount?: number; sort?: number }) => Promise<void>;
+  deleteBudgetItem: (category: string) => Promise<void>;
+
+  addGuest: (guest: Partial<GuestRow> & { name: string }) => Promise<GuestRow | null>;
+  updateGuest: (id: string, patch: Partial<GuestRow>) => Promise<void>;
+  deleteGuest: (id: string) => Promise<void>;
+
+  addTask: (task: { title: string; due_date?: string | null; category?: string | null; sort?: number; done?: boolean }) => Promise<TimelineTaskRow | null>;
+  updateTask: (id: string, patch: Partial<TimelineTaskRow>) => Promise<void>;
+  deleteTask: (id: string) => Promise<void>;
+  seedTasks: (tasks: { title: string; due_date?: string | null; category?: string | null; done?: boolean; sort?: number }[]) => Promise<void>;
+
+  addMoodboardItem: (item: { image_key?: string | null; image_url?: string | null; note?: string | null }) => Promise<MoodboardItemRow | null>;
+  removeMoodboardItem: (id: string) => Promise<void>;
+
+  saveSite: (patch: { config?: Record<string, unknown>; domain?: string | null; published?: boolean }) => Promise<void>;
+  saveSeating: (data: Record<string, unknown>) => Promise<void>;
 }
 
 const FALLBACK_COUPLE: Couple = {
@@ -73,6 +107,10 @@ function upsertById<T extends { id: string }>(rows: T[], row: T): T[] {
   const next = rows.slice();
   next[i] = row;
   return next;
+}
+
+function removeById<T extends { id: string }>(rows: T[], id: string): T[] {
+  return rows.filter((x) => x.id !== id);
 }
 
 function parseBudget(text: string | null): number {
@@ -129,6 +167,13 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
   const [proposals, setProposals] = useState<ReplyProposalRow[]>([]);
   const [inviteOrders, setInviteOrders] = useState<InviteOrderRow[]>([]);
   const [inviteDesigns, setInviteDesigns] = useState<InviteDesignRow[]>([]);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [budgetItems, setBudgetItems] = useState<BudgetItemRow[]>([]);
+  const [guests, setGuests] = useState<GuestRow[]>([]);
+  const [timelineTasks, setTimelineTasks] = useState<TimelineTaskRow[]>([]);
+  const [moodboardItems, setMoodboardItems] = useState<MoodboardItemRow[]>([]);
+  const [weddingSite, setWeddingSite] = useState<WeddingSiteRow | null>(null);
+  const [seatingPlan, setSeatingPlan] = useState<SeatingPlanRow | null>(null);
 
   const load = useCallback(async () => {
     const {
@@ -139,6 +184,7 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     setEmail(user.email ?? "");
+    setUserId(user.id);
 
     const { data: profileRow } = await supabase
       .from("profiles")
@@ -166,7 +212,7 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
     setEvent(ev);
 
     if (ev) {
-      const [v, d, o, r, p, io, idz] = await Promise.all([
+      const [v, d, o, r, p, io, idz, bi, g, tt, mb, ws, sp] = await Promise.all([
         supabase.from("venues").select("*").eq("event_id", ev.id).order("created_at"),
         supabase.from("email_drafts").select("*").eq("event_id", ev.id),
         supabase.from("outbound_emails").select("*").eq("event_id", ev.id).order("created_at"),
@@ -174,6 +220,12 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
         supabase.from("reply_proposals").select("*").eq("event_id", ev.id).order("created_at"),
         supabase.from("invite_orders").select("*").eq("event_id", ev.id).order("created_at", { ascending: false }),
         supabase.from("invite_designs").select("*").eq("event_id", ev.id).order("created_at", { ascending: false }),
+        supabase.from("budget_items").select("*").eq("event_id", ev.id).order("sort"),
+        supabase.from("guests").select("*").eq("event_id", ev.id).order("created_at"),
+        supabase.from("timeline_tasks").select("*").eq("event_id", ev.id).order("sort").order("due_date"),
+        supabase.from("moodboard_items").select("*").eq("event_id", ev.id).order("created_at", { ascending: false }),
+        supabase.from("wedding_sites").select("*").eq("event_id", ev.id).maybeSingle(),
+        supabase.from("seating_plans").select("*").eq("event_id", ev.id).maybeSingle(),
       ]);
       setVenues((v.data ?? []) as VenueRow[]);
       setDrafts((d.data ?? []) as EmailDraftRow[]);
@@ -182,6 +234,12 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
       setProposals((p.data ?? []) as ReplyProposalRow[]);
       setInviteOrders((io.data ?? []) as InviteOrderRow[]);
       setInviteDesigns((idz.data ?? []) as InviteDesignRow[]);
+      setBudgetItems((bi.data ?? []) as BudgetItemRow[]);
+      setGuests((g.data ?? []) as GuestRow[]);
+      setTimelineTasks((tt.data ?? []) as TimelineTaskRow[]);
+      setMoodboardItems((mb.data ?? []) as MoodboardItemRow[]);
+      setWeddingSite((ws.data as WeddingSiteRow | null) ?? null);
+      setSeatingPlan((sp.data as SeatingPlanRow | null) ?? null);
     }
     setLoading(false);
   }, [supabase]);
@@ -189,6 +247,236 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     void load();
   }, [load]);
+
+  // ── Mutators ────────────────────────────────────────────────────────────
+  // Simple user-owned CRUD writes straight through the browser client (RLS
+  // scopes every row to auth.uid()); local state updates optimistically from
+  // the returned row, and realtime reconciles other tabs.
+  const eventId = event?.id ?? null;
+
+  const updateEvent = useCallback(
+    async (patch: Partial<EventRow>) => {
+      if (!eventId) return;
+      const { data } = await supabase.from("events").update(patch).eq("id", eventId).select().single();
+      if (data) setEvent(data as EventRow);
+    },
+    [supabase, eventId]
+  );
+
+  const saveBudgetItem = useCallback(
+    async (item: { category: string; label: string; planned_amount?: number; paid_amount?: number; sort?: number }) => {
+      if (!eventId || !userId) return;
+      const existing = budgetItems.find((b) => b.category === item.category);
+      if (existing) {
+        const { data } = await supabase
+          .from("budget_items")
+          .update({
+            label: item.label,
+            planned_amount: item.planned_amount ?? existing.planned_amount,
+            paid_amount: item.paid_amount ?? existing.paid_amount,
+            sort: item.sort ?? existing.sort,
+          })
+          .eq("id", existing.id)
+          .select()
+          .single();
+        if (data) setBudgetItems((rows) => upsertById(rows, data as BudgetItemRow));
+      } else {
+        const { data } = await supabase
+          .from("budget_items")
+          .insert({
+            event_id: eventId,
+            user_id: userId,
+            category: item.category,
+            label: item.label,
+            planned_amount: item.planned_amount ?? 0,
+            paid_amount: item.paid_amount ?? 0,
+            sort: item.sort ?? 0,
+          })
+          .select()
+          .single();
+        if (data) setBudgetItems((rows) => upsertById(rows, data as BudgetItemRow));
+      }
+    },
+    [supabase, eventId, userId, budgetItems]
+  );
+
+  const deleteBudgetItem = useCallback(
+    async (category: string) => {
+      const existing = budgetItems.find((b) => b.category === category);
+      if (!existing) return;
+      await supabase.from("budget_items").delete().eq("id", existing.id);
+      setBudgetItems((rows) => removeById(rows, existing.id));
+    },
+    [supabase, budgetItems]
+  );
+
+  const addGuest = useCallback(
+    async (guest: Partial<GuestRow> & { name: string }) => {
+      if (!eventId || !userId) return null;
+      const { data } = await supabase
+        .from("guests")
+        .insert({
+          event_id: eventId,
+          user_id: userId,
+          name: guest.name,
+          side: guest.side ?? "Fælles",
+          email: guest.email ?? null,
+          phone: guest.phone ?? null,
+          rsvp: guest.rsvp ?? "afventer",
+          meal: guest.meal ?? null,
+          plus_one: guest.plus_one ?? false,
+          notes: guest.notes ?? null,
+        })
+        .select()
+        .single();
+      if (data) setGuests((rows) => upsertById(rows, data as GuestRow));
+      return (data as GuestRow) ?? null;
+    },
+    [supabase, eventId, userId]
+  );
+
+  const updateGuest = useCallback(
+    async (id: string, patch: Partial<GuestRow>) => {
+      const { data } = await supabase.from("guests").update(patch).eq("id", id).select().single();
+      if (data) setGuests((rows) => upsertById(rows, data as GuestRow));
+    },
+    [supabase]
+  );
+
+  const deleteGuest = useCallback(
+    async (id: string) => {
+      await supabase.from("guests").delete().eq("id", id);
+      setGuests((rows) => removeById(rows, id));
+    },
+    [supabase]
+  );
+
+  const addTask = useCallback(
+    async (task: { title: string; due_date?: string | null; category?: string | null; sort?: number; done?: boolean }) => {
+      if (!eventId || !userId) return null;
+      const { data } = await supabase
+        .from("timeline_tasks")
+        .insert({
+          event_id: eventId,
+          user_id: userId,
+          title: task.title,
+          due_date: task.due_date ?? null,
+          category: task.category ?? null,
+          sort: task.sort ?? 0,
+          done: task.done ?? false,
+        })
+        .select()
+        .single();
+      if (data) setTimelineTasks((rows) => upsertById(rows, data as TimelineTaskRow));
+      return (data as TimelineTaskRow) ?? null;
+    },
+    [supabase, eventId, userId]
+  );
+
+  const updateTask = useCallback(
+    async (id: string, patch: Partial<TimelineTaskRow>) => {
+      const { data } = await supabase.from("timeline_tasks").update(patch).eq("id", id).select().single();
+      if (data) setTimelineTasks((rows) => upsertById(rows, data as TimelineTaskRow));
+    },
+    [supabase]
+  );
+
+  const deleteTask = useCallback(
+    async (id: string) => {
+      await supabase.from("timeline_tasks").delete().eq("id", id);
+      setTimelineTasks((rows) => removeById(rows, id));
+    },
+    [supabase]
+  );
+
+  const seedTasks = useCallback(
+    async (tasks: { title: string; due_date?: string | null; category?: string | null; done?: boolean; sort?: number }[]) => {
+      if (!eventId || !userId || tasks.length === 0) return;
+      const rows = tasks.map((t, i) => ({
+        event_id: eventId,
+        user_id: userId,
+        title: t.title,
+        due_date: t.due_date ?? null,
+        category: t.category ?? null,
+        done: t.done ?? false,
+        sort: t.sort ?? i,
+      }));
+      const { data } = await supabase.from("timeline_tasks").insert(rows).select();
+      if (data) setTimelineTasks((prev) => (data as TimelineTaskRow[]).reduce((acc, r) => upsertById(acc, r), prev));
+    },
+    [supabase, eventId, userId]
+  );
+
+  const addMoodboardItem = useCallback(
+    async (item: { image_key?: string | null; image_url?: string | null; note?: string | null }) => {
+      if (!eventId || !userId) return null;
+      const { data } = await supabase
+        .from("moodboard_items")
+        .insert({
+          event_id: eventId,
+          user_id: userId,
+          image_key: item.image_key ?? null,
+          image_url: item.image_url ?? null,
+          note: item.note ?? null,
+        })
+        .select()
+        .single();
+      if (data) setMoodboardItems((rows) => upsertById(rows, data as MoodboardItemRow));
+      return (data as MoodboardItemRow) ?? null;
+    },
+    [supabase, eventId, userId]
+  );
+
+  const removeMoodboardItem = useCallback(
+    async (id: string) => {
+      await supabase.from("moodboard_items").delete().eq("id", id);
+      setMoodboardItems((rows) => removeById(rows, id));
+    },
+    [supabase]
+  );
+
+  // Read the latest site via a ref so saveSite keeps a stable identity — it is
+  // called from a debounced autosave effect, and depending on `weddingSite`
+  // here would re-fire that effect on every save (an infinite save loop).
+  const weddingSiteRef = React.useRef(weddingSite);
+  weddingSiteRef.current = weddingSite;
+  const saveSite = useCallback(
+    async (patch: { config?: Record<string, unknown>; domain?: string | null; published?: boolean }) => {
+      if (!eventId || !userId) return;
+      const current = weddingSiteRef.current;
+      const row = {
+        event_id: eventId,
+        user_id: userId,
+        config: patch.config ?? current?.config ?? {},
+        domain: patch.domain !== undefined ? patch.domain : current?.domain ?? null,
+        published: patch.published !== undefined ? patch.published : current?.published ?? false,
+        updated_at: new Date().toISOString(),
+      };
+      const { data } = await supabase
+        .from("wedding_sites")
+        .upsert(row, { onConflict: "event_id" })
+        .select()
+        .single();
+      if (data) setWeddingSite(data as WeddingSiteRow);
+    },
+    [supabase, eventId, userId]
+  );
+
+  const saveSeating = useCallback(
+    async (data: Record<string, unknown>) => {
+      if (!eventId || !userId) return;
+      const { data: row } = await supabase
+        .from("seating_plans")
+        .upsert(
+          { event_id: eventId, user_id: userId, data, updated_at: new Date().toISOString() },
+          { onConflict: "event_id" }
+        )
+        .select()
+        .single();
+      if (row) setSeatingPlan(row as SeatingPlanRow);
+    },
+    [supabase, eventId, userId]
+  );
 
   // Realtime: keep the wedding fresh as the agent/cron writes rows.
   useEffect(() => {
@@ -215,6 +503,48 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
         "postgres_changes",
         { event: "*", schema: "public", table: "outbound_emails", filter: `event_id=eq.${eventId}` },
         (p) => setOutbound((rows) => upsertById(rows, p.new as OutboundEmailRow))
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "budget_items", filter: `event_id=eq.${eventId}` },
+        (p) =>
+          p.eventType === "DELETE"
+            ? setBudgetItems((rows) => removeById(rows, (p.old as { id: string }).id))
+            : setBudgetItems((rows) => upsertById(rows, p.new as BudgetItemRow))
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "guests", filter: `event_id=eq.${eventId}` },
+        (p) =>
+          p.eventType === "DELETE"
+            ? setGuests((rows) => removeById(rows, (p.old as { id: string }).id))
+            : setGuests((rows) => upsertById(rows, p.new as GuestRow))
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "timeline_tasks", filter: `event_id=eq.${eventId}` },
+        (p) =>
+          p.eventType === "DELETE"
+            ? setTimelineTasks((rows) => removeById(rows, (p.old as { id: string }).id))
+            : setTimelineTasks((rows) => upsertById(rows, p.new as TimelineTaskRow))
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "moodboard_items", filter: `event_id=eq.${eventId}` },
+        (p) =>
+          p.eventType === "DELETE"
+            ? setMoodboardItems((rows) => removeById(rows, (p.old as { id: string }).id))
+            : setMoodboardItems((rows) => upsertById(rows, p.new as MoodboardItemRow))
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "wedding_sites", filter: `event_id=eq.${eventId}` },
+        (p) => p.eventType !== "DELETE" && setWeddingSite(p.new as WeddingSiteRow)
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "seating_plans", filter: `event_id=eq.${eventId}` },
+        (p) => p.eventType !== "DELETE" && setSeatingPlan(p.new as SeatingPlanRow)
       )
       .subscribe();
     return () => {
@@ -258,9 +588,35 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
       inviteOrders,
       inviteDesigns,
       journey,
+      budgetItems,
+      guests,
+      timelineTasks,
+      moodboardItems,
+      weddingSite,
+      seatingPlan,
       refresh: load,
+      updateEvent,
+      saveBudgetItem,
+      deleteBudgetItem,
+      addGuest,
+      updateGuest,
+      deleteGuest,
+      addTask,
+      updateTask,
+      deleteTask,
+      seedTasks,
+      addMoodboardItem,
+      removeMoodboardItem,
+      saveSite,
+      saveSeating,
     }),
-    [loading, event, profile, email, venues, drafts, outbound, replies, proposals, inviteOrders, inviteDesigns, journey, load]
+    [
+      loading, event, profile, email, venues, drafts, outbound, replies, proposals,
+      inviteOrders, inviteDesigns, journey, budgetItems, guests, timelineTasks,
+      moodboardItems, weddingSite, seatingPlan, load, updateEvent, saveBudgetItem,
+      deleteBudgetItem, addGuest, updateGuest, deleteGuest, addTask, updateTask, deleteTask, seedTasks,
+      addMoodboardItem, removeMoodboardItem, saveSite, saveSeating,
+    ]
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
