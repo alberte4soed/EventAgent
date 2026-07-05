@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   Home, MessageCircle, Heart, MapPin, Building2,
   Wallet, Users, Globe, Mail, ListChecks, LayoutDashboard,
-  LayoutGrid, X, Settings,
+  LayoutGrid, X, Settings, Inbox,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { couple, daysUntil } from './data';
@@ -12,7 +12,7 @@ import { cn } from './ui';
 
 export type ScreenId =
   | 'home' | 'ava' | 'inspiration'
-  | 'venues' | 'vendors'
+  | 'venues' | 'vendors' | 'inbox'
   | 'budget' | 'guests' | 'website' | 'invites' | 'planning' | 'seating';
 
 type NavItem = { id: ScreenId; label: string; icon: LucideIcon; group: 'main' | 'plan' };
@@ -23,6 +23,7 @@ const NAV: NavItem[] = [
   { id: 'inspiration', label: 'Inspiration',   icon: Heart,         group: 'main' },
   { id: 'venues',      label: 'Venues',        icon: MapPin,        group: 'plan' },
   { id: 'vendors',     label: 'Leverandører',  icon: Building2,     group: 'plan' },
+  { id: 'inbox',       label: 'Henvendelser',  icon: Inbox,         group: 'plan' },
   { id: 'budget',      label: 'Budget',        icon: Wallet,        group: 'plan' },
   { id: 'guests',      label: 'Gæster',        icon: Users,         group: 'plan' },
   { id: 'website',     label: 'Hjemmeside',    icon: Globe,         group: 'plan' },

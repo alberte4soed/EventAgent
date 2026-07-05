@@ -12,6 +12,7 @@ import { createClient } from "@/lib/supabase/client";
 import { computeJourney, type JourneyStage } from "@/lib/journey";
 import type {
   BudgetItemRow,
+  EmailAttachmentRow,
   EmailDraftRow,
   EmailReplyRow,
   EventRow,
@@ -52,6 +53,7 @@ interface WeddingData {
   drafts: EmailDraftRow[];
   outbound: OutboundEmailRow[];
   replies: EmailReplyRow[];
+  attachments: EmailAttachmentRow[];
   proposals: ReplyProposalRow[];
   inviteOrders: InviteOrderRow[];
   inviteDesigns: InviteDesignRow[];
@@ -164,6 +166,7 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
   const [drafts, setDrafts] = useState<EmailDraftRow[]>([]);
   const [outbound, setOutbound] = useState<OutboundEmailRow[]>([]);
   const [replies, setReplies] = useState<EmailReplyRow[]>([]);
+  const [attachments, setAttachments] = useState<EmailAttachmentRow[]>([]);
   const [proposals, setProposals] = useState<ReplyProposalRow[]>([]);
   const [inviteOrders, setInviteOrders] = useState<InviteOrderRow[]>([]);
   const [inviteDesigns, setInviteDesigns] = useState<InviteDesignRow[]>([]);
@@ -212,11 +215,12 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
     setEvent(ev);
 
     if (ev) {
-      const [v, d, o, r, p, io, idz, bi, g, tt, mb, ws, sp] = await Promise.all([
+      const [v, d, o, r, at, p, io, idz, bi, g, tt, mb, ws, sp] = await Promise.all([
         supabase.from("venues").select("*").eq("event_id", ev.id).order("created_at"),
         supabase.from("email_drafts").select("*").eq("event_id", ev.id),
         supabase.from("outbound_emails").select("*").eq("event_id", ev.id).order("created_at"),
         supabase.from("email_replies").select("*").eq("event_id", ev.id).order("created_at"),
+        supabase.from("email_attachments").select("*").eq("event_id", ev.id).order("created_at"),
         supabase.from("reply_proposals").select("*").eq("event_id", ev.id).order("created_at"),
         supabase.from("invite_orders").select("*").eq("event_id", ev.id).order("created_at", { ascending: false }),
         supabase.from("invite_designs").select("*").eq("event_id", ev.id).order("created_at", { ascending: false }),
@@ -231,6 +235,7 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
       setDrafts((d.data ?? []) as EmailDraftRow[]);
       setOutbound((o.data ?? []) as OutboundEmailRow[]);
       setReplies((r.data ?? []) as EmailReplyRow[]);
+      setAttachments((at.data ?? []) as EmailAttachmentRow[]);
       setProposals((p.data ?? []) as ReplyProposalRow[]);
       setInviteOrders((io.data ?? []) as InviteOrderRow[]);
       setInviteDesigns((idz.data ?? []) as InviteDesignRow[]);
@@ -501,6 +506,11 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
       )
       .on(
         "postgres_changes",
+        { event: "*", schema: "public", table: "email_attachments", filter: `event_id=eq.${eventId}` },
+        (p) => setAttachments((rows) => upsertById(rows, p.new as EmailAttachmentRow))
+      )
+      .on(
+        "postgres_changes",
         { event: "*", schema: "public", table: "outbound_emails", filter: `event_id=eq.${eventId}` },
         (p) => setOutbound((rows) => upsertById(rows, p.new as OutboundEmailRow))
       )
@@ -584,6 +594,7 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
       drafts,
       outbound,
       replies,
+      attachments,
       proposals,
       inviteOrders,
       inviteDesigns,
@@ -611,7 +622,7 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
       saveSeating,
     }),
     [
-      loading, event, profile, email, venues, drafts, outbound, replies, proposals,
+      loading, event, profile, email, venues, drafts, outbound, replies, attachments, proposals,
       inviteOrders, inviteDesigns, journey, budgetItems, guests, timelineTasks,
       moodboardItems, weddingSite, seatingPlan, load, updateEvent, saveBudgetItem,
       deleteBudgetItem, addGuest, updateGuest, deleteGuest, addTask, updateTask, deleteTask, seedTasks,

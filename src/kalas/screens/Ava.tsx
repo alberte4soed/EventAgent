@@ -2,18 +2,19 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'motion/react';
-import { Send, Paperclip } from 'lucide-react';
+import { Send, Paperclip, MapPin, Copy, Check } from 'lucide-react';
 import { useKalas } from '../store';
 import { useWedding } from '../useWedding';
 import { cn } from '../ui';
+import type { ScreenId } from '../Shell';
 import OnboardingHint from '../OnboardingHint';
 import { createClient } from '@/lib/supabase/client';
 import { useAgentChat } from '@/lib/hooks/useAgentChat';
-import type { ChatMessageRow } from '@/lib/db/types';
+import type { ChatMessageRow, ReplyProposalRow, EmailDraftRow, VenueRow } from '@/lib/db/types';
 
 const SUGGESTIONS = ['Find venues til os', 'Hvad mangler vi at booke?', 'Skriv til fotografer'];
 
-export default function Ava() {
+export default function Ava({ onNavigate }: { onNavigate?: (s: ScreenId) => void }) {
   const { loading, event, couple } = useWedding();
 
   if (loading) {
@@ -38,10 +39,10 @@ export default function Ava() {
     );
   }
 
-  return <AvaChat key={event.id} eventId={event.id} coupleA={couple.a} />;
+  return <AvaChat key={event.id} eventId={event.id} coupleA={couple.a} onNavigate={onNavigate} />;
 }
 
-function AvaChat({ eventId, coupleA }: { eventId: string; coupleA: string }) {
+function AvaChat({ eventId, coupleA, onNavigate }: { eventId: string; coupleA: string; onNavigate?: (s: ScreenId) => void }) {
   const supabase = useMemo(() => createClient(), []);
   const { clearAvaBadge } = useKalas();
   const { refresh } = useWedding();
@@ -99,7 +100,7 @@ function AvaChat({ eventId, coupleA }: { eventId: string; coupleA: string }) {
 
       <div className="hide-scrollbar flex-1 space-y-4 overflow-y-auto py-7">
         {visible.map((m) => (
-          <Bubble key={m.id} msg={m} />
+          <Bubble key={m.id} msg={m} onNavigate={onNavigate} />
         ))}
         {agentStatus && <TypingDots label={agentStatus} />}
         <div ref={endRef} />
@@ -135,20 +136,8 @@ function AvaChat({ eventId, coupleA }: { eventId: string; coupleA: string }) {
   );
 }
 
-function payloadHint(msg: ChatMessageRow): string | null {
-  const p = msg.payload;
-  if (!p) return null;
-  if (p.kind === 'venue_batch') return `${p.venue_ids.length} venues lagt på jeres board — se dem under Venues.`;
-  if (p.kind === 'draft') return 'Et udkast er klar til godkendelse.';
-  if (p.kind === 'reply_proposal') return 'Jeg har forberedt et svar til en leverandør.';
-  if (p.kind === 'send_report') return `Sendt til ${p.sent}, ${p.skipped} sprunget over.`;
-  if (p.kind === 'invite_brief') return 'Invitationstekst er klar under Invitationer.';
-  return null;
-}
-
-function Bubble({ msg }: { msg: ChatMessageRow }) {
+function Bubble({ msg, onNavigate }: { msg: ChatMessageRow; onNavigate?: (s: ScreenId) => void }) {
   const mine = msg.role === 'user';
-  const hint = payloadHint(msg);
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}
       className={cn('flex flex-col', mine ? 'items-end' : 'items-start')}>
@@ -158,12 +147,177 @@ function Bubble({ msg }: { msg: ChatMessageRow }) {
           {msg.content}
         </div>
       )}
-      {hint && (
-        <div className="mt-2 max-w-[80%] rounded-full bg-sage-tint px-4 py-2 text-[0.78rem] text-ink">
-          {hint}
+      {msg.payload && (
+        <div className="mt-2 w-full max-w-[80%]">
+          <PayloadCard payload={msg.payload} onNavigate={onNavigate} />
         </div>
       )}
     </motion.div>
+  );
+}
+
+/* ── Interactive payload cards ───────────────────────────────────────── */
+function PayloadCard({ payload, onNavigate }: { payload: NonNullable<ChatMessageRow['payload']>; onNavigate?: (s: ScreenId) => void }) {
+  switch (payload.kind) {
+    case 'venue_batch':
+      return (
+        <ActionPill onClick={() => onNavigate?.('venues')}>
+          <MapPin size={13} /> {payload.venue_ids.length} venues lagt på jeres board — se dem
+        </ActionPill>
+      );
+    case 'reply_proposal':
+      return <ProposalCard proposalId={payload.proposal_id} onNavigate={onNavigate} />;
+    case 'draft':
+      return <DraftCard draftId={payload.draft_id} />;
+    case 'invite_brief':
+      return <InviteBriefCard wording={payload.wording} style={payload.style} onNavigate={onNavigate} />;
+    case 'send_report':
+      return (
+        <div className="rounded-full bg-sage-tint px-4 py-2 text-[0.78rem] text-ink">
+          Sendt til {payload.sent}{payload.skipped ? `, ${payload.skipped} sprunget over` : ''}{payload.failed ? `, ${payload.failed} fejlede` : ''}.
+        </div>
+      );
+    default:
+      return null;
+  }
+}
+
+function ActionPill({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
+  return (
+    <button onClick={onClick}
+      className="inline-flex items-center gap-2 rounded-full bg-sage-tint px-4 py-2 text-[0.78rem] font-medium text-ink hover:bg-sage transition-colors cursor-pointer">
+      {children}
+    </button>
+  );
+}
+
+function CardShell({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-2xl rule bg-card p-4">
+      <p className="mb-2 text-[0.64rem] font-semibold uppercase tracking-[0.14em] text-ink">{label}</p>
+      {children}
+    </div>
+  );
+}
+
+function ProposalCard({ proposalId, onNavigate }: { proposalId: string; onNavigate?: (s: ScreenId) => void }) {
+  const supabase = useMemo(() => createClient(), []);
+  const { refresh } = useWedding();
+  const [proposal, setProposal] = useState<ReplyProposalRow | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState<'sent' | 'dismissed' | null>(null);
+
+  useEffect(() => {
+    supabase.from('reply_proposals').select('*').eq('id', proposalId).maybeSingle()
+      .then(({ data }) => setProposal((data as ReplyProposalRow | null) ?? null));
+  }, [supabase, proposalId]);
+
+  if (!proposal) return null;
+  const settled = done ?? (proposal.status !== 'proposed' ? proposal.status : null);
+
+  const act = async (kind: 'send' | 'dismiss') => {
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/proposals/${proposalId}/${kind}`, { method: 'POST' });
+      if (res.ok) { setDone(kind === 'send' ? 'sent' : 'dismissed'); await refresh(); }
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <CardShell label="Foreslået svar til leverandør">
+      <p className="max-h-40 overflow-y-auto whitespace-pre-wrap rounded-xl bg-shell px-3 py-2.5 text-[0.85rem] leading-relaxed text-ink-soft">
+        {proposal.body}
+      </p>
+      {settled ? (
+        <p className="mt-2.5 text-[0.76rem] font-medium text-success">{settled === 'sent' ? 'Sendt ✓' : 'Afvist'}</p>
+      ) : (
+        <div className="mt-2.5 flex flex-wrap gap-2">
+          <button disabled={busy} onClick={() => act('send')}
+            className="rounded-full bg-ink px-4 py-2 text-[0.76rem] font-medium text-canvas hover:bg-ink/90 transition-colors cursor-pointer disabled:opacity-50">
+            {busy ? 'Sender…' : 'Godkend & send'}
+          </button>
+          <button onClick={() => onNavigate?.('inbox')}
+            className="rounded-full rule px-4 py-2 text-[0.76rem] text-ink-soft hover:bg-shell transition-colors cursor-pointer">
+            Se i indbakke
+          </button>
+          <button disabled={busy} onClick={() => act('dismiss')}
+            className="rounded-full px-3 py-2 text-[0.76rem] text-muted hover:text-ink transition-colors cursor-pointer disabled:opacity-50">
+            Afvis
+          </button>
+        </div>
+      )}
+    </CardShell>
+  );
+}
+
+function DraftCard({ draftId }: { draftId: string }) {
+  const supabase = useMemo(() => createClient(), []);
+  const { venues, refresh } = useWedding();
+  const [draft, setDraft] = useState<EmailDraftRow | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  useEffect(() => {
+    supabase.from('email_drafts').select('*').eq('id', draftId).maybeSingle()
+      .then(({ data }) => setDraft((data as EmailDraftRow | null) ?? null));
+  }, [supabase, draftId]);
+
+  if (!draft) return null;
+  const recipients = venues.filter((v: VenueRow) => v.swipe_status === 'liked' && v.category === draft.category);
+
+  const approve = async () => {
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/drafts/${draft.id}/approve`, { method: 'POST' });
+      if (res.ok) { setSent(true); await refresh(); }
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <CardShell label={`Udkast · henvendelse`}>
+      <p className="text-[0.9rem] font-medium text-ink">{draft.subject}</p>
+      <p className="mt-1.5 max-h-40 overflow-y-auto whitespace-pre-wrap rounded-xl bg-shell px-3 py-2.5 text-[0.82rem] leading-relaxed text-ink-soft">
+        {draft.body_template}
+      </p>
+      <p className="mt-2 text-[0.74rem] text-muted">
+        Ava skriver individuelt til {recipients.length} valgt{recipients.length === 1 ? '' : 'e'} leverandør{recipients.length === 1 ? '' : 'er'}
+        {recipients.length > 0 && `: ${recipients.map((v) => v.name).join(', ')}`}.
+      </p>
+      {draft.status !== 'proposed' || sent ? (
+        <p className="mt-2.5 text-[0.76rem] font-medium text-success">Sendt ✓</p>
+      ) : (
+        <button disabled={busy || recipients.length === 0} onClick={approve}
+          className="mt-2.5 rounded-full bg-ink px-4 py-2 text-[0.76rem] font-medium text-canvas hover:bg-ink/90 transition-colors cursor-pointer disabled:opacity-50">
+          {busy ? 'Sender…' : 'Godkend & send'}
+        </button>
+      )}
+    </CardShell>
+  );
+}
+
+function InviteBriefCard({ wording, style, onNavigate }: { wording: string; style: string | null; onNavigate?: (s: ScreenId) => void }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(wording); setCopied(true); setTimeout(() => setCopied(false), 1600); } catch { /* no clipboard */ }
+  };
+  return (
+    <div className="rounded-2xl rule bg-card overflow-hidden">
+      <div className="flex items-center justify-between rule-b px-4 py-2.5">
+        <span className="text-[0.78rem] font-medium text-ink">💌 Invitationstekst</span>
+        {style && <span className="rounded-full bg-sage-tint px-2.5 py-0.5 text-[0.68rem] text-ink">{style}</span>}
+      </div>
+      <p className="whitespace-pre-wrap px-5 py-5 text-center font-serif text-[0.98rem] leading-[1.8] text-ink">{wording}</p>
+      <div className="flex items-center gap-2 rule-t px-4 py-3">
+        <button onClick={() => onNavigate?.('invites')}
+          className="rounded-full bg-ink px-4 py-2 text-[0.76rem] font-medium text-canvas hover:bg-ink/90 transition-colors cursor-pointer">
+          Bestil tryk →
+        </button>
+        <button onClick={copy}
+          className="inline-flex items-center gap-1.5 rounded-full rule px-4 py-2 text-[0.76rem] text-ink-soft hover:bg-shell transition-colors cursor-pointer">
+          {copied ? <><Check size={13} /> Kopieret</> : <><Copy size={13} /> Kopiér</>}
+        </button>
+      </div>
+    </div>
   );
 }
 

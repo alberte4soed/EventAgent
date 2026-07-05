@@ -19,6 +19,7 @@ import Guests from './screens/Guests';
 import Website from './screens/Website';
 import Invites from './screens/Invites';
 import Seating from './screens/Seating';
+import Inbox from './screens/Inbox';
 
 export default function KalasRoot() {
   return (
@@ -48,10 +49,11 @@ function AppInner() {
 
   const screens: Record<ScreenId, React.ReactNode> = {
     home:        <Home onNavigate={navigate} />,
-    ava:         <Ava />,
+    ava:         <Ava onNavigate={navigate} />,
     inspiration: <Inspiration onNavigate={navigate} />,
     venues:      <VenueDiscovery onNavigate={navigate} />,
     vendors:     <Suppliers onNavigate={navigate} />,
+    inbox:       <Inbox onNavigate={navigate} />,
     planning:    <Planning />,
     budget:      <Budget onNavigate={navigate} />,
     guests:      <Guests />,
