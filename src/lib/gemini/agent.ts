@@ -8,20 +8,35 @@ import {
 } from "./log";
 import { functionDeclarations } from "./tools";
 import { venueListSchema, quoteSchema, type ExtractedVenue } from "./schemas";
-import { fetchVenuePhotos } from "@/lib/places/photos";
+import {
+  matchPlace,
+  getDetails,
+  resolvePhotoUrls,
+  mapReviews,
+  emailMatchesWebsite,
+  type PlaceResult,
+} from "@/lib/places/client";
+import { rankScore } from "@/lib/ranking";
 import {
   agentSystemPrompt,
-  VENUE_SEARCH_PROMPT,
+  VENDOR_SEARCH_PROMPT,
   VENUE_EXTRACTION_PROMPT,
   FIND_EMAIL_PROMPT,
   PERSONALIZE_PROMPT,
   QUOTE_EXTRACTION_PROMPT,
+  COMPOSE_OUTREACH_PROMPT,
+  REPLY_PROPOSAL_PROMPT,
 } from "./prompts";
 import type {
   ChatMessageRow,
+  EmailReplyRow,
   EventRow,
   MessagePayload,
+  OutboundEmailRow,
   QuoteExtraction,
+  ReplyProposalRow,
+  VendorCategory,
+  VenueRow,
 } from "@/lib/db/types";
 
 const MAX_ITERATIONS = 6;
@@ -44,7 +59,8 @@ export async function runAgentTurn(
   event: EventRow,
   history: ChatMessageRow[],
   userMessage: string,
-  onStatus: StatusFn = () => {}
+  onStatus: StatusFn = () => {},
+  extraContext?: string
 ): Promise<AgentTurnResult> {
   const ai = getGemini();
 
@@ -69,7 +85,9 @@ export async function runAgentTurn(
         model: GEMINI_MODEL,
         contents,
         config: {
-          systemInstruction: agentSystemPrompt(currentEvent),
+          systemInstruction:
+            agentSystemPrompt(currentEvent) +
+            (extraContext ? `\n\n${extraContext}` : ""),
           tools: [{ functionDeclarations }],
         },
       });
@@ -137,23 +155,89 @@ export async function runAgentTurn(
             delete result.event;
             break;
           case "search_venues": {
-            onStatus("Searching the web for venues…");
-            const search = await execSearchVenues(supabase, currentEvent, args);
+            onStatus("Researching options on the web…");
+            const search = await execSearchVenues(supabase, currentEvent, args, onStatus);
             result = { venue_count: search.venueIds.length, venue_names: search.names };
             if (search.venueIds.length > 0) {
               payload = { kind: "venue_batch", venue_ids: search.venueIds };
             }
             break;
           }
+          case "mark_venue_chosen":
+            onStatus("Marking your venue as chosen…");
+            result = await execMarkVenueChosen(supabase, currentEvent, args);
+            currentEvent = (result.event as EventRow) ?? currentEvent;
+            delete result.event;
+            break;
           case "find_venue_email":
             onStatus(`Looking up contact email for ${String(args.venue_name ?? "venue")}…`);
             result = await execFindVenueEmail(supabase, args);
             break;
+          case "draft_invite_text": {
+            onStatus("Drafting your invitation wording…");
+            const wording = String(args.wording ?? "").trim();
+            if (!wording) {
+              result = { error: "wording is required" };
+              break;
+            }
+            const style = typeof args.style === "string" ? args.style : null;
+            // Persist the latest brief on the event for the invites page.
+            await supabase
+              .from("events")
+              .update({
+                requirements: {
+                  ...currentEvent.requirements,
+                  invites: {
+                    ...((currentEvent.requirements?.invites as object) ?? {}),
+                    wording,
+                    style,
+                  },
+                },
+              })
+              .eq("id", currentEvent.id);
+            currentEvent = {
+              ...currentEvent,
+              requirements: {
+                ...currentEvent.requirements,
+                invites: {
+                  ...((currentEvent.requirements?.invites as object) ?? {}),
+                  wording,
+                  style,
+                },
+              },
+            };
+            payload = { kind: "invite_brief", wording, style };
+            result = { ok: true };
+            break;
+          }
           case "propose_email_draft": {
-            onStatus("Drafting the quote-request email…");
+            onStatus("Drafting the outreach email…");
             const draft = await execProposeDraft(supabase, currentEvent, args);
             result = { draft_id: draft.id, version: draft.version };
             payload = { kind: "draft", draft_id: draft.id };
+            break;
+          }
+          case "mark_vendor_booked":
+            onStatus("Marking the vendor as booked…");
+            result = await execMarkVendorBooked(supabase, currentEvent, args);
+            currentEvent = (result.event as EventRow) ?? currentEvent;
+            delete result.event;
+            break;
+          case "mark_stage_complete":
+            onStatus("Updating your journey…");
+            result = await execMarkStageComplete(supabase, currentEvent, args);
+            currentEvent = (result.event as EventRow) ?? currentEvent;
+            delete result.event;
+            break;
+          case "propose_vendor_reply": {
+            onStatus("Drafting a reply to the vendor…");
+            const proposal = await execProposeVendorReply(supabase, currentEvent, args);
+            if (proposal) {
+              result = { proposal_id: proposal.id };
+              payload = { kind: "reply_proposal", proposal_id: proposal.id };
+            } else {
+              result = { error: "Could not find that vendor reply to respond to" };
+            }
             break;
           }
           default:
@@ -203,6 +287,15 @@ async function execUpdateEventDetails(
   for (const key of ["title", "event_type", "location", "guest_count", "event_date", "budget"]) {
     if (args[key] !== undefined && args[key] !== null) patch[key] = args[key];
   }
+  // Keep date_precision / date_hint consistent with event_date so journey
+  // gating and the hub countdown never read stale values.
+  if (patch.event_date) {
+    patch.date_precision = "exact";
+    patch.date_hint = null;
+  } else if (typeof args.date_hint === "string" && args.date_hint.trim()) {
+    patch.date_hint = args.date_hint.trim();
+    if (event.date_precision === "undecided") patch.date_precision = "season";
+  }
   if (args.requirements && typeof args.requirements === "object") {
     patch.requirements = { ...event.requirements, ...(args.requirements as object) };
   }
@@ -218,27 +311,61 @@ async function execUpdateEventDetails(
   return { ok: true, event: data as EventRow };
 }
 
-/** Two-step grounded search: Call A (Google Search grounding) → Call B (structured extraction). */
+const VENDOR_CATEGORIES: VendorCategory[] = [
+  "venue",
+  "florist",
+  "photographer",
+  "musician",
+  "caterer",
+  "planner",
+  "other",
+];
+
+interface EnrichedCandidate {
+  extracted: ExtractedVenue;
+  place: PlaceResult | null;
+  photoUrls: string[];
+  score: number;
+}
+
+/**
+ * Grounded research → structured extraction → Google Places verification.
+ * Gemini decides which options fit the couple; Places supplies the facts
+ * (existence, canonical contact info, rating, reviews, photos, coordinates).
+ */
 async function execSearchVenues(
   supabase: SupabaseClient,
   event: EventRow,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
+  onStatus: StatusFn = () => {}
 ): Promise<{ venueIds: string[]; names: string[] }> {
   const ai = getGemini();
   const location = String(args.location ?? event.location ?? "");
   const guestCount = (args.guest_count as number | undefined) ?? event.guest_count;
+  const category: VendorCategory = VENDOR_CATEGORIES.includes(
+    args.category as VendorCategory
+  )
+    ? (args.category as VendorCategory)
+    : "venue";
   if (!location) throw new Error("Location is required before searching");
+
+  const vibes = Array.isArray(event.requirements?.vibes)
+    ? (event.requirements.vibes as string[])
+    : [];
 
   // Call A: grounded search (no schema/function-calling allowed alongside grounding).
   let grounded;
   try {
     grounded = await ai.models.generateContent({
       model: GEMINI_MODEL,
-      contents: VENUE_SEARCH_PROMPT({
+      contents: VENDOR_SEARCH_PROMPT({
+        category,
         query: String(args.query ?? ""),
         location,
         guestCount,
         eventType: event.event_type,
+        vibes,
+        budget: event.budget,
       }),
       config: { tools: [{ googleSearch: {} }] },
     });
@@ -247,6 +374,7 @@ async function execSearchVenues(
       model: GEMINI_MODEL,
       eventId: event.id,
       location,
+      category,
     });
     throw err;
   }
@@ -280,30 +408,97 @@ async function execSearchVenues(
   }
 
   const parsed = JSON.parse(extraction.text ?? "{}") as { venues?: ExtractedVenue[] };
-  const venues = (parsed.venues ?? []).filter((v) => v.name?.trim());
-  if (venues.length === 0) throw new Error("No venues could be extracted from search results");
+  const extractedList = (parsed.venues ?? []).filter((v) => v.name?.trim());
+  if (extractedList.length === 0) {
+    throw new Error("No venues could be extracted from search results");
+  }
 
-  // Pull a real photo per venue from Google Places (best-effort, parallel).
-  const photos = await fetchVenuePhotos(venues, location);
+  // Verify against Google Places: existence, canonical facts, dedupe.
+  onStatus("Verifying on Google Places…");
+  const matches = await Promise.all(
+    extractedList.map((v) => matchPlace(v.name, location))
+  );
+
+  // Skip places already on this event's board (repeat searches) and
+  // duplicates within the batch; drop permanently closed businesses.
+  const { data: existingRows } = await supabase
+    .from("venues")
+    .select("place_id")
+    .eq("event_id", event.id)
+    .not("place_id", "is", null);
+  const seenPlaceIds = new Set(
+    (existingRows ?? []).map((r) => r.place_id as string)
+  );
+
+  const candidates: { extracted: ExtractedVenue; place: PlaceResult | null }[] = [];
+  for (let i = 0; i < extractedList.length; i++) {
+    const place = matches[i];
+    if (place) {
+      if (place.businessStatus && place.businessStatus !== "OPERATIONAL") continue;
+      if (seenPlaceIds.has(place.id)) continue;
+      seenPlaceIds.add(place.id);
+    }
+    // Unmatched candidates are kept (small-town coverage gaps) but unverified.
+    candidates.push({ extracted: extractedList[i], place });
+  }
+  if (candidates.length === 0) {
+    throw new Error("All found venues were already on the board or closed");
+  }
+
+  // Details (reviews) + photos only for the places we're keeping.
+  onStatus("Pulling reviews and photos…");
+  const enriched: EnrichedCandidate[] = await Promise.all(
+    candidates.map(async (c) => {
+      const details = c.place ? await getDetails(c.place.id) : null;
+      const place = details ?? c.place;
+      const photoUrls = await resolvePhotoUrls(place?.photos, 4);
+      return {
+        extracted: c.extracted,
+        place,
+        photoUrls,
+        score: rankScore({ extracted: c.extracted, place }, guestCount, vibes),
+      };
+    })
+  );
+  enriched.sort((a, b) => b.score - a.score);
+
+  const rows = enriched.map(({ extracted: v, place, photoUrls }) => {
+    const website = place?.websiteUri ?? v.website ?? null;
+    const email = v.email ?? null;
+    const emailVerified = emailMatchesWebsite(email, website);
+    return {
+      event_id: event.id,
+      user_id: event.user_id,
+      name: place?.displayName?.text ?? v.name,
+      description: v.description ?? place?.editorialSummary?.text ?? null,
+      address: place?.formattedAddress ?? v.address ?? null,
+      website,
+      // Keep a Gemini-found email only when its domain matches the
+      // canonical website; otherwise leave it for find_venue_email.
+      email: emailVerified ? email : null,
+      phone: place?.nationalPhoneNumber ?? v.phone ?? null,
+      capacity: v.capacity ?? null,
+      price_hint: v.price_hint ?? null,
+      image_url: photoUrls[0] ?? null,
+      source_urls: sourceUrls,
+      place_id: place?.id ?? null,
+      rating: place?.rating ?? null,
+      review_count: place?.userRatingCount ?? null,
+      reviews: place ? mapReviews(place) : [],
+      photo_urls: photoUrls,
+      lat: place?.location?.latitude ?? null,
+      lng: place?.location?.longitude ?? null,
+      price_level: place?.priceLevel ?? null,
+      business_status: place?.businessStatus ?? null,
+      why_fit: v.why_fit ?? null,
+      contact_verified: emailVerified,
+      category,
+    };
+  });
 
   const { data, error } = await supabase
     .from("venues")
-    .insert(
-      venues.map((v, i) => ({
-        event_id: event.id,
-        user_id: event.user_id,
-        name: v.name,
-        description: v.description ?? null,
-        address: v.address ?? null,
-        website: v.website ?? null,
-        email: v.email ?? null,
-        phone: v.phone ?? null,
-        capacity: v.capacity ?? null,
-        price_hint: v.price_hint ?? null,
-        image_url: photos[i] ?? null,
-        source_urls: sourceUrls,
-      }))
-    )
+    .insert(rows)
     .select("id, name");
   if (error) throw new Error(error.message);
 
@@ -315,25 +510,182 @@ async function execSearchVenues(
   };
 }
 
+/** Record the venue decision — the fact that unlocks vendors and invites. */
+async function execMarkVenueChosen(
+  supabase: SupabaseClient,
+  event: EventRow,
+  args: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  const venueId = typeof args.venue_id === "string" ? args.venue_id : null;
+  const patch: Record<string, unknown> = {};
+
+  if (venueId) {
+    const { data: venue } = await supabase
+      .from("venues")
+      .select("id, name")
+      .eq("id", venueId)
+      .eq("event_id", event.id)
+      .maybeSingle();
+    if (!venue) return { error: "That venue is not on this wedding's board" };
+    patch.chosen_venue_id = venueId;
+  } else if (args.booked_externally) {
+    patch.journey_overrides = { ...event.journey_overrides, venue: "complete" };
+  } else {
+    return { error: "Pass venue_id, or booked_externally when booked outside the app" };
+  }
+
+  const { data, error } = await supabase
+    .from("events")
+    .update(patch)
+    .eq("id", event.id)
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  return { ok: true, event: data as EventRow };
+}
+
+/** Record that a vendor (or venue) has been booked. */
+async function execMarkVendorBooked(
+  supabase: SupabaseClient,
+  event: EventRow,
+  args: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  const venueId = typeof args.venue_id === "string" ? args.venue_id : null;
+  if (!venueId) return { error: "Pass the vendor's venue_id" };
+
+  const { data: venue } = await supabase
+    .from("venues")
+    .select("id, name, category")
+    .eq("id", venueId)
+    .eq("event_id", event.id)
+    .maybeSingle();
+  if (!venue) return { error: "That vendor is not on this wedding's board" };
+
+  await supabase
+    .from("venues")
+    .update({ booked_at: new Date().toISOString() })
+    .eq("id", venueId);
+
+  // Booking a venue also settles the venue stage if not already chosen.
+  if (venue.category === "venue" && !event.chosen_venue_id) {
+    const { data } = await supabase
+      .from("events")
+      .update({ chosen_venue_id: venueId })
+      .eq("id", event.id)
+      .select()
+      .single();
+    return { ok: true, booked: venue.name, event: data as EventRow };
+  }
+  return { ok: true, booked: venue.name };
+}
+
+/** Manually mark a whole journey stage complete via journey_overrides. */
+async function execMarkStageComplete(
+  supabase: SupabaseClient,
+  event: EventRow,
+  args: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  const stage = String(args.stage ?? "");
+  if (!["venue", "vendors", "invites"].includes(stage)) {
+    return { error: "stage must be venue, vendors or invites" };
+  }
+  const { data, error } = await supabase
+    .from("events")
+    .update({
+      journey_overrides: { ...event.journey_overrides, [stage]: "complete" },
+    })
+    .eq("id", event.id)
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  return { ok: true, event: data as EventRow };
+}
+
+/** Draft a revised reply proposal for a vendor reply the user is discussing. */
+async function execProposeVendorReply(
+  supabase: SupabaseClient,
+  event: EventRow,
+  args: Record<string, unknown>
+): Promise<ReplyProposalRow | null> {
+  const replyId = typeof args.reply_id === "string" ? args.reply_id : null;
+  const body = String(args.body ?? "").trim();
+  if (!replyId || !body) return null;
+
+  const { data: reply } = await supabase
+    .from("email_replies")
+    .select("*")
+    .eq("id", replyId)
+    .eq("event_id", event.id)
+    .maybeSingle();
+  if (!reply) return null;
+  const replyRow = reply as EmailReplyRow;
+
+  // Supersede any pending proposal for this reply, then insert the new one.
+  await supabase
+    .from("reply_proposals")
+    .update({ status: "superseded" })
+    .eq("email_reply_id", replyId)
+    .eq("status", "proposed");
+
+  const { data: proposal, error } = await supabase
+    .from("reply_proposals")
+    .insert({
+      email_reply_id: replyRow.id,
+      outbound_email_id: replyRow.outbound_email_id,
+      venue_id: replyRow.venue_id,
+      event_id: replyRow.event_id,
+      user_id: replyRow.user_id,
+      body,
+    })
+    .select()
+    .single();
+  if (error) return null;
+  return proposal as ReplyProposalRow;
+}
+
 async function execFindVenueEmail(
   supabase: SupabaseClient,
   args: Record<string, unknown>
 ): Promise<Record<string, unknown>> {
   const venueId = String(args.venue_id ?? "");
   const venueName = String(args.venue_name ?? "");
-  const email = await findVenueEmail(venueName, args.website as string | undefined);
+
+  // Prefer the Places-canonical website stored on the row over whatever
+  // the model passed — it is the ground truth for domain validation.
+  const { data: venueRow } = await supabase
+    .from("venues")
+    .select("website")
+    .eq("id", venueId)
+    .maybeSingle();
+  const website =
+    (venueRow?.website as string | null) ?? (args.website as string | undefined) ?? null;
+
+  const email = await findVenueEmail(venueName, website);
+  const verified = emailMatchesWebsite(email, website);
 
   await supabase
     .from("venues")
     .update({
       email: email ?? undefined,
       email_lookup_status: email ? "found" : "not_found",
+      contact_verified: verified,
     })
     .eq("id", venueId);
 
-  return email
-    ? { found: true, email }
-    : { found: false, note: "No contact email found; this venue will be skipped when sending." };
+  if (!email) {
+    return {
+      found: false,
+      note: "No contact email found; this venue will be skipped when sending.",
+    };
+  }
+  return verified
+    ? { found: true, email, verified: true }
+    : {
+        found: true,
+        email,
+        verified: false,
+        note: "Email domain does not match the venue's website — double-check before sending.",
+      };
 }
 
 /** Grounded lookup of a single venue's contact email. Exported for reuse. */
@@ -353,6 +705,16 @@ export async function findVenueEmail(
   return match[0].toLowerCase();
 }
 
+const VENDOR_CATEGORY_SET = new Set<VendorCategory>([
+  "venue",
+  "florist",
+  "photographer",
+  "musician",
+  "caterer",
+  "planner",
+  "other",
+]);
+
 async function execProposeDraft(
   supabase: SupabaseClient,
   event: EventRow,
@@ -364,6 +726,9 @@ async function execProposeDraft(
   if (!body.includes("{{venue_name}}")) {
     throw new Error("body_template must contain the {{venue_name}} placeholder");
   }
+  const category: VendorCategory = VENDOR_CATEGORY_SET.has(args.category as VendorCategory)
+    ? (args.category as VendorCategory)
+    : "venue";
 
   const { data: latest } = await supabase
     .from("email_drafts")
@@ -382,6 +747,7 @@ async function execProposeDraft(
       subject,
       body_template: body,
       version,
+      category,
     })
     .select("id, version")
     .single();
@@ -392,6 +758,21 @@ async function execProposeDraft(
 }
 
 // ── Standalone Gemini helpers used outside the chat loop ────────────────
+
+/** One-line summary of the wedding facts for outreach/reply prompts. */
+export function eventFactsLine(event: EventRow): string {
+  return (
+    [
+      event.event_type,
+      event.location && `in ${event.location}`,
+      event.guest_count && `${event.guest_count} guests`,
+      event.event_date ? `on ${event.event_date}` : event.date_hint,
+      event.budget && `budget ${event.budget}`,
+    ]
+      .filter(Boolean)
+      .join(", ") || "details still being gathered"
+  );
+}
 
 /** Personalize the approved master template for one venue (plain call, no tools). */
 export async function personalizeEmail(args: {
@@ -407,6 +788,104 @@ export async function personalizeEmail(args: {
   const text = (response.text ?? "").trim();
   // Fall back to simple substitution if the model returns nothing usable.
   return text || args.template.replaceAll("{{venue_name}}", args.venueName);
+}
+
+/**
+ * Compose a genuinely individual outreach email for one vendor, using the
+ * approved master draft as the brief. Falls back to plain substitution.
+ */
+export async function composeOutreachEmail(args: {
+  template: string;
+  event: EventRow;
+  venue: Pick<
+    VenueRow,
+    "name" | "description" | "why_fit" | "reviews" | "category"
+  >;
+}): Promise<string> {
+  try {
+    const ai = getGemini();
+    const response = await ai.models.generateContent({
+      model: GEMINI_MODEL,
+      contents: COMPOSE_OUTREACH_PROMPT({
+        template: args.template,
+        venueName: args.venue.name,
+        category: args.venue.category === "venue" ? "venue" : args.venue.category,
+        venueDescription: args.venue.description,
+        whyFit: args.venue.why_fit,
+        reviewSnippet: args.venue.reviews?.find((r) => r.text)?.text?.slice(0, 200) ?? null,
+        eventFacts: eventFactsLine(args.event),
+      }),
+    });
+    const text = (response.text ?? "").trim();
+    if (text) return text;
+  } catch (err) {
+    logAgentError("gemini/agent:composeOutreach", err, { venue: args.venue.name });
+  }
+  return args.template.replaceAll("{{venue_name}}", args.venue.name);
+}
+
+/**
+ * Draft Ava's proposed response to a vendor reply and persist it as a
+ * reply_proposals row (superseding earlier proposals for the same reply).
+ * Best-effort: returns null on any failure, never throws.
+ */
+export async function generateReplyProposal(
+  admin: SupabaseClient,
+  reply: EmailReplyRow
+): Promise<ReplyProposalRow | null> {
+  try {
+    const [{ data: event }, { data: venue }, { data: outbound }] = await Promise.all([
+      admin.from("events").select("*").eq("id", reply.event_id).single(),
+      admin.from("venues").select("*").eq("id", reply.venue_id).single(),
+      admin.from("outbound_emails").select("*").eq("id", reply.outbound_email_id).single(),
+    ]);
+    if (!event || !venue || !outbound) return null;
+    const eventRow = event as EventRow;
+    const venueRow = venue as VenueRow;
+    const outboundRow = outbound as OutboundEmailRow;
+
+    const coupleName = eventRow.title.replace(/'s wedding$/i, "").trim() || "the couple";
+
+    const ai = getGemini();
+    const response = await ai.models.generateContent({
+      model: GEMINI_MODEL,
+      contents: REPLY_PROPOSAL_PROMPT({
+        venueName: venueRow.name,
+        category: venueRow.category === "venue" ? "venue" : venueRow.category,
+        coupleName,
+        eventFacts: eventFactsLine(eventRow),
+        ourLastMessage: outboundRow.body.slice(0, 1500),
+        vendorReply: (reply.body ?? reply.snippet ?? "").slice(0, 3000),
+        quoteSummary: reply.quote?.summary ?? null,
+      }),
+    });
+    const body = (response.text ?? "").trim();
+    if (!body) return null;
+
+    await admin
+      .from("reply_proposals")
+      .update({ status: "superseded" })
+      .eq("email_reply_id", reply.id)
+      .eq("status", "proposed");
+
+    const { data: proposal, error } = await admin
+      .from("reply_proposals")
+      .insert({
+        email_reply_id: reply.id,
+        outbound_email_id: reply.outbound_email_id,
+        venue_id: reply.venue_id,
+        event_id: reply.event_id,
+        user_id: reply.user_id,
+        body,
+      })
+      .select()
+      .single();
+    if (error) return null;
+    return proposal as ReplyProposalRow;
+  } catch (err) {
+    logAgentError("gemini/agent:generateReplyProposal", err, { replyId: reply.id });
+    return null;
+  }
 }
 
 /** Extract quote details from a venue's reply (structured output). */

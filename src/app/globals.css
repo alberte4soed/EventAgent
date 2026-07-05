@@ -4,9 +4,14 @@ html {
   scroll-padding-top: 5.5rem;
 }
 
-@theme inline {
+/* Non-inline @theme so utilities compile to var(--color-…) references —
+   this lets .theme-kalas re-skin the app subtree by overriding the custom
+   properties, without touching any component. Marketing values are the
+   defaults; Kalas overrides live in .theme-kalas below. */
+@theme {
   --font-sans: var(--font-inter);
   --font-serif: var(--font-fraunces);
+  --font-logo: var(--font-fraunces);
 
   /* Fig Dream · Pistachio · Laurel · Dark Green · Champagne Cream */
   --color-cream: #f6f0e8;
@@ -34,4 +39,107 @@ html {
   --color-velvet-soft: #aeb080;
   --color-velvet-body: #656952;
   --color-on-velvet: #f6f0e8;
+
+  /* ── Kalas app tokens (Brand DNA: warm ivory · sage · deep forest) ──
+     Names disjoint from the marketing set; ink/fonts are overridden per
+     subtree via .theme-kalas instead. */
+  --color-canvas: #F5EFE5;          /* main background — warm ivory       */
+  --color-card: #EDE6D6;            /* raised paper                       */
+  --color-blush: #F1EADD;           /* alt warm section                   */
+  --color-shell: #E3DAC5;           /* sidebar / inset                    */
+
+  --color-muted: #6B6E55;           /* meta + tracked labels (AA)         */
+  --color-faint: #AEAB93;           /* disabled / placeholder             */
+
+  --color-sage: #A9B380;            /* primary action (sage)              */
+  --color-sage-strong: #8F9A64;     /* hover / active                     */
+  --color-sage-tint: #DCE0C6;       /* sage wash                          */
+
+  --color-line: #3B432A24;          /* hairline rule — forest @ ~14%      */
+  --color-line-strong: #3B432A42;
+
+  --color-clay: #9c8a63;            /* warm khaki accent (awaiting)       */
+  --color-terracotta: #364528;      /* deep forest — CTAs / decisions     */
+  --color-terracotta-tint: #E2E6D2; /* forest wash                        */
+  --color-success: #3F5C33;         /* deep olive-green                   */
+}
+
+/* ── Kalas subtree re-skin ───────────────────────────────────────────────
+   Applied on the app/onboarding root divs. Overrides the shared token
+   names with Kalas values (forest ink, Cormorant/Hanken type). */
+.theme-kalas {
+  --color-ink: #3B432A;
+  --color-ink-soft: #4D5638;
+  --font-serif: var(--font-cormorant);
+  --font-sans: var(--font-hanken);
+  font-feature-settings: "ss01", "cv01";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.theme-kalas h1,
+.theme-kalas h2,
+.theme-kalas h3,
+.theme-kalas h4 {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  letter-spacing: -0.005em;
+}
+
+.theme-kalas ::selection {
+  background: var(--color-sage-tint);
+  color: var(--color-ink);
+}
+
+/* Soft focus ring tuned to the palette; kept outside @layer so it wins
+   over `focus:outline-none` utilities — keyboard users always see focus. */
+.theme-kalas :focus-visible {
+  outline: 2px solid var(--color-sage-strong);
+  outline-offset: 2px;
+}
+
+/* ── Kalas utilities (names unique — safe globally) ───────────────────── */
+
+/* Hairline rules — the Aesop signature. Never a heavy shadowed box.      */
+.rule {
+  border: 0.5px solid var(--color-line);
+}
+.rule-t { border-top: 0.5px solid var(--color-line); }
+.rule-b { border-bottom: 0.5px solid var(--color-line); }
+.rule-l { border-left: 0.5px solid var(--color-line); }
+.rule-r { border-right: 0.5px solid var(--color-line); }
+
+/* Editorial tracked label (uppercase eyebrow). */
+.eyebrow {
+  font-family: var(--font-sans);
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--color-muted);
+}
+
+/* Big editorial display serif. Cormorant reads best at medium weight. */
+.display {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  line-height: 1.0;
+  letter-spacing: -0.015em;
+}
+
+/* Mid-hierarchy label — small-caps sans for section titles below H1. */
+.subheading {
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+}
+
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
