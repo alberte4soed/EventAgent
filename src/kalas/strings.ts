@@ -20,6 +20,9 @@ export const EN: Record<string, string> = {
   'Flere sider': 'More pages',
   'Indstillinger': 'Settings',
   'Luk': 'Close',
+  'Planlægning': 'Planning',
+  '{n} dage tilbage': '{n} days left',
+  'Tal med Ava — {n} nye beskeder': 'Talk to Ava — {n} new messages',
 
   // ── Common verbs / chrome ───────────────────────────────────────────
   'Tilbage': 'Back',
@@ -122,4 +125,113 @@ export const EN: Record<string, string> = {
   'Gratis at udforske · I godkender alt før noget sendes':
     'Free to explore · You approve everything before anything is sent',
   'snart': 'soon',
+
+  // Seasons
+  'Forår': 'Spring',
+  'Sommer': 'Summer',
+  'Efterår': 'Fall',
+  'Vinter': 'Winter',
+
+  // Onboarding chat transitions
+  'Vi er {a} & {b}': 'We are {a} & {b}',
+  ' — vi gifter os {date} nær {location}.': ' — getting married {date} near {location}.',
+  ' — vi gifter os {date}.': ' — getting married {date}.',
+  'Dejligt! Hvor stort tænker I det — og hvad er rammen budgetmæssigt? Bare et pejlemærke, det kan altid justeres.':
+    'Lovely! How big are you thinking — and what budget range? Just a ballpark, it can always change.',
+  'gæster': 'guests',
+  'Et selskab': 'A gathering',
+  ', {budget} budget': ', {budget} budget',
+  'Godt udgangspunkt. Nu til det sjove: hvad drømmer I om? Vælg de stemninger der rammer jer — og beskriv gerne med egne ord.':
+    'Good starting point. Now the fun part: what do you dream of? Pick the moods that fit you — and describe it in your own words.',
+  'Stil: {s}': 'Style: {s}',
+  'Vi finder stilen undervejs.': "We'll find the style along the way.",
+  'Smukt — jeg noterer det til jeres leverandør-briefs og hjemmeside. Planlægger I det to?':
+    "Beautiful — I'm noting it for your vendor briefs and website. Are the two of you planning together?",
+  '{email} er inviteret som medplanlægger.': '{email} is invited as a co-planner.',
+  'Jeg klarer det for nu — inviterer partneren senere.': "I'll handle it for now — invite my partner later.",
+  'nær {location}': 'near {location}',
+  'i jeres region': 'in your region',
+  'Perfekt. Imens I svarede har jeg allerede forberedt jeres tidslinje, fundet tre venues {near} og skrevet den første henvendelse. Klar til at se det?':
+    'Perfect. While you answered I already prepared your timeline, found three venues {near} and wrote the first enquiry. Ready to see it?',
+
+  // Aha email
+  'Kære {venue},': 'Dear {venue},',
+  'Vi er {a} & {b} og planlægger vores bryllup': 'We are {a} & {b} and planning our wedding',
+  'Vi er': 'We are',
+  '{guests} gæster': '{guests} guests',
+  'og søger en venue der afspejler vores stil og stemning.': 'and looking for a venue that reflects our style and mood.',
+  'Vi er interesserede i jeres weekendpakke og vil gerne...': "We're interested in your weekend package and would like to...",
+
+  // ── Ava chat ────────────────────────────────────────────────────────
+  'Lad os planlægge jeres bryllup': "Let's plan your wedding",
+  'Fortæl mig om jeres dag, så går jeg i gang med at finde venues.':
+    "Tell me about your day and I'll start finding venues.",
+  '● Online · jeres bryllupsplanlægger': '● Online · your wedding planner',
+  'Find venues til os': 'Find venues for us',
+  'Hvad mangler vi at booke?': "What do we still need to book?",
+  'Skriv til fotografer': 'Write to photographers',
+  'Vedhæft fil': 'Attach file',
+  'Skriv til Ava, {name}…': 'Message Ava, {name}…',
+  'du': 'you',
+  'Besked til Ava': 'Message to Ava',
+  'Send besked': 'Send message',
+  '{n} venues lagt på jeres board — se dem': '{n} venues added to your board — see them',
+  'Sendt til {sent}': 'Sent to {sent}',
+  ', {n} sprunget over': ', {n} skipped',
+  ', {n} fejlede': ', {n} failed',
+  'Foreslået svar til leverandør': 'Suggested reply to the vendor',
+  'Sendt ✓': 'Sent ✓',
+  'Afvist': 'Dismissed',
+  'Sender…': 'Sending…',
+  'Se i indbakke': 'See in inbox',
+  'Udkast · henvendelse': 'Draft · enquiry',
+  'Ava skriver individuelt til {n} valgte leverandører': 'Ava writes individually to {n} chosen vendors',
+  '💌 Invitationstekst': '💌 Invitation wording',
+  'Bestil tryk →': 'Order prints →',
+  'Kopieret': 'Copied',
+  'Kopiér': 'Copy',
+
+  // ── Home ────────────────────────────────────────────────────────────
+  'Jeres bryllup': 'Your wedding',
+  'Godnat': 'Good night',
+  'Godmorgen': 'Good morning',
+  'Godformiddag': 'Good morning',
+  'Goddag': 'Good day',
+  'Godaften': 'Good evening',
+  'Ava har gjort klar til jer. {n} svar venter på jeres godkendelse — det tager få minutter.':
+    'Ava has things ready for you. {n} reply(ies) await your approval — it takes a few minutes.',
+  'Alt er ryddet. Ava arbejder videre i baggrunden og siger til, når der er nyt.':
+    "All clear. Ava keeps working in the background and will let you know when there's news.",
+  'Dage til brylluppet': 'Days to the wedding',
+  'Ting venter på jer': 'Things waiting for you',
+  'Tilbud modtaget': 'Quotes received',
+  'Kr budget': 'DKK budget',
+  'Godkendelseskø · {n}': 'Approval queue · {n}',
+  'Godkendelseskø · alt ryddet': 'Approval queue · all clear',
+  'Leverandør': 'Vendor',
+  'Jeres univers, samlet': 'Your world, gathered',
+  'ét sted': 'in one place',
+  'Hver gang I gemmer et billede, sender Ava det videre til vendor-briefs og hjemmesidens tema.':
+    'Every time you save an image, Ava passes it on to vendor briefs and your website theme.',
+  'Åbn': 'Open',
+  'Ava anbefaler nu': 'Ava recommends now',
+  'Alt er klaret for nu. Nyd roen — jeg siger til, når næste skridt nærmer sig.':
+    "Everything's handled for now. Enjoy the calm — I'll let you know when the next step nears.",
+  '{n} svar klar til godkendelse': '{n} replies ready to approve',
+  'Ava har forberedt svar til jeres leverandører': 'Ava has prepared replies to your vendors',
+  'Alt er booket — hvor er I dygtige. 🤍': "Everything's booked — well done. 🤍",
+  'Jeres hjemmeside (kommer snart)': 'Your website (coming soon)',
+  '{who} venter på linket': '{who} awaiting the link',
+  'Gæstelisten': 'The guest list',
+  'Kopieret!': 'Copied!',
+  'Kopiér link': 'Copy link',
+  'Tilpas →': 'Customize →',
+  'Svar til {vendor}': 'Reply to {vendor}',
+  'Ava har skrevet et svar': 'Ava wrote a reply',
+  '{vendor} har svaret på jeres henvendelse. Godkend Avas svar, så sender hun det fra Kalas-postkassen — eller tal med hende om det først.':
+    "{vendor} replied to your enquiry. Approve Ava's reply and she'll send it from the Kalas mailbox — or talk to her about it first.",
+  'Udkast · Ava': 'Draft · Ava',
+  'Klar': 'Ready',
+  'Vis mindre': 'Show less',
+  'Vis hele svaret': 'Show full reply',
 };

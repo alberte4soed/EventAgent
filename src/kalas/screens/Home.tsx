@@ -8,6 +8,7 @@ import { useWedding } from '../useWedding';
 import type { ScreenId } from '../Shell';
 import { Eyebrow, Pill, Bleed, cn, fadeUp, stagger } from '../ui';
 import OnboardingHint from '../OnboardingHint';
+import { useLang } from '../i18n';
 import type { JourneyStageKey } from '@/lib/journey';
 
 const kr = (n: number) => new Intl.NumberFormat('da-DK').format(Math.round(n));
@@ -39,12 +40,13 @@ function daysUntil(dateISO: string | null): number | null {
 
 export default function Home({ onNavigate }: { onNavigate: (s: ScreenId) => void }) {
   const { couple, event, journey, proposals, replies, venues, refresh } = useWedding();
+  const { t } = useLang();
 
   const pending = proposals.filter((p) => p.status === 'proposed');
   const quotes = replies.filter((r) => r.quote_status === 'quoted').length;
   const days = daysUntil(event?.event_date ?? null);
   const budgetTotal = couple.budgetTotal;
-  const names = couple.b ? `${couple.a} & ${couple.b}` : couple.a || 'Jeres bryllup';
+  const names = couple.b ? `${couple.a} & ${couple.b}` : couple.a || t('Jeres bryllup');
 
   return (
     <div className="px-6 py-8 sm:px-10 lg:px-16 lg:py-12">
@@ -56,13 +58,13 @@ export default function Home({ onNavigate }: { onNavigate: (s: ScreenId) => void
       <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }}
         className="mt-12 max-w-4xl">
         <h1 className="display text-[clamp(2.75rem,7vw,5.5rem)] text-ink">
-          {greeting()},<br />
+          {t(greeting())},<br />
           <span className="italic">{names}.</span>
         </h1>
         <p className="mt-6 max-w-lg text-[1.05rem] leading-relaxed text-ink-soft">
           {pending.length > 0
-            ? `Ava har gjort klar til jer. ${pending.length === 1 ? 'Ét svar venter' : `${pending.length} svar venter`} på jeres godkendelse — det tager få minutter.`
-            : 'Alt er ryddet. Ava arbejder videre i baggrunden og siger til, når der er nyt.'}
+            ? t('Ava har gjort klar til jer. {n} svar venter på jeres godkendelse — det tager få minutter.', { n: pending.length })
+            : t('Alt er ryddet. Ava arbejder videre i baggrunden og siger til, når der er nyt.')}
         </p>
       </motion.div>
 
@@ -73,16 +75,16 @@ export default function Home({ onNavigate }: { onNavigate: (s: ScreenId) => void
         className="mt-12 grid grid-cols-3 gap-px overflow-hidden rounded-2xl rule bg-[var(--color-line)]">
         <div className="bg-canvas px-5 py-6">
           <div className="font-serif text-[2.2rem] leading-none text-ink">{days ?? '—'}</div>
-          <div className="mt-2 text-[0.68rem] font-medium uppercase tracking-[0.18em] text-muted">Dage til brylluppet</div>
+          <div className="mt-2 text-[0.68rem] font-medium uppercase tracking-[0.18em] text-muted">{t('Dage til brylluppet')}</div>
         </div>
         <div className="bg-canvas px-5 py-6">
           <div className="font-serif text-[2.2rem] leading-none text-ink">{pending.length}</div>
-          <div className="mt-2 text-[0.68rem] font-medium uppercase tracking-[0.18em] text-muted">Ting venter på jer</div>
+          <div className="mt-2 text-[0.68rem] font-medium uppercase tracking-[0.18em] text-muted">{t('Ting venter på jer')}</div>
         </div>
         <div className="bg-canvas px-5 py-6">
           <div className="font-serif text-[2.2rem] leading-none text-ink">{quotes || (budgetTotal ? kr(budgetTotal) : 0)}</div>
           <div className="mt-2 text-[0.68rem] font-medium uppercase tracking-[0.18em] text-muted">
-            {quotes ? 'Tilbud modtaget' : 'Kr budget'}
+            {quotes ? t('Tilbud modtaget') : t('Kr budget')}
           </div>
         </div>
       </motion.div>
@@ -94,9 +96,9 @@ export default function Home({ onNavigate }: { onNavigate: (s: ScreenId) => void
       <section className="mt-16">
         <div className="flex items-center justify-between rule-b pb-4">
           <Eyebrow>
-            {pending.length > 0 ? `Godkendelseskø · ${pending.length}` : 'Godkendelseskø · alt ryddet'}
+            {pending.length > 0 ? t('Godkendelseskø · {n}', { n: pending.length }) : t('Godkendelseskø · alt ryddet')}
           </Eyebrow>
-          <button onClick={() => onNavigate('ava')} className="eyebrow hover:text-ink transition-colors cursor-pointer">Tal med Ava</button>
+          <button onClick={() => onNavigate('ava')} className="eyebrow hover:text-ink transition-colors cursor-pointer">{t('Tal med Ava')}</button>
         </div>
 
         {pending.length === 0 ? (
@@ -106,7 +108,7 @@ export default function Home({ onNavigate }: { onNavigate: (s: ScreenId) => void
             {pending.map((p) => (
               <ProposalRow
                 key={p.id}
-                vendorName={venues.find((v) => v.id === p.venue_id)?.name ?? 'Leverandør'}
+                vendorName={venues.find((v) => v.id === p.venue_id)?.name ?? t('Leverandør')}
                 body={p.body}
                 onDone={() => void refresh()}
                 proposalId={p.id}
@@ -123,14 +125,13 @@ export default function Home({ onNavigate }: { onNavigate: (s: ScreenId) => void
           <div>
             <Eyebrow>Moodboard</Eyebrow>
             <h2 className="display mt-3 text-[clamp(2rem,4vw,3rem)] text-ink">
-              Jeres univers, samlet <span className="italic">ét sted</span>
+              {t('Jeres univers, samlet')} <span className="italic">{t('ét sted')}</span>
             </h2>
             <p className="mt-3 max-w-md text-ink-soft leading-relaxed">
-              Hver gang I gemmer et billede, sender Ava det videre til vendor-briefs og
-              hjemmesidens tema.
+              {t('Hver gang I gemmer et billede, sender Ava det videre til vendor-briefs og hjemmesidens tema.')}
             </p>
           </div>
-          <Pill variant="ghost" arrow onClick={() => onNavigate('inspiration')} className="hidden sm:inline-flex">Åbn</Pill>
+          <Pill variant="ghost" arrow onClick={() => onNavigate('inspiration')} className="hidden sm:inline-flex">{t('Åbn')}</Pill>
         </div>
 
         <motion.div
@@ -153,7 +154,7 @@ export default function Home({ onNavigate }: { onNavigate: (s: ScreenId) => void
 
       {/* ── Footer signature ──────────────────────────────────────────── */}
       <div className="mt-24 rule-t pt-8 text-center">
-        <p className="font-serif text-lg italic text-muted">Planlagt med ro — af Ava, godkendt af jer.</p>
+        <p className="font-serif text-lg italic text-muted">{t('Planlagt med ro — af Ava, godkendt af jer.')}</p>
       </div>
 
       <OnboardingHint id="home" />
@@ -167,6 +168,7 @@ function AvaUrgentToday({ journey, pendingCount, onNavigate }: {
   pendingCount: number;
   onNavigate: (s: ScreenId) => void;
 }) {
+  const { t } = useLang();
   const active = journey.filter((s) => s.status === 'active').slice(0, 2);
 
   return (
@@ -182,11 +184,11 @@ function AvaUrgentToday({ journey, pendingCount, onNavigate }: {
             <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--color-terracotta)]" />
           </div>
         )}
-        <p className="text-[0.6rem] font-semibold uppercase tracking-[0.22em] text-muted">Ava anbefaler nu</p>
+        <p className="text-[0.6rem] font-semibold uppercase tracking-[0.22em] text-muted">{t('Ava anbefaler nu')}</p>
       </div>
       {active.length === 0 && pendingCount === 0 ? (
         <p className="px-6 py-5 font-serif text-[1rem] italic text-muted">
-          Alt er klaret for nu. Nyd roen — jeg siger til, når næste skridt nærmer sig.
+          {t('Alt er klaret for nu. Nyd roen — jeg siger til, når næste skridt nærmer sig.')}
         </p>
       ) : (
         <div className="divide-y divide-[var(--color-line)]">
@@ -195,9 +197,9 @@ function AvaUrgentToday({ journey, pendingCount, onNavigate }: {
               className="w-full flex items-center justify-between gap-4 px-6 py-4 text-left hover:bg-shell/60 transition-colors cursor-pointer group">
               <div className="min-w-0">
                 <p className="font-serif text-[1rem] text-ink leading-snug truncate">
-                  {pendingCount} svar klar til godkendelse
+                  {t('{n} svar klar til godkendelse', { n: pendingCount })}
                 </p>
-                <p className="text-[0.75rem] text-muted mt-0.5">Ava har forberedt svar til jeres leverandører</p>
+                <p className="text-[0.75rem] text-muted mt-0.5">{t('Ava har forberedt svar til jeres leverandører')}</p>
               </div>
               <ArrowUpRight size={14} className="shrink-0 text-muted group-hover:text-ink transition-colors" />
             </button>
@@ -223,9 +225,10 @@ function JourneyNextSteps({ journey, onNavigate }: {
   journey: { key: JourneyStageKey; label: string; hint: string; status: string }[];
   onNavigate: (s: ScreenId) => void;
 }) {
+  const { t } = useLang();
   const shown = journey.filter((s) => s.status !== 'complete');
   if (shown.length === 0) {
-    return <p className="py-8 font-serif text-[1.05rem] italic text-muted">Alt er booket — hvor er I dygtige. 🤍</p>;
+    return <p className="py-8 font-serif text-[1.05rem] italic text-muted">{t('Alt er booket — hvor er I dygtige. 🤍')}</p>;
   }
   return (
     <div className="mt-6 grid gap-4 sm:grid-cols-2">
@@ -250,6 +253,7 @@ function WebsiteShareCard({ couple, onNavigate }: {
   couple: { a: string; b: string; guests: number };
   onNavigate: (s: ScreenId) => void;
 }) {
+  const { t } = useLang();
   const [copied, setCopied] = useState(false);
   const domain = `${(couple.a || 'os').toLowerCase()}${couple.b ? `-${couple.b.toLowerCase()}` : ''}.kalas.dk`;
 
@@ -271,9 +275,9 @@ function WebsiteShareCard({ couple, onNavigate }: {
             <Globe size={17} className="text-ink" />
           </div>
           <div className="min-w-0">
-            <p className="font-serif text-[1.1rem] text-ink leading-snug">Jeres hjemmeside (kommer snart)</p>
+            <p className="font-serif text-[1.1rem] text-ink leading-snug">{t('Jeres hjemmeside (kommer snart)')}</p>
             <p className="mt-0.5 text-[0.78rem] text-muted">
-              {couple.guests ? `${couple.guests} gæster` : 'Gæstelisten'} venter på linket
+              {t('{who} venter på linket', { who: couple.guests ? t('{n} gæster', { n: couple.guests }) : t('Gæstelisten') })}
             </p>
             <div className="mt-3 flex items-center gap-2 flex-wrap">
               <div className="flex items-center gap-2 rule rounded-xl bg-shell px-3 py-1.5">
@@ -282,14 +286,14 @@ function WebsiteShareCard({ couple, onNavigate }: {
               <button onClick={copy}
                 className="flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[0.68rem] font-bold uppercase tracking-[0.14em] bg-ink text-canvas hover:bg-ink/80 transition-colors cursor-pointer">
                 {copied ? <Check size={11} /> : <Copy size={11} />}
-                {copied ? 'Kopieret!' : 'Kopiér link'}
+                {copied ? t('Kopieret!') : t('Kopiér link')}
               </button>
             </div>
           </div>
         </div>
         <button onClick={() => onNavigate('website')}
           className="shrink-0 self-start rounded-full border border-[var(--color-line)] px-4 py-2 text-[0.68rem] font-medium uppercase tracking-[0.14em] text-ink hover:bg-shell transition-colors cursor-pointer">
-          Tilpas →
+          {t('Tilpas →')}
         </button>
       </div>
     </motion.div>
@@ -301,6 +305,7 @@ function ProposalRow({ vendorName, body, proposalId, onDone, onNavigate }: {
   vendorName: string; body: string; proposalId: string;
   onDone: () => void; onNavigate: (s: ScreenId) => void;
 }) {
+  const { t } = useLang();
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
 
@@ -322,35 +327,34 @@ function ProposalRow({ vendorName, body, proposalId, onDone, onNavigate }: {
     >
       <div className="grid items-start gap-8 lg:grid-cols-2 lg:gap-14">
         <div className="lg:pt-3">
-          <Eyebrow>Svar til {vendorName}</Eyebrow>
-          <h3 className="display mt-4 text-[clamp(1.5rem,3vw,2.2rem)] text-ink">Ava har skrevet et svar</h3>
+          <Eyebrow>{t('Svar til {vendor}', { vendor: vendorName })}</Eyebrow>
+          <h3 className="display mt-4 text-[clamp(1.5rem,3vw,2.2rem)] text-ink">{t('Ava har skrevet et svar')}</h3>
           <p className="mt-4 max-w-md text-ink-soft leading-relaxed">
-            {vendorName} har svaret på jeres henvendelse. Godkend Avas svar, så sender hun det fra
-            Kalas-postkassen — eller tal med hende om det først.
+            {t('{vendor} har svaret på jeres henvendelse. Godkend Avas svar, så sender hun det fra Kalas-postkassen — eller tal med hende om det først.', { vendor: vendorName })}
           </p>
           <div className="mt-7 flex items-center gap-2">
             <Pill arrow onClick={() => { if (!busy) void act('send'); }}>
-              {busy ? 'Sender…' : 'Godkend & send'}
+              {busy ? t('Sender…') : t('Godkend & send')}
             </Pill>
-            <Pill variant="ghost" onClick={() => onNavigate('ava')}>Tal med Ava</Pill>
+            <Pill variant="ghost" onClick={() => onNavigate('ava')}>{t('Tal med Ava')}</Pill>
             <button onClick={() => { if (!busy) void act('dismiss'); }}
               className="px-3 py-2 text-[0.72rem] font-medium uppercase tracking-[0.12em] text-muted hover:text-ink transition-colors cursor-pointer">
-              Afvis
+              {t('Afvis')}
             </button>
           </div>
         </div>
 
         <div className="rule rounded-2xl bg-card overflow-hidden">
           <div className="flex items-center justify-between px-6 py-4 rule-b">
-            <span className="text-[0.6rem] font-bold uppercase tracking-[0.22em] text-muted">Udkast · Ava</span>
-            <span className="rounded-full bg-sage px-2.5 py-0.5 text-[0.6rem] font-medium uppercase tracking-[0.12em] text-ink">Klar</span>
+            <span className="text-[0.6rem] font-bold uppercase tracking-[0.22em] text-muted">{t('Udkast · Ava')}</span>
+            <span className="rounded-full bg-sage px-2.5 py-0.5 text-[0.6rem] font-medium uppercase tracking-[0.12em] text-ink">{t('Klar')}</span>
           </div>
           <div className={cn('px-6 py-5 text-[0.84rem] text-ink-soft leading-relaxed whitespace-pre-line', !open && 'line-clamp-6')}>
             {body}
           </div>
           <button onClick={() => setOpen((v) => !v)}
             className="w-full rule-t px-6 py-3 text-[0.72rem] font-medium text-muted hover:text-ink transition-colors cursor-pointer">
-            {open ? 'Vis mindre' : 'Vis hele svaret'}
+            {open ? t('Vis mindre') : t('Vis hele svaret')}
           </button>
         </div>
       </div>

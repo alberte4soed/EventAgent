@@ -6,6 +6,7 @@ import { Send, Paperclip, MapPin, Copy, Check } from 'lucide-react';
 import { useKalas } from '../store';
 import { useWedding } from '../useWedding';
 import { cn } from '../ui';
+import { useLang } from '../i18n';
 import type { ScreenId } from '../Shell';
 import OnboardingHint from '../OnboardingHint';
 import { createClient } from '@/lib/supabase/client';
@@ -16,6 +17,7 @@ const SUGGESTIONS = ['Find venues til os', 'Hvad mangler vi at booke?', 'Skriv t
 
 export default function Ava({ onNavigate }: { onNavigate?: (s: ScreenId) => void }) {
   const { loading, event, couple } = useWedding();
+  const { t } = useLang();
 
   if (loading) {
     return (
@@ -31,9 +33,9 @@ export default function Ava({ onNavigate }: { onNavigate?: (s: ScreenId) => void
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-ink">
           <span className="font-serif text-[1.5rem] leading-none text-canvas">K</span>
         </div>
-        <p className="mt-4 font-serif text-[1.2rem] text-ink">Lad os planlægge jeres bryllup</p>
+        <p className="mt-4 font-serif text-[1.2rem] text-ink">{t('Lad os planlægge jeres bryllup')}</p>
         <p className="mt-2 max-w-sm text-[0.9rem] text-ink-soft">
-          Fortæl mig om jeres dag, så går jeg i gang med at finde venues.
+          {t('Fortæl mig om jeres dag, så går jeg i gang med at finde venues.')}
         </p>
       </div>
     );
@@ -50,6 +52,7 @@ function AvaChat({ eventId, coupleA, onNavigate }: { eventId: string; coupleA: s
     initialEventId: eventId,
     onTurnComplete: () => void refresh(),
   });
+  const { t } = useLang();
   const [draft, setDraft] = useState('');
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -94,7 +97,7 @@ function AvaChat({ eventId, coupleA, onNavigate }: { eventId: string; coupleA: s
         </div>
         <div>
           <div className="font-serif text-[1.15rem] text-ink">Ava</div>
-          <div className="text-[0.72rem] text-success">● Online · jeres bryllupsplanlægger</div>
+          <div className="text-[0.72rem] text-success">{t('● Online · jeres bryllupsplanlægger')}</div>
         </div>
       </header>
 
@@ -109,23 +112,23 @@ function AvaChat({ eventId, coupleA, onNavigate }: { eventId: string; coupleA: s
       <div className="pb-3 pt-2 lg:pb-7">
         <div className="mb-3 flex flex-wrap gap-2">
           {SUGGESTIONS.map((s) => (
-            <button key={s} onClick={() => sendMessage(s)} disabled={agentStatus !== null}
+            <button key={s} onClick={() => sendMessage(t(s))} disabled={agentStatus !== null}
               className="rounded-full rule bg-card px-3.5 py-2 text-[0.8rem] text-ink-soft transition-colors hover:bg-shell cursor-pointer disabled:opacity-50">
-              {s}
+              {t(s)}
             </button>
           ))}
         </div>
-        <form onSubmit={(e) => { e.preventDefault(); const t = draft; setDraft(''); void sendMessage(t); }}
+        <form onSubmit={(e) => { e.preventDefault(); const msg = draft; setDraft(''); void sendMessage(msg); }}
           className="flex items-center gap-2 rounded-full rule bg-card px-2 py-2">
-          <button type="button" aria-label="Vedhæft fil" disabled
+          <button type="button" aria-label={t('Vedhæft fil')} disabled
             className="flex h-10 w-10 items-center justify-center rounded-full text-faint cursor-not-allowed">
             <Paperclip size={17} />
           </button>
           <input value={draft} onChange={(e) => setDraft(e.target.value)}
-            placeholder={`Skriv til Ava, ${coupleA || 'du'}…`}
-            aria-label="Besked til Ava"
+            placeholder={t('Skriv til Ava, {name}…', { name: coupleA || t('du') })}
+            aria-label={t('Besked til Ava')}
             className="flex-1 bg-transparent text-[0.98rem] text-ink placeholder:text-faint focus:outline-none" />
-          <button type="submit" aria-label="Send besked" disabled={agentStatus !== null || !draft.trim()}
+          <button type="submit" aria-label={t('Send besked')} disabled={agentStatus !== null || !draft.trim()}
             className="flex h-10 w-10 items-center justify-center rounded-full bg-sage text-ink transition-colors hover:bg-sage-strong cursor-pointer disabled:opacity-50">
             <Send size={16} />
           </button>
@@ -158,11 +161,12 @@ function Bubble({ msg, onNavigate }: { msg: ChatMessageRow; onNavigate?: (s: Scr
 
 /* ── Interactive payload cards ───────────────────────────────────────── */
 function PayloadCard({ payload, onNavigate }: { payload: NonNullable<ChatMessageRow['payload']>; onNavigate?: (s: ScreenId) => void }) {
+  const { t } = useLang();
   switch (payload.kind) {
     case 'venue_batch':
       return (
         <ActionPill onClick={() => onNavigate?.('venues')}>
-          <MapPin size={13} /> {payload.venue_ids.length} venues lagt på jeres board — se dem
+          <MapPin size={13} /> {t('{n} venues lagt på jeres board — se dem', { n: payload.venue_ids.length })}
         </ActionPill>
       );
     case 'reply_proposal':
@@ -174,7 +178,7 @@ function PayloadCard({ payload, onNavigate }: { payload: NonNullable<ChatMessage
     case 'send_report':
       return (
         <div className="rounded-full bg-sage-tint px-4 py-2 text-[0.78rem] text-ink">
-          Sendt til {payload.sent}{payload.skipped ? `, ${payload.skipped} sprunget over` : ''}{payload.failed ? `, ${payload.failed} fejlede` : ''}.
+          {t('Sendt til {sent}', { sent: payload.sent })}{payload.skipped ? t(', {n} sprunget over', { n: payload.skipped }) : ''}{payload.failed ? t(', {n} fejlede', { n: payload.failed }) : ''}.
         </div>
       );
     default:
@@ -201,6 +205,7 @@ function CardShell({ label, children }: { label: string; children: React.ReactNo
 }
 
 function ProposalCard({ proposalId, onNavigate }: { proposalId: string; onNavigate?: (s: ScreenId) => void }) {
+  const { t } = useLang();
   const supabase = useMemo(() => createClient(), []);
   const { refresh } = useWedding();
   const [proposal, setProposal] = useState<ReplyProposalRow | null>(null);
@@ -224,25 +229,25 @@ function ProposalCard({ proposalId, onNavigate }: { proposalId: string; onNaviga
   };
 
   return (
-    <CardShell label="Foreslået svar til leverandør">
+    <CardShell label={t('Foreslået svar til leverandør')}>
       <p className="max-h-40 overflow-y-auto whitespace-pre-wrap rounded-xl bg-shell px-3 py-2.5 text-[0.85rem] leading-relaxed text-ink-soft">
         {proposal.body}
       </p>
       {settled ? (
-        <p className="mt-2.5 text-[0.76rem] font-medium text-success">{settled === 'sent' ? 'Sendt ✓' : 'Afvist'}</p>
+        <p className="mt-2.5 text-[0.76rem] font-medium text-success">{settled === 'sent' ? t('Sendt ✓') : t('Afvist')}</p>
       ) : (
         <div className="mt-2.5 flex flex-wrap gap-2">
           <button disabled={busy} onClick={() => act('send')}
             className="rounded-full bg-ink px-4 py-2 text-[0.76rem] font-medium text-canvas hover:bg-ink/90 transition-colors cursor-pointer disabled:opacity-50">
-            {busy ? 'Sender…' : 'Godkend & send'}
+            {busy ? t('Sender…') : t('Godkend & send')}
           </button>
           <button onClick={() => onNavigate?.('inbox')}
             className="rounded-full rule px-4 py-2 text-[0.76rem] text-ink-soft hover:bg-shell transition-colors cursor-pointer">
-            Se i indbakke
+            {t('Se i indbakke')}
           </button>
           <button disabled={busy} onClick={() => act('dismiss')}
             className="rounded-full px-3 py-2 text-[0.76rem] text-muted hover:text-ink transition-colors cursor-pointer disabled:opacity-50">
-            Afvis
+            {t('Afvis')}
           </button>
         </div>
       )}
@@ -251,6 +256,7 @@ function ProposalCard({ proposalId, onNavigate }: { proposalId: string; onNaviga
 }
 
 function DraftCard({ draftId }: { draftId: string }) {
+  const { t } = useLang();
   const supabase = useMemo(() => createClient(), []);
   const { venues, refresh } = useWedding();
   const [draft, setDraft] = useState<EmailDraftRow | null>(null);
@@ -274,21 +280,21 @@ function DraftCard({ draftId }: { draftId: string }) {
   };
 
   return (
-    <CardShell label={`Udkast · henvendelse`}>
+    <CardShell label={t('Udkast · henvendelse')}>
       <p className="text-[0.9rem] font-medium text-ink">{draft.subject}</p>
       <p className="mt-1.5 max-h-40 overflow-y-auto whitespace-pre-wrap rounded-xl bg-shell px-3 py-2.5 text-[0.82rem] leading-relaxed text-ink-soft">
         {draft.body_template}
       </p>
       <p className="mt-2 text-[0.74rem] text-muted">
-        Ava skriver individuelt til {recipients.length} valgt{recipients.length === 1 ? '' : 'e'} leverandør{recipients.length === 1 ? '' : 'er'}
+        {t('Ava skriver individuelt til {n} valgte leverandører', { n: recipients.length })}
         {recipients.length > 0 && `: ${recipients.map((v) => v.name).join(', ')}`}.
       </p>
       {draft.status !== 'proposed' || sent ? (
-        <p className="mt-2.5 text-[0.76rem] font-medium text-success">Sendt ✓</p>
+        <p className="mt-2.5 text-[0.76rem] font-medium text-success">{t('Sendt ✓')}</p>
       ) : (
         <button disabled={busy || recipients.length === 0} onClick={approve}
           className="mt-2.5 rounded-full bg-ink px-4 py-2 text-[0.76rem] font-medium text-canvas hover:bg-ink/90 transition-colors cursor-pointer disabled:opacity-50">
-          {busy ? 'Sender…' : 'Godkend & send'}
+          {busy ? t('Sender…') : t('Godkend & send')}
         </button>
       )}
     </CardShell>
@@ -296,6 +302,7 @@ function DraftCard({ draftId }: { draftId: string }) {
 }
 
 function InviteBriefCard({ wording, style, onNavigate }: { wording: string; style: string | null; onNavigate?: (s: ScreenId) => void }) {
+  const { t } = useLang();
   const [copied, setCopied] = useState(false);
   const copy = async () => {
     try { await navigator.clipboard.writeText(wording); setCopied(true); setTimeout(() => setCopied(false), 1600); } catch { /* no clipboard */ }
@@ -303,18 +310,18 @@ function InviteBriefCard({ wording, style, onNavigate }: { wording: string; styl
   return (
     <div className="rounded-2xl rule bg-card overflow-hidden">
       <div className="flex items-center justify-between rule-b px-4 py-2.5">
-        <span className="text-[0.78rem] font-medium text-ink">💌 Invitationstekst</span>
+        <span className="text-[0.78rem] font-medium text-ink">{t('💌 Invitationstekst')}</span>
         {style && <span className="rounded-full bg-sage-tint px-2.5 py-0.5 text-[0.68rem] text-ink">{style}</span>}
       </div>
       <p className="whitespace-pre-wrap px-5 py-5 text-center font-serif text-[0.98rem] leading-[1.8] text-ink">{wording}</p>
       <div className="flex items-center gap-2 rule-t px-4 py-3">
         <button onClick={() => onNavigate?.('invites')}
           className="rounded-full bg-ink px-4 py-2 text-[0.76rem] font-medium text-canvas hover:bg-ink/90 transition-colors cursor-pointer">
-          Bestil tryk →
+          {t('Bestil tryk →')}
         </button>
         <button onClick={copy}
           className="inline-flex items-center gap-1.5 rounded-full rule px-4 py-2 text-[0.76rem] text-ink-soft hover:bg-shell transition-colors cursor-pointer">
-          {copied ? <><Check size={13} /> Kopieret</> : <><Copy size={13} /> Kopiér</>}
+          {copied ? <><Check size={13} /> {t('Kopieret')}</> : <><Copy size={13} /> {t('Kopiér')}</>}
         </button>
       </div>
     </div>

@@ -9,6 +9,7 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import { couple, daysUntil } from './data';
 import { cn } from './ui';
+import { useLang } from './i18n';
 
 export type ScreenId =
   | 'home' | 'ava' | 'inspiration'
@@ -64,6 +65,7 @@ export default function Shell({
   avaBadge: number;
   children: React.ReactNode;
 }) {
+  const { t } = useLang();
   const [moreOpen, setMoreOpen] = useState(false);
   const navigate = (s: ScreenId) => { setMoreOpen(false); onNavigate(s); };
   const moreActive = !MOBILE_TABS.includes(current);
@@ -80,7 +82,7 @@ export default function Shell({
               badge={n.id === 'home' ? pendingCount : undefined}
               avaPulse={n.id === 'ava' && avaBadge > 0} />
           ))}
-          <p className="eyebrow mt-6 pb-2 pl-3">Planlægning</p>
+          <p className="eyebrow mt-6 pb-2 pl-3">{t('Planlægning')}</p>
           {NAV.filter((n) => n.group === 'plan').map((n) => (
             <NavRow key={n.id} item={n} active={current === n.id} onClick={() => navigate(n.id)} />
           ))}
@@ -94,11 +96,11 @@ export default function Shell({
             <Initials />
             <div className="min-w-0">
               <div className="truncate font-serif text-[0.95rem] text-ink">{couple.a} & {couple.b}</div>
-              <div className="truncate text-[0.7rem] text-muted">{daysUntil} dage tilbage</div>
+              <div className="truncate text-[0.7rem] text-muted">{t('{n} dage tilbage', { n: daysUntil })}</div>
             </div>
           </button>
           {/* Leaves the SPA — settings (Gmail + log ud) is a Next.js route. */}
-          <a href="/settings" aria-label="Indstillinger"
+          <a href="/settings" aria-label={t('Indstillinger')}
             className="rule flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-muted transition-colors hover:bg-card hover:text-ink">
             <Settings size={17} strokeWidth={1.6} />
           </a>
@@ -124,7 +126,7 @@ export default function Shell({
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: 'spring', stiffness: 340, damping: 26 }}
           onClick={() => navigate('ava')}
-          aria-label={avaBadge > 0 ? `Tal med Ava — ${avaBadge} nye beskeder` : 'Tal med Ava'}
+          aria-label={avaBadge > 0 ? t('Tal med Ava — {n} nye beskeder', { n: avaBadge }) : t('Tal med Ava')}
           className="fixed bottom-36 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-ink text-canvas shadow-[0_8px_24px_rgba(46,51,37,0.22)] hover:scale-105 active:scale-95 transition-transform cursor-pointer lg:bottom-10 lg:right-10">
           <MessageCircle size={22} strokeWidth={1.6} />
           {avaBadge > 0 && (
@@ -144,7 +146,7 @@ export default function Shell({
             const Icon = item.icon;
             const active = current === id && !moreOpen;
             return (
-              <button key={id} onClick={() => navigate(id)} aria-label={item.label}
+              <button key={id} onClick={() => navigate(id)} aria-label={t(item.label)}
                 className="relative flex flex-1 flex-col items-center gap-1 rounded-full py-2 cursor-pointer">
                 {active && (
                   <motion.span layoutId="kalas-tab" className="absolute inset-0 rounded-full bg-sage-tint"
@@ -158,7 +160,7 @@ export default function Shell({
             );
           })}
           {/* Mere */}
-          <button onClick={() => setMoreOpen((v) => !v)} aria-label="Flere sider" aria-expanded={moreOpen}
+          <button onClick={() => setMoreOpen((v) => !v)} aria-label={t('Flere sider')} aria-expanded={moreOpen}
             className="relative flex flex-1 flex-col items-center gap-1 rounded-full py-2 cursor-pointer">
             {(moreOpen || moreActive) && (
               <motion.span layoutId="kalas-tab" className="absolute inset-0 rounded-full bg-sage-tint"
@@ -183,11 +185,11 @@ export default function Shell({
               initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', stiffness: 380, damping: 36 }}
               className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl bg-canvas px-6 pt-5 pb-24 lg:hidden"
-              role="dialog" aria-label="Alle sider"
+              role="dialog" aria-label={t('Alle sider')}
             >
               <div className="flex items-center justify-between mb-4">
-                <p className="eyebrow">Planlægning</p>
-                <button onClick={() => setMoreOpen(false)} aria-label="Luk"
+                <p className="eyebrow">{t('Planlægning')}</p>
+                <button onClick={() => setMoreOpen(false)} aria-label={t('Luk')}
                   className="flex h-8 w-8 items-center justify-center rounded-full bg-shell text-muted hover:text-ink cursor-pointer">
                   <X size={15} />
                 </button>
@@ -203,14 +205,14 @@ export default function Shell({
                         active ? 'bg-sage-tint text-ink' : 'bg-card text-ink-soft hover:bg-shell',
                       )}>
                       <Icon size={20} strokeWidth={1.6} />
-                      <span className="text-[0.72rem] font-medium">{n.label}</span>
+                      <span className="text-[0.72rem] font-medium">{t(n.label)}</span>
                     </button>
                   );
                 })}
                 <a href="/settings"
                   className="flex flex-col items-center gap-2 rounded-2xl bg-card px-2 py-4 text-ink-soft transition-colors hover:bg-shell">
                   <Settings size={20} strokeWidth={1.6} />
-                  <span className="text-[0.72rem] font-medium">Indstillinger</span>
+                  <span className="text-[0.72rem] font-medium">{t('Indstillinger')}</span>
                 </a>
               </div>
             </motion.div>
@@ -224,6 +226,7 @@ export default function Shell({
 function NavRow({ item, active, onClick, badge, avaPulse }: {
   item: NavItem; active: boolean; onClick: () => void; badge?: number; avaPulse?: boolean;
 }) {
+  const { t } = useLang();
   const Icon = item.icon;
   return (
     <button onClick={onClick}
@@ -242,7 +245,7 @@ function NavRow({ item, active, onClick, badge, avaPulse }: {
           </span>
         )}
       </span>
-      <span className="relative z-10 text-[0.88rem]">{item.label}</span>
+      <span className="relative z-10 text-[0.88rem]">{t(item.label)}</span>
       {badge ? (
         <span className="relative z-10 ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-clay px-1.5 text-[0.65rem] font-medium text-canvas">
           {badge}
