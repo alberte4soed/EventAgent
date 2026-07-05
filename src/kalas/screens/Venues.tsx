@@ -1,10 +1,52 @@
+"use client";
+
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform } from 'motion/react';
 import { Heart, X, Check, MessageCircle, ArrowLeft, ArrowRight } from 'lucide-react';
-import { IMAGES, dnaTraits, moodboard, venueRecs, couple, type VenueRec } from '../data';
+import { IMAGES, dnaTraits, moodboard } from '../data';
+import { useWedding } from '../useWedding';
 import { Eyebrow, Pill, Bleed, cn } from '../ui';
 import type { ScreenId } from '../Shell';
 import OnboardingHint from '../OnboardingHint';
+import type { VenueRow } from '@/lib/db/types';
+
+/* Real venue row → the display shape the discovery views render. */
+interface DisplayVenue {
+  id: string;
+  name: string;
+  location: string;
+  image: string;      // real URL, or an IMAGES key for mock flavour
+  match: number;
+  price: string;
+  capacity: string;
+  tags: string[];
+  why: string[];
+  quote: string;
+  photos: string[];
+}
+
+function toDisplay(v: VenueRow): DisplayVenue {
+  const reviewSnippets = (v.reviews ?? [])
+    .map((r) => r.text ?? '')
+    .filter(Boolean);
+  return {
+    id: v.id,
+    name: v.name,
+    location: v.address ?? '',
+    image: v.image_url ?? v.photo_urls?.[0] ?? 'orangeri',
+    match: v.rating != null ? Math.round(Number(v.rating) * 20) : 0,
+    price: v.price_hint ?? '—',
+    capacity: v.capacity ?? '—',
+    tags: v.review_count ? [`${v.review_count} anmeldelser`] : [],
+    why: v.why_fit ? [v.why_fit, ...reviewSnippets.slice(0, 2)] : reviewSnippets.slice(0, 3),
+    quote: v.why_fit ?? reviewSnippets[0] ?? '',
+    photos: v.photo_urls ?? [],
+  };
+}
+
+/* Resolve an image that may be a real URL or a mock IMAGES key. */
+const imgSrc = (src: string) =>
+  src.startsWith('http') ? src : IMAGES[src as keyof typeof IMAGES] ?? IMAGES.orangeri;
 
 /* ── Swipe deck ──────────────────────────────────────────────────────── */
 const SWIPE_DECK = [
@@ -49,17 +91,52 @@ const CATEGORY_VENUES = [
 ══════════════════════════════════════════════════════════════════════ */
 export default function VenueDiscovery({ onNavigate }: { onNavigate?: (s: ScreenId) => void }) {
   type VView = 'swipe' | 'dna' | 'picks';
+  const { couple, event, venues: allVenues, outbound, refresh } = useWedding();
+
+  // Real venues for this wedding (never vendors).
+  const venues = allVenues.filter((v) => v.category === 'venue');
+  const displayVenues = venues.map(toDisplay);
+
+  // If the couple already has venues on their board, skip the style intro.
+  const hasRealVenues = displayVenues.length > 0;
   const [vview, setVView] = useState<VView>(() =>
-    sessionStorage.getItem('kalas_dna') === 'done' ? 'picks' : 'swipe'
+    (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('kalas_dna') === 'done')
+      ? 'picks' : 'swipe'
   );
   const [cat, setCat] = useState<Category | null>(null);
-  const [saved, setSaved] = useState<Set<string>>(new Set());
-  const [sent,  setSent]  = useState<Set<string>>(new Set());
-  const [booked, setBooked] = useState<string | null>(null);
 
-  const toggleSave  = (id: string) => setSaved((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
-  const reqOutreach = (id: string) => { setSent((p) => new Set(p).add(id)); setSaved((p) => new Set(p).add(id)); };
+  // Derived state from real rows.
+  const saved = new Set(venues.filter((v) => v.swipe_status === 'liked').map((v) => v.id));
+  const sent = new Set(outbound.map((o) => o.venue_id));
+  const booked = event?.chosen_venue_id ?? venues.find((v) => v.booked_at)?.id ?? null;
+
+  const toggleSave = async (id: string) => {
+    const v = venues.find((x) => x.id === id);
+    const next = v?.swipe_status === 'liked' ? 'rejected' : 'liked';
+    await fetch(`/api/venues/${id}/swipe`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ decision: next }),
+    });
+    await refresh();
+  };
+  const reqOutreach = async (id: string) => {
+    await fetch(`/api/venues/${id}/swipe`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ decision: 'liked' }),
+    });
+    await refresh();
+  };
+  const bookVenue = async (id: string) => {
+    await fetch(`/api/venues/${id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ booked: true }),
+    });
+    await refresh();
+  };
   const handleDNADone = () => { sessionStorage.setItem('kalas_dna', 'done'); setVView('dna'); };
+
+  // Once venues exist, jump straight to picks.
+  const effectiveView: VView = hasRealVenues && vview === 'swipe' ? 'picks' : vview;
 
   return (
     <div className="min-h-screen">
@@ -67,13 +144,14 @@ export default function VenueDiscovery({ onNavigate }: { onNavigate?: (s: Screen
         {!cat ? (
           <motion.div key="main" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <AnimatePresence mode="wait">
-              {vview === 'swipe' && <SwipeView key="swipe" onDone={handleDNADone} />}
-              {vview === 'dna'   && <DNAView   key="dna"   onContinue={() => setVView('picks')} />}
-              {vview === 'picks' && (
+              {effectiveView === 'swipe' && <SwipeView key="swipe" onDone={handleDNADone} />}
+              {effectiveView === 'dna'   && <DNAView   key="dna"   onContinue={() => setVView('picks')} />}
+              {effectiveView === 'picks' && (
                 <PicksView key="picks"
+                  venues={displayVenues} couple={couple}
                   saved={saved} sent={sent} booked={booked}
                   onToggleSave={toggleSave} onOutreach={reqOutreach}
-                  onBook={(id) => setBooked(id)}
+                  onBook={bookVenue}
                   onBrowseCategory={(c) => setCat(c)}
                   onAva={() => onNavigate?.('ava')}
                   onNextStep={() => onNavigate?.('vendors')} />
@@ -298,19 +376,21 @@ function DNAView({ onContinue }: { onContinue: () => void }) {
    PICKS VIEW
 ═══════════════════════════════════════════════════════════════════════ */
 function PicksView({
-  saved, sent, booked, onToggleSave, onOutreach, onBook, onBrowseCategory, onAva, onNextStep,
+  venues, couple, saved, sent, booked, onToggleSave, onOutreach, onBook, onBrowseCategory, onAva, onNextStep,
 }: {
+  venues: DisplayVenue[];
+  couple: { region: string; guests: number };
   saved: Set<string>; sent: Set<string>; booked: string | null;
   onToggleSave: (id: string) => void; onOutreach: (id: string) => void;
   onBook: (id: string) => void; onBrowseCategory: (c: Category) => void; onAva: () => void;
   onNextStep?: () => void;
 }) {
-  const [selectedVenue, setSelectedVenue] = useState<VenueRec | null>(null);
+  const [selectedVenue, setSelectedVenue] = useState<DisplayVenue | null>(null);
   const [comparing, setComparing] = useState(false);
   const venueCity = couple.region.includes(' · ')
     ? couple.region.split(' · ')[1].replace('nær ', '')
     : couple.region;
-  const savedVenues = venueRecs.filter(v => saved.has(v.id));
+  const savedVenues = venues.filter(v => saved.has(v.id));
 
   if (comparing && savedVenues.length >= 2) {
     return (
@@ -331,6 +411,7 @@ function PicksView({
         <VenueDetail
           key={selectedVenue.id}
           venue={selectedVenue}
+          allVenues={venues}
           saved={saved.has(selectedVenue.id)}
           sent={sent.has(selectedVenue.id)}
           isBooked={booked === selectedVenue.id}
@@ -343,7 +424,25 @@ function PicksView({
     );
   }
 
-  const bookedVenue = booked ? venueRecs.find((v) => v.id === booked) : null;
+  // Nothing found yet — invite the couple to have Ava search.
+  if (venues.length === 0) {
+    return (
+      <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
+        className="flex min-h-[60vh] flex-col items-center justify-center px-6 text-center">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-ink">
+          <span className="font-serif text-[1.4rem] leading-none text-canvas">K</span>
+        </div>
+        <h2 className="display mt-5 text-[1.8rem] text-ink">Lad Ava finde jeres venues</h2>
+        <p className="mt-2 max-w-sm text-[0.9rem] text-ink-soft">
+          Fortæl Ava om jeres dag, så finder hun rigtige venues nær {venueCity || 'jer'} — med
+          billeder, anmeldelser og priser.
+        </p>
+        <div className="mt-6"><Pill arrow onClick={onAva}><MessageCircle size={14} /> Tal med Ava</Pill></div>
+      </motion.div>
+    );
+  }
+
+  const bookedVenue = booked ? venues.find((v) => v.id === booked) : null;
 
   return (
     <motion.div
@@ -402,7 +501,7 @@ function PicksView({
                 animate={{ opacity: 1, scale: 1 }}
                 onClick={() => setSelectedVenue(v)}
                 className="relative shrink-0 w-44 h-28 rounded-2xl overflow-hidden cursor-pointer group">
-                <img src={IMAGES[v.image]} alt={v.name}
+                <img src={imgSrc(v.image)} alt={v.name}
                   className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#1a2215cc] via-[#1a221540] to-transparent" />
                 <button
@@ -445,13 +544,13 @@ function PicksView({
           <span className="text-[0.72rem] text-muted">Venues der aktivt samarbejder med Kalas</span>
         </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {venueRecs.filter(v => ['villa-cph','kokkedal'].includes(v.id)).map((v, i) => (
+          {venues.slice(0, 2).map((v, i) => (
             <motion.button key={v.id}
               initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.06 }}
               onClick={() => setSelectedVenue(v)}
               className="group relative h-36 overflow-hidden rounded-2xl cursor-pointer text-left">
-              <img src={IMAGES[v.image]} alt={v.name}
+              <img src={imgSrc(v.image)} alt={v.name}
                 className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
               <div className="absolute inset-0 bg-gradient-to-t from-[#1a2215e6] via-[#1a221540] to-transparent" />
               <div className="absolute top-3 left-3">
@@ -469,7 +568,7 @@ function PicksView({
 
       {/* Venue carousel */}
       <div className="pt-12">
-        <VenueCarousel venues={venueRecs}
+        <VenueCarousel venues={venues}
           saved={saved} sent={sent} booked={booked}
           onToggleSave={onToggleSave} onOutreach={onOutreach} onBook={onBook}
           onSelect={setSelectedVenue} />
@@ -646,7 +745,7 @@ const VENUE_EXTRA: Record<string, VenueExtra> = {
 function ComparisonView({
   venues, saved, booked, onBack, onToggleSave, onBook,
 }: {
-  venues: VenueRec[]; saved: Set<string>; booked: string | null;
+  venues: DisplayVenue[]; saved: Set<string>; booked: string | null;
   onBack: () => void; onToggleSave: (id: string) => void; onBook: (id: string) => void;
 }) {
   return (
@@ -674,7 +773,7 @@ function ComparisonView({
                 transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
                 className="rule rounded-2xl bg-card overflow-hidden flex flex-col">
                 <div className="relative aspect-[4/3] overflow-hidden">
-                  <img src={IMAGES[v.image]} alt={v.name}
+                  <img src={imgSrc(v.image)} alt={v.name}
                     className="h-full w-full object-cover transition-transform duration-700 hover:scale-[1.04]" />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#1a221580] to-transparent" />
                   <div className="absolute left-3 top-3 rounded-full bg-sage px-3 py-1 text-[0.62rem] font-bold uppercase tracking-[0.16em] text-ink">
@@ -737,13 +836,14 @@ function ComparisonView({
    VENUE DETAIL PAGE
 ═══════════════════════════════════════════════════════════════════════ */
 function VenueDetail({
-  venue, saved, sent, isBooked, onBack, onSave, onContact, onBook,
+  venue, allVenues, saved, sent, isBooked, onBack, onSave, onContact, onBook,
 }: {
-  venue: VenueRec; saved: boolean; sent: boolean; isBooked: boolean;
+  venue: DisplayVenue; allVenues: DisplayVenue[]; saved: boolean; sent: boolean; isBooked: boolean;
   onBack: () => void; onSave: () => void; onContact: () => void; onBook: () => void;
 }) {
   const [notes, setNotes]         = useState('');
   const [activePackage, setPkg]   = useState<number | null>(null);
+  const realPhotos = venue.photos ?? [];
   const gallery  = VENUE_GALLERY[venue.id] ?? ['ceremony', 'florals', 'longTable', 'candles'];
   const extra    = VENUE_EXTRA[venue.id]   ?? { description: venue.quote, highlights: venue.why };
   const practical = extra.practical ?? DEFAULT_PRACTICAL;
@@ -772,17 +872,25 @@ function VenueDetail({
       {/* ── Photo grid ────────────────────────────────────────────── */}
       <div className="grid gap-1 sm:grid-cols-[2fr_1fr_1fr] sm:grid-rows-2 h-[300px] sm:h-[460px]">
         <div className="relative overflow-hidden sm:row-span-2">
-          <img src={IMAGES[venue.image]} alt={venue.name}
+          <img src={imgSrc(venue.image)} alt={venue.name}
             className="absolute inset-0 h-full w-full object-cover object-center" />
           <div className="absolute bottom-4 right-4 flex items-center gap-1.5 rounded-full bg-canvas/90 px-3 py-1.5 backdrop-blur-sm">
-            <span className="text-[0.68rem] font-medium text-ink">{gallery.length + 1} billeder</span>
+            <span className="text-[0.68rem] font-medium text-ink">
+              {(realPhotos.length > 1 ? realPhotos.length : gallery.length + 1)} billeder
+            </span>
           </div>
         </div>
-        {gallery.slice(0, 4).map((key, i) => (
-          <div key={i} className="relative hidden overflow-hidden sm:block">
-            <img src={IMAGES[key]} alt="" className="absolute inset-0 h-full w-full object-cover object-center" />
-          </div>
-        ))}
+        {(realPhotos.length > 1
+          ? realPhotos.slice(1, 5).map((url, i) => (
+              <div key={i} className="relative hidden overflow-hidden sm:block">
+                <img src={url} alt="" className="absolute inset-0 h-full w-full object-cover object-center" />
+              </div>
+            ))
+          : gallery.slice(0, 4).map((key, i) => (
+              <div key={i} className="relative hidden overflow-hidden sm:block">
+                <img src={IMAGES[key]} alt="" className="absolute inset-0 h-full w-full object-cover object-center" />
+              </div>
+            )))}
       </div>
 
       {/* ── Main info ─────────────────────────────────────────────── */}
@@ -913,11 +1021,11 @@ function VenueDetail({
         <div className="mt-10 rule-t pt-8">
           <Eyebrow>Lignende venues</Eyebrow>
           <div className="mt-5 flex gap-3 overflow-x-auto hide-scrollbar pb-2">
-            {venueRecs.filter((v) => v.id !== venue.id).slice(0, 3).map((v) => (
+            {allVenues.filter((v) => v.id !== venue.id).slice(0, 3).map((v) => (
               <div key={v.id}
                 className="relative shrink-0 overflow-hidden rounded-xl cursor-default"
                 style={{ width: 'min(180px, 45vw)', aspectRatio: '3/4' }}>
-                <img src={IMAGES[v.image]} alt={v.name}
+                <img src={imgSrc(v.image)} alt={v.name}
                   className="absolute inset-0 h-full w-full object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#1a2215e8] via-transparent to-transparent" />
                 <div className="absolute inset-x-0 bottom-0 p-3">
@@ -984,9 +1092,9 @@ function VenueDetail({
 function VenueCarousel({
   venues, saved, sent, booked, onToggleSave, onOutreach, onBook, onSelect,
 }: {
-  venues: VenueRec[]; saved: Set<string>; sent: Set<string>; booked: string | null;
+  venues: DisplayVenue[]; saved: Set<string>; sent: Set<string>; booked: string | null;
   onToggleSave: (id: string) => void; onOutreach: (id: string) => void; onBook: (id: string) => void;
-  onSelect: (v: VenueRec) => void;
+  onSelect: (v: DisplayVenue) => void;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [current, setCurrent] = useState(0);
@@ -1073,7 +1181,7 @@ function VenueCarousel({
 function VenueCard({
   venue, index, saved, sent, isBooked, onToggleSave, onOutreach, onBook, onSelect,
 }: {
-  venue: VenueRec; index: number; saved: boolean; sent: boolean; isBooked: boolean;
+  venue: DisplayVenue; index: number; saved: boolean; sent: boolean; isBooked: boolean;
   onToggleSave: () => void; onOutreach: () => void; onBook: () => void; onSelect: () => void;
 }) {
   return (
@@ -1085,7 +1193,7 @@ function VenueCard({
       className="relative shrink-0 snap-start overflow-hidden rounded-2xl"
       style={{ width: 'min(320px, 82vw)', minHeight: '27rem' }}>
 
-      <img src={IMAGES[venue.image]} alt={venue.name}
+      <img src={imgSrc(venue.image)} alt={venue.name}
         className="absolute inset-0 h-full w-full object-cover object-center transition-transform duration-[2s] hover:scale-[1.04]" />
       <div className="absolute inset-0 bg-gradient-to-t from-[#1a2215f2] via-[#1a221550] to-transparent" />
       <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-transparent to-transparent" />
@@ -1191,7 +1299,7 @@ function CategoryDetail({
             transition={{ duration: 0.6, delay: i * 0.06, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden rule rounded-2xl">
             <div className="relative aspect-[4/3] overflow-hidden">
-              <img src={IMAGES[v.image]} alt={v.name}
+              <img src={imgSrc(v.image)} alt={v.name}
                 className="h-full w-full object-cover transition-transform duration-[1.5s] hover:scale-[1.04]" />
               <div className="absolute inset-0 bg-gradient-to-t from-[#1a221590] to-transparent" />
               <div className="absolute inset-x-0 bottom-0 p-4">
