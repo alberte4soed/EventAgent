@@ -2,20 +2,35 @@ import * as React from 'react';
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { RotateCcw, Plus, Trash2, Check } from 'lucide-react';
-import { couple, daysUntil, TODAY, type Task } from '../data';
-import { useKalas } from '../store';
+import { TODAY, timeline as MOCK_TIMELINE } from '../data';
+import { useWedding } from '../useWedding';
 import { Eyebrow, cn } from '../ui';
 
-const AVA_CELEBRATION: Record<string, string> = {
-  't3':  'Venue booket. Det er det sværeste skridt — nu ruller det.',
-  't5':  'Fotografen er på plads. Ava noterer det i jeres brief.',
-  't6':  'Catering aftalt. Ava holder øje med eventuelle ændringer.',
-  't9':  'Invitationer afsendt. Ava venter på RSVP og giver besked.',
-  't11': 'Tøj aftalt. Et stort tjek på listen.',
-  default: 'Godt klaret. Ava har opdateret jeres fremdrift.',
-};
+const AVA_CELEBRATION = 'Godt klaret. Ava har opdateret jeres fremdrift.';
 
 const MONTHS_DA = ['JAN','FEB','MAR','APR','MAJ','JUN','JUL','AUG','SEP','OKT','NOV','DEC'];
+
+/** A displayable milestone: the DB row projected to a guaranteed date. */
+type DisplayTask = { id: string; title: string; dateISO: string; done: boolean; weddingDay: boolean };
+
+// The mock timeline is a proven default plan anchored on its own wedding day.
+// We re-anchor every milestone onto the couple's real date, preserving the
+// relative lead times (book venue ~12 months out, invitations ~3 weeks, …).
+const MOCK_WED_MS = new Date(MOCK_TIMELINE[MOCK_TIMELINE.length - 1].dateISO).getTime();
+
+function defaultMilestones(weddingISO: string) {
+  const wed = new Date(weddingISO).getTime();
+  return MOCK_TIMELINE.map((t, i) => {
+    const offset = new Date(t.dateISO).getTime() - MOCK_WED_MS;
+    return {
+      title: t.title,
+      due_date: new Date(wed + offset).toISOString().slice(0, 10),
+      category: i === MOCK_TIMELINE.length - 1 ? 'wedding_day' : null,
+      done: false,
+      sort: i,
+    };
+  });
+}
 
 function daysDiff(dateISO: string): number {
   const d = new Date(dateISO);
@@ -36,7 +51,10 @@ const EMPTY_COPY: Record<Filter, string> = {
 };
 
 export default function Planning() {
-  const { tasks, setTasks, doneIds, toggleDone, resetTimeline } = useKalas();
+  const { loading, couple, timelineTasks, addTask, updateTask, deleteTask, seedTasks } = useWedding();
+  const daysUntil = couple.dateISO
+    ? Math.max(0, Math.round((new Date(couple.dateISO).getTime() - TODAY.getTime()) / 86400000))
+    : 0;
   const [filter, setFilter] = useState<Filter>('alle');
   const [celebration, setCelebration] = useState<{ title: string; msg: string } | null>(null);
   const [addingAfter, setAddingAfter] = useState<string | null>(null); // task id or 'bottom'
@@ -44,6 +62,16 @@ export default function Planning() {
   const [newDate,  setNewDate]  = useState(new Date().toISOString().slice(0, 10));
   const [confirmReset, setConfirmReset] = useState(false);
   const newInputRef = useRef<HTMLInputElement>(null);
+  const seededRef = useRef(false);
+
+  // First visit with a set wedding date and no milestones → seed the plan once.
+  useEffect(() => {
+    if (loading || seededRef.current) return;
+    if (timelineTasks.length === 0 && couple.dateISO) {
+      seededRef.current = true;
+      void seedTasks(defaultMilestones(couple.dateISO));
+    }
+  }, [loading, timelineTasks.length, couple.dateISO, seedTasks]);
 
   // Auto-cancel the reset confirmation if the user hesitates.
   useEffect(() => {
@@ -52,31 +80,41 @@ export default function Planning() {
     return () => clearTimeout(t);
   }, [confirmReset]);
 
-  const done = tasks.filter((t) => doneIds.has(t.id)).length;
+  const fallbackDate = couple.dateISO ?? new Date().toISOString().slice(0, 10);
+  const tasks: DisplayTask[] = timelineTasks
+    .map((t) => ({
+      id: t.id,
+      title: t.title,
+      dateISO: t.due_date ?? fallbackDate,
+      done: t.done,
+      weddingDay: t.category === 'wedding_day',
+    }))
+    .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+
+  const done = tasks.filter((t) => t.done).length;
   const pct  = tasks.length ? Math.round((done / tasks.length) * 100) : 0;
 
   const filtered = tasks.filter((t) => {
-    const isDone = doneIds.has(t.id);
-    if (filter === 'kommende') return !isDone;
-    if (filter === 'færdige')  return isDone;
+    if (filter === 'kommende') return !t.done;
+    if (filter === 'færdige')  return t.done;
     return true;
   });
 
-  function handleToggle(t: Task) {
-    const nowDone = toggleDone(t.id);
+  function handleToggle(t: DisplayTask) {
+    const nowDone = !t.done;
+    void updateTask(t.id, { done: nowDone });
     if (nowDone) {
-      const msg = AVA_CELEBRATION[t.id] ?? AVA_CELEBRATION.default;
-      setCelebration({ title: t.title, msg });
+      setCelebration({ title: t.title, msg: AVA_CELEBRATION });
       setTimeout(() => setCelebration(null), 3200);
     }
   }
 
   function handleDelete(id: string) {
-    setTasks((prev) => prev.filter((t) => t.id !== id));
+    void deleteTask(id);
   }
 
   function handleDateChange(id: string, dateISO: string) {
-    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, dateISO } : t)));
+    void updateTask(id, { due_date: dateISO });
   }
 
   function openAdd(afterId: string) {
@@ -88,32 +126,21 @@ export default function Planning() {
 
   function commitAdd() {
     if (!newTitle.trim()) { setAddingAfter(null); return; }
-    const newTask: Task = {
-      id: `t_${Date.now()}`,
-      title: newTitle.trim(),
-      description: '',
-      dateISO: newDate,
-      status: 'active',
-      owner: 'couple',
-    };
-    setTasks((prev) => {
-      if (addingAfter === 'bottom') return [...prev, newTask];
-      const idx = prev.findIndex((t) => t.id === addingAfter);
-      const next = [...prev];
-      next.splice(idx + 1, 0, newTask);
-      return next;
-    });
+    void addTask({ title: newTitle.trim(), due_date: newDate });
     setAddingAfter(null);
   }
 
   function handleReset() {
     if (!confirmReset) { setConfirmReset(true); return; }
-    resetTimeline();
+    void (async () => {
+      await Promise.all(timelineTasks.map((t) => deleteTask(t.id)));
+      if (couple.dateISO) await seedTasks(defaultMilestones(couple.dateISO));
+    })();
     setConfirmReset(false);
   }
 
   // Group by year
-  const byYear: Record<number, Task[]> = {};
+  const byYear: Record<number, DisplayTask[]> = {};
   for (const t of filtered) {
     const y = parseInt(t.dateISO.split('-')[0]);
     if (!byYear[y]) byYear[y] = [];
@@ -228,7 +255,8 @@ export default function Planning() {
                 {byYear[year].map((t, i) => (
                   <React.Fragment key={t.id}>
                     <TimelineRow t={t} i={i}
-                      isDone={doneIds.has(t.id)}
+                      isDone={t.done}
+                      isWeddingDay={t.weddingDay}
                       onToggle={() => handleToggle(t)}
                       onDelete={() => handleDelete(t.id)}
                       onInsertAfter={() => openAdd(t.id)}
@@ -295,8 +323,8 @@ export default function Planning() {
   );
 }
 
-function TimelineRow({ t, i, isDone, onToggle, onDelete, onInsertAfter, onDateChange }: {
-  t: Task; i: number; isDone: boolean;
+function TimelineRow({ t, i, isDone, isWeddingDay, onToggle, onDelete, onInsertAfter, onDateChange }: {
+  t: DisplayTask; i: number; isDone: boolean; isWeddingDay: boolean;
   onToggle: () => void; onDelete: () => void; onInsertAfter: () => void;
   onDateChange: (dateISO: string) => void;
 }) {
@@ -307,7 +335,6 @@ function TimelineRow({ t, i, isDone, onToggle, onDelete, onInsertAfter, onDateCh
   const day = String(d.getDate()).padStart(2, '0');
   const mon = MONTHS_DA[d.getMonth()];
 
-  const isWeddingDay = t.id === 't14';
   const isOverdue = diff < 0 && !isDone;
   const isUpcoming = diff >= 0 && !isDone && !isWeddingDay;
 
@@ -359,7 +386,6 @@ function TimelineRow({ t, i, isDone, onToggle, onDelete, onInsertAfter, onDateCh
               {t.title}
             </h3>
           </div>
-          {t.description && <p className="mt-1.5 ml-8 text-[0.82rem] text-muted leading-relaxed">{t.description}</p>}
           {/* row actions — always visible on touch, hover-revealed on desktop */}
           <div className={cn('mt-2 ml-8 flex items-center gap-4', !hovered && 'sm:hidden')}>
             <button onClick={onInsertAfter}

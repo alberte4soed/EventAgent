@@ -1,13 +1,20 @@
-import { useState, useId } from 'react';
+import { useState, useId, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Check, Globe, Smartphone, Plus, X, ChevronDown, Trash2,
   Lock, Copy, Eye, EyeOff, MapPin, Gift, HelpCircle, Bed,
   Camera, Clock, BookOpen, Image, QrCode,
 } from 'lucide-react';
-import { IMAGES as IMG, couple, moodboard, guests, TODAY } from '../data';
+import { IMAGES as IMG, moodboard, guests, TODAY } from '../data';
 import { Eyebrow, cn } from '../ui';
 import OnboardingHint from '../OnboardingHint';
+import { useWedding } from '../useWedding';
+import type { Couple } from '../useWedding';
+
+const slugify = (s: string) =>
+  s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/æ/g, 'ae').replace(/ø/g, 'oe').replace(/å/g, 'aa')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'os';
 
 /* ── Types ───────────────────────────────────────────────────────────── */
 type ProgramEvent = { id: string; time: string; label: string; sublabel: string };
@@ -96,6 +103,7 @@ const GALLERY_KEYS: (keyof typeof IMG)[] = ['florals', 'olive', 'candles', 'arch
    MAIN EXPORT
 ══════════════════════════════════════════════════════════════════════ */
 export default function Website() {
+  const { couple, loading, weddingSite, saveSite } = useWedding();
   const [tab,      setTab]      = useState<WTab>('design');
 
   /* Design */
@@ -125,7 +133,7 @@ export default function Website() {
   const [hotels,       setHotels]       = useState<HotelItem[]>(INIT_HOTELS);
 
   /* Publish */
-  const [domain,      setDomain]      = useState('emma-frederik');
+  const [domain,      setDomain]      = useState(`${slugify(couple.a)}-${slugify(couple.b)}`);
   const [published,   setPublished]   = useState(false);
   const [pwProtected, setPwProtected] = useState(false);
   const [sitePassword,setSitePassword]= useState('');
@@ -134,6 +142,60 @@ export default function Website() {
   const [showLanding, setShowLanding] = useState(false);
   const [mobileView,  setMobileView]  = useState(false);
   const [showRsvp,    setShowRsvp]    = useState(false);
+
+  // ── Persistence ──────────────────────────────────────────────────────
+  // Hydrate the whole builder from the saved config once the wedding loads,
+  // then autosave the config (debounced) as the couple edits.
+  const readyRef = useRef(false);
+  useEffect(() => {
+    if (readyRef.current || loading) return;
+    readyRef.current = true;
+    const c = (weddingSite?.config ?? {}) as Record<string, unknown>;
+    if (weddingSite && Object.keys(c).length > 0) {
+      if (typeof c.lensId === 'string') setLensId(c.lensId);
+      if (typeof c.colorId === 'string') setColorId(c.colorId);
+      if (typeof c.fontId === 'string') setFontId(c.fontId);
+      if (typeof c.layoutId === 'string') setLayoutId(c.layoutId);
+      if (Array.isArray(c.sections)) setSections(c.sections as SectionMeta[]);
+      if (typeof c.heroTagline === 'string') setHeroTagline(c.heroTagline);
+      if (typeof c.storyText === 'string') setStoryText(c.storyText);
+      if (typeof c.countdown === 'boolean') setCountdown(c.countdown);
+      if (Array.isArray(c.program)) setProgram(c.program as ProgramEvent[]);
+      if (typeof c.rsvpDeadline === 'string') setRsvpDeadline(c.rsvpDeadline);
+      if (typeof c.rsvpPlusOne === 'boolean') setRsvpPlusOne(c.rsvpPlusOne);
+      if (typeof c.rsvpMeal === 'boolean') setRsvpMeal(c.rsvpMeal);
+      if (typeof c.rsvpDietary === 'boolean') setRsvpDietary(c.rsvpDietary);
+      if (Array.isArray(c.galleryKeys)) setGalleryKeys(new Set(c.galleryKeys as (keyof typeof IMG)[]));
+      if (typeof c.transport === 'string') setTransport(c.transport);
+      if (typeof c.dresscode === 'string') setDresscode(c.dresscode);
+      if (typeof c.giftsText === 'string') setGiftsText(c.giftsText);
+      if (typeof c.giftsUrl === 'string') setGiftsUrl(c.giftsUrl);
+      if (Array.isArray(c.faq)) setFaq(c.faq as FAQItem[]);
+      if (Array.isArray(c.hotels)) setHotels(c.hotels as HotelItem[]);
+      if (typeof c.pwProtected === 'boolean') setPwProtected(c.pwProtected);
+      if (typeof c.sitePassword === 'string') setSitePassword(c.sitePassword);
+      if (typeof c.hideBranding === 'boolean') setHideBranding(c.hideBranding);
+    }
+    if (weddingSite?.domain) setDomain(weddingSite.domain);
+    if (weddingSite) setPublished(weddingSite.published);
+  }, [loading, weddingSite]);
+
+  const config = useMemo(
+    () => ({
+      lensId, colorId, fontId, layoutId, sections, heroTagline, storyText, countdown,
+      program, rsvpDeadline, rsvpPlusOne, rsvpMeal, rsvpDietary, galleryKeys: [...galleryKeys],
+      transport, dresscode, giftsText, giftsUrl, faq, hotels, pwProtected, sitePassword, hideBranding,
+    }),
+    [lensId, colorId, fontId, layoutId, sections, heroTagline, storyText, countdown, program,
+     rsvpDeadline, rsvpPlusOne, rsvpMeal, rsvpDietary, galleryKeys, transport, dresscode,
+     giftsText, giftsUrl, faq, hotels, pwProtected, sitePassword, hideBranding]
+  );
+
+  useEffect(() => {
+    if (!readyRef.current) return;
+    const t = setTimeout(() => { void saveSite({ config, domain, published }); }, 800);
+    return () => clearTimeout(t);
+  }, [config, domain, published, saveSite]);
 
   const lens   = LENSES.find((l) => l.id === lensId)    ?? LENSES[0];
   const colors = WEBSITE_COLORS.find((c) => c.id === colorId) ?? WEBSITE_COLORS[0];
@@ -152,6 +214,7 @@ export default function Website() {
 
   const preview = (
     <SitePreview
+      couple={couple}
       lens={lens} colors={colors} font={font} layoutId={layoutId}
       sections={enabledSections} heroTagline={heroTagline}
       storyText={storyText} program={program} domain={domain}
@@ -973,9 +1036,10 @@ function ToggleRow({ label, value, onChange }: { label: string; value: boolean; 
 
 /* ── Live preview ─────────────────────────────────────────────────────── */
 function SitePreview({
-  lens, colors, font, layoutId, sections, heroTagline, storyText, program, domain, countdown, galleryKeys,
+  couple, lens, colors, font, layoutId, sections, heroTagline, storyText, program, domain, countdown, galleryKeys,
   showBranding, onBrandingClick, onRsvpClick,
 }: {
+  couple: Couple;
   lens: typeof LENSES[number];
   colors: WebColor;
   font: WebFont;
@@ -991,7 +1055,9 @@ function SitePreview({
   onBrandingClick?: () => void;
   onRsvpClick?: () => void;
 }) {
-  const daysLeft = Math.ceil((new Date(couple.dateISO).getTime() - TODAY.getTime()) / 86400000);
+  const daysLeft = couple.dateISO
+    ? Math.ceil((new Date(couple.dateISO).getTime() - TODAY.getTime()) / 86400000)
+    : 0;
 
   return (
     <motion.div layout

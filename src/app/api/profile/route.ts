@@ -11,18 +11,22 @@ export async function PATCH(request: NextRequest) {
 
   const body = (await request.json()) as {
     display_name?: string;
+    partner_name?: string;
     home_city?: string;
     event_interests?: string[];
     accent?: string;
     onboarded?: boolean;
+    language?: string;
   };
 
   const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (typeof body.display_name === "string") patch.display_name = body.display_name.trim() || null;
+  if (typeof body.partner_name === "string") patch.partner_name = body.partner_name.trim() || null;
   if (typeof body.home_city === "string") patch.home_city = body.home_city.trim() || null;
   if (Array.isArray(body.event_interests)) patch.event_interests = body.event_interests.slice(0, 12);
   if (typeof body.accent === "string") patch.accent = body.accent.slice(0, 8);
   if (typeof body.onboarded === "boolean") patch.onboarded = body.onboarded;
+  if (body.language === "da" || body.language === "en") patch.language = body.language;
 
   // Upsert so the row exists even if the signup trigger didn't run.
   const { data, error } = await supabase

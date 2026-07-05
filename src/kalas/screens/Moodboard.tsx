@@ -4,6 +4,7 @@ import { Heart, X, Plus, ArrowLeft, ArrowRight, Image as ImageIcon } from 'lucid
 import { IMAGES } from '../data';
 import { Eyebrow, Pill, cn } from '../ui';
 import OnboardingHint from '../OnboardingHint';
+import { useWedding } from '../useWedding';
 
 /* ── Inspiration swipe deck ──────────────────────────────────────────── */
 const INSPO_DECK = [
@@ -27,12 +28,25 @@ type GridItem  =
 /* ═══════════════════════════════════════════════════════════════════════
    MAIN EXPORT
 ═══════════════════════════════════════════════════════════════════════ */
+const CARD_BY_IMAGE: Record<string, InspoCard> = Object.fromEntries(
+  INSPO_DECK.map((c) => [c.image, c])
+);
+
 export default function Moodboard({ onNavigate }: { onNavigate?: (s: import('../Shell').ScreenId) => void }) {
-  const [deck, setDeck]       = useState<InspoCard[]>([...INSPO_DECK]);
-  const [liked, setLiked]     = useState<InspoCard[]>([]);
+  const { moodboardItems, addMoodboardItem, removeMoodboardItem } = useWedding();
+  const [skipped, setSkipped] = useState<Set<string>>(new Set());
   const [uploads, setUploads] = useState<Array<{ id: string; url: string }>>([]);
   const [avaVisible, setAvaVisible] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // The liked board is the persisted moodboard, mapped back to inspo cards.
+  const likedEntries = moodboardItems
+    .filter((i) => i.image_key && CARD_BY_IMAGE[i.image_key])
+    .map((i) => ({ dbId: i.id, card: CARD_BY_IMAGE[i.image_key as string] }));
+  const liked: InspoCard[] = likedEntries.map((e) => e.card);
+  const likedIds = new Set(liked.map((c) => c.id));
+
+  const deck = INSPO_DECK.filter((c) => !likedIds.has(c.id) && !skipped.has(c.id));
 
   const total  = INSPO_DECK.length;
   const swiped = total - deck.length;
@@ -40,12 +54,15 @@ export default function Moodboard({ onNavigate }: { onNavigate?: (s: import('../
 
   const advance = (like: boolean) => {
     if (deck.length === 0) return;
-    const card      = deck[0];
-    const nextLiked = like ? [...liked, card] : liked;
-    if (like) setLiked(nextLiked);
-    const next = deck.slice(1);
-    setDeck(next);
-    if (next.length === 0 || nextLiked.length >= 3) {
+    const card = deck[0];
+    if (like) {
+      void addMoodboardItem({ image_key: card.image, note: card.label });
+    } else {
+      setSkipped((prev) => new Set(prev).add(card.id));
+    }
+    const remaining = deck.length - 1;
+    const nextLikedCount = liked.length + (like ? 1 : 0);
+    if (remaining === 0 || nextLikedCount >= 3) {
       setTimeout(() => setAvaVisible(true), 500);
     }
   };
@@ -62,7 +79,10 @@ export default function Moodboard({ onNavigate }: { onNavigate?: (s: import('../
     return () => window.removeEventListener('keydown', onKey);
   });
 
-  const removeLiked  = (id: string)  => setLiked((p) => p.filter((c) => c.id !== id));
+  const removeLiked  = (id: string)  => {
+    const entry = likedEntries.find((e) => e.card.id === id);
+    if (entry) void removeMoodboardItem(entry.dbId);
+  };
   const removeUpload = (id: string) => setUploads((p) => p.filter((u) => u.id !== id));
 
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -158,7 +178,7 @@ export default function Moodboard({ onNavigate }: { onNavigate?: (s: import('../
           </p>
           <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
             {/* Restart the deck WITHOUT wiping the moodboard the couple built */}
-            <Pill variant="ghost" onClick={() => setDeck([...INSPO_DECK])}>
+            <Pill variant="ghost" onClick={() => setSkipped(new Set())}>
               Swipe igen
             </Pill>
             {liked.length > 0 && onNavigate && (

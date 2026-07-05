@@ -1,13 +1,15 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SignOutButton } from "@/components/auth/SignOutButton";
+import { LanguageSetting } from "@/components/settings/LanguageSetting";
 import { createClient } from "@/lib/supabase/server";
-import { getGmailConnection } from "@/lib/gmail/oauth";
+import { getOrCreateProfile } from "@/lib/db/profile";
+import { getPlatformConnection, isPlatformAdmin } from "@/lib/gmail/platform";
 
 export default async function SettingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ connected?: string; gmail_error?: string }>;
+  searchParams: Promise<{ platform_connected?: string; gmail_error?: string }>;
 }) {
   const supabase = await createClient();
   const {
@@ -16,7 +18,9 @@ export default async function SettingsPage({
   if (!user) redirect("/login");
 
   const params = await searchParams;
-  const gmail = await getGmailConnection(user.id);
+  const profile = await getOrCreateProfile(supabase, user.id);
+  const admin = isPlatformAdmin(user.email);
+  const platform = admin ? await getPlatformConnection() : null;
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-10">
@@ -29,53 +33,79 @@ export default async function SettingsPage({
         </Link>
       </div>
 
-      {params.connected && (
+      {params.platform_connected && (
         <div className="mb-6 rounded-xl border border-[#cdd9cf] bg-[#e3ece8] px-4 py-3 text-sm text-[#4d6b5c]">
-          Gmail connected successfully.
+          Kalas outreach mailbox connected successfully.
         </div>
       )}
       {params.gmail_error && (
         <div className="mb-6 rounded-xl border border-[#e6c4bc] bg-[#f0e0dc] px-4 py-3 text-sm text-[#a8483a]">
-          Gmail connection failed ({params.gmail_error}). Please try again.
+          Mailbox connection failed ({params.gmail_error}). Please try again.
         </div>
       )}
 
       <section className="rounded-2xl border border-[#D4D6C0] bg-[#F6F0E8] p-6">
         <h2 className="font-[family-name:var(--font-fraunces)] text-lg font-semibold text-[#4A4E3C]">
-          Gmail connection
+          Vendor outreach
         </h2>
         <p className="mt-1 text-sm text-[#7A8066]">
-          Kalas sends wedding venue quote requests from your Gmail and reads replies to
-          collect quotes. Scopes: send &amp; read only.
+          Ava contacts venues and vendors from her own Kalas mailbox — nothing is
+          sent from your personal email. Every conversation shows up in your
+          outreach inbox, and you approve each reply before it goes out.
         </p>
-        <div className="mt-4 flex items-center justify-between rounded-xl border border-[#D4D6C0] bg-[#F6F0E8] px-4 py-3">
-          {gmail.connected ? (
-            <>
-              <div className="flex items-center gap-2 text-sm text-[#4A4E3C]">
-                <span className="h-2 w-2 rounded-full bg-[#4A4E3C]" />
-                Connected{gmail.email ? ` as ${gmail.email}` : ""}
-              </div>
-              <a
-                href="/api/gmail/connect"
-                className="rounded-full border border-[#D4D6C0] px-3 py-1.5 text-xs text-[#656952] hover:bg-[#ddd6c0]"
-              >
-                Reconnect
-              </a>
-            </>
-          ) : (
-            <>
-              <div className="flex items-center gap-2 text-sm text-[#8a8568]">
-                <span className="h-2 w-2 rounded-full bg-[#C4C8AE]" />
-                Not connected
-              </div>
-              <a
-                href="/api/gmail/connect"
-                className="rounded-full bg-[#4A4E3C] px-3 py-1.5 text-xs font-medium text-[#F6F0E8] hover:bg-[#575B47]"
-              >
-                Connect Gmail
-              </a>
-            </>
-          )}
+      </section>
+
+      {admin && platform && (
+        <section className="mt-6 rounded-2xl border border-[#D4D6C0] bg-[#F6F0E8] p-6">
+          <h2 className="font-[family-name:var(--font-fraunces)] text-lg font-semibold text-[#4A4E3C]">
+            Kalas outreach mailbox
+          </h2>
+          <p className="mt-1 text-sm text-[#7A8066]">
+            Admin only — the platform Gmail account Ava sends from and reads replies in.
+          </p>
+          <div className="mt-4 flex items-center justify-between rounded-xl border border-[#D4D6C0] bg-[#F6F0E8] px-4 py-3">
+            {platform.connected ? (
+              <>
+                <div className="flex items-center gap-2 text-sm text-[#4A4E3C]">
+                  <span className="h-2 w-2 rounded-full bg-[#4A4E3C]" />
+                  Connected{platform.email ? ` as ${platform.email}` : ""}
+                </div>
+                <a
+                  href="/api/admin/gmail/connect"
+                  className="rounded-full border border-[#D4D6C0] px-3 py-1.5 text-xs text-[#656952] hover:bg-[#ddd6c0]"
+                >
+                  Reconnect
+                </a>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center gap-2 text-sm text-[#8a8568]">
+                  <span className="h-2 w-2 rounded-full bg-[#C4C8AE]" />
+                  Not connected
+                </div>
+                <a
+                  href="/api/admin/gmail/connect"
+                  className="rounded-full bg-[#4A4E3C] px-3 py-1.5 text-xs font-medium text-[#F6F0E8] hover:bg-[#575B47]"
+                >
+                  Connect mailbox
+                </a>
+              </>
+            )}
+          </div>
+        </section>
+      )}
+
+      <section className="mt-6 rounded-2xl border border-[#D4D6C0] bg-[#F6F0E8] p-6">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h2 className="font-[family-name:var(--font-fraunces)] text-lg font-semibold text-[#4A4E3C]">
+              Language
+            </h2>
+            <p className="mt-1 text-sm text-[#7A8066]">
+              The language of the app and of Ava's replies. Takes effect across Kalas.
+            </p>
+          </div>
+          <LanguageSetting initial={profile.language ?? "da"} />
         </div>
       </section>
 

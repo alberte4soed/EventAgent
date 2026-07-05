@@ -1,10 +1,11 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Plus, X, ChevronDown, ArrowRight, Check } from 'lucide-react';
-import { budgetLines, couple, type BudgetLine } from '../data';
+import { budgetLines, type BudgetLine } from '../data';
 import { Eyebrow, Chip, Pill, cn } from '../ui';
 import AnimateNumber from '../AnimateNumber';
 import OnboardingHint from '../OnboardingHint';
+import { useWedding } from '../useWedding';
 
 /* ── Benchmark fordeling (dansk gennemsnit) ──────────────────────────── */
 const BENCHMARK_DIST = [
@@ -33,6 +34,7 @@ const PAYMENTS: { label: string; when: string; amount: number | null; paid: bool
 ];
 
 export default function Budget({ onNavigate }: { onNavigate?: (s: import('../Shell').ScreenId) => void }) {
+  const { couple, budgetItems, saveBudgetItem, deleteBudgetItem, updateEvent } = useWedding();
   const [estimatorDone, setEstimatorDone] = useState(false);
   const [estimatorOpen, setEstimatorOpen] = useState(false);
   const [estGuests, setEstGuests] = useState(couple.guests);
@@ -41,13 +43,35 @@ export default function Budget({ onNavigate }: { onNavigate?: (s: import('../She
   const dkSuggested = Math.round(estGuests * DK_AVG_PER_GUEST / 10000) * 10000;
   const diff = estTotal - dkSuggested;
 
-  const total = couple.budgetTotal;
+  const total = couple.budgetTotal || estTotal;
   const [lines, setLines] = useState<BudgetLine[]>(budgetLines);
   const [amounts, setAmounts] = useState<Record<string, number>>(
     () => Object.fromEntries(budgetLines.map((b) => [b.id, Math.round((total * b.pct) / 100)])),
   );
 
-  function applyEstimate() {
+  // Reconcile from the persisted budget: saved category amounts win, and any
+  // custom categories the couple added come back as extra lines.
+  useEffect(() => {
+    if (budgetItems.length === 0) return;
+    const stdIds = new Set(budgetLines.map((l) => l.id));
+    const customLines: BudgetLine[] = budgetItems
+      .filter((i) => !stdIds.has(i.category))
+      .map((i) => ({ id: i.category, label: i.label, pct: 0, spent: i.paid_amount, hint: '' }));
+    setLines([...budgetLines, ...customLines]);
+    setAmounts((prev) => {
+      const next = { ...prev };
+      for (const i of budgetItems) next[i.category] = i.planned_amount;
+      return next;
+    });
+    setEstimatorDone(true);
+  }, [budgetItems]);
+
+  const persist = (id: string, amount: number) => {
+    const line = lines.find((l) => l.id === id);
+    void saveBudgetItem({ category: id, label: line?.label ?? id, planned_amount: amount });
+  };
+
+  async function applyEstimate() {
     const newAmounts = Object.fromEntries(
       BENCHMARK_DIST.map((d) => [d.id, Math.round((estTotal * d.pct) / 100)])
     );
@@ -55,6 +79,12 @@ export default function Budget({ onNavigate }: { onNavigate?: (s: import('../She
     setAmounts((prev) => ({ ...prev, ...newAmounts }));
     setEstimatorDone(true);
     setEstimatorOpen(false);
+    await updateEvent({ budget: String(estTotal), guest_count: estGuests });
+    await Promise.all(
+      BENCHMARK_DIST.map((d) =>
+        saveBudgetItem({ category: d.id, label: d.label, planned_amount: newAmounts[d.id], sort: BENCHMARK_DIST.indexOf(d) })
+      )
+    );
   }
   const [addingNew, setAddingNew] = useState(false);
   const [newLabel, setNewLabel] = useState('');
@@ -74,11 +104,13 @@ export default function Budget({ onNavigate }: { onNavigate?: (s: import('../She
     setAmounts((prev) => ({ ...prev, [id]: 0 }));
     setNewLabel('');
     setAddingNew(false);
+    void saveBudgetItem({ category: id, label, planned_amount: 0 });
   };
 
   const removeLine = (id: string) => {
     setLines((prev) => prev.filter((b) => b.id !== id));
     setAmounts((prev) => { const next = { ...prev }; delete next[id]; return next; });
+    void deleteBudgetItem(id);
   };
 
   const startAdding = () => { setAddingNew(true); setTimeout(() => inputRef.current?.focus(), 50); };
@@ -225,6 +257,8 @@ export default function Budget({ onNavigate }: { onNavigate?: (s: import('../She
               <input
                 type="range" min={0} max={Math.round(total * 0.45)} step={500}
                 value={amounts[b.id] ?? 0} onChange={(e) => setAmount(b.id, Number(e.target.value))}
+                onPointerUp={(e) => persist(b.id, Number((e.target as HTMLInputElement).value))}
+                onBlur={(e) => persist(b.id, Number(e.target.value))}
                 className="kalas-range flex-1"
                 aria-label={`Justér ${b.label}`}
               />

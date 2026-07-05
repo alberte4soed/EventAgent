@@ -13,5 +13,5 @@ export default async function OnboardingPage() {
   const profile = await getOrCreateProfile(supabase, user.id);
   if (profile.onboarded) redirect("/home");
 
-  return <KalasOnboardingClient />;
+  return <KalasOnboardingClient initialLang={profile.language ?? "da"} />;
 }

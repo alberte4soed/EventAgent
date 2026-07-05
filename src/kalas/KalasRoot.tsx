@@ -7,6 +7,8 @@ import { useState } from 'react';
 import { AnimatePresence, MotionConfig } from 'motion/react';
 import Shell, { type ScreenId } from './Shell';
 import { KalasProvider, useKalas } from './store';
+import { WeddingProvider } from './useWedding';
+import { LanguageProvider, type Lang } from './i18n';
 import Home from './screens/Home';
 import Ava from './screens/Ava';
 import Inspiration from './screens/Moodboard';
@@ -18,15 +20,20 @@ import Guests from './screens/Guests';
 import Website from './screens/Website';
 import Invites from './screens/Invites';
 import Seating from './screens/Seating';
+import Inbox from './screens/Inbox';
 
-export default function KalasRoot() {
+export default function KalasRoot({ initialLang = 'da' }: { initialLang?: Lang }) {
   return (
     <MotionConfig reducedMotion="user">
-      <KalasProvider>
-        <div className="theme-kalas min-h-screen bg-canvas font-sans text-ink">
-          <AppInner />
-        </div>
-      </KalasProvider>
+      <LanguageProvider initialLang={initialLang}>
+        <WeddingProvider>
+          <KalasProvider>
+            <div className="theme-kalas min-h-screen bg-canvas font-sans text-ink">
+              <AppInner />
+            </div>
+          </KalasProvider>
+        </WeddingProvider>
+      </LanguageProvider>
     </MotionConfig>
   );
 }
@@ -45,10 +52,11 @@ function AppInner() {
 
   const screens: Record<ScreenId, React.ReactNode> = {
     home:        <Home onNavigate={navigate} />,
-    ava:         <Ava />,
+    ava:         <Ava onNavigate={navigate} />,
     inspiration: <Inspiration onNavigate={navigate} />,
     venues:      <VenueDiscovery onNavigate={navigate} />,
     vendors:     <Suppliers onNavigate={navigate} />,
+    inbox:       <Inbox onNavigate={navigate} />,
     planning:    <Planning />,
     budget:      <Budget onNavigate={navigate} />,
     guests:      <Guests />,
