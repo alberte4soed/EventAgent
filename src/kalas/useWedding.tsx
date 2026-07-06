@@ -10,6 +10,7 @@ import * as React from "react";
 import { createContext, useContext, useEffect, useMemo, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { computeJourney, type JourneyStage } from "@/lib/journey";
+import { parseBudget } from "@/lib/dashboard";
 import type {
   BudgetItemRow,
   EmailAttachmentRow,
@@ -58,6 +59,11 @@ interface WeddingData {
   inviteOrders: InviteOrderRow[];
   inviteDesigns: InviteDesignRow[];
   journey: JourneyStage[];
+
+  /** Reply drafts awaiting the couple's approval — the Home nav badge. */
+  pendingProposals: number;
+  /** Vendor replies not yet opened — the Ava badge. */
+  unreadReplies: number;
 
   // Planning tables (migration 0007) — the couple's own editable data.
   budgetItems: BudgetItemRow[];
@@ -113,12 +119,6 @@ function upsertById<T extends { id: string }>(rows: T[], row: T): T[] {
 
 function removeById<T extends { id: string }>(rows: T[], id: string): T[] {
   return rows.filter((x) => x.id !== id);
-}
-
-function parseBudget(text: string | null): number {
-  if (!text) return 0;
-  const digits = text.replace(/[^\d]/g, "");
-  return digits ? Number.parseInt(digits, 10) : 0;
 }
 
 function toCouple(
@@ -599,6 +599,8 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
       inviteOrders,
       inviteDesigns,
       journey,
+      pendingProposals: proposals.filter((p) => p.status === "proposed").length,
+      unreadReplies: replies.filter((r) => !r.read_at).length,
       budgetItems,
       guests,
       timelineTasks,

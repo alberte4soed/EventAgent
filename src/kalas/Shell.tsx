@@ -7,7 +7,8 @@ import {
   LayoutGrid, X, Settings, Inbox,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { couple, daysUntil } from './data';
+import { daysUntil } from '@/lib/dashboard';
+import { useWedding } from './useWedding';
 import { cn } from './ui';
 import { useLang } from './i18n';
 
@@ -45,10 +46,49 @@ function Wordmark() {
 }
 
 function Initials() {
+  const { couple } = useWedding();
+  const initials =
+    `${couple.a?.[0] ?? ''}${couple.b?.[0] ?? ''}` ||
+    couple.email?.[0]?.toUpperCase() ||
+    'K';
   return (
     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink text-[0.7rem] font-medium tracking-wide text-canvas">
-      {couple.a[0]}{couple.b[0]}
+      {initials}
     </div>
+  );
+}
+
+/** Sidebar identity: the real couple, their real countdown. */
+function CoupleRow({ onClick }: { onClick: () => void }) {
+  const { t } = useLang();
+  const { couple, loading } = useWedding();
+  const days = daysUntil(couple.dateISO);
+  const names = couple.b ? `${couple.a} & ${couple.b}` : couple.a || t('Jeres bryllup');
+  const subline = days != null && days >= 0 ? t('{n} dage tilbage', { n: days }) : couple.dateLabel;
+
+  if (loading) {
+    return (
+      <div className="rule flex min-w-0 flex-1 items-center gap-3 rounded-2xl px-3 py-3">
+        <div className="h-9 w-9 shrink-0 rounded-full bg-shell" />
+        <div className="min-w-0 flex-1 space-y-1.5">
+          <div className="h-3 w-24 rounded-full bg-shell" />
+          <div className="h-2.5 w-16 rounded-full bg-shell" />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      onClick={onClick}
+      className="rule flex min-w-0 flex-1 items-center gap-3 rounded-2xl px-3 py-3 text-left transition-colors hover:bg-card cursor-pointer"
+    >
+      <Initials />
+      <div className="min-w-0">
+        <div className="truncate font-serif text-[0.95rem] text-ink">{names}</div>
+        {subline && <div className="truncate text-[0.7rem] text-muted">{subline}</div>}
+      </div>
+    </button>
   );
 }
 
@@ -89,16 +129,7 @@ export default function Shell({
         </nav>
 
         <div className="mt-4 flex items-center gap-2">
-          <button
-            onClick={() => navigate('home')}
-            className="rule flex min-w-0 flex-1 items-center gap-3 rounded-2xl px-3 py-3 text-left transition-colors hover:bg-card cursor-pointer"
-          >
-            <Initials />
-            <div className="min-w-0">
-              <div className="truncate font-serif text-[0.95rem] text-ink">{couple.a} & {couple.b}</div>
-              <div className="truncate text-[0.7rem] text-muted">{t('{n} dage tilbage', { n: daysUntil })}</div>
-            </div>
-          </button>
+          <CoupleRow onClick={() => navigate('home')} />
           {/* Leaves the SPA — settings (Gmail + log ud) is a Next.js route. */}
           <a href="/settings" aria-label={t('Indstillinger')}
             className="rule flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-muted transition-colors hover:bg-card hover:text-ink">

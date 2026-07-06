@@ -6,8 +6,7 @@
 import { useState } from 'react';
 import { AnimatePresence, MotionConfig } from 'motion/react';
 import Shell, { type ScreenId } from './Shell';
-import { KalasProvider, useKalas } from './store';
-import { WeddingProvider } from './useWedding';
+import { WeddingProvider, useWedding } from './useWedding';
 import { LanguageProvider, type Lang } from './i18n';
 import Home from './screens/Home';
 import Ava from './screens/Ava';
@@ -27,11 +26,9 @@ export default function KalasRoot({ initialLang = 'da' }: { initialLang?: Lang }
     <MotionConfig reducedMotion="user">
       <LanguageProvider initialLang={initialLang}>
         <WeddingProvider>
-          <KalasProvider>
-            <div className="theme-kalas min-h-screen bg-canvas font-sans text-ink">
-              <AppInner />
-            </div>
-          </KalasProvider>
+          <div className="theme-kalas min-h-screen bg-canvas font-sans text-ink">
+            <AppInner />
+          </div>
         </WeddingProvider>
       </LanguageProvider>
     </MotionConfig>
@@ -39,7 +36,9 @@ export default function KalasRoot({ initialLang = 'da' }: { initialLang?: Lang }
 }
 
 function AppInner() {
-  const { pendingCount, avaBadge } = useKalas();
+  // Real counts, live via realtime: approvals badge the Home row, unread
+  // vendor replies badge Ava. Both self-clear through send/dismiss/read flows.
+  const { pendingProposals, unreadReplies } = useWedding();
   const [screen, setScreen] = useState<ScreenId>(() => {
     return (sessionStorage.getItem('kalas_screen') as ScreenId) || 'home';
   });
@@ -66,7 +65,7 @@ function AppInner() {
   };
 
   return (
-    <Shell current={screen} onNavigate={navigate} pendingCount={pendingCount} avaBadge={avaBadge}>
+    <Shell current={screen} onNavigate={navigate} pendingCount={pendingProposals} avaBadge={unreadReplies}>
       <AnimatePresence mode="wait">
         <div key={screen}>{screens[screen]}</div>
       </AnimatePresence>

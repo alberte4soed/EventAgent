@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { Send, Paperclip, MapPin, Copy, Check } from 'lucide-react';
-import { useKalas } from '../store';
 import { useWedding } from '../useWedding';
 import { cn } from '../ui';
 import { useLang } from '../i18n';
@@ -46,7 +45,6 @@ export default function Ava({ onNavigate }: { onNavigate?: (s: ScreenId) => void
 
 function AvaChat({ eventId, coupleA, onNavigate }: { eventId: string; coupleA: string; onNavigate?: (s: ScreenId) => void }) {
   const supabase = useMemo(() => createClient(), []);
-  const { clearAvaBadge } = useKalas();
   const { refresh } = useWedding();
   const { messages, agentStatus, sendMessage, setMessages } = useAgentChat({
     initialEventId: eventId,
@@ -84,7 +82,6 @@ function AvaChat({ eventId, coupleA, onNavigate }: { eventId: string; coupleA: s
     };
   }, [supabase, eventId, setMessages]);
 
-  useEffect(() => { clearAvaBadge(); }, [clearAvaBadge]);
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, agentStatus]);
 
   const visible = messages.filter((m) => m.role === 'user' || m.role === 'assistant');
