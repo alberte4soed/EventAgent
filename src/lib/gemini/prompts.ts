@@ -145,6 +145,45 @@ Do not fabricate emails, phone numbers or URLs that are not in the notes.
 Research notes:
 ${groundedText}`;
 
+export const VENUE_RESEARCH_PROMPT = (args: {
+  name: string;
+  address?: string | null;
+  website?: string | null;
+  guestCount?: number | null;
+  eventType?: string | null;
+}) =>
+  `Search the web for detailed WEDDING information about "${args.name}"${
+    args.address ? ` (${args.address})` : ""
+  }${args.website ? `. Start with their official website: ${args.website}` : ""}.
+
+Deep-dive their wedding/bryllup pages, packages, brochures, and FAQs — not generic listicles.
+${args.guestCount ? `The couple expects about ${args.guestCount} guests.` : ""}
+${args.eventType ? `Event type: ${args.eventType}.` : ""}
+
+Report everything you can verify from official or primary sources:
+- Executive briefing: 3-5 crisp bullets with the KEY facts (capacity, price ballpark, vibe, what's included, constraints)
+- Atmosphere and what makes the place special for weddings
+- Guest capacity (seated/standing; ceremony vs reception if different)
+- Pricing hints (venue hire, packages, minimum spend, per-person menus)
+- Practical details: min hire period, access/setup times, catering rules, parking, accommodation, on-site ceremony
+- Package tiers with names, what's included, and prices if listed
+- Contact email and phone if visible on official pages
+- Driving/area directions note
+- One sentence on why this venue could suit a couple planning a wedding here
+
+Only include facts you can verify. Use null/omit for unknowns — do not invent.`;
+
+export const VENUE_RESEARCH_EXTRACTION_PROMPT = (groundedText: string) =>
+  `Extract structured wedding-venue research from the notes below.
+- "briefing" must be 3-5 short bullet strings (key facts only).
+- "highlights" = facilities & selling points as plain strings.
+- "practical" = label/value pairs (e.g. Min. udlejning, Catering, Parkering).
+- "packages" = named tiers with desc and price when found in the notes.
+Do not fabricate emails, phones, URLs, or prices not supported by the notes.
+
+Research notes:
+${groundedText}`;
+
 export const FIND_EMAIL_PROMPT = (venueName: string, website?: string | null) =>
   `Search the web for the booking/contact EMAIL ADDRESS of the venue "${venueName}"${
     website ? ` (website: ${website})` : ""

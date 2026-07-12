@@ -1,6 +1,8 @@
 // Hand-written row types mirroring supabase/migrations/0001_init.sql.
 // Replace with `supabase gen types typescript` output once a project is linked.
 
+import type { VenueResearchProfile } from "@/lib/venue/research";
+
 export type EventStatus =
   | "gathering"
   | "searching"
@@ -98,6 +100,7 @@ export interface VenueRow {
   contact_verified: boolean;
   category: VendorCategory;
   booked_at: string | null;
+  venue_research: VenueResearchProfile | null;
   created_at: string;
 }
 

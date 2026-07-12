@@ -2,13 +2,14 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform } from 'motion/react';
-import { Heart, X, Check, MessageCircle, ArrowLeft, ArrowRight, MapPin, Search, SlidersHorizontal, ArrowUpRight, Star, Calendar } from 'lucide-react';
+import { Heart, X, Check, MessageCircle, ArrowLeft, ArrowRight, MapPin, Search, SlidersHorizontal, ArrowUpRight, Star, Calendar, Loader2, Sparkles } from 'lucide-react';
 import { IMAGES, dnaTraits, moodboard } from '../data';
 import { useWedding } from '../useWedding';
 import { Eyebrow, Pill, Bleed, cn } from '../ui';
 import type { ScreenId } from '../Shell';
 import OnboardingHint from '../OnboardingHint';
 import type { VenueRow } from '@/lib/db/types';
+import type { VenueResearchProfile } from '@/lib/venue/research';
 
 /* Real venue row → the display shape the discovery views render. */
 interface DisplayVenue {
@@ -23,6 +24,8 @@ interface DisplayVenue {
   why: string[];
   quote: string;
   photos: string[];
+  description: string | null;
+  research: VenueResearchProfile | null;
 }
 
 function toDisplay(v: VenueRow): DisplayVenue {
@@ -41,6 +44,8 @@ function toDisplay(v: VenueRow): DisplayVenue {
     why: v.why_fit ? [v.why_fit, ...reviewSnippets.slice(0, 2)] : reviewSnippets.slice(0, 3),
     quote: v.why_fit ?? reviewSnippets[0] ?? '',
     photos: v.photo_urls ?? [],
+    description: v.description,
+    research: v.venue_research ?? null,
   };
 }
 
@@ -175,7 +180,8 @@ export default function VenueDiscovery({ onNavigate }: { onNavigate?: (s: Screen
                   onBrowseCategory={(c) => setCat(c)}
                   onAva={() => onNavigate?.('ava')}
                   onBackToHub={() => setVView('hub')}
-                  onNextStep={() => onNavigate?.('vendors')} />
+                  onNextStep={() => onNavigate?.('vendors')}
+                  onRefresh={refresh} />
               )}
             </AnimatePresence>
           </motion.div>
@@ -670,7 +676,7 @@ function DNAView({ onContinue }: { onContinue: () => void }) {
    PICKS VIEW
 ═══════════════════════════════════════════════════════════════════════ */
 function PicksView({
-  venues, couple, saved, sent, booked, onToggleSave, onOutreach, onBook, onBrowseCategory, onAva, onBackToHub, onNextStep,
+  venues, couple, saved, sent, booked, onToggleSave, onOutreach, onBook, onBrowseCategory, onAva, onBackToHub, onNextStep, onRefresh,
 }: {
   venues: DisplayVenue[];
   couple: { region: string; guests: number };
@@ -679,11 +685,13 @@ function PicksView({
   onBook: (id: string) => void; onBrowseCategory: (c: Category) => void; onAva: () => void;
   onBackToHub?: () => void;
   onNextStep?: () => void;
+  onRefresh: () => Promise<void>;
 }) {
-  const [selectedVenue, setSelectedVenue] = useState<DisplayVenue | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [comparing, setComparing] = useState(false);
   const venueCity = venueAreaLabel(couple.region);
   const savedVenues = venues.filter(v => saved.has(v.id));
+  const selectedVenue = selectedId ? venues.find((v) => v.id === selectedId) ?? null : null;
 
   if (comparing && savedVenues.length >= 2) {
     return (
@@ -708,10 +716,11 @@ function PicksView({
           saved={saved.has(selectedVenue.id)}
           sent={sent.has(selectedVenue.id)}
           isBooked={booked === selectedVenue.id}
-          onBack={() => setSelectedVenue(null)}
+          onBack={() => setSelectedId(null)}
           onSave={() => onToggleSave(selectedVenue.id)}
-          onContact={() => { onOutreach(selectedVenue.id); setSelectedVenue(null); }}
+          onContact={() => { onOutreach(selectedVenue.id); setSelectedId(null); }}
           onBook={() => onBook(selectedVenue.id)}
+          onRefresh={onRefresh}
         />
       </AnimatePresence>
     );
@@ -793,7 +802,7 @@ function PicksView({
                 key={v.id}
                 initial={{ opacity: 0, scale: 0.94 }}
                 animate={{ opacity: 1, scale: 1 }}
-                onClick={() => setSelectedVenue(v)}
+                onClick={() => setSelectedId(v.id)}
                 className="relative shrink-0 w-44 h-28 rounded-2xl overflow-hidden cursor-pointer group">
                 <img src={imgSrc(v.image)} alt={v.name}
                   className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
@@ -854,7 +863,7 @@ function PicksView({
             <motion.button key={v.id}
               initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.06 }}
-              onClick={() => setSelectedVenue(v)}
+                onClick={() => setSelectedId(v.id)}
               className="group relative h-36 overflow-hidden rounded-2xl cursor-pointer text-left">
               <img src={imgSrc(v.image)} alt={v.name}
                 className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
@@ -877,7 +886,7 @@ function PicksView({
         <VenueCarousel venues={venues}
           saved={saved} sent={sent} booked={booked}
           onToggleSave={onToggleSave} onOutreach={onOutreach} onBook={onBook}
-          onSelect={setSelectedVenue} />
+          onSelect={(v) => setSelectedId(v.id)} />
       </div>
 
       {/* Ask Ava */}
@@ -1142,18 +1151,48 @@ function ComparisonView({
    VENUE DETAIL PAGE
 ═══════════════════════════════════════════════════════════════════════ */
 function VenueDetail({
-  venue, allVenues, saved, sent, isBooked, onBack, onSave, onContact, onBook,
+  venue, allVenues, saved, sent, isBooked, onBack, onSave, onContact, onBook, onRefresh,
 }: {
   venue: DisplayVenue; allVenues: DisplayVenue[]; saved: boolean; sent: boolean; isBooked: boolean;
   onBack: () => void; onSave: () => void; onContact: () => void; onBook: () => void;
+  onRefresh: () => Promise<void>;
 }) {
   const [notes, setNotes]         = useState('');
   const [activePackage, setPkg]   = useState<number | null>(null);
+  const [researching, setResearching] = useState(false);
+  const [researchError, setResearchError] = useState<string | null>(null);
   const realPhotos = venue.photos ?? [];
   const gallery  = VENUE_GALLERY[venue.id] ?? ['ceremony', 'florals', 'longTable', 'candles'];
-  const extra    = VENUE_EXTRA[venue.id]   ?? { description: venue.quote, highlights: venue.why };
+  const research = venue.research;
+  const mockExtra = VENUE_EXTRA[venue.id];
+  const extra = research
+    ? {
+        description: venue.description ?? venue.quote,
+        highlights: research.highlights.length ? research.highlights : venue.why,
+        practical: research.practical.length ? research.practical : (mockExtra?.practical ?? DEFAULT_PRACTICAL),
+        packages: research.packages.length ? research.packages : (mockExtra?.packages ?? DEFAULT_PACKAGES),
+        directions: research.directions ?? mockExtra?.directions,
+      }
+    : mockExtra ?? { description: venue.description ?? venue.quote, highlights: venue.why };
   const practical = extra.practical ?? DEFAULT_PRACTICAL;
   const packages  = extra.packages  ?? DEFAULT_PACKAGES;
+
+  async function runResearch() {
+    setResearching(true);
+    setResearchError(null);
+    try {
+      const res = await fetch(`/api/venues/${venue.id}/research`, { method: 'POST' });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(data.error ?? 'Research failed');
+      }
+      await onRefresh();
+    } catch (err) {
+      setResearchError(err instanceof Error ? err.message : 'Kunne ikke researche venue');
+    } finally {
+      setResearching(false);
+    }
+  }
 
   return (
     <motion.div
@@ -1167,12 +1206,24 @@ function VenueDetail({
           className="flex cursor-pointer items-center gap-2 text-[0.85rem] text-muted hover:text-ink transition-colors">
           <ArrowLeft size={16} /> Tilbage
         </button>
-        <motion.button whileTap={{ scale: 0.88 }} onClick={onSave}
-          className={cn('flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 text-[0.8rem] font-medium rule transition-all',
-            saved ? 'bg-sage-tint text-ink' : 'bg-canvas text-ink hover:bg-card')}>
-          <Heart size={14} fill={saved ? 'currentColor' : 'none'} />
-          {saved ? 'Gemt' : 'Gem'}
-        </motion.button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => void runResearch()}
+            disabled={researching}
+            className={cn(
+              'flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 text-[0.8rem] font-medium rule transition-all',
+              researching ? 'bg-card text-muted' : 'bg-canvas text-ink hover:bg-card',
+            )}>
+            {researching ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+            {researching ? 'Ava researcher…' : research ? 'Opdater research' : 'Research venue'}
+          </button>
+          <motion.button whileTap={{ scale: 0.88 }} onClick={onSave}
+            className={cn('flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 text-[0.8rem] font-medium rule transition-all',
+              saved ? 'bg-sage-tint text-ink' : 'bg-canvas text-ink hover:bg-card')}>
+            <Heart size={14} fill={saved ? 'currentColor' : 'none'} />
+            {saved ? 'Gemt' : 'Gem'}
+          </motion.button>
+        </div>
       </div>
 
       {/* ── Photo grid ────────────────────────────────────────────── */}
@@ -1213,6 +1264,30 @@ function VenueDetail({
         {extra.directions && (
           <p className="mt-1 text-[0.8rem] text-muted/70">{extra.directions}</p>
         )}
+
+        {researchError && (
+          <p className="mt-4 rounded-xl bg-shell px-4 py-3 text-[0.85rem] text-ink-soft">{researchError}</p>
+        )}
+
+        {research?.briefing?.length ? (
+          <div className="mt-6 rounded-2xl bg-[#173c32] p-6 text-canvas">
+            <Eyebrow className="!text-canvas/55">Avas briefing</Eyebrow>
+            <ul className="mt-4 space-y-2.5">
+              {research.briefing.map((line) => (
+                <li key={line} className="flex items-start gap-3 text-[0.92rem] leading-snug">
+                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-sage" />
+                  <span>{line}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : !research && !researching ? (
+          <div className="mt-6 rounded-2xl border border-dashed border-[var(--color-line)] bg-card/50 px-5 py-4">
+            <p className="text-[0.88rem] leading-relaxed text-ink-soft">
+              Tryk <span className="font-medium text-ink">Research venue</span> — så søger Ava på nettet og udfylder kapacitet, priser og praktisk info fra venueets egne sider.
+            </p>
+          </div>
+        ) : null}
 
         <div className="mt-4 flex flex-wrap gap-2">
           {venue.tags.map((tag) => (
