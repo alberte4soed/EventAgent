@@ -1,17 +1,17 @@
 "use client";
 
-import { useState } from 'react';
+import { useMemo } from 'react';
 import { motion } from 'motion/react';
-import { ArrowUpRight, Check, Globe, Copy } from 'lucide-react';
-import { moodboard } from '../data';
+import {
+  Bell, Calendar, Check, ChevronRight, ArrowRight, Clock,
+} from 'lucide-react';
 import { useWedding } from '../useWedding';
 import type { ScreenId } from '../Shell';
-import { Eyebrow, Pill, Bleed, cn, fadeUp, stagger } from '../ui';
 import OnboardingHint from '../OnboardingHint';
 import { useLang } from '../i18n';
 import type { JourneyStageKey } from '@/lib/journey';
-
-const kr = (n: number) => new Intl.NumberFormat('da-DK').format(Math.round(n));
+import type { ReplyProposalRow, TimelineTaskRow, VenueRow } from '@/lib/db/types';
+import { daysUntilWedding } from '@/lib/wedding-date';
 
 const STAGE_SCREEN: Record<JourneyStageKey, ScreenId> = {
   basics: 'ava',
@@ -20,9 +20,17 @@ const STAGE_SCREEN: Record<JourneyStageKey, ScreenId> = {
   invites: 'invites',
 };
 
-function greeting(): string {
+type ApprovalItem = {
+  id: string;
+  category: string;
+  title: string;
+  meta: string;
+  screen: ScreenId;
+};
+
+function greetingKey(): string {
   const h = new Date().getHours();
-  if (h < 5)  return 'Godnat';
+  if (h < 5) return 'Godnat';
   if (h < 10) return 'Godmorgen';
   if (h < 12) return 'Godformiddag';
   if (h < 18) return 'Goddag';
@@ -38,326 +46,411 @@ function daysUntil(dateISO: string | null): number | null {
   return Math.round((d.getTime() - today.getTime()) / 86400000);
 }
 
+function formatShortDate(iso: string, locale: string): string {
+  return new Date(`${iso}T12:00:00`).toLocaleDateString(locale, { month: 'short', day: 'numeric' });
+}
+
+function formatLongDate(iso: string, locale: string): string {
+  return new Date(`${iso}T12:00:00`).toLocaleDateString(locale, {
+    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
+  });
+}
+
+function formatTimelineLabel(iso: string | null, locale: string): string {
+  if (!iso) return '—';
+  const diff = daysUntil(iso);
+  if (diff === 0) return locale.startsWith('da') ? 'I dag' : 'Today';
+  if (diff === 1) return locale.startsWith('da') ? 'I morgen' : 'Tomorrow';
+  return formatShortDate(iso, locale);
+}
+
+function buildApprovalItems(
+  proposals: ReplyProposalRow[],
+  venues: VenueRow[],
+  guestsMissingContact: number,
+  likedVenueCount: number,
+  hasChosenVenue: boolean,
+  t: (s: string, vars?: Record<string, string | number>) => string,
+): ApprovalItem[] {
+  const items: ApprovalItem[] = [];
+
+  if (!hasChosenVenue && likedVenueCount > 0) {
+    items.push({
+      id: 'venue-shortlist',
+      category: 'VENUE',
+      title: t('Vælg mellem {n} forslag', { n: likedVenueCount }),
+      meta: t('Ava har sammenlignet pris, kapacitet og rejsetid'),
+      screen: 'venues',
+    });
+  }
+
+  for (const p of proposals) {
+    const venue = venues.find((v) => v.id === p.venue_id);
+    const cat = (venue?.category ?? 'vendor').toUpperCase();
+    items.push({
+      id: p.id,
+      category: cat === 'VENUE' ? 'VENUE' : cat,
+      title: t('Godkend svar til {name}', { name: venue?.name ?? t('Leverandør') }),
+      meta: t('Ava har skrevet et svar klar til jer'),
+      screen: 'ava',
+    });
+  }
+
+  if (guestsMissingContact > 0) {
+    items.push({
+      id: 'guests-contact',
+      category: 'GUESTS',
+      title: t('Gennemgå {n} manglende kontakter', { n: guestsMissingContact }),
+      meta: t('Invitationer er blokeret indtil listen er komplet'),
+      screen: 'guests',
+    });
+  }
+
+  return items.slice(0, 5);
+}
+
+function buildTimelinePath(
+  tasks: TimelineTaskRow[],
+  journey: { key: JourneyStageKey; label: string; hint: string; status: string }[],
+  locale: string,
+  t: (s: string) => string,
+): { id: string; dateLabel: string; title: string; meta: string; state: 'current' | 'next' | 'future'; screen: ScreenId }[] {
+  const sorted = [...tasks]
+    .filter((task) => task.due_date)
+    .sort((a, b) => (a.due_date! < b.due_date! ? -1 : 1));
+
+  if (sorted.length > 0) {
+    const firstOpen = sorted.findIndex((task) => !task.done);
+    return sorted.slice(0, 4).map((task, i) => ({
+      id: task.id,
+      dateLabel: formatTimelineLabel(task.due_date, locale),
+      title: task.title,
+      meta: task.done ? t('Færdig') : task.category ?? t('Milepæl'),
+      state: task.done ? 'future' as const : i === firstOpen ? 'current' as const : i === firstOpen + 1 ? 'next' as const : 'future' as const,
+      screen: 'planning' as ScreenId,
+    }));
+  }
+
+  const active = journey.filter((s) => s.status === 'active' || s.status === 'complete').slice(0, 4);
+  return active.map((s, i) => ({
+    id: s.key,
+    dateLabel: i === 0 ? (locale.startsWith('da') ? 'Nu' : 'Now') : '—',
+    title: s.label,
+    meta: s.hint,
+    state: i === 0 ? 'current' as const : i === 1 ? 'next' as const : 'future' as const,
+    screen: STAGE_SCREEN[s.key],
+  }));
+}
+
 export default function Home({ onNavigate }: { onNavigate: (s: ScreenId) => void }) {
-  const { couple, event, journey, proposals, replies, venues, refresh } = useWedding();
-  const { t } = useLang();
+  const {
+    couple, event, journey, proposals, venues, guests, timelineTasks,
+  } = useWedding();
+  const { t, lang } = useLang();
+  const locale = lang === 'en' ? 'en-US' : 'da-DK';
 
   const pending = proposals.filter((p) => p.status === 'proposed');
-  const quotes = replies.filter((r) => r.quote_status === 'quoted').length;
-  const days = daysUntil(event?.event_date ?? null);
-  const budgetTotal = couple.budgetTotal;
-  const names = couple.b ? `${couple.a} & ${couple.b}` : couple.a || t('Jeres bryllup');
+  const days = daysUntilWedding(event);
+  const firstName = couple.a || t('Jeres bryllup');
+  const likedVenues = venues.filter((v) => v.category === 'venue' && v.swipe_status === 'liked');
+  const hasChosenVenue = Boolean(event?.chosen_venue_id);
+  const guestsMissingContact = guests.filter((g) => !g.email?.trim()).length;
+
+  const approvalItems = useMemo(
+    () => buildApprovalItems(pending, venues, guestsMissingContact, likedVenues.length, hasChosenVenue, t),
+    [pending, venues, guestsMissingContact, likedVenues.length, hasChosenVenue, t],
+  );
+
+  const timelinePath = useMemo(
+    () => buildTimelinePath(timelineTasks, journey, locale, t),
+    [timelineTasks, journey, locale, t],
+  );
+
+  const totalTasks = timelineTasks.length;
+  const doneTasks = timelineTasks.filter((task) => task.done).length;
+  const progressPct = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
+
+  const nextTask = [...timelineTasks]
+    .filter((task) => !task.done && task.due_date)
+    .sort((a, b) => (a.due_date! < b.due_date! ? -1 : 1))[0];
+
+  const nextMilestoneDays = nextTask?.due_date ? daysUntil(nextTask.due_date) : null;
+
+  const summary = approvalItems.length > 0
+    ? t('{n} beslutninger venter på jer. Resten bevæger sig fremad.', { n: approvalItems.length })
+    : t('Alt er ryddet. Ava arbejder videre i baggrunden og siger til, når der er nyt.');
 
   return (
-    <div className="px-6 py-8 sm:px-10 lg:px-16 lg:py-12">
+    <div className="min-h-screen bg-[#f5f3ee] px-6 py-7 sm:px-9 lg:py-8">
+      {/* Header */}
+      <motion.header
+        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+        className="flex flex-wrap items-start justify-between gap-4"
+      >
+        <div className="max-w-2xl">
+          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#b34e37]">
+            {t('Bryllups command center')}
+          </p>
+          <h1 className="mt-1 font-serif text-[clamp(1.75rem,4vw,2.125rem)] font-semibold tracking-[-0.02em] text-[#173c32]">
+            {t(greetingKey())}, {firstName}.
+          </h1>
+          <p className="mt-1.5 text-sm text-[#53675f]">{summary}</p>
+        </div>
+        <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            aria-label={t('Notifikationer')}
+            className="flex h-[42px] w-[42px] items-center justify-center rounded-[10px] border border-[#d9ded9] bg-white text-[#173c32]"
+          >
+            <Bell size={18} />
+          </button>
+          <button
+            type="button"
+            onClick={() => onNavigate('ava')}
+            className="flex h-[42px] items-center gap-2 rounded-[10px] bg-[#173c32] px-4 text-[13px] font-bold text-white"
+          >
+            <span className="rounded border border-dashed border-white/50 px-1 py-0.5 text-[10px]">Ava</span>
+            {t('Spørg Ava')}
+          </button>
+        </div>
+      </motion.header>
 
-      {/* ── Ava anbefaler nu — journey-driven ─────────────────────────── */}
-      <AvaUrgentToday journey={journey} pendingCount={pending.length} onNavigate={onNavigate} />
-
-      {/* ── Greeting ──────────────────────────────────────────────────── */}
-      <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }}
-        className="mt-12 max-w-4xl">
-        <h1 className="display text-[clamp(2.75rem,7vw,5.5rem)] text-ink">
-          {t(greeting())},<br />
-          <span className="italic">{names}.</span>
-        </h1>
-        <p className="mt-6 max-w-lg text-[1.05rem] leading-relaxed text-ink-soft">
-          {pending.length > 0
-            ? t('Ava har gjort klar til jer. {n} svar venter på jeres godkendelse — det tager få minutter.', { n: pending.length })
-            : t('Alt er ryddet. Ava arbejder videre i baggrunden og siger til, når der er nyt.')}
-        </p>
-      </motion.div>
-
-      {/* ── Status strip ──────────────────────────────────────────────── */}
+      {/* Overview cards */}
       <motion.div
-        initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.15 }}
-        className="mt-12 grid grid-cols-3 gap-px overflow-hidden rounded-2xl rule bg-[var(--color-line)]">
-        <div className="bg-canvas px-5 py-6">
-          <div className="font-serif text-[2.2rem] leading-none text-ink">{days ?? '—'}</div>
-          <div className="mt-2 text-[0.68rem] font-medium uppercase tracking-[0.18em] text-muted">{t('Dage til brylluppet')}</div>
-        </div>
-        <div className="bg-canvas px-5 py-6">
-          <div className="font-serif text-[2.2rem] leading-none text-ink">{pending.length}</div>
-          <div className="mt-2 text-[0.68rem] font-medium uppercase tracking-[0.18em] text-muted">{t('Ting venter på jer')}</div>
-        </div>
-        <div className="bg-canvas px-5 py-6">
-          <div className="font-serif text-[2.2rem] leading-none text-ink">{quotes || (budgetTotal ? kr(budgetTotal) : 0)}</div>
-          <div className="mt-2 text-[0.68rem] font-medium uppercase tracking-[0.18em] text-muted">
-            {quotes ? t('Tilbud modtaget') : t('Kr budget')}
+        initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
+        className="mt-6 grid gap-[18px] lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_278px]"
+      >
+        {/* Countdown */}
+        <div className="flex min-h-[210px] flex-col justify-between rounded-[18px] bg-[#173c32] p-6 shadow-[0_10px_30px_rgba(23,60,50,0.16)]">
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#bfd1c8]">
+              {t('Til den store dag')}
+            </p>
+            <Calendar size={20} className="text-[#f0a58f]" />
+          </div>
+          <div className="flex items-end gap-3">
+            <span className="font-serif text-[clamp(3rem,8vw,4.75rem)] font-semibold leading-none tracking-[-0.03em] text-white">
+              {days ?? '—'}
+            </span>
+            <span className="pb-2 text-base font-semibold text-[#dde8e2]">{t('dage')}</span>
+          </div>
+          <div className="flex items-center justify-between gap-4 border-t border-white/12 pt-3.5">
+            <span className="text-xs text-[#dde8e2]">
+              {event?.event_date ? formatLongDate(event.event_date, locale) : couple.dateLabel}
+            </span>
+            {couple.region && (
+              <span className="text-xs font-semibold text-[#f0a58f]">{couple.region}</span>
+            )}
           </div>
         </div>
-      </motion.div>
 
-      {/* ── Website promo card ────────────────────────────────────────── */}
-      <WebsiteShareCard couple={couple} onNavigate={onNavigate} />
-
-      {/* ── Approval queue — real reply proposals ─────────────────────── */}
-      <section className="mt-16">
-        <div className="flex items-center justify-between rule-b pb-4">
-          <Eyebrow>
-            {pending.length > 0 ? t('Godkendelseskø · {n}', { n: pending.length }) : t('Godkendelseskø · alt ryddet')}
-          </Eyebrow>
-          <button onClick={() => onNavigate('ava')} className="eyebrow hover:text-ink transition-colors cursor-pointer">{t('Tal med Ava')}</button>
+        {/* Progress */}
+        <div className="flex min-h-[210px] flex-col justify-between rounded-[18px] border border-[#d9ded9] bg-white p-6">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#6a7b74]">
+                {t('Planlægningsfremdrift')}
+              </p>
+              <p className="mt-1 font-serif text-[2.5rem] font-semibold leading-none text-[#173c32]">
+                {progressPct}%
+              </p>
+            </div>
+            <span className="rounded-full bg-[#e8f2ed] px-2.5 py-1 text-[11px] font-bold text-[#236b53]">
+              {progressPct >= 30 ? t('På sporet') : t('Kom godt i gang')}
+            </span>
+          </div>
+          <div className="h-2.5 w-full rounded-full bg-[#e9ece8]">
+            <div className="h-2.5 rounded-full bg-[#e66b4e]" style={{ width: `${progressPct}%` }} />
+          </div>
+          <div className="flex items-center justify-between text-[13px]">
+            <span className="text-[#53675f]">
+              {totalTasks > 0
+                ? t('{done} af {total} opgaver færdige', { done: doneTasks, total: totalTasks })
+                : t('Tidslinjen sættes op automatisk')}
+            </span>
+            <button
+              type="button"
+              onClick={() => onNavigate('planning')}
+              className="font-bold text-[#b34e37] hover:opacity-80"
+            >
+              {t('Se tidslinje')}
+            </button>
+          </div>
         </div>
 
-        {pending.length === 0 ? (
-          <JourneyNextSteps journey={journey} onNavigate={onNavigate} />
-        ) : (
-          <div className="divide-y divide-[var(--color-line)]">
-            {pending.map((p) => (
-              <ProposalRow
-                key={p.id}
-                vendorName={venues.find((v) => v.id === p.venue_id)?.name ?? t('Leverandør')}
-                body={p.body}
-                onDone={() => void refresh()}
-                proposalId={p.id}
-                onNavigate={onNavigate}
-              />
+        {/* Next milestone */}
+        <div className="flex min-h-[210px] flex-col justify-between rounded-[18px] bg-[#e9c9bc] p-6">
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#713628]">
+              {t('Næste milepæl')}
+            </p>
+            <Clock size={19} className="text-[#713628]" />
+          </div>
+          {nextTask ? (
+            <div>
+              <p className="font-serif text-[2rem] font-semibold text-[#43271f]">
+                {nextTask.due_date ? formatShortDate(nextTask.due_date, locale) : '—'}
+              </p>
+              <p className="mt-1 text-[15px] font-bold text-[#43271f]">{nextTask.title}</p>
+              {nextMilestoneDays != null && (
+                <p className="mt-1 text-xs text-[#713628]">
+                  {nextMilestoneDays === 0
+                    ? t('I dag')
+                    : t('{n} dage tilbage', { n: Math.max(0, nextMilestoneDays) })}
+                </p>
+              )}
+            </div>
+          ) : (
+            <div>
+              <p className="font-serif text-[1.5rem] font-semibold text-[#43271f]">{t('I gang')}</p>
+              <p className="mt-1 text-sm text-[#713628]">
+                {journey.find((s) => s.status === 'active')?.label ?? t('Planlæg med Ava')}
+              </p>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => onNavigate(nextTask ? 'planning' : 'ava')}
+            className="flex items-center gap-1.5 text-xs font-bold text-[#43271f]"
+          >
+            {nextTask ? t('Åbn tidslinje') : t('Tal med Ava')}
+            <ArrowRight size={14} />
+          </button>
+        </div>
+      </motion.div>
+
+      {/* Timeline + approval queue */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+        className="mt-[18px] grid gap-[18px] xl:grid-cols-[minmax(0,1fr)_380px]"
+      >
+        {/* Path timeline */}
+        <section className="rounded-[18px] border border-[#d9ded9] bg-white p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="font-serif text-2xl font-semibold text-[#173c32]">
+                {t('Jeres vej til brylluppet')}
+              </h2>
+              <p className="mt-1 text-[13px] text-[#61736b]">
+                {t('De næste vigtige øjeblikke, i rækkefølge.')}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => onNavigate('planning')}
+              className="text-xs font-bold text-[#b34e37]"
+            >
+              {t('Fuld tidslinje')}
+            </button>
+          </div>
+
+          <div className="mt-[18px]">
+            {timelinePath.map((item, index) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => onNavigate(item.screen)}
+                className="flex w-full items-center gap-4 border-b border-[#e6e9e5] py-3.5 text-left last:border-b-0 hover:bg-[#fafaf8] transition-colors"
+              >
+                <TimelineMarker state={item.state} index={index + 1} />
+                <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#b34e37]">
+                      {item.dateLabel}
+                    </p>
+                    <p className="truncate text-sm font-bold text-[#20352c]">{item.title}</p>
+                    <p className="truncate text-xs text-[#6a7b74]">{item.meta}</p>
+                  </div>
+                  <ChevronRight size={17} className="shrink-0 text-[#91a098]" />
+                </div>
+              </button>
             ))}
           </div>
-        )}
-      </section>
+        </section>
 
-      {/* ── Moodboard teaser (inspiration) ────────────────────────────── */}
-      <section className="mt-24">
-        <div className="flex items-end justify-between gap-6">
-          <div>
-            <Eyebrow>Moodboard</Eyebrow>
-            <h2 className="display mt-3 text-[clamp(2rem,4vw,3rem)] text-ink">
-              {t('Jeres univers, samlet')} <span className="italic">{t('ét sted')}</span>
-            </h2>
-            <p className="mt-3 max-w-md text-ink-soft leading-relaxed">
-              {t('Hver gang I gemmer et billede, sender Ava det videre til vendor-briefs og hjemmesidens tema.')}
-            </p>
+        {/* Approval queue */}
+        <section className="flex flex-col rounded-[18px] bg-[#20352c] p-6">
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="font-serif text-2xl font-semibold text-white">{t('Godkendelseskø')}</h2>
+              <p className="mt-1 text-[13px] text-[#bdd0c7]">
+                {t('Jeres beslutninger holder planlægningen i gang.')}
+              </p>
+            </div>
+            {approvalItems.length > 0 && (
+              <span className="flex h-[30px] w-[30px] items-center justify-center rounded-full bg-[#e66b4e] text-[13px] font-bold text-white">
+                {approvalItems.length}
+              </span>
+            )}
           </div>
-          <Pill variant="ghost" arrow onClick={() => onNavigate('inspiration')} className="hidden sm:inline-flex">{t('Åbn')}</Pill>
-        </div>
 
-        <motion.div
-          variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true, margin: '-80px' }}
-          className="mt-8 grid grid-cols-2 gap-2 sm:grid-cols-4"
-        >
-          {moodboard.slice(0, 4).map((m) => (
-            <motion.button
-              key={m.id} variants={fadeUp} onClick={() => onNavigate('inspiration')}
-              className="group relative aspect-[3/4] cursor-pointer overflow-hidden"
-            >
-              <Bleed src={m.image} alt={m.caption} className="h-full w-full" />
-              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#3a4f37b3] to-transparent p-3 opacity-0 transition-opacity group-hover:opacity-100">
-                <span className="text-[0.7rem] uppercase tracking-[0.14em] text-canvas">{m.caption}</span>
+          <div className="mt-[18px] flex flex-col gap-2.5">
+            {approvalItems.length === 0 ? (
+              <div className="rounded-xl bg-white/10 px-4 py-5 text-sm text-[#bdd0c7]">
+                {t('Ingen afventende beslutninger — nyd roen.')}
               </div>
-            </motion.button>
-          ))}
-        </motion.div>
-      </section>
+            ) : (
+              approvalItems.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => onNavigate(item.screen)}
+                  className="rounded-xl bg-white p-[15px] text-left transition-transform hover:scale-[1.01]"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold tracking-[0.14em] text-[#b34e37]">
+                      {item.category}
+                    </span>
+                    <ChevronRight size={15} className="text-[#6a7b74]" />
+                  </div>
+                  <p className="mt-2 text-sm font-bold text-[#20352c]">{item.title}</p>
+                  <p className="mt-0.5 text-xs leading-snug text-[#61736b]">{item.meta}</p>
+                </button>
+              ))
+            )}
+          </div>
 
-      {/* ── Footer signature ──────────────────────────────────────────── */}
-      <div className="mt-24 rule-t pt-8 text-center">
-        <p className="font-serif text-lg italic text-muted">{t('Planlagt med ro — af Ava, godkendt af jer.')}</p>
-      </div>
+          {approvalItems.length > 0 && (
+            <div className="mt-[18px] flex items-center justify-between">
+              <span className="text-xs text-[#bdd0c7]">
+                {t('Ca. {n} min at klare', { n: Math.max(2, approvalItems.length * 2) })}
+              </span>
+              <button
+                type="button"
+                onClick={() => onNavigate('ava')}
+                className="flex items-center gap-1.5 rounded-[9px] bg-[#e66b4e] px-3 py-2 text-xs font-bold text-white"
+              >
+                {t('Gennemgå alle')}
+                <ArrowRight size={14} />
+              </button>
+            </div>
+          )}
+        </section>
+      </motion.div>
 
       <OnboardingHint id="home" />
     </div>
   );
 }
 
-/* ── Ava anbefaler nu — the current + next journey stage ─────────────── */
-function AvaUrgentToday({ journey, pendingCount, onNavigate }: {
-  journey: { key: JourneyStageKey; label: string; hint: string; status: string }[];
-  pendingCount: number;
-  onNavigate: (s: ScreenId) => void;
-}) {
-  const { t } = useLang();
-  const active = journey.filter((s) => s.status === 'active').slice(0, 2);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      className="rule rounded-2xl bg-card overflow-hidden"
-    >
-      <div className="flex items-center gap-2.5 px-6 py-3.5 rule-b">
-        {(active.length > 0 || pendingCount > 0) && (
-          <div className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--color-terracotta)] opacity-60" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--color-terracotta)]" />
-          </div>
-        )}
-        <p className="text-[0.6rem] font-semibold uppercase tracking-[0.22em] text-muted">{t('Ava anbefaler nu')}</p>
-      </div>
-      {active.length === 0 && pendingCount === 0 ? (
-        <p className="px-6 py-5 font-serif text-[1rem] italic text-muted">
-          {t('Alt er klaret for nu. Nyd roen — jeg siger til, når næste skridt nærmer sig.')}
-        </p>
-      ) : (
-        <div className="divide-y divide-[var(--color-line)]">
-          {pendingCount > 0 && (
-            <button onClick={() => onNavigate('ava')}
-              className="w-full flex items-center justify-between gap-4 px-6 py-4 text-left hover:bg-shell/60 transition-colors cursor-pointer group">
-              <div className="min-w-0">
-                <p className="font-serif text-[1rem] text-ink leading-snug truncate">
-                  {t('{n} svar klar til godkendelse', { n: pendingCount })}
-                </p>
-                <p className="text-[0.75rem] text-muted mt-0.5">{t('Ava har forberedt svar til jeres leverandører')}</p>
-              </div>
-              <ArrowUpRight size={14} className="shrink-0 text-muted group-hover:text-ink transition-colors" />
-            </button>
-          )}
-          {active.map((s) => (
-            <button key={s.key} onClick={() => onNavigate(STAGE_SCREEN[s.key])}
-              className="w-full flex items-center justify-between gap-4 px-6 py-4 text-left hover:bg-shell/60 transition-colors cursor-pointer group">
-              <div className="min-w-0">
-                <p className="font-serif text-[1rem] text-ink leading-snug truncate">{s.label}</p>
-                <p className="text-[0.75rem] text-muted mt-0.5">{s.hint}</p>
-              </div>
-              <ArrowUpRight size={14} className="shrink-0 text-muted group-hover:text-ink transition-colors" />
-            </button>
-          ))}
-        </div>
-      )}
-    </motion.div>
-  );
-}
-
-/* ── Journey next steps when the queue is empty ──────────────────────── */
-function JourneyNextSteps({ journey, onNavigate }: {
-  journey: { key: JourneyStageKey; label: string; hint: string; status: string }[];
-  onNavigate: (s: ScreenId) => void;
-}) {
-  const { t } = useLang();
-  const shown = journey.filter((s) => s.status !== 'complete');
-  if (shown.length === 0) {
-    return <p className="py-8 font-serif text-[1.05rem] italic text-muted">{t('Alt er booket — hvor er I dygtige. 🤍')}</p>;
+function TimelineMarker({ state, index }: { state: 'current' | 'next' | 'future'; index: number }) {
+  if (state === 'current') {
+    return (
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#e66b4e] text-white">
+        <Check size={14} />
+      </span>
+    );
+  }
+  if (state === 'next') {
+    return (
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 border-[#173c32] bg-white text-[11px] font-bold text-[#173c32]">
+        {index}
+      </span>
+    );
   }
   return (
-    <div className="mt-6 grid gap-4 sm:grid-cols-2">
-      {shown.map((s) => {
-        const locked = s.status === 'locked';
-        return (
-          <button key={s.key} disabled={locked}
-            onClick={() => !locked && onNavigate(STAGE_SCREEN[s.key])}
-            className={cn('rule rounded-2xl bg-card p-5 text-left transition-colors',
-              locked ? 'opacity-50 cursor-default' : 'hover:bg-shell cursor-pointer')}>
-            <p className="font-serif text-[1.15rem] text-ink">{s.label}</p>
-            <p className="mt-1 text-[0.82rem] text-muted leading-relaxed">{s.hint}</p>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-/* ── Website share card ──────────────────────────────────────────────── */
-function WebsiteShareCard({ couple, onNavigate }: {
-  couple: { a: string; b: string; guests: number };
-  onNavigate: (s: ScreenId) => void;
-}) {
-  const { t } = useLang();
-  const [copied, setCopied] = useState(false);
-  const domain = `${(couple.a || 'os').toLowerCase()}${couple.b ? `-${couple.b.toLowerCase()}` : ''}.kalas.dk`;
-
-  function copy() {
-    navigator.clipboard.writeText(`https://${domain}`).catch(() => {});
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2200);
-  }
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: 0.18 }}
-      className="mt-6 rule rounded-2xl bg-card overflow-hidden"
-    >
-      <div className="flex items-start justify-between gap-6 px-6 py-5">
-        <div className="flex items-start gap-4 min-w-0">
-          <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sage-tint">
-            <Globe size={17} className="text-ink" />
-          </div>
-          <div className="min-w-0">
-            <p className="font-serif text-[1.1rem] text-ink leading-snug">{t('Jeres hjemmeside (kommer snart)')}</p>
-            <p className="mt-0.5 text-[0.78rem] text-muted">
-              {t('{who} venter på linket', { who: couple.guests ? t('{n} gæster', { n: couple.guests }) : t('Gæstelisten') })}
-            </p>
-            <div className="mt-3 flex items-center gap-2 flex-wrap">
-              <div className="flex items-center gap-2 rule rounded-xl bg-shell px-3 py-1.5">
-                <span className="text-[0.76rem] font-mono text-ink">{domain}</span>
-              </div>
-              <button onClick={copy}
-                className="flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[0.68rem] font-bold uppercase tracking-[0.14em] bg-ink text-canvas hover:bg-ink/80 transition-colors cursor-pointer">
-                {copied ? <Check size={11} /> : <Copy size={11} />}
-                {copied ? t('Kopieret!') : t('Kopiér link')}
-              </button>
-            </div>
-          </div>
-        </div>
-        <button onClick={() => onNavigate('website')}
-          className="shrink-0 self-start rounded-full border border-[var(--color-line)] px-4 py-2 text-[0.68rem] font-medium uppercase tracking-[0.14em] text-ink hover:bg-shell transition-colors cursor-pointer">
-          {t('Tilpas →')}
-        </button>
-      </div>
-    </motion.div>
-  );
-}
-
-/* ── A real reply proposal, approve/dismiss ──────────────────────────── */
-function ProposalRow({ vendorName, body, proposalId, onDone, onNavigate }: {
-  vendorName: string; body: string; proposalId: string;
-  onDone: () => void; onNavigate: (s: ScreenId) => void;
-}) {
-  const { t } = useLang();
-  const [busy, setBusy] = useState(false);
-  const [open, setOpen] = useState(false);
-
-  async function act(kind: 'send' | 'dismiss') {
-    setBusy(true);
-    try {
-      await fetch(`/api/proposals/${proposalId}/${kind}`, { method: 'POST' });
-      onDone();
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-80px' }}
-      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      className="py-8"
-    >
-      <div className="grid items-start gap-8 lg:grid-cols-2 lg:gap-14">
-        <div className="lg:pt-3">
-          <Eyebrow>{t('Svar til {vendor}', { vendor: vendorName })}</Eyebrow>
-          <h3 className="display mt-4 text-[clamp(1.5rem,3vw,2.2rem)] text-ink">{t('Ava har skrevet et svar')}</h3>
-          <p className="mt-4 max-w-md text-ink-soft leading-relaxed">
-            {t('{vendor} har svaret på jeres henvendelse. Godkend Avas svar, så sender hun det fra Kalas-postkassen — eller tal med hende om det først.', { vendor: vendorName })}
-          </p>
-          <div className="mt-7 flex items-center gap-2">
-            <Pill arrow onClick={() => { if (!busy) void act('send'); }}>
-              {busy ? t('Sender…') : t('Godkend & send')}
-            </Pill>
-            <Pill variant="ghost" onClick={() => onNavigate('ava')}>{t('Tal med Ava')}</Pill>
-            <button onClick={() => { if (!busy) void act('dismiss'); }}
-              className="px-3 py-2 text-[0.72rem] font-medium uppercase tracking-[0.12em] text-muted hover:text-ink transition-colors cursor-pointer">
-              {t('Afvis')}
-            </button>
-          </div>
-        </div>
-
-        <div className="rule rounded-2xl bg-card overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-4 rule-b">
-            <span className="text-[0.6rem] font-bold uppercase tracking-[0.22em] text-muted">{t('Udkast · Ava')}</span>
-            <span className="rounded-full bg-sage px-2.5 py-0.5 text-[0.6rem] font-medium uppercase tracking-[0.12em] text-ink">{t('Klar')}</span>
-          </div>
-          <div className={cn('px-6 py-5 text-[0.84rem] text-ink-soft leading-relaxed whitespace-pre-line', !open && 'line-clamp-6')}>
-            {body}
-          </div>
-          <button onClick={() => setOpen((v) => !v)}
-            className="w-full rule-t px-6 py-3 text-[0.72rem] font-medium text-muted hover:text-ink transition-colors cursor-pointer">
-            {open ? t('Vis mindre') : t('Vis hele svaret')}
-          </button>
-        </div>
-      </div>
-    </motion.div>
+    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#eef0ed] text-[11px] font-bold text-[#6a7b74]">
+      {index}
+    </span>
   );
 }

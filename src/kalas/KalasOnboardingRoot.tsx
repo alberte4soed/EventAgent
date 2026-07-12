@@ -7,7 +7,7 @@
 import { AnimatePresence, MotionConfig } from 'motion/react';
 import { type ScreenId } from './Shell';
 import Onboarding, { type FormState, toOnboardingPayload } from './screens/Onboarding';
-import { LanguageProvider, LangSwitch, useLang, type Lang } from './i18n';
+import { LanguageProvider, useLang, type Lang } from './i18n';
 
 export default function KalasOnboardingRoot({ initialLang = 'da' }: { initialLang?: Lang }) {
   return (
@@ -22,7 +22,7 @@ export default function KalasOnboardingRoot({ initialLang = 'da' }: { initialLan
 }
 
 function OnboardingShell() {
-  const { lang, setLang } = useLang();
+  const { lang } = useLang();
 
   const enter = async (form: FormState, s?: ScreenId) => {
     try {
@@ -48,13 +48,8 @@ function OnboardingShell() {
   };
 
   return (
-    <>
-      <div className="fixed right-4 top-4 z-50">
-        <LangSwitch lang={lang} onSelect={setLang} />
-      </div>
-      <AnimatePresence mode="wait">
-        <Onboarding key="onb" onEnter={enter} />
-      </AnimatePresence>
-    </>
+    <AnimatePresence mode="wait">
+      <Onboarding key="onb" onEnter={enter} />
+    </AnimatePresence>
   );
 }

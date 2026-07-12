@@ -41,19 +41,26 @@ export default function KalasRoot({ initialLang = 'da' }: { initialLang?: Lang }
 
 function AppInner() {
   const { pendingCount, avaBadge } = useKalas();
+  const [avaOpen, setAvaOpen] = useState(false);
   const [screen, setScreen] = useState<ScreenId>(() => {
-    return (sessionStorage.getItem('kalas_screen') as ScreenId) || 'home';
+    const saved = sessionStorage.getItem('kalas_screen') as ScreenId | null;
+    return saved === 'ava' ? 'home' : saved || 'home';
   });
 
   const navigate = (s: ScreenId) => {
+    if (s === 'ava') {
+      setAvaOpen(true);
+      return;
+    }
+    setAvaOpen(false);
     sessionStorage.setItem('kalas_screen', s);
     setScreen(s);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const screens: Record<ScreenId, React.ReactNode> = {
+  type AppScreen = Exclude<ScreenId, 'ava'>;
+  const screens: Record<AppScreen, React.ReactNode> = {
     home:        <Home onNavigate={navigate} />,
-    ava:         <Ava onNavigate={navigate} />,
     inspiration: <Inspiration onNavigate={navigate} />,
     venues:      <VenueDiscovery onNavigate={navigate} />,
     vendors:     <Suppliers onNavigate={navigate} />,
@@ -67,10 +74,26 @@ function AppInner() {
     seating:     <Seating />,
   };
 
+  const activeScreen = screen === 'ava' ? 'home' : screen;
+
   return (
-    <Shell current={screen} onNavigate={navigate} pendingCount={pendingCount} avaBadge={avaBadge}>
+    <Shell
+      current={activeScreen}
+      onNavigate={navigate}
+      pendingCount={pendingCount}
+      avaBadge={avaBadge}
+      avaOpen={avaOpen}
+      onAvaOpen={() => setAvaOpen(true)}
+      avaDrawer={
+        <Ava
+          onNavigate={navigate}
+          onClose={() => setAvaOpen(false)}
+          variant="drawer"
+        />
+      }
+    >
       <AnimatePresence mode="wait">
-        <div key={screen}>{screens[screen]}</div>
+        <div key={activeScreen}>{screens[activeScreen as AppScreen]}</div>
       </AnimatePresence>
     </Shell>
   );

@@ -10,6 +10,7 @@ import * as React from "react";
 import { createContext, useContext, useEffect, useMemo, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { computeJourney, type JourneyStage } from "@/lib/journey";
+import { resolveWeddingDate } from "@/lib/wedding-date";
 import type {
   BudgetItemRow,
   EmailAttachmentRow,
@@ -137,9 +138,9 @@ function toCouple(
   if (!event) return { ...FALLBACK_COUPLE, email };
   const a = (profile?.display_name ?? event.title).split(/\s+/)[0] || "";
   const b = profile?.partner_name?.split(/\s+/)[0] ?? "";
-  const dateISO = event.event_date;
-  const dateLabel = dateISO
-    ? new Date(dateISO).toLocaleDateString("da-DK", {
+  const dateISO = event.event_date ?? resolveWeddingDate(event).iso;
+  const dateLabel = event.event_date
+    ? new Date(event.event_date).toLocaleDateString("da-DK", {
         day: "numeric",
         month: "long",
         year: "numeric",

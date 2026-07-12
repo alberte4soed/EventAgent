@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Search, Heart, MessageCircle, ChevronDown, X } from 'lucide-react';
 import { dnaTraits } from '../data';
@@ -82,7 +82,19 @@ const FAQ = [
 export default function Suppliers({ onNavigate }: { onNavigate?: (s: ScreenId) => void }) {
   const { couple, venues, refresh } = useWedding();
   const [query,   setQuery]   = useState('');
-  const [cat,     setCat]     = useState<Cat>('alle');
+  const [cat,     setCat]     = useState<Cat>(() => {
+    if (typeof sessionStorage === 'undefined') return 'alle';
+    const saved = sessionStorage.getItem('kalas_vendor_cat') as Cat | null;
+    if (saved) {
+      sessionStorage.removeItem('kalas_vendor_cat');
+      return saved;
+    }
+    return 'alle';
+  });
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
 
   // Real vendors the agent has found for this wedding (never the venue itself).
   const vendors = useMemo(

@@ -35,7 +35,7 @@ export type MessageRole = "user" | "assistant" | "system" | "tool";
 
 /** Rich-block payloads rendered inline in the chat. */
 export type MessagePayload =
-  | { kind: "venue_batch"; venue_ids: string[] }
+  | { kind: "venue_batch"; venue_ids: string[]; category?: VendorCategory }
   | { kind: "draft"; draft_id: string }
   | { kind: "send_report"; sent: number; failed: number; skipped: number }
   | { kind: "invite_brief"; wording: string; style: string | null }

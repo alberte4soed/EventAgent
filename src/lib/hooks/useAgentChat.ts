@@ -96,8 +96,20 @@ export function useAgentChat({
               onEventCreated?.(parsed.eventId);
             } else if (name === "status") {
               setAgentStatus(parsed.status);
+            } else if (name === "user_message") {
+              const saved = parsed as ChatMessageRow;
+              setMessages((m) => {
+                if (m.some((x) => x.id === saved.id)) {
+                  return m.filter((x) => x.id !== optimistic.id);
+                }
+                return [...m.filter((x) => x.id !== optimistic.id), saved];
+              });
             } else if (name === "message") {
-              setMessages((m) => [...m, parsed as ChatMessageRow]);
+              setMessages((m) =>
+                m.some((x) => x.id === (parsed as ChatMessageRow).id)
+                  ? m
+                  : [...m, parsed as ChatMessageRow]
+              );
             } else if (name === "error") {
               throw new Error(parsed.error);
             }

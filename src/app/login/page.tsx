@@ -1,21 +1,117 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
+type Mode = "sign-in" | "sign-up";
+
 export default function LoginPage() {
+  const router = useRouter();
+  const [mode, setMode] = useState<Mode>("sign-in");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("error") === "auth_failed") {
+      setError("Sign-in failed. Please try again.");
+    }
+  }, []);
+
+  function switchMode(next: Mode) {
+    setMode(next);
+    setError(null);
+    setMessage(null);
+  }
 
   async function signInWithGoogle() {
-    setLoading(true);
+    setGoogleLoading(true);
+    setError(null);
     const supabase = createClient();
-    await supabase.auth.signInWithOAuth({
+    const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
+    if (oauthError) {
+      setError(oauthError.message);
+      setGoogleLoading(false);
+    }
+  }
+
+  async function handleEmailAuth(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setMessage(null);
+
+    const supabase = createClient();
+
+    if (mode === "sign-up") {
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+
+      setLoading(false);
+      if (signUpError) {
+        if (signUpError.message.toLowerCase().includes("email rate limit exceeded")) {
+          setError(
+            "Too many sign-up emails sent. Supabase's default mailer allows about 2 per hour for the whole project. " +
+              "Wait ~1 hour, use Continue with Google, or disable “Confirm email” in Supabase for local dev."
+          );
+        } else {
+          setError(signUpError.message);
+        }
+        return;
+      }
+
+      if (data.session) {
+        router.push("/");
+        router.refresh();
+        return;
+      }
+
+      setMessage("Check your email for a confirmation link, then sign in.");
+      setMode("sign-in");
+      return;
+    }
+
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
+
+    setLoading(false);
+    if (signInError) {
+      if (signInError.message.toLowerCase().includes("email rate limit exceeded")) {
+        setError(
+          "Supabase's built-in email limit was hit (about 2 confirmation emails per hour for the whole project). " +
+            "Password sign-in does not send email — if you were creating an account, wait an hour or use Google. " +
+            "For dev, turn off “Confirm email” in Supabase → Authentication → Providers → Email."
+        );
+      } else if (signInError.message.toLowerCase().includes("email not confirmed")) {
+        setError(
+          "Confirm your email first (check inbox/spam), or ask an admin to confirm your user in Supabase Auth."
+        );
+      } else {
+        setError(signInError.message);
+      }
+      return;
+    }
+
+    router.push("/");
+    router.refresh();
   }
 
   return (
@@ -30,27 +126,116 @@ export default function LoginPage() {
       </header>
 
       <div className="flex flex-1 items-center justify-center px-6 pb-24">
-        <div className="w-full max-w-sm rounded-3xl border border-[#D4D6C0] bg-[#F6F0E8] p-10 text-center shadow-[0px_8px_30px_rgba(74,78,60,0.06)]">
-          <p className="text-[11px] font-medium uppercase tracking-[1.1px] text-[#4A4E3C]">
+        <div className="w-full max-w-sm rounded-3xl border border-[#D4D6C0] bg-[#F6F0E8] p-10 shadow-[0px_8px_30px_rgba(74,78,60,0.06)]">
+          <p className="text-center text-[11px] font-medium uppercase tracking-[1.1px] text-[#4A4E3C]">
             Welcome
           </p>
-          <h1 className="mt-4 font-[family-name:var(--font-fraunces)] text-2xl font-semibold tracking-[-0.5px] text-[#4A4E3C]">
-            Sign in or create your account
+          <h1 className="mt-4 text-center font-[family-name:var(--font-fraunces)] text-2xl font-semibold tracking-[-0.5px] text-[#4A4E3C]">
+            {mode === "sign-in" ? "Sign in to Kalas" : "Create your account"}
           </h1>
-          <p className="mt-3 text-sm leading-relaxed text-[#7A8066]">
-            One Google account is all you need — Kalas plans your wedding with you and
-            sends venue quote requests from your own Gmail.
+          <p className="mt-3 text-center text-sm leading-relaxed text-[#7A8066]">
+            Plan your wedding with Ava — find venues, manage guests, and send
+            quote requests.
           </p>
+
+          <div className="mt-6 flex rounded-xl border border-[#D4D6C0] p-1">
+            <button
+              type="button"
+              onClick={() => switchMode("sign-in")}
+              className={`flex-1 rounded-lg py-2 text-sm font-medium transition ${
+                mode === "sign-in"
+                  ? "bg-[#4A4E3C] text-[#F6F0E8]"
+                  : "text-[#7A8066] hover:text-[#4A4E3C]"
+              }`}
+            >
+              Sign in
+            </button>
+            <button
+              type="button"
+              onClick={() => switchMode("sign-up")}
+              className={`flex-1 rounded-lg py-2 text-sm font-medium transition ${
+                mode === "sign-up"
+                  ? "bg-[#4A4E3C] text-[#F6F0E8]"
+                  : "text-[#7A8066] hover:text-[#4A4E3C]"
+              }`}
+            >
+              Sign up
+            </button>
+          </div>
+
+          <form onSubmit={handleEmailAuth} className="mt-6 space-y-3">
+            <div>
+              <label htmlFor="email" className="sr-only">
+                Email
+              </label>
+              <input
+                id="email"
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Email"
+                className="w-full rounded-xl border border-[#D4D6C0] bg-white/60 px-4 py-3 text-sm text-[#4A4E3C] placeholder:text-[#8a8568] focus:border-[#4A4E3C] focus:outline-none"
+              />
+            </div>
+            <div>
+              <label htmlFor="password" className="sr-only">
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                autoComplete={mode === "sign-up" ? "new-password" : "current-password"}
+                required
+                minLength={6}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder={mode === "sign-up" ? "Password (min. 6 characters)" : "Password"}
+                className="w-full rounded-xl border border-[#D4D6C0] bg-white/60 px-4 py-3 text-sm text-[#4A4E3C] placeholder:text-[#8a8568] focus:border-[#4A4E3C] focus:outline-none"
+              />
+            </div>
+
+            {error && (
+              <p className="rounded-lg bg-[#f5e8e8] px-3 py-2 text-sm text-[#8b3a3a]" role="alert">
+                {error}
+              </p>
+            )}
+            {message && (
+              <p className="rounded-lg bg-[#e8f0e8] px-3 py-2 text-sm text-[#3a5c3a]" role="status">
+                {message}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-xl bg-[#4A4E3C] px-4 py-3 text-sm font-medium text-[#F6F0E8] shadow-[0px_3px_10px_rgba(74,78,60,0.3)] transition hover:bg-[#575B47] disabled:opacity-50"
+            >
+              {loading
+                ? mode === "sign-up"
+                  ? "Creating account…"
+                  : "Signing in…"
+                : mode === "sign-up"
+                  ? "Create account"
+                  : "Sign in"}
+            </button>
+          </form>
+
+          <div className="my-6 flex items-center gap-3">
+            <div className="h-px flex-1 bg-[#D4D6C0]" />
+            <span className="text-xs uppercase tracking-[0.12em] text-[#8a8568]">or</span>
+            <div className="h-px flex-1 bg-[#D4D6C0]" />
+          </div>
+
           <button
+            type="button"
             onClick={signInWithGoogle}
-            disabled={loading}
-            className="mt-8 w-full rounded-xl bg-[#4A4E3C] px-4 py-3 text-sm font-medium text-[#F6F0E8] shadow-[0px_3px_10px_rgba(74,78,60,0.3)] transition hover:bg-[#575B47] disabled:opacity-50"
+            disabled={googleLoading}
+            className="w-full rounded-xl border border-[#D4D6C0] bg-white/60 px-4 py-3 text-sm font-medium text-[#4A4E3C] transition hover:bg-white disabled:opacity-50"
           >
-            {loading ? "Redirecting…" : "Continue with Google"}
+            {googleLoading ? "Redirecting…" : "Continue with Google"}
           </button>
-          <p className="mt-4 text-xs text-[#8a8568]">
-            New here? The same button creates your account.
-          </p>
         </div>
       </div>
     </main>

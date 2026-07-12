@@ -129,12 +129,22 @@ export async function POST(request: NextRequest) {
       : "Svar altid parret på dansk.";
   const extraContext = [languageDirective, replyContext].filter(Boolean).join("\n\n");
 
-  await supabase.from("chat_messages").insert({
-    event_id: event.id,
-    user_id: user.id,
-    role: "user",
-    content: message,
-  });
+  const { data: userMsg, error: userMsgError } = await supabase
+    .from("chat_messages")
+    .insert({
+      event_id: event.id,
+      user_id: user.id,
+      role: "user",
+      content: message,
+    })
+    .select()
+    .single();
+  if (userMsgError || !userMsg) {
+    return Response.json(
+      { error: userMsgError?.message ?? "Could not save message" },
+      { status: 500 }
+    );
+  }
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
@@ -146,6 +156,8 @@ export async function POST(request: NextRequest) {
       };
       try {
         if (!eventId) send("event", { eventId: event.id });
+        // Lets the client swap its optimistic bubble for the persisted row.
+        send("user_message", userMsg);
 
         const result = await runAgentTurn(
           supabase,

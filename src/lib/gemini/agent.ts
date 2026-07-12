@@ -157,9 +157,17 @@ export async function runAgentTurn(
           case "search_venues": {
             onStatus("Researching options on the web…");
             const search = await execSearchVenues(supabase, currentEvent, args, onStatus);
-            result = { venue_count: search.venueIds.length, venue_names: search.names };
+            result = {
+              venue_count: search.venueIds.length,
+              venue_names: search.names,
+              category: search.category,
+            };
             if (search.venueIds.length > 0) {
-              payload = { kind: "venue_batch", venue_ids: search.venueIds };
+              payload = {
+                kind: "venue_batch",
+                venue_ids: search.venueIds,
+                category: search.category,
+              };
             }
             break;
           }
@@ -338,7 +346,7 @@ async function execSearchVenues(
   event: EventRow,
   args: Record<string, unknown>,
   onStatus: StatusFn = () => {}
-): Promise<{ venueIds: string[]; names: string[] }> {
+): Promise<{ venueIds: string[]; names: string[]; category: VendorCategory }> {
   const ai = getGemini();
   const location = String(args.location ?? event.location ?? "");
   const guestCount = (args.guest_count as number | undefined) ?? event.guest_count;
@@ -507,6 +515,7 @@ async function execSearchVenues(
   return {
     venueIds: (data ?? []).map((d) => d.id as string),
     names: (data ?? []).map((d) => d.name as string),
+    category,
   };
 }
 

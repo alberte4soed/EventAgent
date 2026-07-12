@@ -34,9 +34,9 @@ const HINTS: Record<HintId, HintConfig> = {
   },
   venues: {
     eyebrow: 'Find jeres drømmested',
-    title: 'Ava har sorteret for jer',
-    body: 'Hvert sted er matchet mod jeres stil, gæsteantal og budget. Tryk "Se venue" på et kort for billeder, kapacitet og Avas personlige analyse af stedet.',
-    cta: 'Se de bedste steder',
+    title: 'Start her — swipe eller spørg Ava',
+    body: 'Ingen venues endnu? Swipe jeres stil så Ava ved hvad I leder efter, eller fortæl hende direkte hvad I drømmer om — så finder hun rigtige steder med billeder og priser.',
+    cta: 'Find venues',
   },
   vendors: {
     eyebrow: 'Alle leverandørerne',

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'motion/react';
-import { Send, Paperclip, MapPin, Copy, Check } from 'lucide-react';
+import { Send, Paperclip, MapPin, Copy, Check, X } from 'lucide-react';
 import { useKalas } from '../store';
 import { useWedding } from '../useWedding';
 import { cn } from '../ui';
@@ -11,17 +11,35 @@ import type { ScreenId } from '../Shell';
 import OnboardingHint from '../OnboardingHint';
 import { createClient } from '@/lib/supabase/client';
 import { useAgentChat } from '@/lib/hooks/useAgentChat';
-import type { ChatMessageRow, ReplyProposalRow, EmailDraftRow, VenueRow } from '@/lib/db/types';
+import type { ChatMessageRow, ReplyProposalRow, EmailDraftRow, VenueRow, VendorCategory } from '@/lib/db/types';
+import {
+  batchCategory,
+  batchLabel,
+  batchScreen,
+  batchSupplierFilter,
+} from '@/lib/vendor-batch';
 
 const SUGGESTIONS = ['Find venues til os', 'Hvad mangler vi at booke?', 'Skriv til fotografer'];
 
-export default function Ava({ onNavigate }: { onNavigate?: (s: ScreenId) => void }) {
+export default function Ava({
+  onNavigate,
+  onClose,
+  variant = 'page',
+}: {
+  onNavigate?: (s: ScreenId) => void;
+  onClose?: () => void;
+  variant?: 'page' | 'drawer';
+}) {
   const { loading, event, couple } = useWedding();
   const { t } = useLang();
 
+  const shellClass = variant === 'drawer'
+    ? 'flex h-full flex-col'
+    : 'mx-auto flex h-[calc(100dvh-130px)] max-w-2xl flex-col px-5 lg:h-screen';
+
   if (loading) {
     return (
-      <div className="mx-auto flex h-[calc(100dvh-130px)] max-w-2xl items-center justify-center px-5 lg:h-screen">
+      <div className={cn(shellClass, 'items-center justify-center px-5')}>
         <TypingDots />
       </div>
     );
@@ -29,7 +47,7 @@ export default function Ava({ onNavigate }: { onNavigate?: (s: ScreenId) => void
 
   if (!event) {
     return (
-      <div className="mx-auto flex h-[calc(100dvh-130px)] max-w-2xl flex-col items-center justify-center px-5 text-center lg:h-screen">
+      <div className={cn(shellClass, 'flex-col items-center justify-center px-5 text-center')}>
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-ink">
           <span className="font-serif text-[1.5rem] leading-none text-canvas">K</span>
         </div>
@@ -41,13 +59,34 @@ export default function Ava({ onNavigate }: { onNavigate?: (s: ScreenId) => void
     );
   }
 
-  return <AvaChat key={event.id} eventId={event.id} coupleA={couple.a} onNavigate={onNavigate} />;
+  return (
+    <AvaChat
+      key={event.id}
+      eventId={event.id}
+      coupleA={couple.a}
+      onNavigate={onNavigate}
+      onClose={onClose}
+      variant={variant}
+    />
+  );
 }
 
-function AvaChat({ eventId, coupleA, onNavigate }: { eventId: string; coupleA: string; onNavigate?: (s: ScreenId) => void }) {
+function AvaChat({
+  eventId,
+  coupleA,
+  onNavigate,
+  onClose,
+  variant,
+}: {
+  eventId: string;
+  coupleA: string;
+  onNavigate?: (s: ScreenId) => void;
+  onClose?: () => void;
+  variant: 'page' | 'drawer';
+}) {
   const supabase = useMemo(() => createClient(), []);
   const { clearAvaBadge } = useKalas();
-  const { refresh } = useWedding();
+  const { refresh, venues } = useWedding();
   const { messages, agentStatus, sendMessage, setMessages } = useAgentChat({
     initialEventId: eventId,
     onTurnComplete: () => void refresh(),
@@ -74,7 +113,21 @@ function AvaChat({ eventId, coupleA, onNavigate }: { eventId: string; coupleA: s
         { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `event_id=eq.${eventId}` },
         (p) => {
           const row = p.new as ChatMessageRow;
-          setMessages((m) => (m.some((x) => x.id === row.id) ? m : [...m, row]));
+          setMessages((m) => {
+            if (m.some((x) => x.id === row.id)) return m;
+            // Replace the optimistic local bubble once the persisted row lands.
+            if (row.role === 'user') {
+              const i = m.findIndex(
+                (x) => x.id.startsWith('local-') && x.role === 'user' && x.content === row.content
+              );
+              if (i !== -1) {
+                const next = [...m];
+                next[i] = row;
+                return next;
+              }
+            }
+            return [...m, row];
+          });
         }
       )
       .subscribe();
@@ -90,26 +143,39 @@ function AvaChat({ eventId, coupleA, onNavigate }: { eventId: string; coupleA: s
   const visible = messages.filter((m) => m.role === 'user' || m.role === 'assistant');
 
   return (
-    <div className="mx-auto flex h-[calc(100dvh-130px)] max-w-2xl flex-col px-5 lg:h-screen">
-      <header className="flex items-center gap-3 rule-b py-6">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-ink">
-          <span className="font-serif text-[1.3rem] leading-none text-canvas">K</span>
+    <div className={cn(
+      'flex flex-col',
+      variant === 'drawer' ? 'h-full px-4' : 'mx-auto h-[calc(100dvh-130px)] max-w-2xl px-5 lg:h-screen',
+    )}>
+      <header className="flex items-center gap-3 border-b border-[#d9ded9] py-4">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#173c32]">
+          <span className="font-serif text-[1.3rem] leading-none text-white">K</span>
         </div>
-        <div>
-          <div className="font-serif text-[1.15rem] text-ink">Ava</div>
-          <div className="text-[0.72rem] text-success">{t('● Online · jeres bryllupsplanlægger')}</div>
+        <div className="min-w-0 flex-1">
+          <div className="font-serif text-[1.15rem] text-[#173c32]">Ava</div>
+          <div className="text-[0.72rem] text-[#236b53]">{t('● Online · jeres bryllupsplanlægger')}</div>
         </div>
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={t('Luk')}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] border border-[#d9ded9] bg-white text-[#173c32] hover:bg-[#fafaf8] cursor-pointer"
+          >
+            <X size={18} />
+          </button>
+        )}
       </header>
 
-      <div className="hide-scrollbar flex-1 space-y-4 overflow-y-auto py-7">
+      <div className="hide-scrollbar flex-1 space-y-4 overflow-y-auto py-5">
         {visible.map((m) => (
-          <Bubble key={m.id} msg={m} onNavigate={onNavigate} />
+          <Bubble key={m.id} msg={m} onNavigate={onNavigate} venues={venues} onRefresh={refresh} />
         ))}
         {agentStatus && <TypingDots label={agentStatus} />}
         <div ref={endRef} />
       </div>
 
-      <div className="pb-3 pt-2 lg:pb-7">
+      <div className="border-t border-[#d9ded9] pb-3 pt-2">
         <div className="mb-3 flex flex-wrap gap-2">
           {SUGGESTIONS.map((s) => (
             <button key={s} onClick={() => sendMessage(t(s))} disabled={agentStatus !== null}
@@ -134,12 +200,22 @@ function AvaChat({ eventId, coupleA, onNavigate }: { eventId: string; coupleA: s
           </button>
         </form>
       </div>
-      <OnboardingHint id="ava" />
+      {variant === 'page' && <OnboardingHint id="ava" />}
     </div>
   );
 }
 
-function Bubble({ msg, onNavigate }: { msg: ChatMessageRow; onNavigate?: (s: ScreenId) => void }) {
+function Bubble({
+  msg,
+  onNavigate,
+  venues,
+  onRefresh,
+}: {
+  msg: ChatMessageRow;
+  onNavigate?: (s: ScreenId) => void;
+  venues: VenueRow[];
+  onRefresh: () => Promise<void>;
+}) {
   const mine = msg.role === 'user';
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}
@@ -152,7 +228,7 @@ function Bubble({ msg, onNavigate }: { msg: ChatMessageRow; onNavigate?: (s: Scr
       )}
       {msg.payload && (
         <div className="mt-2 w-full max-w-[80%]">
-          <PayloadCard payload={msg.payload} onNavigate={onNavigate} />
+          <PayloadCard payload={msg.payload} onNavigate={onNavigate} venues={venues} onRefresh={onRefresh} />
         </div>
       )}
     </motion.div>
@@ -160,14 +236,28 @@ function Bubble({ msg, onNavigate }: { msg: ChatMessageRow; onNavigate?: (s: Scr
 }
 
 /* ── Interactive payload cards ───────────────────────────────────────── */
-function PayloadCard({ payload, onNavigate }: { payload: NonNullable<ChatMessageRow['payload']>; onNavigate?: (s: ScreenId) => void }) {
-  const { t } = useLang();
+function PayloadCard({
+  payload,
+  onNavigate,
+  venues,
+  onRefresh,
+}: {
+  payload: NonNullable<ChatMessageRow['payload']>;
+  onNavigate?: (s: ScreenId) => void;
+  venues: VenueRow[];
+  onRefresh: () => Promise<void>;
+}) {
+  const { t, lang } = useLang();
   switch (payload.kind) {
     case 'venue_batch':
       return (
-        <ActionPill onClick={() => onNavigate?.('venues')}>
-          <MapPin size={13} /> {t('{n} venues lagt på jeres board — se dem', { n: payload.venue_ids.length })}
-        </ActionPill>
+        <VenueBatchCard
+          payload={payload}
+          venues={venues}
+          onNavigate={onNavigate}
+          onRefresh={onRefresh}
+          label={(category, count) => batchLabel(category, lang, count)}
+        />
       );
     case 'reply_proposal':
       return <ProposalCard proposalId={payload.proposal_id} onNavigate={onNavigate} />;
@@ -184,6 +274,56 @@ function PayloadCard({ payload, onNavigate }: { payload: NonNullable<ChatMessage
     default:
       return null;
   }
+}
+
+function VenueBatchCard({
+  payload,
+  venues,
+  onNavigate,
+  onRefresh,
+  label,
+}: {
+  payload: Extract<NonNullable<ChatMessageRow['payload']>, { kind: 'venue_batch' }>;
+  venues: VenueRow[];
+  onNavigate?: (s: ScreenId) => void;
+  onRefresh: () => Promise<void>;
+  label: (category: VendorCategory, count: number) => string;
+}) {
+  const [busy, setBusy] = useState(false);
+  const supabase = useMemo(() => createClient(), []);
+
+  const openBoard = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await onRefresh();
+      let rows: { id: string; category: VendorCategory }[] = venues;
+      if (payload.venue_ids.length > 0) {
+        const { data } = await supabase
+          .from('venues')
+          .select('id, category')
+          .in('id', payload.venue_ids);
+        if (data?.length) rows = data as { id: string; category: VendorCategory }[];
+      }
+      const category = batchCategory(payload, rows);
+      const filter = batchSupplierFilter(category);
+      if (filter) sessionStorage.setItem('kalas_vendor_cat', filter);
+      if (batchScreen(category) === 'venues') {
+        sessionStorage.setItem('kalas_venues_view', 'picks');
+      }
+      onNavigate?.(batchScreen(category));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const category = batchCategory(payload, venues);
+
+  return (
+    <ActionPill onClick={() => void openBoard()}>
+      <MapPin size={13} /> {label(category, payload.venue_ids.length)}
+    </ActionPill>
+  );
 }
 
 function ActionPill({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {

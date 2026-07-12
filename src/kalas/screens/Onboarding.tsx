@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import dynamic from 'next/dynamic';
 import {
-  Check, ArrowLeft, ArrowRight, Sparkles, MapPin, ListChecks,
+  Check, ArrowLeft, ArrowRight, Sparkles, MapPin, ListChecks, Heart, Lock,
 } from 'lucide-react';
 import { couple, timeline } from '../data';
 import { GUEST_BANDS, type OnboardingDate } from '@/lib/onboarding';
@@ -140,8 +140,13 @@ const inputCls = 'w-full rounded-2xl border border-[var(--color-line-strong)] bg
 ══════════════════════════════════════════════════════════════════════ */
 const TOTAL_STEPS = 6;
 
+const STEP_LABELS = ['Jeres historie', 'Destination', 'Datoen', 'Omfang', 'Stilen', 'Partner'] as const;
+
+const wonderInputCls =
+  'h-[62px] w-full rounded-[14px] border bg-[#fffdf7] px-[18px] text-base text-[#23351f] placeholder:text-[#637067] transition-shadow focus:outline-none';
+
 export default function Onboarding({ onEnter }: { onEnter: (form: FormState, s?: ScreenId) => void }) {
-  const { t } = useLang();
+  const { t, lang, setLang } = useLang();
   const [step, setStep] = useState(0);
   const [dir, setDir] = useState(1);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
@@ -179,58 +184,191 @@ export default function Onboarding({ onEnter }: { onEnter: (form: FormState, s?:
   }
 
   return (
-    <div className="relative flex min-h-screen flex-col overflow-hidden bg-canvas">
-      {/* Soft background washes */}
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -left-24 top-16 h-80 w-80 rounded-full bg-sage/25 blur-[120px]" />
-        <div className="absolute -right-24 bottom-16 h-80 w-80 rounded-full bg-shell blur-[120px]" />
-      </div>
-
-      {/* Header */}
-      <header className="relative mx-auto flex w-full max-w-2xl items-center justify-between px-6 pt-7">
-        <span className="text-[1.3rem] lowercase text-ink" style={{ fontFamily: 'var(--font-logo)', fontWeight: 500, letterSpacing: '0.02em' }}>kalas</span>
-        <span className="mr-40 text-[0.72rem] font-medium text-muted sm:mr-44">
-          {t('Trin {a} af {b}', { a: step + 1, b: TOTAL_STEPS })}
-        </span>
-      </header>
-
-      {/* Progress */}
-      <div className="relative mx-auto mt-4 w-full max-w-2xl px-6">
-        <div className="h-1 overflow-hidden rounded-full bg-shell">
-          <motion.div className="h-full rounded-full bg-ink"
-            animate={{ width: `${((step + 1) / TOTAL_STEPS) * 100}%` }}
-            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }} />
+    <div className="flex min-h-screen flex-col bg-[#f4f1ea] text-[#18372f]">
+      <OnboardingHeader
+        step={step}
+        stepLabel={t(STEP_LABELS[step])}
+        lang={lang}
+        onLang={setLang}
+        t={t}
+      />
+      <div className="flex justify-end border-b border-[#d8d5ca] px-6 pb-3 sm:hidden">
+        <div className="flex h-10 items-center rounded-full border border-[#c9c8be] bg-[#ebe8df] p-1">
+          <LangPill lang={lang} onLang={setLang} />
         </div>
       </div>
 
-      {/* Step */}
-      <div className="relative mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center px-6 py-10">
-        <AnimatePresence mode="wait" custom={dir}>
-          <motion.div
-            key={step}
-            custom={dir}
-            initial={{ opacity: 0, x: dir * 36 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: dir * -36 }}
-            transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-          >
-            {step === 0 && <NamesStep form={form} set={set} onNext={() => canAdvance && go(1)} />}
-            {step === 1 && <DestinationStep form={form} setField={setField} />}
-            {step === 2 && <DateStep form={form} set={set} setField={setField} />}
-            {step === 3 && <ScopeStep form={form} setField={setField} />}
-            {step === 4 && <StyleStep form={form} set={set} toggleVibe={toggleVibe} />}
-            {step === 5 && <PartnerStep form={form} set={set} />}
-          </motion.div>
-        </AnimatePresence>
+      <div className="flex flex-1 flex-col gap-8 px-6 py-8 lg:flex-row lg:gap-[52px] lg:px-14 lg:py-[42px]">
+        <ContextPanel step={step} t={t} />
 
-        <NavRow
-          onBack={step > 0 ? () => go(step - 1) : undefined}
-          onNext={() => canAdvance && go(step + 1)}
-          nextLabel={step === TOTAL_STEPS - 1 ? 'Se jeres plan' : 'Videre'}
-          nextDisabled={!canAdvance}
-        />
+        <div className="flex min-w-0 flex-1 flex-col justify-center py-2">
+          <AnimatePresence mode="wait" custom={dir}>
+            <motion.div
+              key={step}
+              custom={dir}
+              initial={{ opacity: 0, x: dir * 28 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: dir * -28 }}
+              transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+              className="w-full max-w-[680px]"
+            >
+              {step === 0 && <NamesStep form={form} set={set} onNext={() => canAdvance && go(1)} />}
+              {step === 1 && <DestinationStep form={form} setField={setField} />}
+              {step === 2 && <DateStep form={form} set={set} setField={setField} />}
+              {step === 3 && <ScopeStep form={form} setField={setField} />}
+              {step === 4 && <StyleStep form={form} set={set} toggleVibe={toggleVibe} />}
+              {step === 5 && <PartnerStep form={form} set={set} />}
+            </motion.div>
+          </AnimatePresence>
+        </div>
       </div>
+
+      <OnboardingFooter
+        onBack={step > 0 ? () => go(step - 1) : undefined}
+        onNext={() => canAdvance && go(step + 1)}
+        nextLabel={step === TOTAL_STEPS - 1 ? t('Se jeres plan') : t('Fortsæt')}
+        nextDisabled={!canAdvance}
+        t={t}
+      />
     </div>
+  );
+}
+
+function OnboardingHeader({
+  step, stepLabel, lang, onLang, t,
+}: {
+  step: number; stepLabel: string; lang: 'da' | 'en'; onLang: (l: 'da' | 'en') => void; t: (s: string, p?: Record<string, string | number>) => string;
+}) {
+  const progress = ((step + 1) / TOTAL_STEPS) * 100;
+  return (
+    <header className="flex h-[92px] shrink-0 items-center gap-6 border-b border-[#d8d5ca] px-6 lg:gap-8 lg:px-14">
+      <span
+        className="w-[120px] shrink-0 font-serif text-3xl font-semibold tracking-[-0.8px] text-[#173c32] lg:w-[220px]"
+        style={{ fontFamily: 'var(--font-logo)' }}
+      >
+        kalas
+      </span>
+      <div className="flex min-w-0 flex-1 flex-col gap-[9px]">
+        <div className="flex items-center justify-between gap-3">
+          <span className="truncate text-xs font-semibold uppercase tracking-[0.16em] text-[#173c32]">
+            {stepLabel}
+          </span>
+          <span className="shrink-0 text-[13px] font-medium text-[#5f6d65]">
+            {t('Trin {a} af {b}', { a: step + 1, b: TOTAL_STEPS })}
+          </span>
+        </div>
+        <div className="h-1.5 overflow-hidden rounded-full bg-[#ded9c8]">
+          <motion.div
+            className="h-full rounded-full bg-[#e66b4e]"
+            animate={{ width: `${progress}%` }}
+            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+          />
+        </div>
+      </div>
+      <div className="hidden h-11 shrink-0 items-center rounded-full border border-[#c9c8be] bg-[#ebe8df] p-1 sm:flex">
+        <LangPill lang={lang} onLang={onLang} />
+      </div>
+    </header>
+  );
+}
+
+function LangPill({ lang, onLang }: { lang: 'da' | 'en'; onLang: (l: 'da' | 'en') => void }) {
+  return (
+    <div className="flex items-center">
+      {(['da', 'en'] as const).map((l) => (
+        <button
+          key={l}
+          type="button"
+          onClick={() => onLang(l)}
+          className={cn(
+            'min-w-[72px] rounded-full px-4 py-2 text-sm font-medium transition-colors cursor-pointer',
+            lang === l ? 'bg-[#173c32] font-semibold text-[#fffdf7] shadow-[0px_3px_10px_rgba(23,60,50,0.16)]' : 'text-[#526158]',
+          )}
+        >
+          {l === 'da' ? 'Dansk' : 'English'}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function ContextPanel({ step, t }: { step: number; t: (s: string) => string }) {
+  const headlines = [
+    { eyebrow: 'En omtænksom start', title: 'Lad os gøre det til jeres.', sub: 'Seks korte trin hjælper Ava med at skræddersy venues, opgaver og anbefalinger til jeres bryllup.' },
+    { eyebrow: 'Destination', title: 'Hvor i verden?', sub: 'Drej på kloden og vælg et sted der frister — hjemme eller langt væk.' },
+    { eyebrow: 'Datoen', title: 'Hvornår siger I ja?', sub: 'En sæson, en dato eller “vi ved det ikke endnu” — Ava tilpasser sig.' },
+    { eyebrow: 'Omfang', title: 'Hvor mange gæster?', sub: 'Et pejlemærke er nok — Ava bruger det til venues, budget og tidslinje.' },
+    { eyebrow: 'Stilen', title: 'Hvad føles som jer?', sub: 'Vælg det der frister — Ava lærer jeres æstetik at kende.' },
+    { eyebrow: 'Sammen om det', title: 'Giv partneren adgang', sub: 'I deler samme plan — ingen duplikerede lister. Valgfrit.' },
+  ];
+  const panel = headlines[step] ?? headlines[0];
+
+  return (
+    <aside className="hidden w-full max-w-[430px] shrink-0 flex-col justify-between rounded-3xl bg-[#173c32] p-[38px] shadow-[0px_18px_50px_rgba(23,60,50,0.16)] lg:flex lg:min-h-[620px]">
+      <div className="flex flex-col gap-6">
+        <div className="flex h-[52px] w-[52px] items-center justify-center rounded-full bg-[#e66b4e]">
+          <Heart size={22} className="text-[#fffdf7]" />
+        </div>
+        <div className="flex flex-col gap-3.5">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#b8ccc3]">{t(panel.eyebrow)}</p>
+          <h2 className="max-w-[330px] font-serif text-[clamp(2rem,4vw,2.875rem)] leading-[1.05] tracking-[-0.03em] text-[#fffdf7]">
+            {t(panel.title)}
+          </h2>
+          <p className="max-w-[320px] text-base leading-[1.65] text-[#d8e2dd]">{t(panel.sub)}</p>
+        </div>
+      </div>
+      <div className="mt-10 flex flex-col gap-3.5">
+        {[t('Anbefalinger formet omkring jer'), t('Ændr ethvert svar senere')].map((line) => (
+          <div key={line} className="flex items-center gap-3">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/10">
+              <Check size={14} className="text-[#e8a18f]" />
+            </div>
+            <span className="text-sm text-[#d8e2dd]">{line}</span>
+          </div>
+        ))}
+      </div>
+    </aside>
+  );
+}
+
+function OnboardingFooter({
+  onBack, onNext, nextLabel, nextDisabled, t,
+}: {
+  onBack?: () => void; onNext?: () => void; nextLabel: string; nextDisabled?: boolean; t: (s: string) => string;
+}) {
+  return (
+    <footer className="flex shrink-0 flex-col gap-4 border-t border-[#d8d5ca] px-6 py-5 sm:flex-row sm:items-center sm:gap-6 lg:px-14 lg:py-[22px]">
+      <div className="min-w-0 flex-1">
+        <p className="text-[13px] font-semibold text-[#30463c]">{t('Ca. 3 minutter at gennemføre')}</p>
+        <p className="text-xs text-[#69766e]">{t('Jeres svar gemmes undervejs.')}</p>
+      </div>
+      <div className="flex w-full shrink-0 items-center justify-end gap-3 sm:w-[390px]">
+        {onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            className="flex h-[50px] items-center gap-2 rounded-xl px-[18px] text-sm font-semibold text-[#536259] transition-colors hover:text-[#173c32] cursor-pointer"
+          >
+            <ArrowLeft size={16} /> {t('Tilbage')}
+          </button>
+        )}
+        {onNext && (
+          <button
+            type="button"
+            onClick={onNext}
+            disabled={nextDisabled}
+            className={cn(
+              'flex h-[52px] flex-1 items-center justify-center gap-2.5 rounded-[14px] px-6 text-[15px] font-bold transition-opacity cursor-pointer sm:flex-initial sm:min-w-[200px]',
+              nextDisabled
+                ? 'cursor-not-allowed bg-[#ded9c8] text-[#8a8f87]'
+                : 'bg-[#e66b4e] text-[#fffdf7] shadow-[0px_8px_22px_rgba(230,107,78,0.24)] hover:opacity-95',
+            )}
+          >
+            {nextLabel} {!nextDisabled && <ArrowRight size={17} />}
+          </button>
+        )}
+      </div>
+    </footer>
   );
 }
 
@@ -242,29 +380,6 @@ function StepHead({ eyebrow, title, sub }: { eyebrow: string; title: React.React
       <p className="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-muted">{t(eyebrow)}</p>
       <h2 className="display mt-3 text-[clamp(1.9rem,4.5vw,2.8rem)] leading-tight text-ink">{title}</h2>
       {sub && <p className="mt-3 max-w-md text-[0.9rem] leading-relaxed text-ink-soft">{t(sub)}</p>}
-    </div>
-  );
-}
-
-function NavRow({ onBack, onNext, nextLabel = 'Videre', nextDisabled }: {
-  onBack?: () => void; onNext?: () => void; nextLabel?: string; nextDisabled?: boolean;
-}) {
-  const { t } = useLang();
-  return (
-    <div className="mt-10 flex gap-3">
-      {onBack && (
-        <button onClick={onBack}
-          className="flex items-center gap-2 rounded-2xl border border-[var(--color-line-strong)] px-5 py-3.5 text-[0.9rem] font-medium text-ink-soft hover:text-ink hover:border-ink transition-colors cursor-pointer">
-          <ArrowLeft size={15} /> {t('Tilbage')}
-        </button>
-      )}
-      {onNext && (
-        <button onClick={onNext} disabled={nextDisabled}
-          className={cn('flex flex-1 items-center justify-center gap-2 rounded-2xl py-3.5 text-[0.9rem] font-medium transition-colors cursor-pointer',
-            nextDisabled ? 'bg-shell text-muted cursor-not-allowed' : 'bg-ink text-canvas hover:bg-ink/90')}>
-          {t(nextLabel)} {!nextDisabled && <ArrowRight size={15} />}
-        </button>
-      )}
     </div>
   );
 }
@@ -297,19 +412,62 @@ function Chip({ selected, onClick, children }: { selected: boolean; onClick: () 
 ══════════════════════════════════════════════════════════════════════ */
 function NamesStep({ form, set, onNext }: { form: FormState; set: any; onNext: () => void }) {
   const { t } = useLang();
+  const [focus, setFocus] = useState<'a' | 'b' | null>('a');
+
+  const fieldCls = (active: boolean) =>
+    cn(
+      wonderInputCls,
+      active
+        ? 'border-2 border-[#173c32] shadow-[0px_0px_0px_4px_rgba(123,142,85,0.18)]'
+        : 'border border-[#c9ccc4]',
+    );
+
   return (
-    <div>
-      <StepHead eyebrow="Velkommen til Kalas" title={<>{t('Hvem skal')} <span className="italic">{t('giftes?')}</span></>}
-        sub="Så Ava kan hilse på jer som mennesker — ikke et regneark." />
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="Dit navn">
-          <input value={form.nameA} onChange={set('nameA')} placeholder={t('Fornavn')} className={inputCls} autoFocus
-            onKeyDown={(e) => { if (e.key === 'Enter') onNext(); }} />
-        </Field>
-        <Field label="Partners navn">
-          <input value={form.nameB} onChange={set('nameB')} placeholder={t('Fornavn')} className={inputCls}
-            onKeyDown={(e) => { if (e.key === 'Enter') onNext(); }} />
-        </Field>
+    <div className="flex flex-col gap-[34px]">
+      <div className="flex flex-col gap-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#6c755e]">
+          {t('Velkommen til Kalas')}
+        </p>
+        <h1 className="flex flex-wrap items-baseline gap-x-3.5 font-serif text-[clamp(2.5rem,6vw,3.625rem)] leading-[1.04] tracking-[-0.03em] text-[#23351f]">
+          <span>{t('Hvem skal')}</span>
+          <span className="italic">{t('giftes?')}</span>
+        </h1>
+        <p className="max-w-[560px] text-[17px] leading-[1.6] text-[#56645b]">
+          {t('Fortæl os hvad vi skal kalde jer begge. Ava bruger fornavne, så planlægningen føles personlig fra første skridt.')}
+        </p>
+      </div>
+
+      <div className="flex w-full flex-col gap-4 sm:flex-row">
+        <label className="flex flex-1 flex-col gap-[9px]">
+          <span className="text-xs font-bold uppercase tracking-[0.16em] text-[#39493f]">{t('Dit fornavn')}</span>
+          <input
+            value={form.nameA}
+            onChange={set('nameA')}
+            placeholder={t('f.eks. Maya')}
+            className={fieldCls(focus === 'a')}
+            autoFocus
+            onFocus={() => setFocus('a')}
+            onBlur={() => setFocus((f) => (f === 'a' ? null : f))}
+            onKeyDown={(e) => { if (e.key === 'Enter') onNext(); }}
+          />
+        </label>
+        <label className="flex flex-1 flex-col gap-[9px]">
+          <span className="text-xs font-bold uppercase tracking-[0.16em] text-[#39493f]">{t('Partners fornavn')}</span>
+          <input
+            value={form.nameB}
+            onChange={set('nameB')}
+            placeholder={t('f.eks. Elias')}
+            className={fieldCls(focus === 'b')}
+            onFocus={() => setFocus('b')}
+            onBlur={() => setFocus((f) => (f === 'b' ? null : f))}
+            onKeyDown={(e) => { if (e.key === 'Enter') onNext(); }}
+          />
+        </label>
+      </div>
+
+      <div className="flex items-center gap-[9px]">
+        <Lock size={15} className="shrink-0 text-[#66746c]" />
+        <p className="text-[13px] text-[#66746c]">{t('Bruges kun til at personliggøre jeres planlægningsrum.')}</p>
       </div>
     </div>
   );

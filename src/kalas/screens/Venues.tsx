@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform } from 'motion/react';
-import { Heart, X, Check, MessageCircle, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Heart, X, Check, MessageCircle, ArrowLeft, ArrowRight, MapPin, Search, SlidersHorizontal, ArrowUpRight, Star, Calendar } from 'lucide-react';
 import { IMAGES, dnaTraits, moodboard } from '../data';
 import { useWedding } from '../useWedding';
 import { Eyebrow, Pill, Bleed, cn } from '../ui';
@@ -48,6 +48,10 @@ function toDisplay(v: VenueRow): DisplayVenue {
 const imgSrc = (src: string) =>
   src.startsWith('http') ? src : IMAGES[src as keyof typeof IMAGES] ?? IMAGES.orangeri;
 
+function venueAreaLabel(region: string): string {
+  return region.trim().replace(/\bnær\s+/gi, '').trim();
+}
+
 /* ── Swipe deck ──────────────────────────────────────────────────────── */
 const SWIPE_DECK = [
   { id: 's1', label: 'Italian Villa',    sub: 'Toscansk elegance',   image: 'orangeri'  as const },
@@ -90,19 +94,27 @@ const CATEGORY_VENUES = [
    MAIN EXPORT — venue discovery only
 ══════════════════════════════════════════════════════════════════════ */
 export default function VenueDiscovery({ onNavigate }: { onNavigate?: (s: ScreenId) => void }) {
-  type VView = 'swipe' | 'dna' | 'picks';
+  type VView = 'hub' | 'swipe' | 'dna' | 'picks';
   const { couple, event, venues: allVenues, outbound, refresh } = useWedding();
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
 
   // Real venues for this wedding (never vendors).
   const venues = allVenues.filter((v) => v.category === 'venue');
   const displayVenues = venues.map(toDisplay);
 
-  // If the couple already has venues on their board, skip the style intro.
   const hasRealVenues = displayVenues.length > 0;
-  const [vview, setVView] = useState<VView>(() =>
-    (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('kalas_dna') === 'done')
-      ? 'picks' : 'swipe'
-  );
+  const [vview, setVView] = useState<VView>(() => {
+    if (typeof window === 'undefined') return 'hub';
+    const fromAva = sessionStorage.getItem('kalas_venues_view');
+    if (fromAva === 'picks') {
+      sessionStorage.removeItem('kalas_venues_view');
+      return 'picks';
+    }
+    return 'hub';
+  });
   const [cat, setCat] = useState<Category | null>(null);
 
   // Derived state from real rows.
@@ -135,18 +147,26 @@ export default function VenueDiscovery({ onNavigate }: { onNavigate?: (s: Screen
   };
   const handleDNADone = () => { sessionStorage.setItem('kalas_dna', 'done'); setVView('dna'); };
 
-  // Once venues exist, jump straight to picks.
-  const effectiveView: VView = hasRealVenues && vview === 'swipe' ? 'picks' : vview;
-
   return (
     <div className="min-h-screen">
       <AnimatePresence mode="wait">
         {!cat ? (
           <motion.div key="main" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <AnimatePresence mode="wait">
-              {effectiveView === 'swipe' && <SwipeView key="swipe" onDone={handleDNADone} />}
-              {effectiveView === 'dna'   && <DNAView   key="dna"   onContinue={() => setVView('picks')} />}
-              {effectiveView === 'picks' && (
+              {vview === 'hub' && (
+                <VenuesHubView
+                  key="hub"
+                  couple={couple}
+                  venues={displayVenues}
+                  savedCount={saved.size}
+                  onStartSwipe={() => setVView('swipe')}
+                  onViewPicks={hasRealVenues ? () => setVView('picks') : undefined}
+                  onAva={() => onNavigate?.('ava')}
+                />
+              )}
+              {vview === 'swipe' && <SwipeView key="swipe" onDone={handleDNADone} onBack={() => setVView('hub')} />}
+              {vview === 'dna'   && <DNAView   key="dna"   onContinue={() => setVView('picks')} />}
+              {vview === 'picks' && (
                 <PicksView key="picks"
                   venues={displayVenues} couple={couple}
                   saved={saved} sent={sent} booked={booked}
@@ -154,6 +174,7 @@ export default function VenueDiscovery({ onNavigate }: { onNavigate?: (s: Screen
                   onBook={bookVenue}
                   onBrowseCategory={(c) => setCat(c)}
                   onAva={() => onNavigate?.('ava')}
+                  onBackToHub={() => setVView('hub')}
                   onNextStep={() => onNavigate?.('vendors')} />
               )}
             </AnimatePresence>
@@ -196,9 +217,272 @@ export default function VenueDiscovery({ onNavigate }: { onNavigate?: (s: Screen
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
+   VENUES HUB — landing before swipe / search
+═══════════════════════════════════════════════════════════════════════ */
+function VenuesHubView({
+  couple,
+  venues,
+  savedCount,
+  onStartSwipe,
+  onViewPicks,
+  onAva,
+}: {
+  couple: { a: string; b: string; region: string; guests: number; dateLabel: string };
+  venues: DisplayVenue[];
+  savedCount: number;
+  onStartSwipe: () => void;
+  onViewPicks?: () => void;
+  onAva: () => void;
+}) {
+  const venueArea = venueAreaLabel(couple.region);
+  const featured = venues[0] ?? null;
+  const subtitle = couple.guests > 0 && venueArea
+    ? `Skræddersyet til ${couple.guests} gæster nær ${venueArea}.`
+    : venueArea
+      ? `Skræddersyet til bryllupper nær ${venueArea}.`
+      : 'Fortæl Ava hvor I vil giftes — så starter søgningen.';
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+      className="flex min-w-0 flex-1 flex-col gap-[22px] px-6 py-7 sm:px-9 lg:px-[34px]"
+    >
+      {/* Header — Wonder Venue Search Header */}
+      <div className="flex w-full flex-wrap items-end justify-between gap-6">
+        <div className="flex min-w-0 flex-1 flex-col gap-[5px]">
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#e66b4e]">
+            Venue discovery
+          </p>
+          <h1 className="font-serif text-[clamp(2rem,4vw,2.25rem)] leading-[1.1] tracking-[-0.02em] text-[#173c32]">
+            Find et sted der føles som jer
+          </h1>
+          <p className="text-[13px] text-[#526a61]">{subtitle}</p>
+        </div>
+        <div className="flex h-[46px] w-full max-w-[410px] shrink-0 items-center gap-2.5 rounded-xl border border-[#d4dbd5] bg-white px-3.5">
+          <Search size={17} className="shrink-0 text-[#526a61]" />
+          <span className="flex-1 text-xs text-[#6d7e77]">Søg områder, stil eller venues</span>
+          <div className="flex items-center gap-1.5 rounded-lg bg-[#eaf0ec] px-2.5 py-[7px]">
+            <SlidersHorizontal size={14} className="text-[#173c32]" />
+            <span className="text-[11px] font-bold text-[#173c32]">Filtre</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Content — Wonder Venue Content row */}
+      <div className="flex flex-col gap-[18px] xl:flex-row">
+        {/* Left — results / empty discovery */}
+        <div className="flex min-w-0 flex-1 flex-col gap-3.5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-[#173c32]">
+              {venues.length > 0 ? `${venues.length} venues fundet` : 'Ingen matches endnu'}
+            </span>
+            <span className="text-[11px] font-semibold text-[#526a61]">Bedste match først</span>
+          </div>
+
+          {/* Featured card — populated when Ava has found venues */}
+          <div className="flex min-h-[286px] flex-col overflow-hidden rounded-[18px] bg-[#173c32] sm:flex-row">
+            <div className="relative flex min-h-[180px] w-full shrink-0 flex-col justify-end overflow-hidden sm:min-h-0 sm:w-[48%]">
+              {featured ? (
+                <>
+                  <img src={imgSrc(featured.image)} alt={featured.name} className="absolute inset-0 h-full w-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#173c32]/90 via-[#173c32]/30 to-transparent" />
+                </>
+              ) : (
+                <div className="absolute inset-0 bg-gradient-to-br from-[#3d6b58] via-[#2a5245] to-[#173c32]" />
+              )}
+              <div className="relative p-6">
+                <div className="flex flex-wrap gap-2">
+                  {venueArea && (
+                    <span className="rounded-full bg-white/15 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white backdrop-blur-sm">
+                      {venueArea}
+                    </span>
+                  )}
+                  {couple.dateLabel && (
+                    <span className="rounded-full bg-white/15 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white backdrop-blur-sm">
+                      {couple.dateLabel}
+                    </span>
+                  )}
+                  {couple.guests > 0 && (
+                    <span className="rounded-full bg-white/15 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white backdrop-blur-sm">
+                      {couple.guests} gæster
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-1 flex-col justify-between gap-6 p-6">
+              <div className="flex flex-col gap-2.5">
+                <div className="flex items-center gap-2">
+                  <span className="rounded-full bg-[#e66b4e] px-[9px] py-1 text-[9px] font-bold uppercase tracking-wide text-white">
+                    {featured ? 'Ava pick' : 'Kom i gang'}
+                  </span>
+                </div>
+                <h2 className="font-serif text-[1.75rem] leading-snug text-white">
+                  {featured ? featured.name : 'Ava er klar til at finde jeres venue'}
+                </h2>
+                <p className="max-w-[380px] text-xs leading-[1.6] text-[#b8ccc3]">
+                  {featured
+                    ? featured.quote || featured.why[0] || featured.location
+                    : 'Swipe jeres stil så Ava lærer jeres æstetik at kende — eller beskriv drømmen direkte i chatten.'}
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                {onViewPicks ? (
+                  <button
+                    type="button"
+                    onClick={onViewPicks}
+                    className="inline-flex items-center gap-2 rounded-full bg-[#fffdf7] px-5 py-2.5 text-[13px] font-bold text-[#173c32] transition-opacity hover:opacity-90 cursor-pointer"
+                  >
+                    <Heart size={15} />
+                    Se alle Ava picks
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={onStartSwipe}
+                    className="inline-flex items-center gap-2 rounded-full bg-[#fffdf7] px-5 py-2.5 text-[13px] font-bold text-[#173c32] transition-opacity hover:opacity-90 cursor-pointer"
+                  >
+                    <Heart size={15} />
+                    Find venues
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={onAva}
+                  className="inline-flex h-[38px] w-[38px] items-center justify-center rounded-full border border-white/20 bg-white/10 text-white transition-colors hover:bg-white/20 cursor-pointer"
+                  aria-label="Tal med Ava"
+                >
+                  <ArrowUpRight size={17} />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Preference hint cards */}
+          <div className="grid gap-3.5 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={onStartSwipe}
+              className="overflow-hidden rounded-2xl border border-[#d4dbd5] bg-white text-left transition-shadow hover:shadow-sm cursor-pointer"
+            >
+              <div className="flex h-[120px] flex-col justify-end bg-gradient-to-br from-[#e8f2ed] to-[#d4e8de] p-4">
+                <MapPin size={20} className="text-[#173c32]" />
+              </div>
+              <div className="flex flex-col gap-[5px] p-3.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-serif text-[17px] text-[#173c32]">Swipe jeres stil</span>
+                  <Heart size={15} className="text-[#e66b4e]" />
+                </div>
+                <span className="text-[10px] text-[#526a61]">Hjælp Ava med at forstå jeres æstetik</span>
+              </div>
+            </button>
+            <button
+              type="button"
+              onClick={onAva}
+              className="overflow-hidden rounded-2xl border border-[#d4dbd5] bg-white text-left transition-shadow hover:shadow-sm cursor-pointer"
+            >
+              <div className="flex h-[120px] flex-col justify-end bg-gradient-to-br from-[#f5e6df] to-[#e6c8bc] p-4">
+                <MessageCircle size={20} className="text-[#173c32]" />
+              </div>
+              <div className="flex flex-col gap-[5px] p-3.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-serif text-[17px] text-[#173c32]">Tal med Ava</span>
+                  <Heart size={15} className="text-[#e66b4e]" />
+                </div>
+                <span className="text-[10px] text-[#526a61]">Beskriv drømmevenue — Ava søger for jer</span>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        {/* Right — Wonder Venue Shortlist panel */}
+        <div className="flex w-full shrink-0 flex-col gap-4 rounded-[18px] bg-[#e6c8bc] p-[22px] xl:w-[330px]">
+          <div className="flex items-start justify-between">
+            <div className="flex flex-col gap-[3px]">
+              <h2 className="font-serif text-[22px] text-[#173c32]">Jeres shortlist</h2>
+              <p className="text-[10px] text-[#526a61]">
+                {savedCount === 0
+                  ? '0 venues gemt'
+                  : `${savedCount} ${savedCount === 1 ? 'venue gemt' : 'venues gemt'}`}
+              </p>
+            </div>
+            <Star size={19} className="text-[#173c32]" />
+          </div>
+
+          {savedCount > 0 || venues.length > 0 ? (
+            <div className="flex flex-col gap-2">
+              {venues.slice(0, 3).map((v) => (
+                <div key={v.id} className="flex items-center gap-2.5 rounded-[11px] bg-[#fff9f4] p-2.5">
+                  <img src={imgSrc(v.image)} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[11px] font-bold text-[#173c32]">{v.name}</p>
+                    <p className="text-[9px] text-[#6b766f]">{v.match}% match</p>
+                  </div>
+                </div>
+              ))}
+              {onViewPicks && venues.length > 3 && (
+                <button
+                  type="button"
+                  onClick={onViewPicks}
+                  className="text-[10px] font-bold text-[#173c32] hover:underline cursor-pointer"
+                >
+                  Se alle {venues.length} venues →
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center rounded-[11px] bg-[#fff9f4] px-4 py-8 text-center">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#173c32]">
+                <Heart size={16} className="text-white" />
+              </div>
+              <p className="mt-3 text-[11px] font-bold text-[#173c32]">Ingen favoritter endnu</p>
+              <p className="mt-1 text-[9px] leading-relaxed text-[#6b766f]">
+                Gem venues undervejs — så sammenligner Ava dem for jer.
+              </p>
+            </div>
+          )}
+
+          <div className="flex flex-col gap-2 border-t border-[#173c32]/15 pt-3.5">
+            <div className="flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#173c32]">
+                <MessageCircle size={14} className="text-white" />
+              </div>
+              <span className="text-[11px] font-bold text-[#173c32]">Ava bemærkede</span>
+            </div>
+            <p className="text-[11px] leading-[1.55] text-[#465b53]">
+              {venueArea
+                ? `Jeg prioriterer venues nær ${venueArea}${couple.guests > 0 ? ` med plads til ${couple.guests} gæster` : ''}.`
+                : 'Fortæl mig hvor I vil giftes — så finder jeg venues der matcher jeres stil og budget.'}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={onViewPicks ?? onStartSwipe}
+            className="flex items-center justify-center gap-2 rounded-[11px] bg-[#e66b4e] px-3.5 py-3 text-[11px] font-bold text-white transition-opacity hover:opacity-90 cursor-pointer"
+          >
+            <Calendar size={15} />
+            {onViewPicks ? 'Se Ava picks' : 'Find venues'}
+          </button>
+          <button
+            type="button"
+            onClick={onAva}
+            className="flex items-center justify-center gap-2 rounded-[11px] border border-[#173c32]/15 bg-[#fff9f4] px-3.5 py-3 text-[11px] font-bold text-[#173c32] transition-colors hover:bg-white cursor-pointer"
+          >
+            <MessageCircle size={14} />
+            Spørg Ava
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
    SWIPE VIEW
 ═══════════════════════════════════════════════════════════════════════ */
-function SwipeView({ onDone }: { onDone: () => void }) {
+function SwipeView({ onDone, onBack }: { onDone: () => void; onBack?: () => void }) {
   const [deck, setDeck] = useState<SwipeCard[]>([...SWIPE_DECK]);
   const [liked, setLiked] = useState(0);
   const total = SWIPE_DECK.length;
@@ -215,6 +499,16 @@ function SwipeView({ onDone }: { onDone: () => void }) {
       initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
       className="px-6 pt-8 pb-12 sm:px-10 lg:px-16">
+
+      {onBack && (
+        <button
+          type="button"
+          onClick={onBack}
+          className="mb-6 flex items-center gap-2 text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted hover:text-ink transition-colors cursor-pointer"
+        >
+          <ArrowLeft size={13} /> Tilbage
+        </button>
+      )}
 
       <Eyebrow>Ava</Eyebrow>
       <p className="font-serif text-[1.2rem] italic text-ink-soft mt-1.5">
@@ -376,20 +670,19 @@ function DNAView({ onContinue }: { onContinue: () => void }) {
    PICKS VIEW
 ═══════════════════════════════════════════════════════════════════════ */
 function PicksView({
-  venues, couple, saved, sent, booked, onToggleSave, onOutreach, onBook, onBrowseCategory, onAva, onNextStep,
+  venues, couple, saved, sent, booked, onToggleSave, onOutreach, onBook, onBrowseCategory, onAva, onBackToHub, onNextStep,
 }: {
   venues: DisplayVenue[];
   couple: { region: string; guests: number };
   saved: Set<string>; sent: Set<string>; booked: string | null;
   onToggleSave: (id: string) => void; onOutreach: (id: string) => void;
   onBook: (id: string) => void; onBrowseCategory: (c: Category) => void; onAva: () => void;
+  onBackToHub?: () => void;
   onNextStep?: () => void;
 }) {
   const [selectedVenue, setSelectedVenue] = useState<DisplayVenue | null>(null);
   const [comparing, setComparing] = useState(false);
-  const venueCity = couple.region.includes(' · ')
-    ? couple.region.split(' · ')[1].replace('nær ', '')
-    : couple.region;
+  const venueCity = venueAreaLabel(couple.region);
   const savedVenues = venues.filter(v => saved.has(v.id));
 
   if (comparing && savedVenues.length >= 2) {
@@ -424,20 +717,21 @@ function PicksView({
     );
   }
 
-  // Nothing found yet — invite the couple to have Ava search.
+  // Nothing found yet — send back to hub-style empty actions.
   if (venues.length === 0) {
     return (
       <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
         className="flex min-h-[60vh] flex-col items-center justify-center px-6 text-center">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-ink">
-          <span className="font-serif text-[1.4rem] leading-none text-canvas">K</span>
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#173c32]">
+          <MapPin size={22} className="text-white" />
         </div>
-        <h2 className="display mt-5 text-[1.8rem] text-ink">Lad Ava finde jeres venues</h2>
+        <h2 className="display mt-5 text-[1.8rem] text-ink">Ava leder stadig efter venues</h2>
         <p className="mt-2 max-w-sm text-[0.9rem] text-ink-soft">
-          Fortæl Ava om jeres dag, så finder hun rigtige venues nær {venueCity || 'jer'} — med
-          billeder, anmeldelser og priser.
+          Ingen matches endnu nær {venueCity || 'jer'}. Fortæl Ava mere om jeres drøm — eller prøv stil-swipe igen.
         </p>
-        <div className="mt-6"><Pill arrow onClick={onAva}><MessageCircle size={14} /> Tal med Ava</Pill></div>
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+          <Pill arrow onClick={onAva}><MessageCircle size={14} /> Tal med Ava</Pill>
+        </div>
       </motion.div>
     );
   }
@@ -519,11 +813,23 @@ function PicksView({
         </div>
       )}
 
+      {onBackToHub && (
+        <div className="px-6 pt-8 sm:px-10 lg:px-16">
+          <button
+            type="button"
+            onClick={onBackToHub}
+            className="flex items-center gap-2 text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted hover:text-ink transition-colors cursor-pointer"
+          >
+            <ArrowLeft size={13} /> Tilbage til venue discovery
+          </button>
+        </div>
+      )}
+
       {/* Ava memory intro */}
       <motion.div
         initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        className="px-6 pt-8 sm:px-10 lg:px-16">
+        className={cn('px-6 sm:px-10 lg:px-16', onBackToHub ? 'pt-4' : 'pt-8')}>
         <div className="rule rounded-2xl bg-card px-6 py-5 flex items-center justify-between gap-6">
           <div>
             <p className="text-[0.58rem] font-semibold uppercase tracking-[0.24em] text-muted mb-1.5">
