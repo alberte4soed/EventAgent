@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { LanguageSetting } from "@/components/settings/LanguageSetting";
+import { RedoOnboardingButton } from "@/components/settings/RedoOnboardingButton";
 import { createClient } from "@/lib/supabase/server";
 import { getOrCreateProfile } from "@/lib/db/profile";
 import { getPlatformConnection, isPlatformAdmin } from "@/lib/gmail/platform";
@@ -106,6 +107,20 @@ export default async function SettingsPage({
             </p>
           </div>
           <LanguageSetting initial={profile.language ?? "da"} />
+        </div>
+      </section>
+
+      <section className="mt-6 rounded-2xl border border-[#D4D6C0] bg-[#F6F0E8] p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="font-[family-name:var(--font-fraunces)] text-lg font-semibold text-[#4A4E3C]">
+              Onboarding
+            </h2>
+            <p className="mt-1 text-sm text-[#7A8066]">
+              Run the wedding interview again to update names, destination, date, and style.
+            </p>
+          </div>
+          <RedoOnboardingButton />
         </div>
       </section>
 

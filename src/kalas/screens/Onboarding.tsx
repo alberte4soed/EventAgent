@@ -1,20 +1,23 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import dynamic from 'next/dynamic';
 import {
-  Check, ArrowLeft, ArrowRight, Sparkles, MapPin, ListChecks, Heart, Lock,
+  Check, ArrowLeft, ArrowRight, MapPin, Heart, Lock, Star, X, Search,
 } from 'lucide-react';
-import { couple, timeline } from '../data';
 import { GUEST_BANDS, type OnboardingDate } from '@/lib/onboarding';
 import type { ScreenId } from '../Shell';
 import { cn } from '../ui';
 import { useLang } from '../i18n';
-import { DESTINATIONS, destinationValue, type Destination } from '../onboarding/DestinationGlobe';
+import type { DestinationSuggestion } from '@/app/api/onboarding/destinations/route';
+import type { OnboardingVenueSuggestion } from '@/app/api/onboarding/venues/route';
+
+const WeddingDatePicker = dynamic(() => import('../onboarding/WeddingDatePicker'), { ssr: false });
+const VenueSwipeStep = dynamic(() => import('../onboarding/VenueSwipeStep'), { ssr: false });
 
 const DestinationGlobe = dynamic(() => import('../onboarding/DestinationGlobe'), {
   ssr: false,
   loading: () => (
-    <div className="flex h-[min(58vh,420px)] w-full items-center justify-center">
+    <div className="flex h-full w-full items-center justify-center">
       <span className="font-serif text-[0.95rem] italic text-muted">Indlæser kloden…</span>
     </div>
   ),
@@ -25,20 +28,24 @@ const DestinationGlobe = dynamic(() => import('../onboarding/DestinationGlobe'),
 export type FormState = {
   nameA: string; nameB: string;
   location: string;
+  lovedDestinations: string[]; // "City, Country" hearts from the globe step
   dateChoice: string;   // '' | season key | 'exact' | 'undecided'
   exactDate: string;    // ISO, when dateChoice === 'exact'
   guestBand: string;    // '' | GUEST_BANDS key
-  budgetBand: string;   // '' | BUDGET_BANDS key
-  vibes: string[];      // Danish vibe labels (multi-select)
-  description: string;
+  budgetAmount: number;
+  budgetPrivate: boolean;
+  likedVenues: OnboardingVenueSuggestion[];
+  venueSwipeDone: boolean;
   partnerEmail: string;
 };
 
 export const EMPTY_FORM: FormState = {
   nameA: '', nameB: '',
-  location: '', dateChoice: '', exactDate: '',
-  guestBand: '', budgetBand: '', vibes: [],
-  description: '', partnerEmail: '',
+  location: '', lovedDestinations: [],
+  dateChoice: '', exactDate: '',
+  guestBand: '', budgetAmount: 200_000, budgetPrivate: false,
+  likedVenues: [], venueSwipeDone: false,
+  partnerEmail: '',
 };
 
 /* ── Danish chip vocabularies (reuse the shared band keys for the backend) ─ */
@@ -51,27 +58,9 @@ const GUEST_LABELS_DA: Record<string, string> = {
   not_sure: 'Ved ikke endnu',
 };
 
-type BudgetBand = { key: string; label: string; emoji: string; amount: number | null };
-const BUDGET_BANDS_DA: BudgetBand[] = [
-  { key: 'lean',     label: 'Nøjsomt',            emoji: '🌱', amount: 100000 },
-  { key: 'mid',      label: 'Mellemklasse',       emoji: '⚖️', amount: 200000 },
-  { key: 'generous', label: 'Rundhåndet',         emoji: '🥂', amount: 350000 },
-  { key: 'sky',      label: 'Himlen er grænsen',  emoji: '🌟', amount: 600000 },
-  { key: 'private',  label: 'Vil helst ikke sige', emoji: '🤫', amount: null },
-];
-
-type Vibe = { key: string; label: string; emoji: string };
-const VIBE_OPTIONS: Vibe[] = [
-  { key: 'garden',      label: 'Have',              emoji: '🌿' },
-  { key: 'rustic',      label: 'Rustik lade',       emoji: '🌾' },
-  { key: 'modern',      label: 'Moderne loft',      emoji: '🏙️' },
-  { key: 'ballroom',    label: 'Klassisk balsal',   emoji: '💃' },
-  { key: 'beach',       label: 'Strand',            emoji: '🌊' },
-  { key: 'castle',      label: 'Slot / herregård',  emoji: '🏰' },
-  { key: 'intimate',    label: 'Intimt',            emoji: '🕯️' },
-  { key: 'boho',        label: 'Boho',              emoji: '🪶' },
-  { key: 'destination', label: 'Destination',       emoji: '✈️' },
-];
+const BUDGET_MIN = 50_000;
+const BUDGET_MAX = 750_000;
+const BUDGET_STEP = 25_000;
 
 const SEASONS_DA = ['Forår', 'Sommer', 'Efterår', 'Vinter'] as const;
 const SEASON_START_MONTH = [2, 5, 8, 11]; // Mar, Jun, Sep, Dec
@@ -102,8 +91,8 @@ function buildDate(form: FormState): OnboardingDate {
   return { precision: 'undecided' };
 }
 function buildBudget(form: FormState): string | null {
-  const band = BUDGET_BANDS_DA.find((b) => b.key === form.budgetBand);
-  return band?.amount != null ? String(band.amount) : null;
+  if (form.budgetPrivate) return null;
+  return String(form.budgetAmount);
 }
 export function toOnboardingPayload(form: FormState) {
   return {
@@ -111,27 +100,15 @@ export function toOnboardingPayload(form: FormState) {
     partner_name: form.nameB.trim() || null,
     city: form.location.trim(),
     date: buildDate(form),
+    loved_destinations: form.lovedDestinations,
     guest_band: form.guestBand || null,
     budget: buildBudget(form),
-    vibes: form.vibes,
-    description: form.description.trim() || null,
+    liked_venues: form.likedVenues,
     partner_email: form.partnerEmail.trim() || null,
   };
 }
 
 /* ── Display helpers ─────────────────────────────────────────────────── */
-function dateLabelOf(form: FormState, lang: string, t: TFn): string {
-  if (form.dateChoice === 'exact' && form.exactDate) {
-    return new Date(form.exactDate).toLocaleDateString(lang === 'en' ? 'en-US' : 'da-DK', { day: 'numeric', month: 'long', year: 'numeric' });
-  }
-  const chip = DATE_CHIPS.find((c) => c.key === form.dateChoice);
-  if (chip) return chipLabel(chip, t);
-  return t('snart');
-}
-function guestCountOf(form: FormState): number {
-  const band = GUEST_BANDS.find((b) => b.key === form.guestBand);
-  return band?.count ?? couple.guests;
-}
 
 const inputCls = 'w-full rounded-2xl border border-[var(--color-line-strong)] bg-canvas px-4 py-3.5 text-[1rem] text-ink placeholder:text-muted focus:border-ink focus:outline-none transition-colors';
 
@@ -140,7 +117,7 @@ const inputCls = 'w-full rounded-2xl border border-[var(--color-line-strong)] bg
 ══════════════════════════════════════════════════════════════════════ */
 const TOTAL_STEPS = 6;
 
-const STEP_LABELS = ['Jeres historie', 'Destination', 'Datoen', 'Omfang', 'Stilen', 'Partner'] as const;
+const STEP_LABELS = ['Jeres historie', 'Destination', 'Datoen', 'Omfang', 'Venues', 'Partner'] as const;
 
 const wonderInputCls =
   'h-[62px] w-full rounded-[14px] border bg-[#fffdf7] px-[18px] text-base text-[#23351f] placeholder:text-[#637067] transition-shadow focus:outline-none';
@@ -150,17 +127,23 @@ export default function Onboarding({ onEnter }: { onEnter: (form: FormState, s?:
   const [step, setStep] = useState(0);
   const [dir, setDir] = useState(1);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
-  const [aha, setAha] = useState(false);
 
   const set = (k: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
   const setField = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
-  const toggleVibe = (label: string) =>
-    setForm((f) => ({ ...f, vibes: f.vibes.includes(label) ? f.vibes.filter((v) => v !== label) : [...f.vibes, label] }));
+
+  const handleVenueLike = useCallback(
+    (v: OnboardingVenueSuggestion) => setForm((f) => ({ ...f, likedVenues: [...f.likedVenues, v] })),
+    [],
+  );
+  const handleVenueSwipeComplete = useCallback(() => setField('venueSwipeDone', true), []);
 
   const go = (next: number) => {
-    if (next >= TOTAL_STEPS) { setAha(true); return; }
+    if (next >= TOTAL_STEPS) {
+      onEnter(form, 'home');
+      return;
+    }
     setDir(next > step ? 1 : -1);
     setStep(Math.max(0, next));
   };
@@ -170,18 +153,8 @@ export default function Onboarding({ onEnter }: { onEnter: (form: FormState, s?:
     (step === 1 && Boolean(form.location.trim())) ||
     (step === 2 && (form.dateChoice === 'exact' ? Boolean(form.exactDate) : Boolean(form.dateChoice))) ||
     (step === 3 && Boolean(form.guestBand)) ||
-    step === 4 ||
+    (step === 4 && form.venueSwipeDone) ||
     step === 5;
-
-  if (aha) {
-    return (
-      <div className="min-h-screen bg-canvas">
-        <AnimatePresence mode="wait">
-          <AhaStage key="aha" form={form} onUnlock={() => onEnter(form, 'home')} />
-        </AnimatePresence>
-      </div>
-    );
-  }
 
   return (
     <div className="flex min-h-screen flex-col bg-[#f4f1ea] text-[#18372f]">
@@ -198,10 +171,12 @@ export default function Onboarding({ onEnter }: { onEnter: (form: FormState, s?:
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col gap-8 px-6 py-8 lg:flex-row lg:gap-[52px] lg:px-14 lg:py-[42px]">
-        <ContextPanel step={step} t={t} />
-
-        <div className="flex min-w-0 flex-1 flex-col justify-center py-2">
+      <div className={cn(
+        'flex flex-1 flex-col px-6 lg:px-14',
+        step === 1 || step === 4 ? 'py-3 lg:py-4' : 'gap-8 py-8 lg:flex-row lg:gap-[52px] lg:py-[42px]',
+      )}>
+        {step !== 1 && step !== 4 && <ContextPanel step={step} t={t} />}
+        <div className={cn('flex min-w-0 flex-1 flex-col py-2', (step === 1 || step === 4) ? 'justify-start' : 'justify-center')}>
           <AnimatePresence mode="wait" custom={dir}>
             <motion.div
               key={step}
@@ -210,13 +185,19 @@ export default function Onboarding({ onEnter }: { onEnter: (form: FormState, s?:
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: dir * -28 }}
               transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-              className="w-full max-w-[680px]"
+              className={cn('mx-auto w-full', (step === 1 || step === 4) ? 'max-w-none' : 'max-w-[680px]')}
             >
               {step === 0 && <NamesStep form={form} set={set} onNext={() => canAdvance && go(1)} />}
               {step === 1 && <DestinationStep form={form} setField={setField} />}
-              {step === 2 && <DateStep form={form} set={set} setField={setField} />}
+              {step === 2 && <DateStep form={form} setField={setField} />}
               {step === 3 && <ScopeStep form={form} setField={setField} />}
-              {step === 4 && <StyleStep form={form} set={set} toggleVibe={toggleVibe} />}
+              {step === 4 && (
+                <VenueSwipeStep
+                  form={form}
+                  onLike={handleVenueLike}
+                  onSwipeComplete={handleVenueSwipeComplete}
+                />
+              )}
               {step === 5 && <PartnerStep form={form} set={set} />}
             </motion.div>
           </AnimatePresence>
@@ -226,7 +207,7 @@ export default function Onboarding({ onEnter }: { onEnter: (form: FormState, s?:
       <OnboardingFooter
         onBack={step > 0 ? () => go(step - 1) : undefined}
         onNext={() => canAdvance && go(step + 1)}
-        nextLabel={step === TOTAL_STEPS - 1 ? t('Se jeres plan') : t('Fortsæt')}
+        nextLabel={step === TOTAL_STEPS - 1 ? t('Gå ind i Kalas') : t('Fortsæt')}
         nextDisabled={!canAdvance}
         t={t}
       />
@@ -292,16 +273,38 @@ function LangPill({ lang, onLang }: { lang: 'da' | 'en'; onLang: (l: 'da' | 'en'
   );
 }
 
+const CONTEXT_PANEL_COPY: Record<number, { eyebrow: string; title: string; sub: string }> = {
+  0: {
+    eyebrow: 'En omtænksom start',
+    title: 'Lad os gøre det til jeres.',
+    sub: 'Seks korte trin hjælper Ava med at skræddersy venues, opgaver og anbefalinger til jeres bryllup.',
+  },
+  2: {
+    eyebrow: 'Datoen',
+    title: 'Hvornår siger I ja?',
+    sub: 'En sæson, en dato eller “vi ved det ikke endnu” — Ava tilpasser sig.',
+  },
+  3: {
+    eyebrow: 'Omfang',
+    title: 'Hvor mange gæster?',
+    sub: 'Et pejlemærke er nok — Ava bruger det til venues, budget og tidslinje.',
+  },
+  4: {
+    eyebrow: 'Venues',
+    title: 'Find jeres stil gennem steder.',
+    sub: 'Swipe rigtige venues — Ava lærer hvad der føles som jer.',
+  },
+  5: {
+    eyebrow: 'Sammen om det',
+    title: 'Giv partneren adgang',
+    sub: 'I deler samme plan — ingen duplikerede lister. Valgfrit.',
+  },
+};
+
+/** Wonder onboarding context panel — hidden on globe step (1). */
 function ContextPanel({ step, t }: { step: number; t: (s: string) => string }) {
-  const headlines = [
-    { eyebrow: 'En omtænksom start', title: 'Lad os gøre det til jeres.', sub: 'Seks korte trin hjælper Ava med at skræddersy venues, opgaver og anbefalinger til jeres bryllup.' },
-    { eyebrow: 'Destination', title: 'Hvor i verden?', sub: 'Drej på kloden og vælg et sted der frister — hjemme eller langt væk.' },
-    { eyebrow: 'Datoen', title: 'Hvornår siger I ja?', sub: 'En sæson, en dato eller “vi ved det ikke endnu” — Ava tilpasser sig.' },
-    { eyebrow: 'Omfang', title: 'Hvor mange gæster?', sub: 'Et pejlemærke er nok — Ava bruger det til venues, budget og tidslinje.' },
-    { eyebrow: 'Stilen', title: 'Hvad føles som jer?', sub: 'Vælg det der frister — Ava lærer jeres æstetik at kende.' },
-    { eyebrow: 'Sammen om det', title: 'Giv partneren adgang', sub: 'I deler samme plan — ingen duplikerede lister. Valgfrit.' },
-  ];
-  const panel = headlines[step] ?? headlines[0];
+  const panel = CONTEXT_PANEL_COPY[step] ?? CONTEXT_PANEL_COPY[0];
+  const benefits = [t('Anbefalinger formet omkring jer'), t('Ændr ethvert svar senere')];
 
   return (
     <aside className="hidden w-full max-w-[430px] shrink-0 flex-col justify-between rounded-3xl bg-[#173c32] p-[38px] shadow-[0px_18px_50px_rgba(23,60,50,0.16)] lg:flex lg:min-h-[620px]">
@@ -318,7 +321,7 @@ function ContextPanel({ step, t }: { step: number; t: (s: string) => string }) {
         </div>
       </div>
       <div className="mt-10 flex flex-col gap-3.5">
-        {[t('Anbefalinger formet omkring jer'), t('Ændr ethvert svar senere')].map((line) => (
+        {benefits.map((line) => (
           <div key={line} className="flex items-center gap-3">
             <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/10">
               <Check size={14} className="text-[#e8a18f]" />
@@ -474,63 +477,367 @@ function NamesStep({ form, set, onNext }: { form: FormState; set: any; onNext: (
 }
 
 /* ══════════════════════════════════════════════════════════════════════
-   STEP 2 — DESTINATION (interactive globe)
+   STEP 2 — DESTINATION (interactive globe + country panel)
 ══════════════════════════════════════════════════════════════════════ */
+const GLOBE_H = 'h-[min(72vh,640px)]';
+/** Matches OnboardingHeader h-[92px]; mobile adds lang row below header. */
+const DRAWER_TOP = 'top-[92px] max-sm:top-[136px]';
+const DRAWER_BOTTOM = 'bottom-[96px]';
+
 function DestinationStep({ form, setField }: {
   form: FormState; setField: <K extends keyof FormState>(k: K, v: FormState[K]) => void;
 }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const [custom, setCustom] = useState(false);
-  const selected = DESTINATIONS.find((d) => destinationValue(d) === form.location) ?? null;
+  const [country, setCountry] = useState<string | null>(null);
+  const [cards, setCards] = useState<DestinationSuggestion[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [failed, setFailed] = useState(false);
+  // Countries already fetched this session — reopening one is instant.
+  const seen = useRef<Record<string, DestinationSuggestion[]>>({});
 
-  const pick = (d: Destination) => {
+  const load = async (c: string) => {
+    setFailed(false);
+    const hit = seen.current[c];
+    if (hit) { setCards(hit); return; }
+    setLoading(true);
+    setCards([]);
+    try {
+      const res = await fetch(
+        `/api/onboarding/destinations?country=${encodeURIComponent(c)}&lang=${lang}`
+      );
+      if (!res.ok) throw new Error(String(res.status));
+      const data = (await res.json()) as { suggestions?: DestinationSuggestion[] };
+      const list = data.suggestions ?? [];
+      if (list.length === 0) { setFailed(true); return; }
+      seen.current[c] = list;
+      setCards(list);
+    } catch {
+      setFailed(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const pickCountry = (c: string) => {
     setCustom(false);
-    setField('location', destinationValue(d));
+    setCountry(c);
+    setField('location', c);
+    void load(c);
+  };
+
+  const valueOf = (s: DestinationSuggestion) => `${s.name}, ${country}`;
+  const loved = (s: DestinationSuggestion) => form.lovedDestinations.includes(valueOf(s));
+  const toggleLove = (s: DestinationSuggestion) => {
+    const v = valueOf(s);
+    setField(
+      'lovedDestinations',
+      form.lovedDestinations.includes(v)
+        ? form.lovedDestinations.filter((x) => x !== v)
+        : [...form.lovedDestinations, v]
+    );
   };
 
   return (
-    <div>
-      <StepHead eyebrow="Destination" title={<>{t('Hvor i')} <span className="italic">{t('verden?')}</span></>}
-        sub="Drej på kloden og vælg et sted der frister — hjemme eller langt væk." />
+    <>
+      <div>
+        <div className={cn('relative w-full overflow-hidden rounded-3xl', GLOBE_H)}>
+          <DestinationGlobe selectedCountry={country} onCountryPick={pickCountry} />
 
-      <div className="-mx-6 sm:mx-0 overflow-hidden rounded-none sm:rounded-3xl">
-        <DestinationGlobe selectedId={selected?.id ?? null} onPick={pick} />
+          <div className="absolute inset-x-0 top-0 z-10 bg-gradient-to-b from-[#f4f1ea]/96 via-[#f4f1ea]/78 to-transparent px-5 pb-16 pt-4 sm:px-7 sm:pt-5">
+            <div className="flex items-start justify-between gap-4">
+              <div className="pointer-events-none min-w-0 flex-1">
+                <p className="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-[#6c755e]">
+                  {t('Destination')}
+                </p>
+                <h2 className="mt-2 font-serif text-[clamp(1.75rem,4.5vw,2.5rem)] leading-[1.05] tracking-[-0.03em] text-[#23351f]">
+                  {t('Hvor i')} <span className="italic">{t('verden?')}</span>
+                </h2>
+                <p className="mt-2 max-w-lg text-[0.9rem] leading-relaxed text-[#56645b] sm:text-[0.95rem]">
+                  {t('Drej og zoom på kloden, og tryk på et land — så henter vi de største byer og smukkeste bryllupsdestinationer.')}
+                </p>
+              </div>
+              <div className="pointer-events-auto shrink-0 pt-1">
+                {custom ? (
+                  <button
+                    type="button"
+                    onClick={() => setCustom(false)}
+                    className="text-[0.78rem] font-medium text-[#56645b] underline-offset-2 transition-colors hover:text-[#23351f] hover:underline cursor-pointer"
+                  >
+                    {t('Tilbage til kloden')}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setCustom(true)}
+                    className="rounded-full border border-[#c9ccc4] bg-[#fffdf7]/90 px-4 py-2 text-[0.78rem] font-semibold text-[#39493f] shadow-sm transition-colors hover:border-[#173c32] hover:text-[#173c32] cursor-pointer"
+                  >
+                    {t('Skriv selv')}
+                  </button>
+                )}
+              </div>
+            </div>
+            <AnimatePresence>
+              {custom && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  className="pointer-events-auto mt-4 max-w-md sm:ml-auto"
+                >
+                  <input
+                    value={form.location}
+                    onChange={(e) => setField('location', e.target.value)}
+                    placeholder={t('f.eks. Odense · Sydfyn · jeres sommerhusby')}
+                    className={cn(wonderInputCls, 'border border-[#c9ccc4] shadow-[0px_0px_0px_4px_rgba(123,142,85,0.12)] focus:border-2 focus:border-[#173c32]')}
+                    autoFocus
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+
+        {(form.location && !custom) || form.lovedDestinations.length > 0 ? (
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            {form.location && !custom && (
+              <motion.div key={form.location} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+                className="inline-flex items-center gap-2 rounded-full bg-sage-tint px-4 py-2">
+                <MapPin size={14} className="text-ink" />
+                <span className="text-[0.9rem] font-medium text-ink">{form.location}</span>
+              </motion.div>
+            )}
+            {form.lovedDestinations.length > 0 && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-line-strong)] px-3 py-1.5 text-[0.78rem] text-ink-soft">
+                <Heart size={12} className="fill-clay text-clay" />
+                {t('{n} gemt til senere', { n: form.lovedDestinations.length })}
+              </span>
+            )}
+          </div>
+        ) : null}
       </div>
 
-      <div className="mt-4 flex min-h-[44px] flex-wrap items-center gap-2">
-        {selected && !custom ? (
-          <motion.div key={selected.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center gap-2 rounded-full bg-sage-tint px-4 py-2">
-            <MapPin size={14} className="text-ink" />
-            <span className="text-[0.9rem] font-medium text-ink">{t(selected.label)}, {t(selected.country)}</span>
-          </motion.div>
-        ) : form.location && !custom ? (
-          <div className="inline-flex items-center gap-2 rounded-full bg-sage-tint px-4 py-2">
-            <MapPin size={14} className="text-ink" />
-            <span className="text-[0.9rem] font-medium text-ink">{form.location}</span>
-          </div>
-        ) : (
-          <span className="text-[0.82rem] text-muted">{t('Intet valgt endnu — prøv at trykke på en prik.')}</span>
+      {/* Page-level right drawer — below header, above footer, no backdrop */}
+      <AnimatePresence>
+        {country && (
+          <motion.aside
+            key={country}
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
+            className={cn(
+              'fixed right-0 z-40 flex w-[min(420px,100vw)] flex-col border-l border-[var(--color-line-strong)] bg-card shadow-[-16px_0_48px_rgba(23,60,50,0.2)]',
+              DRAWER_TOP,
+              DRAWER_BOTTOM,
+            )}
+          >
+            <CountryPanel
+              country={country}
+              cards={cards}
+              loading={loading}
+              failed={failed}
+              onRetry={() => void load(country)}
+              onClose={() => setCountry(null)}
+              selectedValue={form.location}
+              valueOf={valueOf}
+              onChoose={(s) => { setCustom(false); setField('location', valueOf(s)); }}
+              loved={loved}
+              onToggleLove={toggleLove}
+              drawer
+            />
+          </motion.aside>
         )}
+      </AnimatePresence>
+    </>
+  );
+}
 
-        <button onClick={() => setCustom((v) => !v)}
-          className="ml-auto text-[0.78rem] text-muted underline-offset-2 hover:text-ink hover:underline transition-colors cursor-pointer">
-          {custom ? t('Tilbage til kloden') : t('Eller skriv jeres eget sted')}
+function CountryPanel({
+  country, cards, loading, failed, onRetry, onClose, selectedValue, valueOf, onChoose, loved, onToggleLove, drawer,
+}: {
+  country: string;
+  cards: DestinationSuggestion[];
+  loading: boolean;
+  failed: boolean;
+  onRetry: () => void;
+  onClose: () => void;
+  selectedValue: string;
+  valueOf: (s: DestinationSuggestion) => string;
+  onChoose: (s: DestinationSuggestion) => void;
+  loved: (s: DestinationSuggestion) => boolean;
+  onToggleLove: (s: DestinationSuggestion) => void;
+  drawer?: boolean;
+}) {
+  const { t } = useLang();
+  const cities = cards.filter((s) => s.kind === 'city');
+  const weddings = cards.filter((s) => s.kind === 'wedding');
+  const [tab, setTab] = useState<'city' | 'wedding'>('city');
+
+  useEffect(() => {
+    if (cities.length > 0) setTab('city');
+    else if (weddings.length > 0) setTab('wedding');
+  }, [country, cities.length, weddings.length]);
+
+  const activeCards = tab === 'city' ? cities : weddings;
+  const tabs = [
+    { id: 'city' as const, label: t('Største byer'), count: cities.length },
+    { id: 'wedding' as const, label: t('Bryllupsdestinationer'), count: weddings.length },
+  ];
+
+  return (
+    <div className={cn(
+      'flex min-h-0 flex-1 flex-col bg-card',
+      drawer ? 'h-full' : 'max-h-[640px] rounded-3xl border border-[var(--color-line-strong)] lg:h-[min(72vh,640px)] lg:max-h-none',
+    )}>
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--color-line)] px-5 py-4">
+        <div className="min-w-0">
+          <p className="text-[0.62rem] font-semibold uppercase tracking-[0.2em] text-muted">{t('Destination')}</p>
+          <h3 className="truncate font-serif text-[1.3rem] leading-tight text-ink">{country}</h3>
+        </div>
+        <button type="button" onClick={onClose} aria-label={t('Luk')}
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-shell hover:text-ink cursor-pointer">
+          <X size={16} />
         </button>
       </div>
 
-      <AnimatePresence>
-        {custom && (
-          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden">
-            <input
-              value={selected ? '' : form.location}
-              onChange={(e) => setField('location', e.target.value)}
-              placeholder={t('f.eks. Odense · Sydfyn · jeres sommerhusby')}
-              className={cn(inputCls, 'mt-2')} autoFocus />
-          </motion.div>
+      {!loading && !failed && (cities.length > 0 || weddings.length > 0) && (
+        <div className="flex shrink-0 gap-0.5 border-b border-[var(--color-line)] px-3">
+          {tabs.map(({ id, label, count }) => (
+            <button
+              key={id}
+              type="button"
+              disabled={count === 0}
+              onClick={() => setTab(id)}
+              className={cn(
+                'flex-1 border-b-2 px-2 py-3 text-center text-[0.68rem] font-semibold uppercase tracking-[0.1em] transition-colors cursor-pointer',
+                tab === id ? 'border-ink text-ink' : 'border-transparent text-muted hover:text-ink',
+                count === 0 && 'cursor-not-allowed opacity-40',
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+        {loading && (
+          <div className="space-y-3">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="animate-pulse overflow-hidden rounded-2xl border border-[var(--color-line)]">
+                <div className="h-24 bg-shell" />
+                <div className="space-y-2 p-3">
+                  <div className="h-3.5 w-1/2 rounded bg-shell" />
+                  <div className="h-3 w-5/6 rounded bg-shell" />
+                </div>
+              </div>
+            ))}
+            <p className="text-center text-[0.78rem] italic text-muted">{t('Finder de smukkeste steder…')}</p>
+          </div>
         )}
-      </AnimatePresence>
+
+        {failed && !loading && (
+          <div className="rounded-2xl bg-shell p-4 text-center">
+            <p className="text-[0.85rem] text-ink-soft">{t('Vi kunne ikke hente forslag lige nu.')}</p>
+            <button type="button" onClick={onRetry}
+              className="mt-3 rounded-full bg-ink px-4 py-2 text-[0.8rem] font-medium text-canvas transition-opacity hover:opacity-90 cursor-pointer">
+              {t('Prøv igen')}
+            </button>
+          </div>
+        )}
+
+        {!loading && !failed && activeCards.length > 0 && (
+          <div className="space-y-3">
+            {activeCards.map((s) => (
+              <DestinationCard key={valueOf(s)} s={s} country={country} selected={selectedValue === valueOf(s)}
+                loved={loved(s)} onChoose={() => onChoose(s)} onToggleLove={() => onToggleLove(s)} />
+            ))}
+          </div>
+        )}
+
+        {!loading && !failed && activeCards.length === 0 && cities.length === 0 && weddings.length === 0 && (
+          <p className="px-1 text-center text-[0.85rem] text-ink-soft">{t('Ingen forslag for dette land endnu.')}</p>
+        )}
+      </div>
+
+      <p className="shrink-0 border-t border-[var(--color-line)] px-5 py-3 text-[0.72rem] leading-snug text-muted">
+        {t('Hjerter gemmes, så Ava kan finde leverandører dér senere.')}
+      </p>
+    </div>
+  );
+}
+
+function googleSearchUrl(s: DestinationSuggestion, country: string): string {
+  return `https://www.google.com/search?q=${encodeURIComponent(`${s.name}, ${country}`)}`;
+}
+
+function DestinationCard({ s, country, selected, loved, onChoose, onToggleLove }: {
+  s: DestinationSuggestion; country: string; selected: boolean; loved: boolean;
+  onChoose: () => void; onToggleLove: () => void;
+}) {
+  const { t } = useLang();
+  return (
+    <div className={cn(
+      'relative overflow-hidden rounded-2xl border transition-colors',
+      selected ? 'border-ink shadow-[0px_6px_18px_rgba(23,60,50,0.12)]' : 'border-[var(--color-line)] hover:border-[var(--color-line-strong)]',
+    )}>
+      <button type="button" onClick={onChoose} className="block w-full text-left cursor-pointer">
+        {s.photo ? (
+          // Places photo URLs are remote googleusercontent links; next/image
+          // would need a domain allowlist, so a plain img is the right tool.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={s.photo} alt={s.name} loading="lazy" className="h-24 w-full object-cover" />
+        ) : (
+          <div className="flex h-24 w-full items-center justify-center bg-sage-tint">
+            <MapPin size={20} className="text-ink opacity-40" />
+          </div>
+        )}
+        <div className="p-3 pb-2">
+          <div className="flex items-baseline justify-between gap-2">
+            <p className="truncate font-serif text-[1rem] text-ink">{s.name}</p>
+            {s.rating != null && (
+              <span className="inline-flex shrink-0 items-center gap-1 text-[0.72rem] text-ink-soft">
+                <Star size={11} className="fill-[#d9a441] text-[#d9a441]" />{s.rating.toFixed(1)}
+              </span>
+            )}
+          </div>
+          {s.region && <p className="text-[0.72rem] text-muted">{s.region}</p>}
+          {s.blurb && <p className="mt-1.5 text-[0.78rem] leading-snug text-ink-soft">{s.blurb}</p>}
+          {selected && (
+            <p className="mt-2 inline-flex items-center gap-1.5 text-[0.72rem] font-semibold text-ink">
+              <Check size={12} /> {t('Valgt som jeres sted')}
+            </p>
+          )}
+        </div>
+      </button>
+
+      <div className="absolute right-2 top-2 flex items-center gap-1.5">
+        {s.kind === 'city' && (
+          <a
+            href={googleSearchUrl(s, country)}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            aria-label={t('Søg på Google')}
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-[#fffdf7]/90 text-ink-soft shadow-sm transition-colors hover:text-ink"
+          >
+            <Search size={15} />
+          </a>
+        )}
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onToggleLove(); }}
+          aria-label={loved ? t('Fjern fra gemte') : t('Gem til senere')}
+          aria-pressed={loved}
+          className={cn(
+            'flex h-8 w-8 items-center justify-center rounded-full shadow-sm transition-all cursor-pointer',
+            loved ? 'bg-clay text-white scale-105' : 'bg-[#fffdf7]/90 text-ink-soft hover:text-clay',
+          )}
+        >
+          <Heart size={15} className={loved ? 'fill-current' : undefined} />
+        </button>
+      </div>
     </div>
   );
 }
@@ -538,27 +845,41 @@ function DestinationStep({ form, setField }: {
 /* ══════════════════════════════════════════════════════════════════════
    STEP 3 — DATE
 ══════════════════════════════════════════════════════════════════════ */
-function DateStep({ form, set, setField }: {
-  form: FormState; set: any; setField: <K extends keyof FormState>(k: K, v: FormState[K]) => void;
+function DateStep({ form, setField }: {
+  form: FormState; setField: <K extends keyof FormState>(k: K, v: FormState[K]) => void;
 }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   return (
     <div>
       <StepHead eyebrow="Hvornår" title={<>{t('Hvornår siger I')} <span className="italic">{t('ja?')}</span></>}
         sub="En sæson er fint — I behøver ikke en præcis dato endnu." />
       <div className="flex flex-wrap gap-2">
+        <Chip
+          selected={form.dateChoice === 'exact'}
+          onClick={() => setField('dateChoice', 'exact')}
+        >
+          {t('Vi ved den allerede')}
+        </Chip>
         {DATE_CHIPS.map((c) => (
           <Chip key={c.key} selected={form.dateChoice === c.key}
             onClick={() => setField('dateChoice', c.key)}>{chipLabel(c, t)}</Chip>
         ))}
-        <Chip selected={form.dateChoice === 'exact'} onClick={() => setField('dateChoice', 'exact')}>{t('Præcis dato')}</Chip>
         <Chip selected={form.dateChoice === 'undecided'} onClick={() => setField('dateChoice', 'undecided')}>{t('Ved ikke endnu')}</Chip>
       </div>
       <AnimatePresence>
         {form.dateChoice === 'exact' && (
-          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden">
-            <input type="date" value={form.exactDate} onChange={set('exactDate')} className={cn(inputCls, 'mt-4 max-w-xs')} />
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            transition={{ duration: 0.22 }}
+          >
+            <p className="mt-6 text-xs font-bold uppercase tracking-[0.16em] text-[#39493f]">{t('Vælg jeres dato')}</p>
+            <WeddingDatePicker
+              value={form.exactDate}
+              onChange={(iso) => setField('exactDate', iso)}
+              lang={lang}
+            />
           </motion.div>
         )}
       </AnimatePresence>
@@ -572,7 +893,16 @@ function DateStep({ form, set, setField }: {
 function ScopeStep({ form, setField }: {
   form: FormState; setField: <K extends keyof FormState>(k: K, v: FormState[K]) => void;
 }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
+  const locale = lang === 'en' ? 'en-US' : 'da-DK';
+  const formatKr = (n: number) => new Intl.NumberFormat(locale).format(Math.round(n));
+
+  const setBudgetAmount = (n: number) => {
+    const clamped = Math.min(BUDGET_MAX, Math.max(BUDGET_MIN, Math.round(n / BUDGET_STEP) * BUDGET_STEP));
+    setField('budgetAmount', clamped);
+    if (clamped > 0) setField('budgetPrivate', false);
+  };
+
   return (
     <div>
       <StepHead eyebrow="Rammen" title={<>{t('Hvor stort')} <span className="italic">{t('tænker I?')}</span></>}
@@ -588,57 +918,56 @@ function ScopeStep({ form, setField }: {
           </div>
         </Field>
         <Field label="Budget" hint="Valgfrit — hjælper Ava med at fordele pengene fornuftigt.">
-          <div className="flex flex-wrap gap-2">
-            {BUDGET_BANDS_DA.map((b) => (
-              <Chip key={b.key} selected={form.budgetBand === b.key} onClick={() => setField('budgetBand', b.key)}>
-                <span className="mr-1">{b.emoji}</span>{t(b.label)}
-              </Chip>
-            ))}
+          <div className={cn('space-y-5 transition-opacity', form.budgetPrivate && 'opacity-45')}>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+              <span className="min-w-[140px] font-serif text-[clamp(1.75rem,4vw,2.25rem)] tabular-nums text-ink">
+                {formatKr(form.budgetAmount)} <span className="text-[0.85rem] text-muted">kr</span>
+              </span>
+              <input
+                type="range"
+                min={BUDGET_MIN}
+                max={BUDGET_MAX}
+                step={BUDGET_STEP}
+                value={form.budgetAmount}
+                disabled={form.budgetPrivate}
+                onChange={(e) => setBudgetAmount(Number(e.target.value))}
+                className="kalas-range flex-1"
+                aria-label={t('Samlet budget')}
+              />
+            </div>
+            <div className="flex max-w-sm items-center gap-2 rounded-xl border border-[var(--color-line-strong)] bg-shell px-4 py-2.5">
+              <input
+                type="number"
+                value={form.budgetAmount}
+                step={BUDGET_STEP}
+                min={BUDGET_MIN}
+                max={BUDGET_MAX}
+                disabled={form.budgetPrivate}
+                onChange={(e) => setBudgetAmount(Number(e.target.value))}
+                className="w-0 min-w-0 flex-1 bg-transparent font-serif text-[1.3rem] text-ink tabular-nums focus:outline-none disabled:cursor-not-allowed"
+              />
+              <span className="shrink-0 text-[0.8rem] text-muted">kr</span>
+            </div>
           </div>
-        </Field>
-      </div>
-    </div>
-  );
-}
-
-/* ══════════════════════════════════════════════════════════════════════
-   STEP 5 — STYLE (vibe chips · free description)
-══════════════════════════════════════════════════════════════════════ */
-const MAX_DESC = 250;
-function StyleStep({ form, set, toggleVibe }: {
-  form: FormState; set: any; toggleVibe: (label: string) => void;
-}) {
-  const { t } = useLang();
-  const len = form.description.length;
-  return (
-    <div>
-      <StepHead eyebrow="Stilen" title={t('Jeres drømmebyllup')}
-        sub="Vælg de stemninger der rammer jer — og beskriv gerne med egne ord. Ava bruger det til briefs og stil." />
-      <div className="space-y-6">
-        <Field label="Stemning" hint="Vælg gerne flere.">
-          <div className="flex flex-wrap gap-2">
-            {VIBE_OPTIONS.map((v) => (
-              <Chip key={v.key} selected={form.vibes.includes(v.label)} onClick={() => toggleVibe(v.label)}>
-                <span className="mr-1">{v.emoji}</span>{t(v.label)}
-              </Chip>
-            ))}
-          </div>
-        </Field>
-        <Field label="Med egne ord">
-          <div className="relative">
-            <textarea
-              value={form.description}
-              onChange={(e) => { if (e.target.value.length <= MAX_DESC) set('description')(e); }}
-              placeholder={t('Vi drømmer om et bryllup i en gammel avlsgård med lange borde, levende lys og en varm, afslappet stemning…')}
-              rows={5}
-              className={cn(inputCls, 'resize-none leading-relaxed')}
+          <label className="mt-4 flex cursor-pointer items-center gap-2.5 text-[0.85rem] text-ink-soft">
+            <input
+              type="checkbox"
+              checked={form.budgetPrivate}
+              onChange={(e) => setField('budgetPrivate', e.target.checked)}
+              className="h-4 w-4 rounded border-[var(--color-line-strong)] text-[#173c32] focus:ring-[#7b8e55]"
             />
-            <span className={cn('absolute bottom-3 right-4 text-[0.7rem]', len >= MAX_DESC ? 'text-clay' : 'text-muted')}>
-              {len}/{MAX_DESC}
-            </span>
-          </div>
+            {t('Vil helst ikke sige')}
+          </label>
         </Field>
       </div>
+      <style>{`
+        .kalas-range { -webkit-appearance: none; appearance: none; height: 2px; background: var(--color-line-strong); border-radius: 999px; cursor: pointer; }
+        .kalas-range:disabled { cursor: not-allowed; opacity: 0.4; }
+        .kalas-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 999px; background: var(--color-sage); border: 2px solid var(--color-canvas); box-shadow: 0 1px 4px rgba(46,51,37,0.2); cursor: pointer; }
+        .kalas-range:disabled::-webkit-slider-thumb { cursor: not-allowed; }
+        .kalas-range::-moz-range-thumb { width: 16px; height: 16px; border-radius: 999px; background: var(--color-sage); border: 2px solid var(--color-canvas); cursor: pointer; }
+        .kalas-range:disabled::-moz-range-thumb { cursor: not-allowed; }
+      `}</style>
     </div>
   );
 }
@@ -679,116 +1008,5 @@ function PartnerStep({ form, set }: { form: FormState; set: any }) {
         )}
       </AnimatePresence>
     </div>
-  );
-}
-
-/* ══════════════════════════════════════════════════════════════════════
-   AHA STAGE — the conversion moment
-══════════════════════════════════════════════════════════════════════ */
-function AhaStage({ form, onUnlock }: { form: FormState; onUnlock: () => void }) {
-  const { t, lang } = useLang();
-  const nameA = form.nameA || couple.a;
-  const nameB = form.nameB || couple.b;
-  const location = form.location || 'Sjælland';
-  const guests = String(guestCountOf(form));
-  const dateLabel = dateLabelOf(form, lang, t);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      className="mx-auto max-w-2xl px-6 py-12 sm:py-16"
-    >
-      <div className="flex items-center gap-3 mb-8">
-        <div className="h-9 w-9 rounded-full bg-ink flex items-center justify-center shrink-0">
-          <span className="font-serif text-[1.1rem] leading-none text-canvas">K</span>
-        </div>
-        <p className="text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-muted">{t('Ava · Arbejdede imens I svarede')}</p>
-      </div>
-
-      <h1 className="display text-[clamp(2rem,5vw,3.2rem)] text-ink leading-tight">
-        {t('Jeg har forberedt')}<br /><span className="italic">{t('tre ting til jer.')}</span>
-      </h1>
-      <p className="mt-4 text-[0.95rem] text-ink-soft leading-relaxed max-w-md">
-        {t('Baseret på {guests} gæster nær {location} og jeres stil. Ét klik for at se det hele.', { guests, location })}
-      </p>
-
-      <div className="mt-10 space-y-3">
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
-          className="rule rounded-2xl bg-card px-5 py-4 flex items-center gap-4">
-          <div className="h-10 w-10 rounded-full bg-sage-tint flex items-center justify-center shrink-0">
-            <ListChecks size={17} className="text-ink" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-serif text-[1.05rem] text-ink">{t('Tidslinje med {n} milepæle', { n: timeline.length })}</p>
-            <p className="text-[0.78rem] text-muted mt-0.5">{t('Forankret baglæns fra {date}', { date: dateLabel })}</p>
-          </div>
-          <Check size={15} className="text-sage shrink-0" />
-        </motion.div>
-
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
-          className="rule rounded-2xl bg-card px-5 py-4 flex items-center gap-4">
-          <div className="h-10 w-10 rounded-full bg-sage-tint flex items-center justify-center shrink-0">
-            <MapPin size={17} className="text-ink" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-serif text-[1.05rem] text-ink">{t('3 venues fundet nær {location}', { location })}</p>
-            <p className="text-[0.78rem] text-muted mt-0.5">{t('Matchet på gæstetal, stil og dato')}</p>
-          </div>
-          <Check size={15} className="text-sage shrink-0" />
-        </motion.div>
-
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
-          className="rule rounded-2xl bg-card overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-3 rule-b">
-            <div className="flex items-center gap-2">
-              <Sparkles size={13} className="text-muted" />
-              <span className="text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-muted">{t('Ava har skrevet · Venue-henvendelse')}</span>
-            </div>
-            <span className="rounded-full bg-sage px-2.5 py-0.5 text-[0.58rem] font-semibold uppercase tracking-[0.1em] text-ink">{t('Klar til send')}</span>
-          </div>
-
-          <div className="px-5 py-3 rule-b space-y-2">
-            <div className="flex items-baseline gap-3">
-              <span className="w-10 shrink-0 text-[0.64rem] font-semibold uppercase tracking-[0.14em] text-muted">{t('Til')}</span>
-              <span className="text-[0.82rem] font-medium text-ink">Sonnerupgaard Gods</span>
-            </div>
-            <div className="flex items-baseline gap-3">
-              <span className="w-10 shrink-0 text-[0.64rem] font-semibold uppercase tracking-[0.14em] text-muted">{t('Emne')}</span>
-              <span className="text-[0.82rem] text-ink-soft">{t('Forespørgsel — bryllup {date}', { date: dateLabel })}</span>
-            </div>
-          </div>
-
-          <div className="relative px-5 py-4 text-[0.84rem] text-ink-soft leading-relaxed space-y-3">
-            <p>{t('Kære {venue},', { venue: 'Sonnerupgaard Gods' })}</p>
-            <p>
-              {t('Vi er {a} & {b} og planlægger vores bryllup', { a: nameA, b: nameB })}{' '}
-              <span className="text-ink font-medium">{dateLabel}</span>.{' '}
-              {t('Vi er')}{' '}
-              <span className="text-ink font-medium">{t('{guests} gæster', { guests })}</span>{' '}
-              {t('og søger en venue der afspejler vores stil og stemning.')}
-            </p>
-            <p className="opacity-40">{t('Vi er interesserede i jeres weekendpakke og vil gerne...')}</p>
-            <div className="absolute bottom-0 inset-x-0 h-20 bg-gradient-to-t from-card to-transparent" />
-          </div>
-
-          <div className="px-5 pb-5 pt-1">
-            <button onClick={onUnlock}
-              className="group w-full flex items-center justify-between rounded-2xl px-5 py-4 text-canvas transition-all cursor-pointer hover:opacity-90"
-              style={{ background: 'var(--color-terracotta)' }}>
-              <div className="text-left">
-                <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] opacity-75">{t('Gå ind i Kalas')}</p>
-                <p className="font-serif text-[1.1rem] leading-snug mt-0.5">{t('Se hvad Ava har forberedt')}</p>
-              </div>
-              <ArrowRight size={16} className="shrink-0 group-hover:translate-x-1 transition-transform" />
-            </button>
-          </div>
-        </motion.div>
-      </div>
-
-      <p className="mt-6 text-center text-[0.76rem] text-muted">
-        {t('Gratis at udforske · I godkender alt før noget sendes')}
-      </p>
-    </motion.div>
   );
 }

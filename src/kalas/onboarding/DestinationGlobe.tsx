@@ -1,9 +1,10 @@
 "use client";
 
 /* Interactive destination picker for onboarding: a Kalas-styled three.js globe
-   (ivory sphere, sage dot-matrix continents) with curated wedding destinations.
-   Spin it, tap a place, and the pick lands in form.location. Country shapes are
-   bundled Natural Earth data (countries-110m) — no runtime fetches. */
+   (ivory sphere, sage dot-matrix continents) where whole countries are the
+   click targets. Spin it, zoom it, tap a country — the pick zooms in and the
+   parent opens a panel of cities & wedding destinations for it. Country
+   shapes are bundled Natural Earth data (countries-110m) — no runtime fetches. */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Globe, { type GlobeMethods } from 'react-globe.gl';
@@ -12,64 +13,30 @@ import { feature } from 'topojson-client';
 import countriesTopo from './countries-110m.json';
 import { useLang } from '../i18n';
 
-export type Destination = {
-  id: string;
-  label: string;   // Danish source (t() translates)
-  country: string; // Danish source
-  lat: number;
-  lng: number;
+type CountryFeature = {
+  properties: { name: string };
 };
-
-/* Curated inspiration — Denmark first, then Europe's classics, then far away. */
-export const DESTINATIONS: Destination[] = [
-  { id: 'cph',       label: 'København',    country: 'Danmark',    lat: 55.68,  lng: 12.57 },
-  { id: 'aarhus',    label: 'Aarhus',       country: 'Danmark',    lat: 56.16,  lng: 10.21 },
-  { id: 'skagen',    label: 'Skagen',       country: 'Danmark',    lat: 57.72,  lng: 10.58 },
-  { id: 'bornholm',  label: 'Bornholm',     country: 'Danmark',    lat: 55.13,  lng: 14.92 },
-  { id: 'fyn',       label: 'Fyn',          country: 'Danmark',    lat: 55.35,  lng: 10.40 },
-  { id: 'stockholm', label: 'Stockholm',    country: 'Sverige',    lat: 59.33,  lng: 18.07 },
-  { id: 'iceland',   label: 'Island',       country: 'Island',     lat: 64.15,  lng: -21.94 },
-  { id: 'scotland',  label: 'Skotland',     country: 'Storbritannien', lat: 57.12, lng: -4.71 },
-  { id: 'paris',     label: 'Paris',        country: 'Frankrig',   lat: 48.86,  lng: 2.35 },
-  { id: 'provence',  label: 'Provence',     country: 'Frankrig',   lat: 43.95,  lng: 4.81 },
-  { id: 'tuscany',   label: 'Toscana',      country: 'Italien',    lat: 43.77,  lng: 11.25 },
-  { id: 'amalfi',    label: 'Amalfikysten', country: 'Italien',    lat: 40.63,  lng: 14.60 },
-  { id: 'como',      label: 'Comosøen',     country: 'Italien',    lat: 45.99,  lng: 9.26 },
-  { id: 'santorini', label: 'Santorini',    country: 'Grækenland', lat: 36.39,  lng: 25.46 },
-  { id: 'mallorca',  label: 'Mallorca',     country: 'Spanien',    lat: 39.57,  lng: 2.65 },
-  { id: 'barcelona', label: 'Barcelona',    country: 'Spanien',    lat: 41.39,  lng: 2.17 },
-  { id: 'lisbon',    label: 'Lissabon',     country: 'Portugal',   lat: 38.72,  lng: -9.14 },
-  { id: 'algarve',   label: 'Algarve',      country: 'Portugal',   lat: 37.02,  lng: -7.93 },
-  { id: 'dubrovnik', label: 'Dubrovnik',    country: 'Kroatien',   lat: 42.65,  lng: 18.09 },
-  { id: 'alps',      label: 'Alperne',      country: 'Østrig',     lat: 47.27,  lng: 11.40 },
-  { id: 'marrakech', label: 'Marrakech',    country: 'Marokko',    lat: 31.63,  lng: -8.01 },
-  { id: 'nyc',       label: 'New York',     country: 'USA',        lat: 40.71,  lng: -74.01 },
-  { id: 'tulum',     label: 'Tulum',        country: 'Mexico',     lat: 20.21,  lng: -87.46 },
-  { id: 'capetown',  label: 'Cape Town',    country: 'Sydafrika',  lat: -33.92, lng: 18.42 },
-  { id: 'bali',      label: 'Bali',         country: 'Indonesien', lat: -8.34,  lng: 115.09 },
-  { id: 'kyoto',     label: 'Kyoto',        country: 'Japan',      lat: 35.01,  lng: 135.77 },
-];
-
-/** Canonical stored value — Danish, independent of the viewer's UI language. */
-export const destinationValue = (d: Destination) => `${d.label}, ${d.country}`;
 
 // Bundled TopoJSON → GeoJSON features (typed loosely; the shape is Natural Earth's).
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const topo = countriesTopo as any;
-const LAND = (feature(topo, topo.objects.countries) as unknown as { features: object[] }).features;
+const LAND = (feature(topo, topo.objects.countries) as unknown as { features: CountryFeature[] }).features
+  // Antarctica is a giant click target with no wedding cities — leave it as dots only.
+  .filter((f) => f.properties.name !== 'Antarctica');
 
-const INK = '#3B432A';
 const SAGE = '#A9B380';
-const TERRACOTTA = '#C17B5C';
 
-export default function DestinationGlobe({ selectedId, onPick }: {
-  selectedId: string | null;
-  onPick: (d: Destination) => void;
+const countryName = (f: object) => (f as CountryFeature).properties.name;
+
+export default function DestinationGlobe({ selectedCountry, onCountryPick }: {
+  selectedCountry: string | null;
+  onCountryPick: (country: string, coords: { lat: number; lng: number }) => void;
 }) {
   const { t } = useLang();
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
   const wrapRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 0, h: 0 });
+  const [hovered, setHovered] = useState<string | null>(null);
 
   // Fill the container; the globe needs explicit pixel dimensions.
   useEffect(() => {
@@ -93,26 +60,44 @@ export default function DestinationGlobe({ selectedId, onPick }: {
     const controls = g.controls();
     controls.autoRotate = true;
     controls.autoRotateSpeed = 0.55;
-    controls.enableZoom = false;
+    // Pinch/scroll zoom, bounded so you can't fly through the surface or
+    // shrink the globe to a marble. Globe radius is 100 scene units.
+    controls.enableZoom = true;
+    controls.minDistance = 135;
+    controls.maxDistance = 420;
+    controls.zoomSpeed = 0.6;
     // Wake up over Europe — most couples start close to home.
     g.pointOfView({ lat: 48, lng: 10, altitude: 1.85 }, 0);
   };
 
-  const pick = (d: Destination) => {
-    onPick(d);
+  const stopSpin = () => {
     const g = globeRef.current;
-    if (g) {
-      g.controls().autoRotate = false;
-      g.pointOfView({ lat: d.lat, lng: d.lng, altitude: 1.5 }, 700);
-    }
+    if (g) g.controls().autoRotate = false;
+  };
+
+  const pick = (f: object, coords: { lat: number; lng: number }) => {
+    const name = countryName(f);
+    stopSpin();
+    const g = globeRef.current;
+    if (g) g.pointOfView({ lat: coords.lat, lng: coords.lng, altitude: 1.1 }, 700);
+    onCountryPick(name, coords);
+  };
+
+  // Country caps are nearly invisible — the sage dot-matrix stays the visual —
+  // but they are the raycast targets, and they tint on hover / selection.
+  const capColor = (f: object) => {
+    const name = countryName(f);
+    if (name === selectedCountry) return 'rgba(193,123,92,0.5)';
+    if (name === hovered) return 'rgba(169,179,128,0.55)';
+    return 'rgba(169,179,128,0.22)';
   };
 
   return (
     <div
       ref={wrapRef}
-      onPointerDown={() => { const g = globeRef.current; if (g) g.controls().autoRotate = false; }}
-      className="relative h-[min(58vh,420px)] w-full cursor-grab active:cursor-grabbing"
-      aria-label={t('Drej på kloden og vælg et sted')}
+      onPointerDown={stopSpin}
+      className="relative h-full w-full cursor-grab active:cursor-grabbing"
+      aria-label={t('Drej på kloden, zoom ind og tryk på et land')}
     >
       {size.w > 0 && (
         <Globe
@@ -128,21 +113,25 @@ export default function DestinationGlobe({ selectedId, onPick }: {
           hexPolygonResolution={3}
           hexPolygonMargin={0.62}
           hexPolygonColor={() => SAGE}
-          labelsData={DESTINATIONS as object[]}
-          labelLat={(d) => (d as Destination).lat}
-          labelLng={(d) => (d as Destination).lng}
-          labelText={(d) => t((d as Destination).label)}
-          labelSize={1.05}
-          labelDotRadius={0.55}
-          labelAltitude={0.012}
-          labelResolution={2}
-          labelColor={(d) => ((d as Destination).id === selectedId ? TERRACOTTA : INK)}
-          onLabelClick={(d) => pick(d as Destination)}
-          onLabelHover={(d) => {
-            if (wrapRef.current) wrapRef.current.style.cursor = d ? 'pointer' : 'grab';
+          polygonsData={LAND}
+          polygonAltitude={0.012}
+          polygonCapColor={capColor}
+          polygonSideColor={() => 'rgba(0,0,0,0)'}
+          polygonStrokeColor={() => 'rgba(59,67,42,0.28)'}
+          polygonsTransitionDuration={0}
+          onPolygonClick={(f, _e, coords) => pick(f as object, coords)}
+          onPolygonHover={(f) => {
+            setHovered(f ? countryName(f as object) : null);
+            if (wrapRef.current) wrapRef.current.style.cursor = f ? 'pointer' : 'grab';
           }}
           onGlobeReady={onReady}
         />
+      )}
+
+      {hovered && (
+        <div className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-[#173c32]/90 px-4 py-1.5 text-[0.8rem] font-medium text-[#fffdf7]">
+          {hovered}
+        </div>
       )}
     </div>
   );

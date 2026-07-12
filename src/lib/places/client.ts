@@ -12,7 +12,7 @@ const PLACES_BASE = "https://places.googleapis.com/v1";
 const CACHE_TTL_MS = 7 * 24 * 3600 * 1000; // Places facts are stable for a week
 
 /** Best-effort read from places_cache; null on miss/expiry/error. */
-async function cacheGet<T>(key: string): Promise<T | null> {
+export async function cacheGet<T>(key: string): Promise<T | null> {
   try {
     const admin = createAdminClient();
     const { data } = await admin
@@ -29,7 +29,7 @@ async function cacheGet<T>(key: string): Promise<T | null> {
 }
 
 /** Best-effort write to places_cache; failures are swallowed. */
-async function cacheSet(key: string, payload: unknown): Promise<void> {
+export async function cacheSet(key: string, payload: unknown): Promise<void> {
   try {
     const admin = createAdminClient();
     await admin
