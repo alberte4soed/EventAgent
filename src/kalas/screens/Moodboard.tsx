@@ -1,10 +1,11 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform } from 'motion/react';
-import { Heart, X, Plus, ArrowLeft, ArrowRight, Image as ImageIcon } from 'lucide-react';
+import { Heart, X, Plus, ArrowLeft, ArrowRight, Image as ImageIcon, Link2 } from 'lucide-react';
 import { IMAGES } from '../data';
 import { Eyebrow, Pill, cn } from '../ui';
 import OnboardingHint from '../OnboardingHint';
 import { useWedding } from '../useWedding';
+import { createClient } from '@/lib/supabase/client';
 
 /* ── Inspiration swipe deck ──────────────────────────────────────────── */
 const INSPO_DECK = [
@@ -33,11 +34,30 @@ const CARD_BY_IMAGE: Record<string, InspoCard> = Object.fromEntries(
 );
 
 export default function Moodboard({ onNavigate }: { onNavigate?: (s: import('../Shell').ScreenId) => void }) {
-  const { moodboardItems, addMoodboardItem, removeMoodboardItem } = useWedding();
+  const { moodboardItems, addMoodboardItem, removeMoodboardItem, refresh } = useWedding();
+  const supabase = useMemo(() => createClient(), []);
   const [skipped, setSkipped] = useState<Set<string>>(new Set());
-  const [uploads, setUploads] = useState<Array<{ id: string; url: string }>>([]);
   const [avaVisible, setAvaVisible] = useState(false);
+  const [signed, setSigned] = useState<Record<string, string>>({});
+  const [importUrl, setImportUrl] = useState('');
+  const [busy, setBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Persisted uploads/imports (stored in the moodboard bucket) → signed URLs.
+  const uploaded = moodboardItems.filter((i) => i.storage_path);
+  useEffect(() => {
+    const missing = uploaded.filter((i) => i.storage_path && !signed[i.storage_path]);
+    if (missing.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const entries = await Promise.all(missing.map(async (i) => {
+        const { data } = await supabase.storage.from('moodboard').createSignedUrl(i.storage_path as string, 3600);
+        return [i.storage_path as string, data?.signedUrl ?? ''] as const;
+      }));
+      if (!cancelled) setSigned((prev) => ({ ...prev, ...Object.fromEntries(entries) }));
+    })();
+    return () => { cancelled = true; };
+  }, [uploaded, signed, supabase]);
 
   // The liked board is the persisted moodboard, mapped back to inspo cards.
   const likedEntries = moodboardItems
@@ -83,19 +103,40 @@ export default function Moodboard({ onNavigate }: { onNavigate?: (s: import('../
     const entry = likedEntries.find((e) => e.card.id === id);
     if (entry) void removeMoodboardItem(entry.dbId);
   };
-  const removeUpload = (id: string) => setUploads((p) => p.filter((u) => u.id !== id));
+  const removeUpload = (id: string) => void removeMoodboardItem(id);
 
-  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    Array.from(e.target.files ?? []).forEach((f) => {
-      const url = URL.createObjectURL(f);
-      setUploads((p) => [...p, { id: `up-${Date.now()}-${Math.random()}`, url }]);
-    });
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
     e.target.value = '';
+    if (files.length === 0) return;
+    setBusy(true);
+    try {
+      for (const f of files) {
+        const fd = new FormData();
+        fd.append('file', f);
+        await fetch('/api/moodboard/upload', { method: 'POST', body: fd });
+      }
+      await refresh();
+    } finally { setBusy(false); }
+  };
+
+  const handleImport = async () => {
+    const url = importUrl.trim();
+    if (!url) return;
+    setBusy(true);
+    try {
+      const res = await fetch('/api/moodboard/import', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }),
+      });
+      if (res.ok) { setImportUrl(''); await refresh(); }
+    } finally { setBusy(false); }
   };
 
   const gridItems: GridItem[] = [
     ...liked.map((c)  => ({ kind: 'liked'  as const, card: c })),
-    ...uploads.map((u) => ({ kind: 'upload' as const, id: u.id, url: u.url })),
+    ...uploaded
+      .filter((i) => i.storage_path && signed[i.storage_path])
+      .map((i) => ({ kind: 'upload' as const, id: i.id, url: signed[i.storage_path as string] })),
   ];
 
   return (
@@ -110,6 +151,25 @@ export default function Moodboard({ onNavigate }: { onNavigate?: (s: import('../
         <p className="mt-3 max-w-md text-ink-soft leading-relaxed">
           Swipe jer igennem — Ava bygger automatisk jeres moodboard og opdaterer venue-forslag.
         </p>
+
+        {/* Import fra link (Pinterest m.fl.) + upload */}
+        <div className="mt-5 flex flex-wrap items-center gap-2">
+          <div className="flex flex-1 min-w-[240px] items-center gap-2 rounded-full rule bg-card px-3">
+            <Link2 size={15} className="shrink-0 text-muted" />
+            <input value={importUrl} onChange={(e) => setImportUrl(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') void handleImport(); }}
+              placeholder="Indsæt link fra Pinterest, Instagram eller en webshop…"
+              className="flex-1 bg-transparent py-2.5 text-[0.88rem] text-ink placeholder:text-muted focus:outline-none" />
+          </div>
+          <button onClick={handleImport} disabled={busy || !importUrl.trim()}
+            className="rounded-full bg-ink px-4 py-2.5 text-[0.8rem] font-medium text-canvas hover:bg-ink/90 transition-colors cursor-pointer disabled:opacity-50">
+            {busy ? 'Henter…' : 'Importér'}
+          </button>
+          <button onClick={() => fileRef.current?.click()} disabled={busy}
+            className="flex items-center gap-2 rounded-full rule px-4 py-2.5 text-[0.8rem] text-ink-soft hover:bg-shell transition-colors cursor-pointer disabled:opacity-50">
+            <ImageIcon size={15} /> Upload
+          </button>
+        </div>
       </div>
 
       {/* ── Swipe section ───────────────────────────────────────────── */}
