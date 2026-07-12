@@ -1,10 +1,10 @@
 import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { lookupProduct } from "@/lib/og";
+import { lookupProduct } from "@/lib/jina/product";
 
 /**
  * POST /api/registry/lookup — fetch product metadata (title/image/price/store)
- * for a pasted URL so the couple can add a registry item with one click.
+ * for a pasted URL via Jina Reader so the couple can add a registry item with one click.
  */
 export async function POST(request: NextRequest) {
   const supabase = await createClient();

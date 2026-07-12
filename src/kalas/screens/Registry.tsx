@@ -1,7 +1,7 @@
 "use client";
 
-/* Ønskeliste — the couple's gift registry. Paste a product URL, we scrape its
-   title/image/price/store (server OG lookup), and it saves to registry_items.
+/* Ønskeliste — the couple's gift registry. Paste a product URL, we fetch its
+   title/image/price/store via Jina Reader, and it saves to registry_items.
    Guests reserve gifts from the public site (registry_claims); reservations
    show here live. Everything persists via useWedding's registry mutators. */
 
