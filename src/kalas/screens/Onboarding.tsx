@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import dynamic from 'next/dynamic';
 import {
   Check, ArrowLeft, ArrowRight, Sparkles, MapPin, ListChecks,
 } from 'lucide-react';
@@ -8,9 +9,16 @@ import { GUEST_BANDS, type OnboardingDate } from '@/lib/onboarding';
 import type { ScreenId } from '../Shell';
 import { cn } from '../ui';
 import { useLang } from '../i18n';
+import { DESTINATIONS, destinationValue, type Destination } from '../onboarding/DestinationGlobe';
 
-type Stage = 'basics' | 'scope' | 'describe' | 'partner' | 'aha';
-type ChatMsg = { id: string; role: 'ava' | 'user'; text: string };
+const DestinationGlobe = dynamic(() => import('../onboarding/DestinationGlobe'), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-[min(58vh,420px)] w-full items-center justify-center">
+      <span className="font-serif text-[0.95rem] italic text-muted">Indlæser kloden…</span>
+    </div>
+  ),
+});
 
 /* Structured onboarding state — chips + bands instead of loose text, so the
    journey logic and Ava's briefs get clean, bounded inputs. */
@@ -112,12 +120,6 @@ export function toOnboardingPayload(form: FormState) {
 }
 
 /* ── Display helpers ─────────────────────────────────────────────────── */
-const STEP_STAGES: Stage[] = ['basics', 'scope', 'describe', 'partner'];
-const TOTAL = STEP_STAGES.length;
-function stepOf(s: Stage) {
-  const i = STEP_STAGES.indexOf(s);
-  return i === -1 ? 0 : i + 1;
-}
 function dateLabelOf(form: FormState, lang: string, t: TFn): string {
   if (form.dateChoice === 'exact' && form.exactDate) {
     return new Date(form.exactDate).toLocaleDateString(lang === 'en' ? 'en-US' : 'da-DK', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -134,16 +136,16 @@ function guestCountOf(form: FormState): number {
 const inputCls = 'w-full rounded-2xl border border-[var(--color-line-strong)] bg-canvas px-4 py-3.5 text-[1rem] text-ink placeholder:text-muted focus:border-ink focus:outline-none transition-colors';
 
 /* ══════════════════════════════════════════════════════════════════════
-   MAIN EXPORT
+   MAIN EXPORT — centered, traditional step flow (no chat pane)
 ══════════════════════════════════════════════════════════════════════ */
-export default function Onboarding({ onEnter }: { onEnter: (form: FormState, s?: ScreenId) => void }) {
-  const { t, lang } = useLang();
-  const [stage, setStage] = useState<Stage>('basics');
-  const [form, setForm] = useState<FormState>(EMPTY_FORM);
+const TOTAL_STEPS = 6;
 
-  const [chat, setChat] = useState<ChatMsg[]>([
-    { id: 'ava-0', role: 'ava', text: t('Hej! Jeg er Ava — din personlige bryllupsassistent. Lad os starte med det vigtigste: hvem er I, og hvornår er den store dag?') },
-  ]);
+export default function Onboarding({ onEnter }: { onEnter: (form: FormState, s?: ScreenId) => void }) {
+  const { t } = useLang();
+  const [step, setStep] = useState(0);
+  const [dir, setDir] = useState(1);
+  const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [aha, setAha] = useState(false);
 
   const set = (k: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -152,57 +154,21 @@ export default function Onboarding({ onEnter }: { onEnter: (form: FormState, s?:
   const toggleVibe = (label: string) =>
     setForm((f) => ({ ...f, vibes: f.vibes.includes(label) ? f.vibes.filter((v) => v !== label) : [...f.vibes, label] }));
 
-  const addChat = (msgs: Omit<ChatMsg, 'id'>[]) =>
-    setChat((prev) => [...prev, ...msgs.map((m, i) => ({ ...m, id: `msg-${Date.now()}-${i}` }))]);
-
-  const goScope = () => {
-    const dateStr = dateLabelOf(form, lang, t);
-    const who = t('Vi er {a} & {b}', { a: form.nameA || 'A', b: form.nameB || 'B' });
-    const where = form.location
-      ? t(' — vi gifter os {date} nær {location}.', { date: dateStr, location: form.location })
-      : t(' — vi gifter os {date}.', { date: dateStr });
-    addChat([
-      { role: 'user', text: who + where },
-      { role: 'ava', text: t('Dejligt! Hvor stort tænker I det — og hvad er rammen budgetmæssigt? Bare et pejlemærke, det kan altid justeres.') },
-    ]);
-    setStage('scope');
+  const go = (next: number) => {
+    if (next >= TOTAL_STEPS) { setAha(true); return; }
+    setDir(next > step ? 1 : -1);
+    setStep(Math.max(0, next));
   };
 
-  const goDescribe = () => {
-    const guests = GUEST_BANDS.find((b) => b.key === form.guestBand);
-    const budget = BUDGET_BANDS_DA.find((b) => b.key === form.budgetBand);
-    const guestPart = guests ? `${t(GUEST_LABELS_DA[guests.key])} ${t('gæster')}` : t('Et selskab');
-    const budgetPart = budget && budget.amount != null ? t(', {budget} budget', { budget: t(budget.label).toLowerCase() }) : '';
-    addChat([
-      { role: 'user', text: `${guestPart}${budgetPart}.` },
-      { role: 'ava', text: t('Godt udgangspunkt. Nu til det sjove: hvad drømmer I om? Vælg de stemninger der rammer jer — og beskriv gerne med egne ord.') },
-    ]);
-    setStage('describe');
-  };
+  const canAdvance =
+    (step === 0 && Boolean(form.nameA.trim() && form.nameB.trim())) ||
+    (step === 1 && Boolean(form.location.trim())) ||
+    (step === 2 && (form.dateChoice === 'exact' ? Boolean(form.exactDate) : Boolean(form.dateChoice))) ||
+    (step === 3 && Boolean(form.guestBand)) ||
+    step === 4 ||
+    step === 5;
 
-  const goPartner = () => {
-    const picked = form.vibes.slice(0, 3).map((v) => t(v)).join(', ');
-    const raw = form.description.trim();
-    const excerpt = raw ? (raw.length > 90 ? raw.slice(0, 90) + '…' : raw) : null;
-    addChat([
-      { role: 'user', text: [picked && t('Stil: {s}', { s: picked }), excerpt && `"${excerpt}"`].filter(Boolean).join(' · ') || t('Vi finder stilen undervejs.') },
-      { role: 'ava', text: t('Smukt — jeg noterer det til jeres leverandør-briefs og hjemmeside. Planlægger I det to?') },
-    ]);
-    setStage('partner');
-  };
-
-  const goAha = () => {
-    const hasPart = form.partnerEmail.includes('@');
-    const near = form.location ? t('nær {location}', { location: form.location }) : t('i jeres region');
-    addChat([
-      { role: 'user', text: hasPart ? t('{email} er inviteret som medplanlægger.', { email: form.partnerEmail }) : t('Jeg klarer det for nu — inviterer partneren senere.') },
-      { role: 'ava', text: t('Perfekt. Imens I svarede har jeg allerede forberedt jeres tidslinje, fundet tre venues {near} og skrevet den første henvendelse. Klar til at se det?', { near }) },
-    ]);
-    setStage('aha');
-  };
-
-  /* Aha: full-screen single column — straight into the app, no paywall. */
-  if (stage === 'aha') {
+  if (aha) {
     return (
       <div className="min-h-screen bg-canvas">
         <AnimatePresence mode="wait">
@@ -212,111 +178,75 @@ export default function Onboarding({ onEnter }: { onEnter: (form: FormState, s?:
     );
   }
 
-  /* Chat stages: split layout */
   return (
-    <div className="min-h-screen bg-canvas grid lg:grid-cols-[1fr_480px]">
-      <ChatPanel chat={chat} />
+    <div className="relative flex min-h-screen flex-col overflow-hidden bg-canvas">
+      {/* Soft background washes */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -left-24 top-16 h-80 w-80 rounded-full bg-sage/25 blur-[120px]" />
+        <div className="absolute -right-24 bottom-16 h-80 w-80 rounded-full bg-shell blur-[120px]" />
+      </div>
 
-      <div className="rule-t lg:rule-t-0 lg:rule-l flex flex-col min-h-screen">
-        <div className="px-8 pt-8 pb-0">
-          <ProgressBar stage={stage} />
+      {/* Header */}
+      <header className="relative mx-auto flex w-full max-w-2xl items-center justify-between px-6 pt-7">
+        <span className="text-[1.3rem] lowercase text-ink" style={{ fontFamily: 'var(--font-logo)', fontWeight: 500, letterSpacing: '0.02em' }}>kalas</span>
+        <span className="mr-40 text-[0.72rem] font-medium text-muted sm:mr-44">
+          {t('Trin {a} af {b}', { a: step + 1, b: TOTAL_STEPS })}
+        </span>
+      </header>
+
+      {/* Progress */}
+      <div className="relative mx-auto mt-4 w-full max-w-2xl px-6">
+        <div className="h-1 overflow-hidden rounded-full bg-shell">
+          <motion.div className="h-full rounded-full bg-ink"
+            animate={{ width: `${((step + 1) / TOTAL_STEPS) * 100}%` }}
+            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }} />
         </div>
+      </div>
 
-        <AnimatePresence mode="wait">
-          <motion.div key={stage}
-            initial={{ opacity: 0, x: 24 }}
+      {/* Step */}
+      <div className="relative mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center px-6 py-10">
+        <AnimatePresence mode="wait" custom={dir}>
+          <motion.div
+            key={step}
+            custom={dir}
+            initial={{ opacity: 0, x: dir * 36 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -16 }}
-            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            className="flex flex-1 flex-col px-8 pb-10">
-
-            {stage === 'basics' && (
-              <BasicsForm form={form} set={set} setField={setField} onNext={goScope} />
-            )}
-            {stage === 'scope' && (
-              <ScopeForm form={form} setField={setField} onBack={() => setStage('basics')} onNext={goDescribe} />
-            )}
-            {stage === 'describe' && (
-              <DescribeForm form={form} set={set} toggleVibe={toggleVibe} onBack={() => setStage('scope')} onNext={goPartner} />
-            )}
-            {stage === 'partner' && (
-              <PartnerForm form={form} set={set} onBack={() => setStage('describe')} onNext={goAha} />
-            )}
-
+            exit={{ opacity: 0, x: dir * -36 }}
+            transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+          >
+            {step === 0 && <NamesStep form={form} set={set} onNext={() => canAdvance && go(1)} />}
+            {step === 1 && <DestinationStep form={form} setField={setField} />}
+            {step === 2 && <DateStep form={form} set={set} setField={setField} />}
+            {step === 3 && <ScopeStep form={form} setField={setField} />}
+            {step === 4 && <StyleStep form={form} set={set} toggleVibe={toggleVibe} />}
+            {step === 5 && <PartnerStep form={form} set={set} />}
           </motion.div>
         </AnimatePresence>
+
+        <NavRow
+          onBack={step > 0 ? () => go(step - 1) : undefined}
+          onNext={() => canAdvance && go(step + 1)}
+          nextLabel={step === TOTAL_STEPS - 1 ? 'Se jeres plan' : 'Videre'}
+          nextDisabled={!canAdvance}
+        />
       </div>
     </div>
   );
 }
 
-/* ── Left panel: growing chat thread ────────────────────────────────── */
-function ChatPanel({ chat }: { chat: ChatMsg[] }) {
-  const endRef = useRef<HTMLDivElement>(null);
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }); }, [chat]);
-
+/* ── Step scaffolding ────────────────────────────────────────────────── */
+function StepHead({ eyebrow, title, sub }: { eyebrow: string; title: React.ReactNode; sub?: string }) {
+  const { t } = useLang();
   return (
-    <div className="hidden lg:flex flex-col bg-shell min-h-screen">
-      <div className="px-10 py-10 shrink-0">
-        <span className="text-[1.4rem] lowercase text-ink" style={{ fontFamily: 'var(--font-logo)', fontWeight: 500, letterSpacing: '0.02em' }}>kalas</span>
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-10 pb-10 space-y-4 hide-scrollbar">
-        <AnimatePresence initial={false}>
-          {chat.map((msg) => (
-            <motion.div key={msg.id}
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-              className={cn('flex gap-3', msg.role === 'user' ? 'justify-end' : 'justify-start')}>
-
-              {msg.role === 'ava' && (
-                <div className="shrink-0 h-8 w-8 rounded-full bg-ink flex items-center justify-center mt-0.5">
-                  <span className="font-serif text-[1rem] leading-none text-canvas">K</span>
-                </div>
-              )}
-
-              <div className={cn(
-                'max-w-[78%] rounded-2xl px-4 py-3 text-[0.9rem] leading-relaxed',
-                msg.role === 'ava'
-                  ? 'rule bg-canvas text-ink rounded-tl-sm'
-                  : 'bg-ink text-canvas rounded-tr-sm font-sans',
-              )}>
-                {msg.text}
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-        <div ref={endRef} />
-      </div>
-
-      <div className="px-10 py-8 shrink-0">
-        <p className="font-serif text-[0.85rem] italic text-muted">
-          {useLang().t('Planlagt med ro — af Ava, godkendt af jer.')}
-        </p>
-      </div>
+    <div className="mb-8">
+      <p className="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-muted">{t(eyebrow)}</p>
+      <h2 className="display mt-3 text-[clamp(1.9rem,4.5vw,2.8rem)] leading-tight text-ink">{title}</h2>
+      {sub && <p className="mt-3 max-w-md text-[0.9rem] leading-relaxed text-ink-soft">{t(sub)}</p>}
     </div>
   );
 }
 
-/* ── Progress bar ────────────────────────────────────────────────────── */
-function ProgressBar({ stage }: { stage: Stage }) {
-  const step = stepOf(stage);
-  if (step === 0) return null;
-  return (
-    <div className="flex items-center gap-3 mb-8">
-      <div className="flex-1 h-1 bg-shell rounded-full overflow-hidden">
-        <motion.div className="h-full rounded-full bg-ink"
-          animate={{ width: `${(step / TOTAL) * 100}%` }}
-          transition={{ duration: 0.4, ease: 'easeOut' }} />
-      </div>
-      <span className="text-[0.72rem] font-medium text-muted shrink-0">{step} / {TOTAL}</span>
-    </div>
-  );
-}
-
-/* ── Shared bits ─────────────────────────────────────────────────────── */
-function NavRow({ onBack, onNext, nextLabel = 'Næste', nextDisabled }: {
+function NavRow({ onBack, onNext, nextLabel = 'Videre', nextDisabled }: {
   onBack?: () => void; onNext?: () => void; nextLabel?: string; nextDisabled?: boolean;
 }) {
   const { t } = useLang();
@@ -363,79 +293,133 @@ function Chip({ selected, onClick, children }: { selected: boolean; onClick: () 
 }
 
 /* ══════════════════════════════════════════════════════════════════════
-   STAGE 1 — BASICS (names · location · date chips)
+   STEP 1 — NAMES
 ══════════════════════════════════════════════════════════════════════ */
-function BasicsForm({ form, set, setField, onNext }: {
-  form: FormState; set: any; setField: <K extends keyof FormState>(k: K, v: FormState[K]) => void; onNext: () => void;
-}) {
+function NamesStep({ form, set, onNext }: { form: FormState; set: any; onNext: () => void }) {
   const { t } = useLang();
-  const dateReady = form.dateChoice === 'exact' ? Boolean(form.exactDate) : Boolean(form.dateChoice);
-  const ready = form.nameA.trim() && form.nameB.trim() && form.location.trim() && dateReady;
   return (
-    <div className="flex flex-col flex-1">
-      <div className="mt-2">
-        <h2 className="display text-[clamp(1.8rem,4vw,2.6rem)] text-ink leading-tight">
-          {t('Fortæl om')} <span className="italic">{t('brylluppet')}</span>
-        </h2>
-        <p className="mt-2 text-[0.88rem] text-ink-soft">{t('Ingen konto nødvendig — I kan altid ændre det undervejs.')}</p>
-      </div>
-
-      <div className="mt-8 flex-1 space-y-5">
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Dit navn">
-            <input value={form.nameA} onChange={set('nameA')} placeholder={t('Fornavn')} className={inputCls} autoFocus />
-          </Field>
-          <Field label="Partners navn">
-            <input value={form.nameB} onChange={set('nameB')} placeholder={t('Fornavn')} className={inputCls} />
-          </Field>
-        </div>
-
-        <Field label="Lokation" hint="Hjemland eller udland — skriv hvad I drømmer om.">
-          <input value={form.location} onChange={set('location')}
-            placeholder={t('f.eks. nær København · Toscana · Sydfrankrig')} className={inputCls} />
+    <div>
+      <StepHead eyebrow="Velkommen til Kalas" title={<>{t('Hvem skal')} <span className="italic">{t('giftes?')}</span></>}
+        sub="Så Ava kan hilse på jer som mennesker — ikke et regneark." />
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label="Dit navn">
+          <input value={form.nameA} onChange={set('nameA')} placeholder={t('Fornavn')} className={inputCls} autoFocus
+            onKeyDown={(e) => { if (e.key === 'Enter') onNext(); }} />
         </Field>
-
-        <Field label="Hvornår?" hint="En sæson er fint — I behøver ikke en præcis dato endnu.">
-          <div className="flex flex-wrap gap-2">
-            {DATE_CHIPS.map((c) => (
-              <Chip key={c.key} selected={form.dateChoice === c.key}
-                onClick={() => setField('dateChoice', c.key)}>{chipLabel(c, t)}</Chip>
-            ))}
-            <Chip selected={form.dateChoice === 'exact'} onClick={() => setField('dateChoice', 'exact')}>{t('Præcis dato')}</Chip>
-            <Chip selected={form.dateChoice === 'undecided'} onClick={() => setField('dateChoice', 'undecided')}>{t('Ved ikke endnu')}</Chip>
-          </div>
-          <AnimatePresence>
-            {form.dateChoice === 'exact' && (
-              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
-                className="overflow-hidden">
-                <input type="date" value={form.exactDate} onChange={set('exactDate')} className={cn(inputCls, 'mt-3')} />
-              </motion.div>
-            )}
-          </AnimatePresence>
+        <Field label="Partners navn">
+          <input value={form.nameB} onChange={set('nameB')} placeholder={t('Fornavn')} className={inputCls}
+            onKeyDown={(e) => { if (e.key === 'Enter') onNext(); }} />
         </Field>
       </div>
-
-      <NavRow onNext={onNext} nextLabel="Det lyder godt" nextDisabled={!ready} />
     </div>
   );
 }
 
 /* ══════════════════════════════════════════════════════════════════════
-   STAGE 2 — SCOPE (guest band · budget band)
+   STEP 2 — DESTINATION (interactive globe)
 ══════════════════════════════════════════════════════════════════════ */
-function ScopeForm({ form, setField, onBack, onNext }: {
-  form: FormState; setField: <K extends keyof FormState>(k: K, v: FormState[K]) => void; onBack: () => void; onNext: () => void;
+function DestinationStep({ form, setField }: {
+  form: FormState; setField: <K extends keyof FormState>(k: K, v: FormState[K]) => void;
 }) {
   const { t } = useLang();
-  const ready = Boolean(form.guestBand);
+  const [custom, setCustom] = useState(false);
+  const selected = DESTINATIONS.find((d) => destinationValue(d) === form.location) ?? null;
+
+  const pick = (d: Destination) => {
+    setCustom(false);
+    setField('location', destinationValue(d));
+  };
+
   return (
-    <div className="flex flex-col flex-1">
-      <div className="mt-2">
-        <h2 className="display text-[clamp(1.8rem,4vw,2.6rem)] text-ink leading-tight">{t('Hvor stort')} <span className="italic">{t('tænker I?')}</span></h2>
-        <p className="mt-2 text-[0.88rem] text-ink-soft">{t('Bare et pejlemærke — Ava bruger det til at forme venues, budget og tidslinje.')}</p>
+    <div>
+      <StepHead eyebrow="Destination" title={<>{t('Hvor i')} <span className="italic">{t('verden?')}</span></>}
+        sub="Drej på kloden og vælg et sted der frister — hjemme eller langt væk." />
+
+      <div className="-mx-6 sm:mx-0 overflow-hidden rounded-none sm:rounded-3xl">
+        <DestinationGlobe selectedId={selected?.id ?? null} onPick={pick} />
       </div>
 
-      <div className="mt-8 flex-1 space-y-7">
+      <div className="mt-4 flex min-h-[44px] flex-wrap items-center gap-2">
+        {selected && !custom ? (
+          <motion.div key={selected.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+            className="inline-flex items-center gap-2 rounded-full bg-sage-tint px-4 py-2">
+            <MapPin size={14} className="text-ink" />
+            <span className="text-[0.9rem] font-medium text-ink">{t(selected.label)}, {t(selected.country)}</span>
+          </motion.div>
+        ) : form.location && !custom ? (
+          <div className="inline-flex items-center gap-2 rounded-full bg-sage-tint px-4 py-2">
+            <MapPin size={14} className="text-ink" />
+            <span className="text-[0.9rem] font-medium text-ink">{form.location}</span>
+          </div>
+        ) : (
+          <span className="text-[0.82rem] text-muted">{t('Intet valgt endnu — prøv at trykke på en prik.')}</span>
+        )}
+
+        <button onClick={() => setCustom((v) => !v)}
+          className="ml-auto text-[0.78rem] text-muted underline-offset-2 hover:text-ink hover:underline transition-colors cursor-pointer">
+          {custom ? t('Tilbage til kloden') : t('Eller skriv jeres eget sted')}
+        </button>
+      </div>
+
+      <AnimatePresence>
+        {custom && (
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden">
+            <input
+              value={selected ? '' : form.location}
+              onChange={(e) => setField('location', e.target.value)}
+              placeholder={t('f.eks. Odense · Sydfyn · jeres sommerhusby')}
+              className={cn(inputCls, 'mt-2')} autoFocus />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   STEP 3 — DATE
+══════════════════════════════════════════════════════════════════════ */
+function DateStep({ form, set, setField }: {
+  form: FormState; set: any; setField: <K extends keyof FormState>(k: K, v: FormState[K]) => void;
+}) {
+  const { t } = useLang();
+  return (
+    <div>
+      <StepHead eyebrow="Hvornår" title={<>{t('Hvornår siger I')} <span className="italic">{t('ja?')}</span></>}
+        sub="En sæson er fint — I behøver ikke en præcis dato endnu." />
+      <div className="flex flex-wrap gap-2">
+        {DATE_CHIPS.map((c) => (
+          <Chip key={c.key} selected={form.dateChoice === c.key}
+            onClick={() => setField('dateChoice', c.key)}>{chipLabel(c, t)}</Chip>
+        ))}
+        <Chip selected={form.dateChoice === 'exact'} onClick={() => setField('dateChoice', 'exact')}>{t('Præcis dato')}</Chip>
+        <Chip selected={form.dateChoice === 'undecided'} onClick={() => setField('dateChoice', 'undecided')}>{t('Ved ikke endnu')}</Chip>
+      </div>
+      <AnimatePresence>
+        {form.dateChoice === 'exact' && (
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden">
+            <input type="date" value={form.exactDate} onChange={set('exactDate')} className={cn(inputCls, 'mt-4 max-w-xs')} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   STEP 4 — SCOPE (guest band · budget band)
+══════════════════════════════════════════════════════════════════════ */
+function ScopeStep({ form, setField }: {
+  form: FormState; setField: <K extends keyof FormState>(k: K, v: FormState[K]) => void;
+}) {
+  const { t } = useLang();
+  return (
+    <div>
+      <StepHead eyebrow="Rammen" title={<>{t('Hvor stort')} <span className="italic">{t('tænker I?')}</span></>}
+        sub="Bare et pejlemærke — Ava bruger det til at forme venues, budget og tidslinje." />
+      <div className="space-y-7">
         <Field label="Antal gæster">
           <div className="flex flex-wrap gap-2">
             {GUEST_BANDS.map((b) => (
@@ -445,7 +429,6 @@ function ScopeForm({ form, setField, onBack, onNext }: {
             ))}
           </div>
         </Field>
-
         <Field label="Budget" hint="Valgfrit — hjælper Ava med at fordele pengene fornuftigt.">
           <div className="flex flex-wrap gap-2">
             {BUDGET_BANDS_DA.map((b) => (
@@ -456,31 +439,24 @@ function ScopeForm({ form, setField, onBack, onNext }: {
           </div>
         </Field>
       </div>
-
-      <NavRow onBack={onBack} onNext={onNext} nextLabel="Videre" nextDisabled={!ready} />
     </div>
   );
 }
 
 /* ══════════════════════════════════════════════════════════════════════
-   STAGE 3 — DESCRIBE (vibe chips · free description)
+   STEP 5 — STYLE (vibe chips · free description)
 ══════════════════════════════════════════════════════════════════════ */
 const MAX_DESC = 250;
-function DescribeForm({ form, set, toggleVibe, onBack, onNext }: {
-  form: FormState; set: any; toggleVibe: (label: string) => void; onBack: () => void; onNext: () => void;
+function StyleStep({ form, set, toggleVibe }: {
+  form: FormState; set: any; toggleVibe: (label: string) => void;
 }) {
   const { t } = useLang();
   const len = form.description.length;
   return (
-    <div className="flex flex-col flex-1">
-      <div className="mt-2">
-        <h2 className="display text-[clamp(1.8rem,4vw,2.6rem)] text-ink leading-tight">{t('Jeres drømmebyllup')}</h2>
-        <p className="mt-2 text-[0.88rem] text-ink-soft">
-          {t('Vælg de stemninger der rammer jer — og beskriv gerne med egne ord. Ava bruger det til briefs og stil.')}
-        </p>
-      </div>
-
-      <div className="mt-8 flex-1 space-y-6">
+    <div>
+      <StepHead eyebrow="Stilen" title={t('Jeres drømmebyllup')}
+        sub="Vælg de stemninger der rammer jer — og beskriv gerne med egne ord. Ava bruger det til briefs og stil." />
+      <div className="space-y-6">
         <Field label="Stemning" hint="Vælg gerne flere.">
           <div className="flex flex-wrap gap-2">
             {VIBE_OPTIONS.map((v) => (
@@ -490,14 +466,13 @@ function DescribeForm({ form, set, toggleVibe, onBack, onNext }: {
             ))}
           </div>
         </Field>
-
         <Field label="Med egne ord">
           <div className="relative">
             <textarea
               value={form.description}
               onChange={(e) => { if (e.target.value.length <= MAX_DESC) set('description')(e); }}
               placeholder={t('Vi drømmer om et bryllup i en gammel avlsgård med lange borde, levende lys og en varm, afslappet stemning…')}
-              rows={6}
+              rows={5}
               className={cn(inputCls, 'resize-none leading-relaxed')}
             />
             <span className={cn('absolute bottom-3 right-4 text-[0.7rem]', len >= MAX_DESC ? 'text-clay' : 'text-muted')}>
@@ -506,68 +481,45 @@ function DescribeForm({ form, set, toggleVibe, onBack, onNext }: {
           </div>
         </Field>
       </div>
-
-      <NavRow onBack={onBack} onNext={onNext} nextLabel="Videre" />
     </div>
   );
 }
 
 /* ══════════════════════════════════════════════════════════════════════
-   STAGE 4 — PARTNER
+   STEP 6 — PARTNER
 ══════════════════════════════════════════════════════════════════════ */
-function PartnerForm({ form, set, onBack, onNext }: { form: FormState; set: any; onBack: () => void; onNext: () => void }) {
+function PartnerStep({ form, set }: { form: FormState; set: any }) {
   const { t } = useLang();
   const [sent, setSent] = useState(false);
   const nameB = form.nameB || t('din partner');
 
   return (
-    <div className="flex flex-col flex-1">
-      <div className="mt-2">
-        <h2 className="display text-[clamp(1.8rem,4vw,2.6rem)] text-ink leading-tight">{t('Giv {name} adgang', { name: nameB })}</h2>
-        <p className="mt-2 text-[0.88rem] text-ink-soft">
-          {t('I deler samme plan — ingen duplikerede lister eller beskedkopiering.')}
-        </p>
-      </div>
-
-      <div className="mt-8 flex-1 space-y-5">
-        <Field label={t('{name}s e-mail', { name: nameB })}>
-          <div className="flex gap-2">
-            <input type="email" value={form.partnerEmail} onChange={set('partnerEmail')}
-              placeholder="partner@email.dk" className={cn(inputCls, 'flex-1')} disabled={sent} />
-            <button onClick={() => form.partnerEmail.includes('@') && setSent(true)}
-              disabled={sent || !form.partnerEmail.includes('@')}
-              className={cn('rounded-2xl px-5 py-3.5 text-[0.88rem] font-medium shrink-0 transition-colors cursor-pointer',
-                sent ? 'bg-sage-tint text-ink cursor-default'
-                     : form.partnerEmail.includes('@') ? 'bg-ink text-canvas hover:bg-ink/90'
-                     : 'bg-shell text-muted cursor-not-allowed')}>
-              {sent ? <><Check size={14} className="inline mr-1" />{t('Sendt')}</> : t('Send')}
-            </button>
-          </div>
-        </Field>
-
-        <AnimatePresence>
-          {sent && (
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl bg-sage-tint p-4">
-              <p className="text-[0.88rem] text-ink leading-relaxed">
-                {t('Invitation sendt til {email}. {name} får et link til at oprette adgang.', { email: form.partnerEmail, name: nameB })}
-              </p>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <div className="flex items-center gap-3">
-          <div className="flex-1 h-px bg-[var(--color-line)]" />
-          <span className="text-[0.74rem] text-muted">{t('eller')}</span>
-          <div className="flex-1 h-px bg-[var(--color-line)]" />
+    <div>
+      <StepHead eyebrow="Sammen om det" title={t('Giv {name} adgang', { name: nameB })}
+        sub="I deler samme plan — ingen duplikerede lister eller beskedkopiering. Valgfrit." />
+      <Field label={t('{name}s e-mail', { name: nameB })}>
+        <div className="flex gap-2">
+          <input type="email" value={form.partnerEmail} onChange={set('partnerEmail')}
+            placeholder="partner@email.dk" className={cn(inputCls, 'flex-1')} disabled={sent} />
+          <button onClick={() => form.partnerEmail.includes('@') && setSent(true)}
+            disabled={sent || !form.partnerEmail.includes('@')}
+            className={cn('rounded-2xl px-5 py-3.5 text-[0.88rem] font-medium shrink-0 transition-colors cursor-pointer',
+              sent ? 'bg-sage-tint text-ink cursor-default'
+                   : form.partnerEmail.includes('@') ? 'bg-ink text-canvas hover:bg-ink/90'
+                   : 'bg-shell text-muted cursor-not-allowed')}>
+            {sent ? <><Check size={14} className="inline mr-1" />{t('Sendt')}</> : t('Send')}
+          </button>
         </div>
-
-        <button onClick={onNext}
-          className="w-full py-2 text-center text-[0.84rem] text-muted hover:text-ink transition-colors cursor-pointer">
-          {t('Spring over — invitér {name} senere', { name: nameB })}
-        </button>
-      </div>
-
-      <NavRow onBack={onBack} onNext={onNext} nextLabel="Se jeres plan" />
+      </Field>
+      <AnimatePresence>
+        {sent && (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-4 rounded-2xl bg-sage-tint p-4">
+            <p className="text-[0.88rem] text-ink leading-relaxed">
+              {t('Invitation sendt til {email}. {name} får et link til at oprette adgang.', { email: form.partnerEmail, name: nameB })}
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
