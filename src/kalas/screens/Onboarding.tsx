@@ -1,20 +1,20 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import dynamic from 'next/dynamic';
 import {
-  Check, ArrowLeft, ArrowRight, Sparkles, MapPin, ListChecks, Heart, Lock,
+  Check, ArrowLeft, ArrowRight, Sparkles, MapPin, ListChecks, Heart, Lock, Star, X,
 } from 'lucide-react';
 import { couple, timeline } from '../data';
 import { GUEST_BANDS, type OnboardingDate } from '@/lib/onboarding';
 import type { ScreenId } from '../Shell';
 import { cn } from '../ui';
 import { useLang } from '../i18n';
-import { DESTINATIONS, destinationValue, type Destination } from '../onboarding/DestinationGlobe';
+import type { DestinationSuggestion } from '@/app/api/onboarding/destinations/route';
 
 const DestinationGlobe = dynamic(() => import('../onboarding/DestinationGlobe'), {
   ssr: false,
   loading: () => (
-    <div className="flex h-[min(58vh,420px)] w-full items-center justify-center">
+    <div className="flex h-full w-full items-center justify-center">
       <span className="font-serif text-[0.95rem] italic text-muted">Indlæser kloden…</span>
     </div>
   ),
@@ -25,6 +25,7 @@ const DestinationGlobe = dynamic(() => import('../onboarding/DestinationGlobe'),
 export type FormState = {
   nameA: string; nameB: string;
   location: string;
+  lovedDestinations: string[]; // "City, Country" hearts from the globe step
   dateChoice: string;   // '' | season key | 'exact' | 'undecided'
   exactDate: string;    // ISO, when dateChoice === 'exact'
   guestBand: string;    // '' | GUEST_BANDS key
@@ -36,7 +37,8 @@ export type FormState = {
 
 export const EMPTY_FORM: FormState = {
   nameA: '', nameB: '',
-  location: '', dateChoice: '', exactDate: '',
+  location: '', lovedDestinations: [],
+  dateChoice: '', exactDate: '',
   guestBand: '', budgetBand: '', vibes: [],
   description: '', partnerEmail: '',
 };
@@ -111,6 +113,7 @@ export function toOnboardingPayload(form: FormState) {
     partner_name: form.nameB.trim() || null,
     city: form.location.trim(),
     date: buildDate(form),
+    loved_destinations: form.lovedDestinations,
     guest_band: form.guestBand || null,
     budget: buildBudget(form),
     vibes: form.vibes,
@@ -198,9 +201,8 @@ export default function Onboarding({ onEnter }: { onEnter: (form: FormState, s?:
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col gap-8 px-6 py-8 lg:flex-row lg:gap-[52px] lg:px-14 lg:py-[42px]">
-        <ContextPanel step={step} t={t} />
-
+      {/* No side panel — the steps get the full canvas (the globe needs it). */}
+      <div className="flex flex-1 flex-col px-6 py-8 lg:px-14 lg:py-[42px]">
         <div className="flex min-w-0 flex-1 flex-col justify-center py-2">
           <AnimatePresence mode="wait" custom={dir}>
             <motion.div
@@ -210,7 +212,7 @@ export default function Onboarding({ onEnter }: { onEnter: (form: FormState, s?:
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: dir * -28 }}
               transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-              className="w-full max-w-[680px]"
+              className={cn('mx-auto w-full', step === 1 ? 'max-w-[1160px]' : 'max-w-[680px]')}
             >
               {step === 0 && <NamesStep form={form} set={set} onNext={() => canAdvance && go(1)} />}
               {step === 1 && <DestinationStep form={form} setField={setField} />}
@@ -289,45 +291,6 @@ function LangPill({ lang, onLang }: { lang: 'da' | 'en'; onLang: (l: 'da' | 'en'
         </button>
       ))}
     </div>
-  );
-}
-
-function ContextPanel({ step, t }: { step: number; t: (s: string) => string }) {
-  const headlines = [
-    { eyebrow: 'En omtænksom start', title: 'Lad os gøre det til jeres.', sub: 'Seks korte trin hjælper Ava med at skræddersy venues, opgaver og anbefalinger til jeres bryllup.' },
-    { eyebrow: 'Destination', title: 'Hvor i verden?', sub: 'Drej på kloden og vælg et sted der frister — hjemme eller langt væk.' },
-    { eyebrow: 'Datoen', title: 'Hvornår siger I ja?', sub: 'En sæson, en dato eller “vi ved det ikke endnu” — Ava tilpasser sig.' },
-    { eyebrow: 'Omfang', title: 'Hvor mange gæster?', sub: 'Et pejlemærke er nok — Ava bruger det til venues, budget og tidslinje.' },
-    { eyebrow: 'Stilen', title: 'Hvad føles som jer?', sub: 'Vælg det der frister — Ava lærer jeres æstetik at kende.' },
-    { eyebrow: 'Sammen om det', title: 'Giv partneren adgang', sub: 'I deler samme plan — ingen duplikerede lister. Valgfrit.' },
-  ];
-  const panel = headlines[step] ?? headlines[0];
-
-  return (
-    <aside className="hidden w-full max-w-[430px] shrink-0 flex-col justify-between rounded-3xl bg-[#173c32] p-[38px] shadow-[0px_18px_50px_rgba(23,60,50,0.16)] lg:flex lg:min-h-[620px]">
-      <div className="flex flex-col gap-6">
-        <div className="flex h-[52px] w-[52px] items-center justify-center rounded-full bg-[#e66b4e]">
-          <Heart size={22} className="text-[#fffdf7]" />
-        </div>
-        <div className="flex flex-col gap-3.5">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#b8ccc3]">{t(panel.eyebrow)}</p>
-          <h2 className="max-w-[330px] font-serif text-[clamp(2rem,4vw,2.875rem)] leading-[1.05] tracking-[-0.03em] text-[#fffdf7]">
-            {t(panel.title)}
-          </h2>
-          <p className="max-w-[320px] text-base leading-[1.65] text-[#d8e2dd]">{t(panel.sub)}</p>
-        </div>
-      </div>
-      <div className="mt-10 flex flex-col gap-3.5">
-        {[t('Anbefalinger formet omkring jer'), t('Ændr ethvert svar senere')].map((line) => (
-          <div key={line} className="flex items-center gap-3">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/10">
-              <Check size={14} className="text-[#e8a18f]" />
-            </div>
-            <span className="text-sm text-[#d8e2dd]">{line}</span>
-          </div>
-        ))}
-      </div>
-    </aside>
   );
 }
 
@@ -474,63 +437,295 @@ function NamesStep({ form, set, onNext }: { form: FormState; set: any; onNext: (
 }
 
 /* ══════════════════════════════════════════════════════════════════════
-   STEP 2 — DESTINATION (interactive globe)
+   STEP 2 — DESTINATION (interactive globe + country panel)
 ══════════════════════════════════════════════════════════════════════ */
+const GLOBE_H = 'h-[min(58vh,500px)]';
+
 function DestinationStep({ form, setField }: {
   form: FormState; setField: <K extends keyof FormState>(k: K, v: FormState[K]) => void;
 }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const [custom, setCustom] = useState(false);
-  const selected = DESTINATIONS.find((d) => destinationValue(d) === form.location) ?? null;
+  const [country, setCountry] = useState<string | null>(null);
+  const [cards, setCards] = useState<DestinationSuggestion[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [failed, setFailed] = useState(false);
+  // Countries already fetched this session — reopening one is instant.
+  const seen = useRef<Record<string, DestinationSuggestion[]>>({});
 
-  const pick = (d: Destination) => {
+  const load = async (c: string) => {
+    setFailed(false);
+    const hit = seen.current[c];
+    if (hit) { setCards(hit); return; }
+    setLoading(true);
+    setCards([]);
+    try {
+      const res = await fetch(
+        `/api/onboarding/destinations?country=${encodeURIComponent(c)}&lang=${lang}`
+      );
+      if (!res.ok) throw new Error(String(res.status));
+      const data = (await res.json()) as { suggestions?: DestinationSuggestion[] };
+      const list = data.suggestions ?? [];
+      if (list.length === 0) { setFailed(true); return; }
+      seen.current[c] = list;
+      setCards(list);
+    } catch {
+      setFailed(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const pickCountry = (c: string) => {
     setCustom(false);
-    setField('location', destinationValue(d));
+    setCountry(c);
+    void load(c);
+  };
+
+  const valueOf = (s: DestinationSuggestion) => `${s.name}, ${country}`;
+  const loved = (s: DestinationSuggestion) => form.lovedDestinations.includes(valueOf(s));
+  const toggleLove = (s: DestinationSuggestion) => {
+    const v = valueOf(s);
+    setField(
+      'lovedDestinations',
+      form.lovedDestinations.includes(v)
+        ? form.lovedDestinations.filter((x) => x !== v)
+        : [...form.lovedDestinations, v]
+    );
   };
 
   return (
     <div>
       <StepHead eyebrow="Destination" title={<>{t('Hvor i')} <span className="italic">{t('verden?')}</span></>}
-        sub="Drej på kloden og vælg et sted der frister — hjemme eller langt væk." />
+        sub="Drej og zoom på kloden, og tryk på et land — så henter vi de største byer og smukkeste bryllupsdestinationer." />
 
-      <div className="-mx-6 sm:mx-0 overflow-hidden rounded-none sm:rounded-3xl">
-        <DestinationGlobe selectedId={selected?.id ?? null} onPick={pick} />
-      </div>
-
-      <div className="mt-4 flex min-h-[44px] flex-wrap items-center gap-2">
-        {selected && !custom ? (
-          <motion.div key={selected.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center gap-2 rounded-full bg-sage-tint px-4 py-2">
-            <MapPin size={14} className="text-ink" />
-            <span className="text-[0.9rem] font-medium text-ink">{t(selected.label)}, {t(selected.country)}</span>
-          </motion.div>
-        ) : form.location && !custom ? (
-          <div className="inline-flex items-center gap-2 rounded-full bg-sage-tint px-4 py-2">
-            <MapPin size={14} className="text-ink" />
-            <span className="text-[0.9rem] font-medium text-ink">{form.location}</span>
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-start">
+        {/* Globe */}
+        <div className="min-w-0 flex-1">
+          <div className={cn('relative w-full overflow-hidden rounded-3xl', GLOBE_H)}>
+            <DestinationGlobe selectedCountry={country} onCountryPick={pickCountry} />
+            {!country && (
+              <div className="pointer-events-none absolute left-1/2 top-4 -translate-x-1/2 rounded-full bg-[#fffdf7]/85 px-4 py-1.5 text-[0.78rem] font-medium text-ink-soft backdrop-blur-sm">
+                {t('Drej på kloden, zoom ind og tryk på et land')}
+              </div>
+            )}
           </div>
-        ) : (
-          <span className="text-[0.82rem] text-muted">{t('Intet valgt endnu — prøv at trykke på en prik.')}</span>
-        )}
 
-        <button onClick={() => setCustom((v) => !v)}
-          className="ml-auto text-[0.78rem] text-muted underline-offset-2 hover:text-ink hover:underline transition-colors cursor-pointer">
-          {custom ? t('Tilbage til kloden') : t('Eller skriv jeres eget sted')}
+          <div className="mt-4 flex min-h-[44px] flex-wrap items-center gap-2">
+            {form.location && !custom ? (
+              <motion.div key={form.location} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+                className="inline-flex items-center gap-2 rounded-full bg-sage-tint px-4 py-2">
+                <MapPin size={14} className="text-ink" />
+                <span className="text-[0.9rem] font-medium text-ink">{form.location}</span>
+              </motion.div>
+            ) : (
+              <span className="text-[0.82rem] text-muted">{t('Intet valgt endnu — tryk på et land og vælg et sted.')}</span>
+            )}
+
+            {form.lovedDestinations.length > 0 && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-line-strong)] px-3 py-1.5 text-[0.78rem] text-ink-soft">
+                <Heart size={12} className="fill-clay text-clay" />
+                {t('{n} gemt til senere', { n: form.lovedDestinations.length })}
+              </span>
+            )}
+
+            <button onClick={() => setCustom((v) => !v)}
+              className="ml-auto text-[0.78rem] text-muted underline-offset-2 hover:text-ink hover:underline transition-colors cursor-pointer">
+              {custom ? t('Tilbage til kloden') : t('Eller skriv jeres eget sted')}
+            </button>
+          </div>
+
+          <AnimatePresence>
+            {custom && (
+              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden">
+                <input
+                  value={form.location}
+                  onChange={(e) => setField('location', e.target.value)}
+                  placeholder={t('f.eks. Odense · Sydfyn · jeres sommerhusby')}
+                  className={cn(inputCls, 'mt-2')} autoFocus />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Country panel — slides out when a country is picked */}
+        <AnimatePresence mode="popLayout">
+          {country && (
+            <motion.aside
+              key={country}
+              initial={{ opacity: 0, x: 32 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 32 }}
+              transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+              className="w-full shrink-0 lg:w-[360px]"
+            >
+              <CountryPanel
+                country={country}
+                cards={cards}
+                loading={loading}
+                failed={failed}
+                onRetry={() => void load(country)}
+                onClose={() => setCountry(null)}
+                selectedValue={form.location}
+                valueOf={valueOf}
+                onChoose={(s) => { setCustom(false); setField('location', valueOf(s)); }}
+                loved={loved}
+                onToggleLove={toggleLove}
+              />
+            </motion.aside>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
+
+function CountryPanel({
+  country, cards, loading, failed, onRetry, onClose, selectedValue, valueOf, onChoose, loved, onToggleLove,
+}: {
+  country: string;
+  cards: DestinationSuggestion[];
+  loading: boolean;
+  failed: boolean;
+  onRetry: () => void;
+  onClose: () => void;
+  selectedValue: string;
+  valueOf: (s: DestinationSuggestion) => string;
+  onChoose: (s: DestinationSuggestion) => void;
+  loved: (s: DestinationSuggestion) => boolean;
+  onToggleLove: (s: DestinationSuggestion) => void;
+}) {
+  const { t } = useLang();
+  const cities = cards.filter((s) => s.kind === 'city');
+  const weddings = cards.filter((s) => s.kind === 'wedding');
+
+  return (
+    <div className="flex max-h-[520px] flex-col rounded-3xl border border-[var(--color-line-strong)] bg-card lg:h-[min(58vh,500px)] lg:max-h-none">
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--color-line)] px-5 py-4">
+        <div className="min-w-0">
+          <p className="text-[0.62rem] font-semibold uppercase tracking-[0.2em] text-muted">{t('Destination')}</p>
+          <h3 className="truncate font-serif text-[1.3rem] leading-tight text-ink">{country}</h3>
+        </div>
+        <button type="button" onClick={onClose} aria-label={t('Luk')}
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-shell hover:text-ink cursor-pointer">
+          <X size={16} />
         </button>
       </div>
 
-      <AnimatePresence>
-        {custom && (
-          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden">
-            <input
-              value={selected ? '' : form.location}
-              onChange={(e) => setField('location', e.target.value)}
-              placeholder={t('f.eks. Odense · Sydfyn · jeres sommerhusby')}
-              className={cn(inputCls, 'mt-2')} autoFocus />
-          </motion.div>
+      <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 py-4">
+        {loading && (
+          <div className="space-y-3">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="animate-pulse overflow-hidden rounded-2xl border border-[var(--color-line)]">
+                <div className="h-24 bg-shell" />
+                <div className="space-y-2 p-3">
+                  <div className="h-3.5 w-1/2 rounded bg-shell" />
+                  <div className="h-3 w-5/6 rounded bg-shell" />
+                </div>
+              </div>
+            ))}
+            <p className="text-center text-[0.78rem] italic text-muted">{t('Finder de smukkeste steder…')}</p>
+          </div>
         )}
-      </AnimatePresence>
+
+        {failed && !loading && (
+          <div className="rounded-2xl bg-shell p-4 text-center">
+            <p className="text-[0.85rem] text-ink-soft">{t('Vi kunne ikke hente forslag lige nu.')}</p>
+            <button type="button" onClick={onRetry}
+              className="mt-3 rounded-full bg-ink px-4 py-2 text-[0.8rem] font-medium text-canvas transition-opacity hover:opacity-90 cursor-pointer">
+              {t('Prøv igen')}
+            </button>
+          </div>
+        )}
+
+        {!loading && !failed && cities.length > 0 && (
+          <PanelSection label={t('Største byer')}>
+            {cities.map((s) => (
+              <DestinationCard key={valueOf(s)} s={s} selected={selectedValue === valueOf(s)}
+                loved={loved(s)} onChoose={() => onChoose(s)} onToggleLove={() => onToggleLove(s)} />
+            ))}
+          </PanelSection>
+        )}
+
+        {!loading && !failed && weddings.length > 0 && (
+          <PanelSection label={t('Bryllupsdestinationer')}>
+            {weddings.map((s) => (
+              <DestinationCard key={valueOf(s)} s={s} selected={selectedValue === valueOf(s)}
+                loved={loved(s)} onChoose={() => onChoose(s)} onToggleLove={() => onToggleLove(s)} />
+            ))}
+          </PanelSection>
+        )}
+      </div>
+
+      <p className="shrink-0 border-t border-[var(--color-line)] px-5 py-3 text-[0.72rem] leading-snug text-muted">
+        {t('Hjerter gemmes, så Ava kan finde leverandører dér senere.')}
+      </p>
+    </div>
+  );
+}
+
+function PanelSection({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <p className="mb-2.5 px-1 text-[0.64rem] font-semibold uppercase tracking-[0.18em] text-muted">{label}</p>
+      <div className="space-y-3">{children}</div>
+    </div>
+  );
+}
+
+function DestinationCard({ s, selected, loved, onChoose, onToggleLove }: {
+  s: DestinationSuggestion; selected: boolean; loved: boolean;
+  onChoose: () => void; onToggleLove: () => void;
+}) {
+  const { t } = useLang();
+  return (
+    <div className={cn(
+      'relative overflow-hidden rounded-2xl border transition-colors',
+      selected ? 'border-ink shadow-[0px_6px_18px_rgba(23,60,50,0.12)]' : 'border-[var(--color-line)] hover:border-[var(--color-line-strong)]',
+    )}>
+      <button type="button" onClick={onChoose} className="block w-full text-left cursor-pointer">
+        {s.photo ? (
+          // Places photo URLs are remote googleusercontent links; next/image
+          // would need a domain allowlist, so a plain img is the right tool.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={s.photo} alt={s.name} loading="lazy" className="h-24 w-full object-cover" />
+        ) : (
+          <div className="flex h-24 w-full items-center justify-center bg-sage-tint">
+            <MapPin size={20} className="text-ink opacity-40" />
+          </div>
+        )}
+        <div className="p-3">
+          <div className="flex items-baseline justify-between gap-2">
+            <p className="truncate font-serif text-[1rem] text-ink">{s.name}</p>
+            {s.rating != null && (
+              <span className="inline-flex shrink-0 items-center gap-1 text-[0.72rem] text-ink-soft">
+                <Star size={11} className="fill-[#d9a441] text-[#d9a441]" />{s.rating.toFixed(1)}
+              </span>
+            )}
+          </div>
+          {s.region && <p className="text-[0.72rem] text-muted">{s.region}</p>}
+          {s.blurb && <p className="mt-1.5 text-[0.78rem] leading-snug text-ink-soft">{s.blurb}</p>}
+          {selected && (
+            <p className="mt-2 inline-flex items-center gap-1.5 text-[0.72rem] font-semibold text-ink">
+              <Check size={12} /> {t('Valgt som jeres sted')}
+            </p>
+          )}
+        </div>
+      </button>
+
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); onToggleLove(); }}
+        aria-label={loved ? t('Fjern fra gemte') : t('Gem til senere')}
+        aria-pressed={loved}
+        className={cn(
+          'absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full shadow-sm transition-all cursor-pointer',
+          loved ? 'bg-clay text-white scale-105' : 'bg-[#fffdf7]/90 text-ink-soft hover:text-clay',
+        )}
+      >
+        <Heart size={15} className={loved ? 'fill-current' : undefined} />
+      </button>
     </div>
   );
 }

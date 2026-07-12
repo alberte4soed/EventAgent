@@ -12,6 +12,8 @@ interface OnboardingBody {
   guest_band?: string | null;
   budget?: string | null;
   vibes?: string[];
+  /** "City, Country" places hearted on the onboarding globe. */
+  loved_destinations?: string[];
   /** Free-text dream description (Kalas interview) → requirements. */
   description?: string | null;
   /** Co-planner email (Kalas interview) → requirements. */
@@ -46,6 +48,10 @@ export async function POST(request: NextRequest) {
       ? Math.round(body.guest_count)
       : band?.count ?? null;
   const vibes = (body.vibes ?? []).filter((v) => typeof v === "string").slice(0, 12);
+  const lovedDestinations = (body.loved_destinations ?? [])
+    .filter((v) => typeof v === "string" && v.trim())
+    .map((v) => v.trim().slice(0, 80))
+    .slice(0, 20);
   const date = body.date ?? { precision: "undecided" as const };
   const description = (body.description ?? "").trim();
   const partnerEmail = (body.partner_email ?? "").trim();
@@ -53,6 +59,7 @@ export async function POST(request: NextRequest) {
 
   const requirements: Record<string, unknown> = {};
   if (vibes.length > 0) requirements.vibes = vibes;
+  if (lovedDestinations.length > 0) requirements.loved_destinations = lovedDestinations;
   if (band) requirements.guest_band = band.label;
   if (description) requirements.description = description;
   if (partnerEmail) requirements.partner_email = partnerEmail;
