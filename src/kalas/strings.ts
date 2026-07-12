@@ -13,6 +13,7 @@ export const EN: Record<string, string> = {
   'Budget': 'Budget',
   'Gæster': 'Guests',
   'Hjemmeside': 'Website',
+  'Ønskeliste': 'Registry',
   'Invitationer': 'Invitations',
   'Tidslinje': 'Timeline',
   'Bordplan': 'Seating',
@@ -287,4 +288,23 @@ export const EN: Record<string, string> = {
   'Denne gave er allerede reserveret.': 'This gift is already reserved.',
   'Reserverer…': 'Reserving…',
   'Reservér': 'Reserve',
+
+  // ── Registry (Ønskeliste) screen ────────────────────────────────────
+  'Gaver, I faktisk': 'Gifts you actually',
+  'ønsker jer': 'want',
+  'Indsæt et link til en gave, så henter vi billede og pris. Gæsterne kan reservere den fra jeres bryllupsside — så to ikke køber det samme.':
+    "Paste a link to a gift and we'll pull the image and price. Guests can reserve it from your wedding site — so two people don't buy the same thing.",
+  'Indsæt produktlink (fx fra en webshop)…': 'Paste a product link (e.g. from a web shop)…',
+  'Henter…': 'Fetching…',
+  'Gavens navn': 'Gift name',
+  'Pris': 'Price',
+  'Butik': 'Store',
+  'Gem på listen': 'Save to list',
+  'Ingen ønsker endnu': 'No wishes yet',
+  'Indsæt jeres første gavelink ovenfor.': 'Paste your first gift link above.',
+  '{n}/{q} reserveret': '{n}/{q} reserved',
+  'Se produkt ↗': 'View product ↗',
+  'Ønskelisten vises automatisk på jeres bryllupsside under “Gaveønsker”.':
+    'The registry shows automatically on your wedding site under “Gifts”.',
+  'Åbn hjemmeside': 'Open website',
 };

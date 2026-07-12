@@ -21,6 +21,7 @@ import Website from './screens/Website';
 import Invites from './screens/Invites';
 import Seating from './screens/Seating';
 import Inbox from './screens/Inbox';
+import Registry from './screens/Registry';
 
 export default function KalasRoot({ initialLang = 'da' }: { initialLang?: Lang }) {
   return (
@@ -61,6 +62,7 @@ function AppInner() {
     budget:      <Budget onNavigate={navigate} />,
     guests:      <Guests />,
     website:     <Website />,
+    registry:    <Registry onNavigate={navigate} />,
     invites:     <Invites />,
     seating:     <Seating />,
   };

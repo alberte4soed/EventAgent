@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   Home, MessageCircle, Heart, MapPin, Building2,
   Wallet, Users, Globe, Mail, ListChecks, LayoutDashboard,
-  LayoutGrid, X, Settings, Inbox,
+  LayoutGrid, X, Settings, Inbox, Gift,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { couple, daysUntil } from './data';
@@ -14,7 +14,7 @@ import { useLang } from './i18n';
 export type ScreenId =
   | 'home' | 'ava' | 'inspiration'
   | 'venues' | 'vendors' | 'inbox'
-  | 'budget' | 'guests' | 'website' | 'invites' | 'planning' | 'seating';
+  | 'budget' | 'guests' | 'website' | 'registry' | 'invites' | 'planning' | 'seating';
 
 type NavItem = { id: ScreenId; label: string; icon: LucideIcon; group: 'main' | 'plan' };
 
@@ -28,6 +28,7 @@ const NAV: NavItem[] = [
   { id: 'budget',      label: 'Budget',        icon: Wallet,        group: 'plan' },
   { id: 'guests',      label: 'Gæster',        icon: Users,         group: 'plan' },
   { id: 'website',     label: 'Hjemmeside',    icon: Globe,         group: 'plan' },
+  { id: 'registry',    label: 'Ønskeliste',    icon: Gift,          group: 'plan' },
   { id: 'invites',     label: 'Invitationer',  icon: Mail,          group: 'plan' },
   { id: 'planning',    label: 'Tidslinje',     icon: ListChecks,      group: 'plan' },
   { id: 'seating',     label: 'Bordplan',      icon: LayoutDashboard, group: 'plan' },
