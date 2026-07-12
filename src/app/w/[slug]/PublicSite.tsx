@@ -21,6 +21,7 @@ interface Props {
   claimedByItem?: Record<string, number>;
   lang: AppLanguage;
   locked: boolean;
+  rsvpToken?: string | null;
 }
 
 export function PublicSite(props: Props) {
@@ -33,7 +34,7 @@ export function PublicSite(props: Props) {
   );
 }
 
-function Site({ slug, couple, config, registryItems, claimedByItem = {} }: Props) {
+function Site({ slug, couple, config, registryItems, claimedByItem = {}, rsvpToken }: Props) {
   const [rsvpOpen, setRsvpOpen] = useState(false);
   const [claimItem, setClaimItem] = useState<RegistryItemRow | null>(null);
 
@@ -47,7 +48,7 @@ function Site({ slug, couple, config, registryItems, claimedByItem = {} }: Props
         onRsvp={() => setRsvpOpen(true)}
         onClaim={(it) => setClaimItem(it)}
       />
-      {rsvpOpen && <RsvpModal slug={slug} config={config} onClose={() => setRsvpOpen(false)} />}
+      {rsvpOpen && <RsvpModal slug={slug} config={config} token={rsvpToken ?? null} onClose={() => setRsvpOpen(false)} />}
       {claimItem && <ClaimModal slug={slug} item={claimItem} onClose={() => setClaimItem(null)} />}
     </>
   );
@@ -94,7 +95,7 @@ function PasswordGate({ slug }: { slug: string }) {
 }
 
 /* ── RSVP modal ──────────────────────────────────────────────────────── */
-function RsvpModal({ slug, config, onClose }: { slug: string; config: SiteConfig; onClose: () => void }) {
+function RsvpModal({ slug, config, token, onClose }: { slug: string; config: SiteConfig; token: string | null; onClose: () => void }) {
   const { t } = useLang();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -117,7 +118,7 @@ function RsvpModal({ slug, config, onClose }: { slug: string; config: SiteConfig
       const res = await fetch(`/api/w/${slug}/rsvp`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: name.trim(), email: email.trim() || null, attending,
+          token, name: name.trim(), email: email.trim() || null, attending,
           plusOne: config.rsvpPlusOne ? plusOne : false, plusOneName: plusOneName.trim() || null,
           meal: config.rsvpMeal ? meal.trim() || null : null,
           dietary: config.rsvpDietary ? dietary.trim() || null : null,

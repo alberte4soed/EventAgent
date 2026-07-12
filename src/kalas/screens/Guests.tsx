@@ -1,6 +1,6 @@
 import { useState, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Upload, Utensils, Send, Users, Clock, CheckCheck, ChevronRight, Trash2, Search, X, Check } from 'lucide-react';
+import { Plus, Upload, Utensils, Send, Users, Clock, CheckCheck, ChevronRight, Trash2, Search, X, Check, Link2 } from 'lucide-react';
 import { Eyebrow, Pill, Chip, cn } from '../ui';
 import AnimateNumber from '../AnimateNumber';
 import OnboardingHint from '../OnboardingHint';
@@ -33,7 +33,11 @@ function makeTemplates(a: string, b: string, dateLabel: string) {
 }
 
 export default function Guests() {
-  const { couple, guests: guestList, addGuest: addGuestRow, updateGuest, deleteGuest } = useWedding();
+  const { couple, guests: guestList, weddingSite, addGuest: addGuestRow, updateGuest, deleteGuest } = useWedding();
+  const siteBase = weddingSite?.published && weddingSite.domain
+    ? `${typeof window !== 'undefined' ? window.location.origin : ''}/w/${weddingSite.domain}`
+    : null;
+  const guestLink = (token: string) => (siteBase ? `${siteBase}?rsvp=${token}` : null);
   const [tab, setTab] = useState<Tab>('gæsteliste');
   const [filter, setFilter] = useState<Filter>('alle');
   const [query, setQuery] = useState('');
@@ -215,7 +219,7 @@ export default function Guests() {
               <span className="text-[0.62rem] font-semibold tracking-[0.2em] uppercase text-muted">—</span>
             </div>
             <div className="divide-y divide-[var(--color-line)]">
-              {list.map((g, i) => <GuestRow key={g.id} g={g} i={i} onRemove={() => removeGuest(g.id)} onCycle={() => cycleRsvp(g)} />)}
+              {list.map((g, i) => <GuestRow key={g.id} g={g} i={i} link={guestLink(g.rsvp_token)} onRemove={() => removeGuest(g.id)} onCycle={() => cycleRsvp(g)} />)}
             </div>
             {list.length === 0 && (
               <p className="py-10 text-center font-serif text-[1.1rem] italic text-muted">
@@ -235,23 +239,33 @@ export default function Guests() {
   );
 }
 
-function GuestRow({ g, i, onRemove, onCycle }: { g: GuestRecord; i: number; onRemove: () => void; onCycle: () => void }) {
+function GuestRow({ g, i, link, onRemove, onCycle }: { g: GuestRecord; i: number; link: string | null; onRemove: () => void; onCycle: () => void }) {
   const isAfbud = g.rsvp === 'nej';
   const rsvpLabel = isAfbud ? 'afbud' : g.rsvp;
   const tone = g.rsvp === 'ja' ? 'success' : g.rsvp === 'afventer' ? 'clay' : 'neutral';
+  const [copied, setCopied] = useState(false);
+  const detail = [g.plus_one_name && `+ ${g.plus_one_name}`, g.dietary && g.dietary].filter(Boolean).join(' · ');
+
+  const copyLink = () => {
+    if (!link) return;
+    navigator.clipboard.writeText(link).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1600);
+  };
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
       transition={{ delay: Math.min(i * 0.03, 0.25) }}
       className="grid items-center gap-4 py-4"
-      style={{ gridTemplateColumns: '1fr 90px 90px 20px' }}
+      style={{ gridTemplateColumns: '1fr 90px 90px 44px' }}
     >
       <div className="min-w-0">
-        <div className={cn('font-serif text-[1.05rem] text-ink truncate', isAfbud && 'opacity-40')}>
-          {g.name}
+        <div className={cn('flex items-center gap-1.5 font-serif text-[1.05rem] text-ink', isAfbud && 'opacity-40')}>
+          <span className="truncate">{g.name}</span>
+          {g.responded_at && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-success" title="Har svaret" />}
         </div>
-        <div className="text-[0.76rem] text-muted">{g.side}</div>
+        <div className="text-[0.76rem] text-muted truncate">{g.side}{detail && ` · ${detail}`}</div>
       </div>
 
       <button onClick={onCycle} aria-label={`Skift RSVP for ${g.name}`}
@@ -271,10 +285,18 @@ function GuestRow({ g, i, onRemove, onCycle }: { g: GuestRecord; i: number; onRe
         )}
       </div>
 
-      <button onClick={onRemove} aria-label={`Fjern ${g.name}`}
-        className="text-muted/50 hover:text-[var(--color-terracotta)] transition-colors cursor-pointer">
-        <Trash2 size={14} />
-      </button>
+      <div className="flex items-center justify-end gap-2">
+        {link && (
+          <button onClick={copyLink} aria-label={`Kopiér svar-link til ${g.name}`} title="Kopiér personligt svar-link"
+            className="text-muted/50 hover:text-ink transition-colors cursor-pointer">
+            {copied ? <Check size={13} className="text-success" /> : <Link2 size={13} />}
+          </button>
+        )}
+        <button onClick={onRemove} aria-label={`Fjern ${g.name}`}
+          className="text-muted/50 hover:text-[var(--color-terracotta)] transition-colors cursor-pointer">
+          <Trash2 size={14} />
+        </button>
+      </div>
     </motion.div>
   );
 }

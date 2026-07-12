@@ -18,8 +18,14 @@ function coupleFrom(event: EventRow, profile: ProfileRow | null) {
   return { a, b, dateISO, dateLabel };
 }
 
-export default async function PublicWeddingSite({ params }: { params: Promise<{ slug: string }> }) {
+export default async function PublicWeddingSite({
+  params, searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ rsvp?: string }>;
+}) {
   const { slug } = await params;
+  const { rsvp: rsvpToken } = await searchParams;
   const admin = createAdminClient();
 
   // Look up the published site by its (case-insensitive) domain.
@@ -68,6 +74,7 @@ export default async function PublicWeddingSite({ params }: { params: Promise<{ 
       claimedByItem={claimedByItem}
       lang={lang}
       locked={locked}
+      rsvpToken={rsvpToken ?? null}
     />
   );
 }
