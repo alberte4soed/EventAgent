@@ -290,6 +290,10 @@ export interface GuestRow {
   meal: string | null;
   plus_one: boolean;
   notes: string | null;
+  dietary: string | null;
+  plus_one_name: string | null;
+  responded_at: string | null;
+  rsvp_token: string;
   created_at: string;
 }
 
@@ -311,6 +315,7 @@ export interface MoodboardItemRow {
   user_id: string;
   image_key: string | null;
   image_url: string | null;
+  storage_path: string | null;
   note: string | null;
   created_at: string;
 }
@@ -331,4 +336,32 @@ export interface SeatingPlanRow {
   user_id: string;
   data: Record<string, unknown>;
   updated_at: string;
+}
+
+export interface RegistryItemRow {
+  id: string;
+  event_id: string;
+  user_id: string;
+  title: string;
+  description: string | null;
+  image_url: string | null;
+  product_url: string | null;
+  store_name: string | null;
+  price_cents: number | null;
+  currency: string;
+  quantity: number;
+  sort: number;
+  created_at: string;
+}
+
+export interface RegistryClaimRow {
+  id: string;
+  item_id: string;
+  event_id: string;
+  user_id: string;
+  guest_name: string;
+  guest_email: string | null;
+  message: string | null;
+  quantity: number;
+  created_at: string;
 }

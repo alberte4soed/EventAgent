@@ -30,15 +30,18 @@ export function persistLanguage(l: Lang) {
   }).catch(() => {});
 }
 
-export function LanguageProvider({ initialLang = 'da', children }: { initialLang?: Lang; children: React.ReactNode }) {
+export function LanguageProvider({ initialLang = 'da', lock = false, children }: { initialLang?: Lang; lock?: boolean; children: React.ReactNode }) {
   const [lang, setLangState] = useState<Lang>(initialLang);
 
+  // The public wedding site locks to the couple's language and ignores the
+  // viewer's stored preference; the app follows localStorage.
   useEffect(() => {
+    if (lock) return;
     try {
       const stored = localStorage.getItem('kalas_lang');
       if (stored === 'da' || stored === 'en') setLangState(stored);
     } catch { /* ignore */ }
-  }, []);
+  }, [lock]);
   useEffect(() => { document.documentElement.lang = lang; }, [lang]);
 
   const setLang = useCallback((l: Lang) => {

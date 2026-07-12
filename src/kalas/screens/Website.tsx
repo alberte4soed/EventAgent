@@ -206,8 +206,11 @@ export default function Website() {
 
   const enabledSections = sections.filter((s) => s.enabled);
 
+  const publicPath = `/w/${domain}`;
+  const publicUrl = typeof window !== 'undefined' ? `${window.location.origin}${publicPath}` : publicPath;
+
   const copyLink = () => {
-    navigator.clipboard.writeText(`https://${domain}.kalas.dk`).catch(() => {});
+    navigator.clipboard.writeText(publicUrl).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -715,7 +718,10 @@ export default function Website() {
                   <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
                     className="mt-4 flex items-center gap-2 rule rounded-xl bg-shell overflow-hidden">
                     <Globe size={13} className="ml-3 shrink-0 text-muted" />
-                    <span className="flex-1 py-2.5 text-[0.82rem] text-ink font-mono">{domain}.kalas.dk</span>
+                    <a href={publicPath} target="_blank" rel="noopener noreferrer"
+                      className="flex-1 truncate py-2.5 text-[0.82rem] text-ink font-mono hover:underline">{publicUrl.replace(/^https?:\/\//, '')}</a>
+                    <a href={publicPath} target="_blank" rel="noopener noreferrer"
+                      className="mr-1 shrink-0 text-[0.72rem] text-muted hover:text-ink transition-colors">Se live ↗</a>
                     <button onClick={copyLink}
                       className="flex items-center gap-1.5 mr-3 text-[0.72rem] text-muted hover:text-ink transition-colors cursor-pointer">
                       {copied ? <Check size={13} /> : <Copy size={13} />}
@@ -755,8 +761,8 @@ export default function Website() {
                 <p className="text-[0.8rem] text-muted mb-4">Send linket i invitationen eller print QR-koden.</p>
                 <div className="flex items-start gap-4">
                   <div className="flex-1 space-y-2">
-                    <div className="rule rounded-xl bg-shell px-4 py-2.5 text-[0.82rem] font-mono text-ink">
-                      {domain}.kalas.dk
+                    <div className="rule rounded-xl bg-shell px-4 py-2.5 text-[0.82rem] font-mono text-ink truncate">
+                      {publicUrl.replace(/^https?:\/\//, '')}
                     </div>
                     <button onClick={copyLink}
                       className="flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-[0.7rem] font-bold uppercase tracking-[0.14em] text-canvas hover:bg-ink/80 transition-colors cursor-pointer">
