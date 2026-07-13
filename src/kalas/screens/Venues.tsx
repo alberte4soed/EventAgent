@@ -1,26 +1,42 @@
 "use client";
 
 import { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence, useMotionValue, useTransform } from 'motion/react';
-import { Heart, X, Check, MessageCircle, ArrowLeft, ArrowRight, MapPin, Search, SlidersHorizontal, ArrowUpRight, Star, Calendar, Loader2, Sparkles } from 'lucide-react';
-import { IMAGES, dnaTraits, moodboard } from '../data';
-import { useWedding } from '../useWedding';
-import { Eyebrow, Pill, Bleed, cn } from '../ui';
+import dynamic from 'next/dynamic';
+import { motion, AnimatePresence } from 'motion/react';
+import {
+  Heart, Check, MessageCircle, ArrowLeft, MapPin, ArrowUpRight,
+  Star, Loader2, Sparkles, Globe as GlobeIcon,
+} from 'lucide-react';
+import { IMAGES } from '../data';
+import { useWedding, type Couple } from '../useWedding';
+import { Eyebrow, Pill, cn } from '../ui';
 import type { ScreenId } from '../Shell';
 import OnboardingHint from '../OnboardingHint';
+import { useLang } from '../i18n';
 import type { VenueRow } from '@/lib/db/types';
 import type { VenueResearchProfile } from '@/lib/venue/research';
+import type { DestinationSuggestion } from '@/app/api/onboarding/destinations/route';
+import type { OnboardingVenueSuggestion } from '@/app/api/onboarding/venues/route';
+
+const DestinationGlobe = dynamic(() => import('../onboarding/DestinationGlobe'), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-full w-full items-center justify-center">
+      <Loader2 size={22} className="animate-spin text-muted" />
+    </div>
+  ),
+});
 
 /* Real venue row → the display shape the discovery views render. */
 interface DisplayVenue {
   id: string;
   name: string;
   location: string;
-  image: string;      // real URL, or an IMAGES key for mock flavour
-  match: number;
+  image: string;      // real URL, or an IMAGES key fallback
+  rating: number | null;
+  reviewCount: number;
   price: string;
   capacity: string;
-  tags: string[];
   why: string[];
   quote: string;
   photos: string[];
@@ -37,12 +53,12 @@ function toDisplay(v: VenueRow): DisplayVenue {
     name: v.name,
     location: v.address ?? '',
     image: v.image_url ?? v.photo_urls?.[0] ?? 'orangeri',
-    match: v.rating != null ? Math.round(Number(v.rating) * 20) : 0,
+    rating: v.rating != null ? Number(v.rating) : null,
+    reviewCount: v.review_count ?? 0,
     price: v.price_hint ?? '—',
     capacity: v.capacity ?? '—',
-    tags: v.review_count ? [`${v.review_count} anmeldelser`] : [],
     why: v.why_fit ? [v.why_fit, ...reviewSnippets.slice(0, 2)] : reviewSnippets.slice(0, 3),
-    quote: v.why_fit ?? reviewSnippets[0] ?? '',
+    quote: v.why_fit ?? '',
     photos: v.photo_urls ?? [],
     description: v.description,
     research: v.venue_research ?? null,
@@ -57,49 +73,22 @@ function venueAreaLabel(region: string): string {
   return region.trim().replace(/\bnær\s+/gi, '').trim();
 }
 
-/* ── Swipe deck ──────────────────────────────────────────────────────── */
-const SWIPE_DECK = [
-  { id: 's1', label: 'Italian Villa',    sub: 'Toscansk elegance',   image: 'orangeri'  as const },
-  { id: 's2', label: 'Garden Party',     sub: 'Botanisk og luftigt', image: 'lavender'  as const },
-  { id: 's3', label: 'Rustic Barn',      sub: 'Råt og varmt',        image: 'barn'      as const },
-  { id: 's4', label: 'Modern Hotel',     sub: 'Urban luksus',        image: 'candles'   as const },
-  { id: 's5', label: 'Forest Ceremony',  sub: 'Natur og æter',       image: 'ceremony'  as const },
-  { id: 's6', label: 'Botanical Estate', sub: 'Herregård i grønt',   image: 'arch'      as const },
-  { id: 's7', label: 'Nordic Long Table',sub: 'Varmt og enkelt',     image: 'longTable' as const },
-  { id: 's8', label: 'Wild Florals',     sub: 'Sommer og frihed',    image: 'florals'   as const },
-] as const;
-
-type SwipeCard = typeof SWIPE_DECK[number];
-
-/* ── Category grid data ──────────────────────────────────────────────── */
-const CATEGORIES = [
-  { id: 'herregaard',   name: 'Herregård',      count: 14, image: 'orangeri'  as const, tagline: 'Park & overnatning' },
-  { id: 'kystnær',      name: 'Kystnær',         count: 9,  image: 'lavender'  as const, tagline: 'Vand, lys, vind' },
-  { id: 'lade',         name: 'Lade',            count: 11, image: 'barn'      as const, tagline: 'Råt og varmt' },
-  { id: 'have',         name: 'Have & drivhus',  count: 7,  image: 'florals'   as const, tagline: 'Stille og lyserødt lys' },
-  { id: 'industriel',   name: 'Industriel',      count: 6,  image: 'longTable' as const, tagline: 'Råt og urbant' },
-  { id: 'villa',        name: 'Villa & vingård', count: 5,  image: 'olive'     as const, tagline: 'Sydeuropæisk stemning' },
-  { id: 'kapel',        name: 'Kapel & gods',    count: 8,  image: 'candles'   as const, tagline: 'Historisk og andægtigt' },
-  { id: 'byrestaurant', name: 'By-restaurant',   count: 12, image: 'portrait'  as const, tagline: 'Urban gastronomi' },
-] as const;
-
-type Category = typeof CATEGORIES[number];
-
-/* ── Category venue list ─────────────────────────────────────────────── */
-const CATEGORY_VENUES = [
-  { id: 'sonnerup',  name: 'Sonnerupgaard Gods', location: 'Hvalsø · 45 min',    image: 'orangeri' as const, quote: 'Mest gemt af par i 2026',            tags: ['OVERNATNING', 'PARK', 'EGEN CATERING'],  capacity: 'Op til 140', price: 'Fra DKK 62.000', cat: 'herregaard' },
-  { id: 'sohuset',   name: 'Søhuset Pier',        location: 'Hornbæk · Kysten',   image: 'lavender' as const, quote: 'Solnedgang over vandet kl. 20.42',   tags: ['HAVUDSIGT', 'CATERING INKL.'],           capacity: 'Op til 110', price: 'Fra DKK 78.500', cat: 'kystnær' },
-  { id: 'kokkedal2', name: 'Kokkedal Slot',        location: 'Kokkedal · Nordsjæl',image: 'arch'     as const, quote: 'En september-lørdag i slotsparken',  tags: ['SLOTSPARK', 'OVERNATNING 24'],           capacity: 'Op til 130', price: 'Fra DKK 72.000', cat: 'herregaard' },
-  { id: 'lillelade', name: 'Lille Lade',           location: 'Roskilde · 35 min',  image: 'barn'     as const, quote: 'Rå stråtag og levende lys',           tags: ['ADGANG DAG FØR', 'RUSTIK'],              capacity: 'Op til 160', price: 'Fra DKK 52.000', cat: 'lade' },
-  { id: 'nimb2',     name: 'Nimb Terrasse',        location: 'Tivoli, København',  image: 'candles'  as const, quote: 'Tivoli om natten som baggrund',       tags: ['BYUDSIGT', 'MICHELIN', 'EKSKLUSIVT'],    capacity: 'Op til 100', price: 'Fra DKK 89.000', cat: 'byrestaurant' },
-  { id: 'vineyard',  name: 'Villaen i Vineyard',   location: 'Faxe · Sydsjælland', image: 'olive'    as const, quote: 'Lugt af solskin og oliventræer',      tags: ['VINGÅRD', 'PRIVAT HAVE'],                capacity: 'Op til 80',  price: 'Fra DKK 44.000', cat: 'villa' },
-];
+function RatingBadge({ rating, count, className }: { rating: number | null; count?: number; className?: string }) {
+  if (rating == null) return null;
+  return (
+    <span className={cn('inline-flex items-center gap-1 rounded-full bg-canvas/90 px-2.5 py-1 text-[0.68rem] font-semibold text-ink backdrop-blur-sm', className)}>
+      <Star size={11} fill="currentColor" className="text-[#e6a34e]" />
+      {rating.toFixed(1)}
+      {count ? <span className="font-normal text-muted">({count})</span> : null}
+    </span>
+  );
+}
 
 /* ══════════════════════════════════════════════════════════════════════
-   MAIN EXPORT — venue discovery only
+   MAIN EXPORT — venue discovery & management
 ══════════════════════════════════════════════════════════════════════ */
 export default function VenueDiscovery({ onNavigate }: { onNavigate?: (s: ScreenId) => void }) {
-  type VView = 'hub' | 'swipe' | 'dna' | 'picks';
+  type VView = 'hub' | 'discover' | 'picks';
   const { couple, event, venues: allVenues, outbound, refresh } = useWedding();
 
   useEffect(() => {
@@ -120,10 +109,10 @@ export default function VenueDiscovery({ onNavigate }: { onNavigate?: (s: Screen
     }
     return 'hub';
   });
-  const [cat, setCat] = useState<Category | null>(null);
 
   // Derived state from real rows.
   const saved = new Set(venues.filter((v) => v.swipe_status === 'liked').map((v) => v.id));
+  const savedPlaceIds = new Set(venues.map((v) => v.place_id).filter(Boolean) as string[]);
   const sent = new Set(outbound.map((o) => o.venue_id));
   const booked = event?.chosen_venue_id ?? venues.find((v) => v.booked_at)?.id ?? null;
 
@@ -150,44 +139,42 @@ export default function VenueDiscovery({ onNavigate }: { onNavigate?: (s: Screen
     });
     await refresh();
   };
-  const handleDNADone = () => { sessionStorage.setItem('kalas_dna', 'done'); setVView('dna'); };
 
   return (
     <div className="min-h-screen">
       <AnimatePresence mode="wait">
-        {!cat ? (
-          <motion.div key="main" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <AnimatePresence mode="wait">
-              {vview === 'hub' && (
-                <VenuesHubView
-                  key="hub"
-                  couple={couple}
-                  venues={displayVenues}
-                  savedCount={saved.size}
-                  onStartSwipe={() => setVView('swipe')}
-                  onViewPicks={hasRealVenues ? () => setVView('picks') : undefined}
-                  onAva={() => onNavigate?.('ava')}
-                />
-              )}
-              {vview === 'swipe' && <SwipeView key="swipe" onDone={handleDNADone} onBack={() => setVView('hub')} />}
-              {vview === 'dna'   && <DNAView   key="dna"   onContinue={() => setVView('picks')} />}
-              {vview === 'picks' && (
-                <PicksView key="picks"
-                  venues={displayVenues} couple={couple}
-                  saved={saved} sent={sent} booked={booked}
-                  onToggleSave={toggleSave} onOutreach={reqOutreach}
-                  onBook={bookVenue}
-                  onBrowseCategory={(c) => setCat(c)}
-                  onAva={() => onNavigate?.('ava')}
-                  onBackToHub={() => setVView('hub')}
-                  onNextStep={() => onNavigate?.('vendors')}
-                  onRefresh={refresh} />
-              )}
-            </AnimatePresence>
-          </motion.div>
-        ) : (
-          <CategoryDetail key={cat.id} category={cat} onBack={() => setCat(null)}
-            saved={saved} sent={sent} onToggleSave={toggleSave} onOutreach={reqOutreach} />
+        {vview === 'hub' && (
+          <VenuesHubView
+            key="hub"
+            couple={couple}
+            venues={displayVenues}
+            savedIds={saved}
+            onDiscover={() => setVView('discover')}
+            onViewPicks={hasRealVenues ? () => setVView('picks') : undefined}
+            onAva={() => onNavigate?.('ava')}
+          />
+        )}
+        {vview === 'discover' && (
+          <DiscoverView
+            key="discover"
+            couple={couple}
+            savedPlaceIds={savedPlaceIds}
+            onSaved={refresh}
+            onBack={() => setVView('hub')}
+            onViewPicks={() => setVView('picks')}
+          />
+        )}
+        {vview === 'picks' && (
+          <PicksView key="picks"
+            venues={displayVenues} couple={couple}
+            saved={saved} sent={sent} booked={booked}
+            onToggleSave={toggleSave} onOutreach={reqOutreach}
+            onBook={bookVenue}
+            onDiscover={() => setVView('discover')}
+            onAva={() => onNavigate?.('ava')}
+            onBackToHub={() => setVView('hub')}
+            onNextStep={() => onNavigate?.('vendors')}
+            onRefresh={refresh} />
         )}
       </AnimatePresence>
 
@@ -195,7 +182,7 @@ export default function VenueDiscovery({ onNavigate }: { onNavigate?: (s: Screen
 
       {/* ── Floating saved bar ──────────────────────────────────────── */}
       <AnimatePresence>
-        {saved.size >= 1 && !cat && vview === 'picks' && (
+        {saved.size >= 1 && vview === 'picks' && (
           <motion.div
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
             transition={{ type: 'spring', stiffness: 340, damping: 30 }}
@@ -223,25 +210,27 @@ export default function VenueDiscovery({ onNavigate }: { onNavigate?: (s: Screen
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   VENUES HUB — landing before swipe / search
+   VENUES HUB — landing before discovery / picks
 ═══════════════════════════════════════════════════════════════════════ */
 function VenuesHubView({
   couple,
   venues,
-  savedCount,
-  onStartSwipe,
+  savedIds,
+  onDiscover,
   onViewPicks,
   onAva,
 }: {
-  couple: { a: string; b: string; region: string; guests: number; dateLabel: string };
+  couple: Couple;
   venues: DisplayVenue[];
-  savedCount: number;
-  onStartSwipe: () => void;
+  savedIds: Set<string>;
+  onDiscover: () => void;
   onViewPicks?: () => void;
   onAva: () => void;
 }) {
   const venueArea = venueAreaLabel(couple.region);
-  const featured = venues[0] ?? null;
+  const savedVenues = venues.filter((v) => savedIds.has(v.id));
+  const shortlist = savedVenues.length > 0 ? savedVenues : venues;
+  const featured = shortlist[0] ?? null;
   const subtitle = couple.guests > 0 && venueArea
     ? `Skræddersyet til ${couple.guests} gæster nær ${venueArea}.`
     : venueArea
@@ -254,39 +243,37 @@ function VenuesHubView({
       transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
       className="flex min-w-0 flex-1 flex-col gap-[22px] px-6 py-7 sm:px-9 lg:px-[34px]"
     >
-      {/* Header — Wonder Venue Search Header */}
-      <div className="flex w-full flex-wrap items-end justify-between gap-6">
-        <div className="flex min-w-0 flex-1 flex-col gap-[5px]">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#e66b4e]">
-            Venue discovery
-          </p>
-          <h1 className="font-serif text-[clamp(2rem,4vw,2.25rem)] leading-[1.1] tracking-[-0.02em] text-[#173c32]">
-            Find et sted der føles som jer
-          </h1>
-          <p className="text-[13px] text-[#526a61]">{subtitle}</p>
-        </div>
-        <div className="flex h-[46px] w-full max-w-[410px] shrink-0 items-center gap-2.5 rounded-xl border border-[#d4dbd5] bg-white px-3.5">
-          <Search size={17} className="shrink-0 text-[#526a61]" />
-          <span className="flex-1 text-xs text-[#6d7e77]">Søg områder, stil eller venues</span>
-          <div className="flex items-center gap-1.5 rounded-lg bg-[#eaf0ec] px-2.5 py-[7px]">
-            <SlidersHorizontal size={14} className="text-[#173c32]" />
-            <span className="text-[11px] font-bold text-[#173c32]">Filtre</span>
-          </div>
-        </div>
+      {/* Header */}
+      <div className="flex min-w-0 flex-col gap-[5px]">
+        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#e66b4e]">
+          Venue discovery
+        </p>
+        <h1 className="font-serif text-[clamp(2rem,4vw,2.25rem)] leading-[1.1] tracking-[-0.02em] text-[#173c32]">
+          Find et sted der føles som jer
+        </h1>
+        <p className="text-[13px] text-[#526a61]">{subtitle}</p>
       </div>
 
-      {/* Content — Wonder Venue Content row */}
+      {/* Content */}
       <div className="flex flex-col gap-[18px] xl:flex-row">
-        {/* Left — results / empty discovery */}
+        {/* Left — featured + actions */}
         <div className="flex min-w-0 flex-1 flex-col gap-3.5">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-[#173c32]">
-              {venues.length > 0 ? `${venues.length} venues fundet` : 'Ingen matches endnu'}
+              {venues.length > 0 ? `${venues.length} venues på jeres liste` : 'Ingen venues endnu'}
             </span>
-            <span className="text-[11px] font-semibold text-[#526a61]">Bedste match først</span>
+            {onViewPicks && (
+              <button
+                type="button"
+                onClick={onViewPicks}
+                className="text-[11px] font-semibold text-[#526a61] hover:text-[#173c32] transition-colors cursor-pointer"
+              >
+                Se alle →
+              </button>
+            )}
           </div>
 
-          {/* Featured card — populated when Ava has found venues */}
+          {/* Featured card — populated when the couple has venues */}
           <div className="flex min-h-[286px] flex-col overflow-hidden rounded-[18px] bg-[#173c32] sm:flex-row">
             <div className="relative flex min-h-[180px] w-full shrink-0 flex-col justify-end overflow-hidden sm:min-h-0 sm:w-[48%]">
               {featured ? (
@@ -323,6 +310,9 @@ function VenuesHubView({
                   <span className="rounded-full bg-[#e66b4e] px-[9px] py-1 text-[9px] font-bold uppercase tracking-wide text-white">
                     {featured ? 'Ava pick' : 'Kom i gang'}
                   </span>
+                  {featured?.rating != null && (
+                    <RatingBadge rating={featured.rating} count={featured.reviewCount} />
+                  )}
                 </div>
                 <h2 className="font-serif text-[1.75rem] leading-snug text-white">
                   {featured ? featured.name : 'Ava er klar til at finde jeres venue'}
@@ -330,7 +320,7 @@ function VenuesHubView({
                 <p className="max-w-[380px] text-xs leading-[1.6] text-[#b8ccc3]">
                   {featured
                     ? featured.quote || featured.why[0] || featured.location
-                    : 'Swipe jeres stil så Ava lærer jeres æstetik at kende — eller beskriv drømmen direkte i chatten.'}
+                    : 'Udforsk verdenskortet og lad Ava researche rigtige venues med billeder, priser og kapacitet — eller beskriv drømmen direkte i chatten.'}
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-3">
@@ -341,16 +331,16 @@ function VenuesHubView({
                     className="inline-flex items-center gap-2 rounded-full bg-[#fffdf7] px-5 py-2.5 text-[13px] font-bold text-[#173c32] transition-opacity hover:opacity-90 cursor-pointer"
                   >
                     <Heart size={15} />
-                    Se alle Ava picks
+                    Se jeres venues
                   </button>
                 ) : (
                   <button
                     type="button"
-                    onClick={onStartSwipe}
+                    onClick={onDiscover}
                     className="inline-flex items-center gap-2 rounded-full bg-[#fffdf7] px-5 py-2.5 text-[13px] font-bold text-[#173c32] transition-opacity hover:opacity-90 cursor-pointer"
                   >
-                    <Heart size={15} />
-                    Find venues
+                    <GlobeIcon size={15} />
+                    Udforsk venues
                   </button>
                 )}
                 <button
@@ -365,22 +355,22 @@ function VenuesHubView({
             </div>
           </div>
 
-          {/* Preference hint cards */}
+          {/* Action cards */}
           <div className="grid gap-3.5 sm:grid-cols-2">
             <button
               type="button"
-              onClick={onStartSwipe}
+              onClick={onDiscover}
               className="overflow-hidden rounded-2xl border border-[#d4dbd5] bg-white text-left transition-shadow hover:shadow-sm cursor-pointer"
             >
               <div className="flex h-[120px] flex-col justify-end bg-gradient-to-br from-[#e8f2ed] to-[#d4e8de] p-4">
-                <MapPin size={20} className="text-[#173c32]" />
+                <GlobeIcon size={20} className="text-[#173c32]" />
               </div>
               <div className="flex flex-col gap-[5px] p-3.5">
                 <div className="flex items-center justify-between">
-                  <span className="font-serif text-[17px] text-[#173c32]">Swipe jeres stil</span>
-                  <Heart size={15} className="text-[#e66b4e]" />
+                  <span className="font-serif text-[17px] text-[#173c32]">Udforsk verdenskortet</span>
+                  <MapPin size={15} className="text-[#e66b4e]" />
                 </div>
-                <span className="text-[10px] text-[#526a61]">Hjælp Ava med at forstå jeres æstetik</span>
+                <span className="text-[10px] text-[#526a61]">Vælg land og by — Ava finder rigtige venues</span>
               </div>
             </button>
             <button
@@ -402,28 +392,30 @@ function VenuesHubView({
           </div>
         </div>
 
-        {/* Right — Wonder Venue Shortlist panel */}
+        {/* Right — shortlist panel */}
         <div className="flex w-full shrink-0 flex-col gap-4 rounded-[18px] bg-[#e6c8bc] p-[22px] xl:w-[330px]">
           <div className="flex items-start justify-between">
             <div className="flex flex-col gap-[3px]">
               <h2 className="font-serif text-[22px] text-[#173c32]">Jeres shortlist</h2>
               <p className="text-[10px] text-[#526a61]">
-                {savedCount === 0
+                {savedVenues.length === 0
                   ? '0 venues gemt'
-                  : `${savedCount} ${savedCount === 1 ? 'venue gemt' : 'venues gemt'}`}
+                  : `${savedVenues.length} ${savedVenues.length === 1 ? 'venue gemt' : 'venues gemt'}`}
               </p>
             </div>
             <Star size={19} className="text-[#173c32]" />
           </div>
 
-          {savedCount > 0 || venues.length > 0 ? (
+          {shortlist.length > 0 ? (
             <div className="flex flex-col gap-2">
-              {venues.slice(0, 3).map((v) => (
+              {shortlist.slice(0, 3).map((v) => (
                 <div key={v.id} className="flex items-center gap-2.5 rounded-[11px] bg-[#fff9f4] p-2.5">
                   <img src={imgSrc(v.image)} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[11px] font-bold text-[#173c32]">{v.name}</p>
-                    <p className="text-[9px] text-[#6b766f]">{v.match}% match</p>
+                    <p className="text-[9px] text-[#6b766f]">
+                      {v.rating != null ? `★ ${v.rating.toFixed(1)}` : v.location || '—'}
+                    </p>
                   </div>
                 </div>
               ))}
@@ -465,11 +457,11 @@ function VenuesHubView({
 
           <button
             type="button"
-            onClick={onViewPicks ?? onStartSwipe}
+            onClick={onDiscover}
             className="flex items-center justify-center gap-2 rounded-[11px] bg-[#e66b4e] px-3.5 py-3 text-[11px] font-bold text-white transition-opacity hover:opacity-90 cursor-pointer"
           >
-            <Calendar size={15} />
-            {onViewPicks ? 'Se Ava picks' : 'Find venues'}
+            <GlobeIcon size={15} />
+            Udforsk flere venues
           </button>
           <button
             type="button"
@@ -486,203 +478,329 @@ function VenuesHubView({
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   SWIPE VIEW
+   DISCOVER VIEW — globe → country → destination → real venues
 ═══════════════════════════════════════════════════════════════════════ */
-function SwipeView({ onDone, onBack }: { onDone: () => void; onBack?: () => void }) {
-  const [deck, setDeck] = useState<SwipeCard[]>([...SWIPE_DECK]);
-  const [liked, setLiked] = useState(0);
-  const total = SWIPE_DECK.length;
-  const done  = deck.length === 0;
-  const current = deck[0];
+function DiscoverView({
+  couple, savedPlaceIds, onSaved, onBack, onViewPicks,
+}: {
+  couple: Couple;
+  savedPlaceIds: Set<string>;
+  onSaved: () => Promise<void>;
+  onBack: () => void;
+  onViewPicks: () => void;
+}) {
+  const { lang } = useLang();
+  const venueArea = venueAreaLabel(couple.region);
 
-  const advance = (like: boolean) => {
-    if (like) setLiked((n) => n + 1);
-    setDeck((d) => d.slice(1));
+  const [country, setCountry] = useState<string | null>(null);
+  const [destCards, setDestCards] = useState<DestinationSuggestion[]>([]);
+  const [destLoading, setDestLoading] = useState(false);
+  const [destFailed, setDestFailed] = useState(false);
+  const seenDest = useRef<Record<string, DestinationSuggestion[]>>({});
+
+  const [destination, setDestination] = useState<string | null>(null);
+  const [results, setResults] = useState<OnboardingVenueSuggestion[]>([]);
+  const [resultsLoading, setResultsLoading] = useState(false);
+  const [resultsFailed, setResultsFailed] = useState(false);
+  const seenVenues = useRef<Record<string, OnboardingVenueSuggestion[]>>({});
+  const [savingId, setSavingId] = useState<string | null>(null);
+  const [justSaved, setJustSaved] = useState<Set<string>>(new Set());
+
+  const loadDestinations = async (c: string) => {
+    setDestFailed(false);
+    const hit = seenDest.current[c];
+    if (hit) { setDestCards(hit); return; }
+    setDestLoading(true);
+    setDestCards([]);
+    try {
+      const res = await fetch(`/api/onboarding/destinations?country=${encodeURIComponent(c)}&lang=${lang}`);
+      if (!res.ok) throw new Error(String(res.status));
+      const data = (await res.json()) as { suggestions?: DestinationSuggestion[] };
+      const list = data.suggestions ?? [];
+      if (list.length === 0) { setDestFailed(true); return; }
+      seenDest.current[c] = list;
+      setDestCards(list);
+    } catch {
+      setDestFailed(true);
+    } finally {
+      setDestLoading(false);
+    }
   };
+
+  const pickCountry = (c: string) => {
+    setCountry(c);
+    setDestination(null);
+    void loadDestinations(c);
+  };
+
+  const searchVenues = async (dest: string) => {
+    setDestination(dest);
+    setResultsFailed(false);
+    const hit = seenVenues.current[dest];
+    if (hit) { setResults(hit); return; }
+    setResultsLoading(true);
+    setResults([]);
+    try {
+      const res = await fetch('/api/onboarding/venues', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          destination: dest,
+          guest_count: couple.guests > 0 ? couple.guests : undefined,
+          budget: couple.budgetTotal > 0 ? String(couple.budgetTotal) : undefined,
+          lang,
+        }),
+      });
+      if (!res.ok) throw new Error(String(res.status));
+      const data = (await res.json()) as { venues?: OnboardingVenueSuggestion[] };
+      const list = data.venues ?? [];
+      if (list.length === 0) { setResultsFailed(true); return; }
+      seenVenues.current[dest] = list;
+      setResults(list);
+    } catch {
+      setResultsFailed(true);
+    } finally {
+      setResultsLoading(false);
+    }
+  };
+
+  const saveVenue = async (v: OnboardingVenueSuggestion) => {
+    setSavingId(v.id);
+    try {
+      const res = await fetch('/api/venues', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ venue: v }),
+      });
+      if (res.ok) {
+        setJustSaved((prev) => new Set(prev).add(v.id));
+        await onSaved();
+      }
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  const isSaved = (v: OnboardingVenueSuggestion) =>
+    justSaved.has(v.id) || (v.place_id != null && savedPlaceIds.has(v.place_id));
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      className="px-6 pt-8 pb-12 sm:px-10 lg:px-16">
-
-      {onBack && (
+      initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+      className="flex min-w-0 flex-1 flex-col gap-5 px-6 py-7 sm:px-9 lg:px-[34px]"
+    >
+      <div>
         <button
           type="button"
           onClick={onBack}
-          className="mb-6 flex items-center gap-2 text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted hover:text-ink transition-colors cursor-pointer"
+          className="mb-4 flex items-center gap-2 text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted hover:text-ink transition-colors cursor-pointer"
         >
           <ArrowLeft size={13} /> Tilbage
         </button>
-      )}
+        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#e66b4e]">Venue discovery</p>
+        <h1 className="mt-1 font-serif text-[clamp(2rem,4vw,2.25rem)] leading-[1.1] tracking-[-0.02em] text-[#173c32]">
+          Udforsk venues i hele verden
+        </h1>
+        <p className="mt-1 text-[13px] text-[#526a61]">
+          Drej på kloden og tryk på et land — Ava finder byer og destinationer og researcher rigtige venues med billeder og priser.
+        </p>
+      </div>
 
-      <Eyebrow>Ava</Eyebrow>
-      <p className="font-serif text-[1.2rem] italic text-ink-soft mt-1.5">
-        "Hjælp mig med at forstå jeres stil."
-      </p>
-      <p className="mt-2 text-[0.82rem] text-muted">Swipe igennem disse bryllupsstile — Ava tracker alt.</p>
+      <div className="grid gap-[18px] xl:grid-cols-[minmax(0,1fr)_400px]">
+        {/* Globe */}
+        <div className="relative h-[min(62vh,560px)] overflow-hidden rounded-3xl border border-[#d4dbd5] bg-[#f4f1ea]">
+          <DestinationGlobe selectedCountry={country} onCountryPick={pickCountry} />
+        </div>
 
-      <div className="relative mx-auto mt-8" style={{ maxWidth: 360, height: 460 }}>
-        {deck.slice(1, 3).map((card, i) => (
-          <div key={card.id} className="absolute inset-0 overflow-hidden rounded-3xl"
-            style={{ transform: `scale(${0.95 - i * 0.04}) translateY(${(i + 1) * 14}px)`, zIndex: 10 - i, opacity: 0.38 - i * 0.12 }}>
-            <img src={IMAGES[card.image]} alt="" className="h-full w-full object-cover" />
-          </div>
-        ))}
-
-        <AnimatePresence mode="popLayout">
-          {!done ? (
-            <DraggableCard key={current.id} card={current} onDecide={advance} />
-          ) : (
-            <motion.div key="done"
-              initial={{ opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-              className="absolute inset-0 flex flex-col items-center justify-center rounded-3xl bg-card px-8 text-center rule">
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-sage-tint">
-                <Check size={22} className="text-ink" />
-              </div>
-              <h3 className="display mt-5 text-[1.9rem] text-ink">{liked} stilarter liket</h3>
-              <p className="mt-2 text-[0.88rem] text-ink-soft leading-relaxed max-w-[200px]">
-                Ava har nok til at forstå jeres stil og moodboard.
+        {/* Panel */}
+        <div className="flex min-h-[320px] max-h-[min(62vh,560px)] flex-col overflow-hidden rounded-3xl border border-[#d4dbd5] bg-white">
+          {/* Panel header */}
+          <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[#e6e9e5] px-5 py-4">
+            <div className="min-w-0">
+              <p className="text-[0.62rem] font-semibold uppercase tracking-[0.2em] text-muted">
+                {destination ? 'Venues' : 'Destination'}
               </p>
-              <Pill onClick={onDone} arrow className="mt-7">Se jeres stilprofil</Pill>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      <div className="mt-7 mx-auto" style={{ maxWidth: 360 }}>
-        <div className="flex gap-1">
-          {SWIPE_DECK.map((_, i) => (
-            <div key={i} className={cn('h-0.5 flex-1 rounded-full transition-colors',
-              i < (total - deck.length) ? 'bg-sage' : 'bg-shell')} />
-          ))}
-        </div>
-        <p className="mt-2 text-center text-[0.72rem] text-muted">{total - deck.length} / {total}</p>
-      </div>
-
-      {!done && (
-        <div className="mt-6 flex items-center justify-center gap-6">
-          <button onClick={() => advance(false)}
-            className="flex h-14 w-14 items-center justify-center rounded-full rule bg-canvas text-muted hover:text-ink hover:bg-card transition-all cursor-pointer shadow-[0_4px_20px_rgba(58,79,55,0.08)]">
-            <X size={22} />
-          </button>
-          <div className="text-center min-w-[120px]">
-            <p className="font-serif text-[1.05rem] text-ink">{current?.label}</p>
-            <p className="text-[0.76rem] text-muted mt-0.5">{current?.sub}</p>
+              <h3 className="truncate font-serif text-[1.2rem] leading-tight text-ink">
+                {destination ?? country ?? 'Vælg et land'}
+              </h3>
+            </div>
+            {destination && (
+              <button
+                type="button"
+                onClick={() => setDestination(null)}
+                className="shrink-0 text-[0.72rem] font-medium text-muted hover:text-ink transition-colors cursor-pointer"
+              >
+                ← {country ?? 'Tilbage'}
+              </button>
+            )}
           </div>
-          <button onClick={() => advance(true)}
-            className="flex h-14 w-14 items-center justify-center rounded-full bg-sage text-ink hover:bg-sage-strong transition-all cursor-pointer shadow-[0_8px_24px_rgba(174,176,128,0.35)]">
-            <Heart size={20} />
-          </button>
+
+          <div className="min-h-0 flex-1 overflow-y-auto p-4">
+            {/* Nothing picked yet */}
+            {!country && !destination && (
+              <div className="flex h-full flex-col items-center justify-center gap-4 px-4 text-center">
+                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#173c32]">
+                  <GlobeIcon size={19} className="text-white" />
+                </div>
+                <p className="text-[0.88rem] leading-relaxed text-ink-soft">
+                  Tryk på et land på kloden for at se byer og bryllupsdestinationer.
+                </p>
+                {venueArea && (
+                  <button
+                    type="button"
+                    onClick={() => void searchVenues(venueArea)}
+                    className="inline-flex items-center gap-2 rounded-full bg-[#173c32] px-4 py-2.5 text-[0.78rem] font-bold text-white transition-opacity hover:opacity-90 cursor-pointer"
+                  >
+                    <MapPin size={13} />
+                    Søg venues nær {venueArea}
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Destination list for a picked country */}
+            {country && !destination && (
+              destLoading ? (
+                <PanelSpinner label={`Finder byer og destinationer i ${country}…`} />
+              ) : destFailed ? (
+                <PanelError label="Kunne ikke hente destinationer." onRetry={() => void loadDestinations(country)} />
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {destCards.map((s) => (
+                    <button
+                      key={`${s.kind}-${s.name}`}
+                      type="button"
+                      onClick={() => void searchVenues(`${s.name}, ${country}`)}
+                      className="flex items-center gap-3 rounded-2xl border border-[#e6e9e5] p-2.5 text-left transition-colors hover:border-[#173c32]/40 hover:bg-[#fafaf8] cursor-pointer"
+                    >
+                      {s.photo ? (
+                        <img src={s.photo} alt="" className="h-14 w-14 shrink-0 rounded-xl object-cover" />
+                      ) : (
+                        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[#e8f2ed]">
+                          <MapPin size={17} className="text-[#173c32]" />
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="truncate text-[0.88rem] font-bold text-[#173c32]">{s.name}</p>
+                          <span className="shrink-0 rounded-full bg-[#eaf0ec] px-2 py-0.5 text-[0.56rem] font-bold uppercase tracking-[0.1em] text-[#173c32]">
+                            {s.kind === 'city' ? 'By' : 'Bryllup'}
+                          </span>
+                        </div>
+                        <p className="mt-0.5 line-clamp-2 text-[0.72rem] leading-snug text-[#526a61]">{s.blurb}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )
+            )}
+
+            {/* Venue results for a destination */}
+            {destination && (
+              resultsLoading ? (
+                <PanelSpinner label={`Ava researcher rigtige venues i ${destination}… Det tager typisk under et minut.`} />
+              ) : resultsFailed ? (
+                <PanelError label="Kunne ikke finde venues her." onRetry={() => void searchVenues(destination)} />
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {results.map((v) => {
+                    const already = isSaved(v);
+                    return (
+                      <div key={v.id} className="overflow-hidden rounded-2xl border border-[#e6e9e5]">
+                        {v.photo && (
+                          <div className="relative h-32 w-full overflow-hidden">
+                            <img src={v.photo} alt={v.name} className="absolute inset-0 h-full w-full object-cover" />
+                            <RatingBadge rating={v.rating} count={v.review_count ?? 0} className="absolute left-2.5 top-2.5" />
+                          </div>
+                        )}
+                        <div className="p-3.5">
+                          <p className="text-[0.92rem] font-bold text-[#173c32]">{v.name}</p>
+                          {v.address && <p className="mt-0.5 text-[0.7rem] text-[#526a61]">{v.address}</p>}
+                          {v.why_fit && (
+                            <p className="mt-1.5 text-[0.76rem] leading-snug text-ink-soft">{v.why_fit}</p>
+                          )}
+                          {(v.capacity || v.price_hint) && (
+                            <p className="mt-1.5 text-[0.68rem] font-medium text-[#526a61]">
+                              {[v.capacity, v.price_hint].filter(Boolean).join(' · ')}
+                            </p>
+                          )}
+                          <button
+                            type="button"
+                            disabled={already || savingId === v.id}
+                            onClick={() => void saveVenue(v)}
+                            className={cn(
+                              'mt-2.5 inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[0.72rem] font-bold transition-colors',
+                              already
+                                ? 'bg-[#e8f2ed] text-[#236b53] cursor-default'
+                                : 'bg-[#173c32] text-white hover:opacity-90 cursor-pointer',
+                            )}
+                          >
+                            {savingId === v.id ? (
+                              <Loader2 size={12} className="animate-spin" />
+                            ) : already ? (
+                              <Check size={12} />
+                            ) : (
+                              <Heart size={12} />
+                            )}
+                            {already ? 'På jeres liste' : 'Gem til shortlist'}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {justSaved.size > 0 && (
+                    <button
+                      type="button"
+                      onClick={onViewPicks}
+                      className="rounded-full bg-[#e66b4e] px-4 py-2.5 text-[0.78rem] font-bold text-white transition-opacity hover:opacity-90 cursor-pointer"
+                    >
+                      Se jeres venues →
+                    </button>
+                  )}
+                </div>
+              )
+            )}
+          </div>
         </div>
-      )}
+      </div>
     </motion.div>
   );
 }
 
-function DraggableCard({ card, onDecide }: { card: SwipeCard; onDecide: (like: boolean) => void }) {
-  const x = useMotionValue(0);
-  const rotate  = useTransform(x, [-200, 200], [-12, 12]);
-  const likeOp  = useTransform(x, [25, 110], [0, 1]);
-  const nopeOp  = useTransform(x, [-110, -25], [1, 0]);
-
+function PanelSpinner({ label }: { label: string }) {
   return (
-    <motion.div
-      style={{ x, rotate, zIndex: 20 }}
-      drag="x" dragConstraints={{ left: 0, right: 0 }} dragElastic={0.85}
-      onDragEnd={(_, info) => {
-        if (info.offset.x > 100) onDecide(true);
-        else if (info.offset.x < -100) onDecide(false);
-      }}
-      initial={{ opacity: 0, scale: 0.94, y: 8 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, transition: { duration: 0.15 } }}
-      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-      className="absolute inset-0 cursor-grab overflow-hidden rounded-3xl active:cursor-grabbing">
-      <img src={IMAGES[card.image]} alt={card.label} className="h-full w-full object-cover" />
-      <div className="absolute inset-0 bg-gradient-to-t from-[#1a2215e8] via-transparent to-transparent" />
-      <div className="absolute inset-0 bg-gradient-to-b from-black/15 via-transparent to-transparent" />
-      <motion.div style={{ opacity: likeOp }}
-        className="absolute left-5 top-6 rounded-full border-2 border-sage bg-sage/20 px-3.5 py-1.5 backdrop-blur-sm">
-        <span className="text-[0.68rem] font-bold uppercase tracking-[0.2em] text-canvas">Elsker</span>
-      </motion.div>
-      <motion.div style={{ opacity: nopeOp }}
-        className="absolute right-5 top-6 rounded-full border-2 border-canvas/60 bg-canvas/10 px-3.5 py-1.5 backdrop-blur-sm">
-        <span className="text-[0.68rem] font-bold uppercase tracking-[0.2em] text-canvas">Skip</span>
-      </motion.div>
-    </motion.div>
+    <div className="flex h-full min-h-[200px] flex-col items-center justify-center gap-3 px-4 text-center">
+      <Loader2 size={20} className="animate-spin text-muted" />
+      <p className="max-w-[260px] text-[0.8rem] leading-relaxed text-ink-soft">{label}</p>
+    </div>
+  );
+}
+
+function PanelError({ label, onRetry }: { label: string; onRetry: () => void }) {
+  return (
+    <div className="flex h-full min-h-[200px] flex-col items-center justify-center gap-3 px-4 text-center">
+      <p className="text-[0.85rem] text-ink-soft">{label}</p>
+      <button
+        type="button"
+        onClick={onRetry}
+        className="rounded-full border border-[#173c32]/20 px-4 py-2 text-[0.75rem] font-bold text-[#173c32] hover:bg-[#f4f1ea] transition-colors cursor-pointer"
+      >
+        Prøv igen
+      </button>
+    </div>
   );
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   DNA VIEW
-═══════════════════════════════════════════════════════════════════════ */
-function DNAView({ onContinue }: { onContinue: () => void }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-      transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-      className="px-6 py-10 sm:px-10 lg:px-16">
-
-      <Eyebrow>Jeres Stilprofil</Eyebrow>
-      <h2 className="display mt-3 text-[clamp(2.5rem,5vw,4rem)] text-ink">
-        Lavet af <span className="italic">Ava.</span>
-      </h2>
-      <p className="mt-3 text-[0.88rem] text-muted">Baseret på jeres swipes og moodboard</p>
-
-      <div className="mt-10 space-y-5 max-w-lg">
-        {dnaTraits.map((trait, i) => (
-          <motion.div key={trait.label}
-            initial={{ opacity: 0, x: -14 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
-            transition={{ duration: 0.45, delay: i * 0.1, ease: [0.22, 1, 0.36, 1] }}>
-            <div className="flex items-baseline justify-between mb-2">
-              <span className="font-serif text-[1.05rem] text-ink">{trait.label}</span>
-              <span className="text-[0.74rem] font-medium text-ink-soft tabular-nums">{trait.pct}%</span>
-            </div>
-            <div className="h-[3px] w-full rounded-full bg-shell overflow-hidden">
-              <motion.div className="h-full rounded-full bg-sage"
-                initial={{ width: 0 }}
-                whileInView={{ width: `${trait.pct}%` }} viewport={{ once: true }}
-                transition={{ duration: 1.1, delay: i * 0.1 + 0.15, ease: [0.22, 1, 0.36, 1] }} />
-            </div>
-          </motion.div>
-        ))}
-      </div>
-
-      <div className="mt-14">
-        <Eyebrow>Jeres moodboard</Eyebrow>
-        <p className="mt-1 text-[0.82rem] text-muted">Baseret på jeres valg.</p>
-        <div className="mt-5 grid grid-cols-4 gap-2">
-          {moodboard.slice(0, 4).map((item, i) => (
-            <motion.div key={item.id}
-              initial={{ opacity: 0, scale: 0.92 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }}
-              transition={{ duration: 0.55, delay: 0.4 + i * 0.07 }}
-              className="aspect-square overflow-hidden rounded-xl">
-              <Bleed src={item.image} alt={item.caption} className="h-full w-full" />
-            </motion.div>
-          ))}
-        </div>
-      </div>
-
-      <div className="mt-12">
-        <Pill arrow onClick={onContinue}>Se venues der passer til jer</Pill>
-      </div>
-    </motion.div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════
-   PICKS VIEW
+   PICKS VIEW — venue management
 ═══════════════════════════════════════════════════════════════════════ */
 function PicksView({
-  venues, couple, saved, sent, booked, onToggleSave, onOutreach, onBook, onBrowseCategory, onAva, onBackToHub, onNextStep, onRefresh,
+  venues, couple, saved, sent, booked, onToggleSave, onOutreach, onBook, onDiscover, onAva, onBackToHub, onNextStep, onRefresh,
 }: {
   venues: DisplayVenue[];
-  couple: { region: string; guests: number };
+  couple: Couple;
   saved: Set<string>; sent: Set<string>; booked: string | null;
   onToggleSave: (id: string) => void; onOutreach: (id: string) => void;
-  onBook: (id: string) => void; onBrowseCategory: (c: Category) => void; onAva: () => void;
+  onBook: (id: string) => void; onDiscover: () => void; onAva: () => void;
   onBackToHub?: () => void;
   onNextStep?: () => void;
   onRefresh: () => Promise<void>;
@@ -692,6 +810,12 @@ function PicksView({
   const venueCity = venueAreaLabel(couple.region);
   const savedVenues = venues.filter(v => saved.has(v.id));
   const selectedVenue = selectedId ? venues.find((v) => v.id === selectedId) ?? null : null;
+
+  // Booked first, then saved, then the rest.
+  const sortedVenues = [...venues].sort((a, b) => {
+    const rank = (v: DisplayVenue) => (v.id === booked ? 0 : saved.has(v.id) ? 1 : 2);
+    return rank(a) - rank(b);
+  });
 
   if (comparing && savedVenues.length >= 2) {
     return (
@@ -720,13 +844,14 @@ function PicksView({
           onSave={() => onToggleSave(selectedVenue.id)}
           onContact={() => { onOutreach(selectedVenue.id); setSelectedId(null); }}
           onBook={() => onBook(selectedVenue.id)}
+          onSelectOther={(id) => setSelectedId(id)}
           onRefresh={onRefresh}
         />
       </AnimatePresence>
     );
   }
 
-  // Nothing found yet — send back to hub-style empty actions.
+  // Nothing found yet — point to discovery.
   if (venues.length === 0) {
     return (
       <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
@@ -734,11 +859,12 @@ function PicksView({
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#173c32]">
           <MapPin size={22} className="text-white" />
         </div>
-        <h2 className="display mt-5 text-[1.8rem] text-ink">Ava leder stadig efter venues</h2>
+        <h2 className="display mt-5 text-[1.8rem] text-ink">Ingen venues på listen endnu</h2>
         <p className="mt-2 max-w-sm text-[0.9rem] text-ink-soft">
-          Ingen matches endnu nær {venueCity || 'jer'}. Fortæl Ava mere om jeres drøm — eller prøv stil-swipe igen.
+          Udforsk verdenskortet eller fortæl Ava mere om jeres drøm{venueCity ? ` nær ${venueCity}` : ''} — så researcher hun rigtige venues.
         </p>
         <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+          <Pill arrow onClick={onDiscover}><GlobeIcon size={14} /> Udforsk venues</Pill>
           <Pill arrow onClick={onAva}><MessageCircle size={14} /> Tal med Ava</Pill>
         </div>
       </motion.div>
@@ -750,7 +876,8 @@ function PicksView({
   return (
     <motion.div
       initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-      transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}>
+      transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+      className="pb-24">
 
       {/* ── Booked celebration banner ────────────────────────────────── */}
       {bookedVenue && (
@@ -774,285 +901,157 @@ function PicksView({
         </motion.div>
       )}
 
-      {/* ── Gemte venues ─────────────────────────────────────────────── */}
-      {savedVenues.length > 0 && (
-        <div className="pt-8 pb-2">
-          <div className="px-6 sm:px-10 lg:px-16 flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Heart size={13} fill="currentColor" className="text-ink" />
-              <span className="text-[0.68rem] font-medium uppercase tracking-[0.18em] text-ink">
-                Gemte venues · {savedVenues.length}
-              </span>
-            </div>
-            {savedVenues.length >= 2 ? (
-              <button onClick={() => setComparing(true)}
-                className="text-[0.72rem] font-medium text-ink hover:opacity-60 transition-opacity cursor-pointer">
-                Sammenlign ({savedVenues.length}) →
-              </button>
-            ) : (
-              <button onClick={() => onAva()}
-                className="text-[0.72rem] text-muted hover:text-ink transition-colors cursor-pointer">
-                Spørg Ava om disse →
-              </button>
-            )}
-          </div>
-          <div className="flex gap-3 overflow-x-auto px-6 sm:px-10 lg:px-16 pb-1 hide-scrollbar">
-            {savedVenues.map(v => (
-              <motion.button
-                key={v.id}
-                initial={{ opacity: 0, scale: 0.94 }}
-                animate={{ opacity: 1, scale: 1 }}
-                onClick={() => setSelectedId(v.id)}
-                className="relative shrink-0 w-44 h-28 rounded-2xl overflow-hidden cursor-pointer group">
-                <img src={imgSrc(v.image)} alt={v.name}
-                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#1a2215cc] via-[#1a221540] to-transparent" />
-                <button
-                  onClick={(e) => { e.stopPropagation(); onToggleSave(v.id); }}
-                  className="absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-full bg-canvas/90 cursor-pointer">
-                  <Heart size={11} fill="currentColor" className="text-ink" />
-                </button>
-                <div className="absolute inset-x-0 bottom-0 p-3">
-                  <p className="text-[0.72rem] font-medium text-canvas leading-tight truncate">{v.name}</p>
-                  <p className="text-[0.62rem] text-canvas/70 mt-0.5">{v.match}% match</p>
-                </div>
-              </motion.button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {onBackToHub && (
-        <div className="px-6 pt-8 sm:px-10 lg:px-16">
+      {/* ── Header ───────────────────────────────────────────────────── */}
+      <div className="px-6 pt-8 sm:px-10 lg:px-16">
+        {onBackToHub && (
           <button
             type="button"
             onClick={onBackToHub}
-            className="flex items-center gap-2 text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted hover:text-ink transition-colors cursor-pointer"
+            className="mb-6 flex items-center gap-2 text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted hover:text-ink transition-colors cursor-pointer"
           >
             <ArrowLeft size={13} /> Tilbage til venue discovery
           </button>
-        </div>
-      )}
-
-      {/* Ava memory intro */}
-      <motion.div
-        initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        className={cn('px-6 sm:px-10 lg:px-16', onBackToHub ? 'pt-4' : 'pt-8')}>
-        <div className="rule rounded-2xl bg-card px-6 py-5 flex items-center justify-between gap-6">
+        )}
+        <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-[0.58rem] font-semibold uppercase tracking-[0.24em] text-muted mb-1.5">
-              K · Ava
-            </p>
-            <p className="font-serif text-[1.35rem] text-ink italic leading-snug">
-              "Baseret på jeres {couple.guests} gæster nær {venueCity} og en{' '}
-              {dnaTraits[0]?.label.toLowerCase()} — her er mine bedste valg til jer."
+            <Eyebrow>Jeres venues</Eyebrow>
+            <h2 className="display mt-3 text-[clamp(2.2rem,5vw,3.4rem)] text-ink">
+              Venues der <span className="italic">passer til jer.</span>
+            </h2>
+            <p className="mt-3 max-w-md text-ink-soft">
+              {venues.length} {venues.length === 1 ? 'venue' : 'venues'} på listen
+              {savedVenues.length > 0 ? ` · ${savedVenues.length} gemt` : ''}
+              {venueCity ? ` · nær ${venueCity}` : ''}
             </p>
           </div>
+          {savedVenues.length >= 2 && (
+            <button onClick={() => setComparing(true)}
+              className="rounded-full bg-ink px-5 py-2.5 text-[0.72rem] font-bold uppercase tracking-[0.14em] text-canvas hover:opacity-85 transition-opacity cursor-pointer">
+              Sammenlign gemte ({savedVenues.length})
+            </button>
+          )}
         </div>
-      </motion.div>
+      </div>
 
-      {/* ── Kalas Partner venues ──────────────────────────────────────── */}
-      <div className="px-6 pt-10 sm:px-10 lg:px-16">
-        <div className="flex items-center gap-2 mb-4">
-          <span className="rounded-full bg-ink px-2.5 py-0.5 text-[0.58rem] font-bold uppercase tracking-[0.14em] text-canvas">Kalas Partner</span>
-          <span className="text-[0.72rem] text-muted">Venues der aktivt samarbejder med Kalas</span>
-        </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {venues.slice(0, 2).map((v, i) => (
-            <motion.button key={v.id}
-              initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.06 }}
-                onClick={() => setSelectedId(v.id)}
-              className="group relative h-36 overflow-hidden rounded-2xl cursor-pointer text-left">
-              <img src={imgSrc(v.image)} alt={v.name}
-                className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#1a2215e6] via-[#1a221540] to-transparent" />
-              <div className="absolute top-3 left-3">
-                <span className="rounded-full bg-canvas/90 px-2 py-0.5 text-[0.58rem] font-bold uppercase tracking-[0.12em] text-ink">● Partner</span>
-              </div>
-              <div className="absolute inset-x-0 bottom-0 p-4">
-                <p className="font-serif text-[1rem] text-canvas leading-tight">{v.name}</p>
-                <p className="mt-0.5 text-[0.7rem] text-canvas/70">{v.location}</p>
-                <p className="mt-1.5 text-[0.65rem] font-medium text-canvas/50 uppercase tracking-[0.12em]">Svar typisk inden 2 timer</p>
-              </div>
-            </motion.button>
+      {/* ── Venue grid ───────────────────────────────────────────────── */}
+      <div className="px-6 pt-8 sm:px-10 lg:px-16">
+        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          {sortedVenues.map((venue, i) => (
+            <VenueGridCard key={venue.id} venue={venue} index={i}
+              saved={saved.has(venue.id)} sent={sent.has(venue.id)} isBooked={booked === venue.id}
+              onToggleSave={() => onToggleSave(venue.id)}
+              onSelect={() => setSelectedId(venue.id)} />
           ))}
+
+          {/* Discover-more card */}
+          <button
+            type="button"
+            onClick={onDiscover}
+            className="flex min-h-[280px] flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed border-[var(--color-line-strong)] p-6 text-center transition-colors hover:border-ink/40 hover:bg-card cursor-pointer"
+          >
+            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#173c32]">
+              <GlobeIcon size={18} className="text-white" />
+            </div>
+            <div>
+              <p className="font-serif text-[1.15rem] text-ink">Udforsk flere venues</p>
+              <p className="mt-1 text-[0.8rem] text-muted">
+                Vælg land og by på kloden — Ava researcher rigtige venues.
+              </p>
+            </div>
+          </button>
         </div>
       </div>
 
-      {/* Venue carousel */}
-      <div className="pt-12">
-        <VenueCarousel venues={venues}
-          saved={saved} sent={sent} booked={booked}
-          onToggleSave={onToggleSave} onOutreach={onOutreach} onBook={onBook}
-          onSelect={(v) => setSelectedId(v.id)} />
-      </div>
-
-      {/* Ask Ava */}
-      <div className="px-6 pt-14 sm:px-10 lg:px-16">
+      {/* ── Ask Ava ──────────────────────────────────────────────────── */}
+      <div className="px-6 pt-12 sm:px-10 lg:px-16">
         <motion.div
           initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-50px' }}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
           className="rule rounded-2xl bg-card p-8 text-center">
           <Eyebrow className="text-center">Spørg Ava</Eyebrow>
-          <p className="display mt-4 text-[1.9rem] text-ink italic">
-            "Which one feels most romantic?"
+          <p className="mt-3 text-[0.95rem] text-ink-soft max-w-md mx-auto">
+            Ava kender jeres profil og kan sammenligne venues, tjekke datoer og skrive henvendelser for jer.
           </p>
-          <p className="mt-3 text-[0.85rem] text-muted">Ava kender jeres profil og kan sammenligne med nuance.</p>
           <div className="mt-6 flex justify-center">
             <Pill arrow onClick={onAva}><MessageCircle size={14} /> Tal med Ava</Pill>
           </div>
         </motion.div>
       </div>
-
-      {/* Category browse */}
-      <div className="px-6 pt-16 pb-12 sm:px-10 lg:px-16">
-        <Eyebrow>Browse efter stil</Eyebrow>
-        <h3 className="display mt-3 text-[clamp(2rem,4vw,3rem)] text-ink">
-          Udforsk venues i <span className="italic">{venueCity}</span>
-        </h3>
-        <p className="mt-3 max-w-md text-ink-soft leading-relaxed">Otte retninger — fra rå lader til glashuse.</p>
-
-        <div className="mt-8 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-          {CATEGORIES.map((cat, i) => (
-            <motion.button key={cat.id}
-              initial={{ opacity: 0, scale: 0.94 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }}
-              transition={{ duration: 0.45, delay: i * 0.04, ease: [0.22, 1, 0.36, 1] }}
-              onClick={() => onBrowseCategory(cat)}
-              className="group relative aspect-[3/4] overflow-hidden rounded-2xl cursor-pointer">
-              <img src={IMAGES[cat.image]} alt={cat.name}
-                className="h-full w-full object-cover transition-transform duration-[1.3s] ease-out group-hover:scale-[1.07]" />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#1a2215e8] via-[#1a221520] to-transparent" />
-              <div className="absolute left-3 top-3 rounded-full bg-canvas/90 px-2.5 py-1 backdrop-blur-sm">
-                <span className="text-[0.6rem] font-semibold uppercase tracking-[0.16em] text-ink">{cat.count} steder</span>
-              </div>
-              <div className="absolute inset-x-0 bottom-0 p-4">
-                <h4 className="display text-[1.3rem] text-canvas leading-tight">{cat.name}</h4>
-                <p className="mt-1 font-serif text-[0.8rem] italic text-canvas/65">{cat.tagline}</p>
-              </div>
-            </motion.button>
-          ))}
-        </div>
-      </div>
-
     </motion.div>
   );
 }
 
-/* ── Per-venue extra data ─────────────────────────────────────────────── */
-const VENUE_GALLERY: Record<string, Array<keyof typeof IMAGES>> = {
-  'villa-cph': ['florals', 'ceremony', 'longTable', 'candles'],
-  'kokkedal':  ['arch',    'barn',     'olive',     'portrait'],
-  'nimb':      ['candles', 'rings',    'ceremony',  'florals'],
-};
+/* ── Venue management grid card ───────────────────────────────────────── */
+function VenueGridCard({
+  venue, index, saved, sent, isBooked, onToggleSave, onSelect,
+}: {
+  venue: DisplayVenue; index: number; saved: boolean; sent: boolean; isBooked: boolean;
+  onToggleSave: () => void; onSelect: () => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-40px' }}
+      transition={{ duration: 0.5, delay: Math.min(index, 6) * 0.05, ease: [0.22, 1, 0.36, 1] }}
+      className="group flex flex-col overflow-hidden rounded-2xl rule bg-card">
 
-type PracticalItem = { key: string; value: string };
-type PricePackage  = { name: string; desc: string; price: string; featured?: boolean };
+      <button type="button" onClick={onSelect} className="relative block aspect-[4/3] overflow-hidden cursor-pointer text-left">
+        <img src={imgSrc(venue.image)} alt={venue.name}
+          className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#1a221570] to-transparent" />
+        <div className="absolute left-3 top-3 flex items-center gap-2">
+          <RatingBadge rating={venue.rating} count={venue.reviewCount} />
+          {isBooked && (
+            <span className="rounded-full bg-ink px-2.5 py-1 text-[0.6rem] font-bold uppercase tracking-[0.12em] text-canvas">
+              Booket
+            </span>
+          )}
+        </div>
+      </button>
 
-type VenueExtra = {
-  description: string;
-  highlights: string[];
-  practical?: PracticalItem[];
-  packages?: PricePackage[];
-  directions?: string;
-};
+      <div className="flex flex-1 flex-col p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="font-serif text-[1.15rem] leading-tight text-ink">{venue.name}</h3>
+            {venue.location && <p className="mt-0.5 truncate text-[0.72rem] text-muted">{venue.location}</p>}
+          </div>
+          <motion.button whileTap={{ scale: 0.85 }} onClick={onToggleSave} aria-label={saved ? 'Fjern fra gemte' : 'Gem venue'}
+            className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-full rule transition-all cursor-pointer',
+              saved ? 'bg-sage text-ink' : 'text-muted hover:text-ink hover:bg-shell')}>
+            <Heart size={14} fill={saved ? 'currentColor' : 'none'} />
+          </motion.button>
+        </div>
 
-const DEFAULT_PRACTICAL: PracticalItem[] = [
-  { key: 'Min. udlejning',  value: 'Fredag–søndag' },
-  { key: 'Adgang',          value: 'Fra fredag kl. 14' },
-  { key: 'Catering',        value: 'Frit valg' },
-  { key: 'Parkering',       value: 'Inkluderet' },
-  { key: 'Vielsesceremoni', value: 'Mulig på stedet' },
-  { key: 'Overnatning',     value: 'Se med venue' },
-];
+        {venue.quote && (
+          <p className="mt-2 line-clamp-2 text-[0.78rem] leading-snug text-ink-soft">{venue.quote}</p>
+        )}
 
-const DEFAULT_PACKAGES: PricePackage[] = [
-  { name: 'Basis',    desc: 'Lokaler + opstilling',          price: 'Fra DKK 45.000' },
-  { name: 'Weekend',  desc: 'Inkl. fredag–søndag + service', price: 'Fra DKK 65.000', featured: true },
-  { name: 'Privat',   desc: 'Eksklusiv adgang 3 dage',       price: 'Fra DKK 88.000' },
-];
+        <div className="mt-auto flex items-end justify-between gap-3 pt-4">
+          <div className="flex gap-5">
+            <div>
+              <p className="eyebrow">Pris</p>
+              <p className="mt-0.5 font-serif text-[0.95rem] leading-none text-ink">{venue.price}</p>
+            </div>
+            <div>
+              <p className="eyebrow">Kapacitet</p>
+              <p className="mt-0.5 font-serif text-[0.95rem] leading-none text-ink">{venue.capacity}</p>
+            </div>
+          </div>
+          <button onClick={onSelect}
+            className="shrink-0 rounded-full bg-ink px-3.5 py-1.5 text-[0.7rem] font-medium text-canvas hover:opacity-85 transition-opacity cursor-pointer">
+            Se venue →
+          </button>
+        </div>
 
-const VENUE_EXTRA: Record<string, VenueExtra> = {
-  'villa-cph': {
-    description:
-      'Villa Copenhagen er Københavns mest intime luksushotel — gemt i en fredet postbygning i centrum. Kvelvet loft, natursten og blødt lys giver en scenografi, der kræver ingen dekoration.',
-    highlights: [
-      'Eksklusivt brug af hotellet hele natten',
-      'Michelinkøkken på stedet',
-      'Lys og rum optimeret til reportagefotografi',
-      'Bryllupsværelse til brudeparret inkluderet',
-      'Gæsteparkering under bygningen',
-      'Kapacitet til 200 til reception og 120 til middag',
-    ],
-    practical: [
-      { key: 'Min. udlejning',  value: 'Fredag aften–lørdag' },
-      { key: 'Adgang',          value: 'Fra torsdag kl. 16' },
-      { key: 'Catering',        value: 'Michelin-køkken, eksklusivt' },
-      { key: 'Parkering',       value: '80 pladser i kælder' },
-      { key: 'Overnatning',     value: '77 rum på hotellet' },
-      { key: 'Vielsesceremoni', value: 'Indendørs kapel' },
-    ],
-    packages: [
-      { name: 'Signature',  desc: 'Ceremonisal + middag',               price: 'Fra DKK 72.000' },
-      { name: 'Exclusive',  desc: 'Hele hotellet + morgenmad dagen efter', price: 'Fra DKK 115.000', featured: true },
-      { name: 'Intimate',   desc: 'Op til 60 gæster, intim stil',        price: 'Fra DKK 54.000' },
-    ],
-    directions: '5 min gang fra Rådhuspladsen · Metro Kongens Nytorv 8 min',
-  },
-  'kokkedal': {
-    description:
-      'Kokkedal Slot byder på historiske saloner og en slotspark i Nordsjællands skovlandskab. Med 24 overnatningsrum er det ideelt for gæster fra hele landet — et bryllup der strækker sig over to dage.',
-    highlights: [
-      '24 overnatningsrum på stedet',
-      'Botanisk slotspark med unikke fotosteder',
-      'Egen vinkælder fra 1800-tallet',
-      'Åbent for eksklusive weekendbookinger',
-      'Ceremonirum med fri udsigt til parken',
-      'Privat chef inkluderet i weekendpakken',
-    ],
-    practical: [
-      { key: 'Min. udlejning',  value: 'Fredag–søndag' },
-      { key: 'Adgang',          value: 'Fra torsdag kl. 12' },
-      { key: 'Catering',        value: 'Eget køkken, eksklusivt' },
-      { key: 'Parkering',       value: '120 pladser gratis' },
-      { key: 'Overnatning',     value: '24 rum på slottet' },
-      { key: 'Vielsesceremoni', value: 'Slotskapel + have' },
-    ],
-    packages: [
-      { name: 'Slot',      desc: 'Ceremoni + middag i salen',         price: 'Fra DKK 62.000' },
-      { name: 'Weekend',   desc: 'Fredag–søndag, alle 24 rum inkl.',  price: 'Fra DKK 95.000', featured: true },
-      { name: 'Intim',     desc: 'Op til 50 gæster i lille salon',    price: 'Fra DKK 48.000' },
-    ],
-    directions: '45 min fra Kbh H · S-tog til Allerød + taxa · Gratis parkering',
-  },
-  'nimb': {
-    description:
-      'Nimb Terrasse hæver sig over Tivolis tage med en udsigt, der kun findes ét sted i København. Michelin-kokke fra Nimb Hotel har cateringansvaret, og gæsterne ser fyrværkeriet fra terrassen.',
-    highlights: [
-      'Panoramaudsigt over Tivoli og byen',
-      'Michelin catering inkluderet i prisen',
-      'Eksklusiv booking — ingen andre gæster',
-      'Terrasse til velkomstdrinks med udsigt',
-      'Adgang til Tivoli for alle gæster',
-      'Privat indgang og cocktailbar',
-    ],
-    practical: [
-      { key: 'Min. udlejning',  value: 'Lørdag aften' },
-      { key: 'Adgang',          value: 'Fra kl. 17 om aftenen' },
-      { key: 'Catering',        value: 'Michelin, inkluderet' },
-      { key: 'Parkering',       value: 'P-hus 3 min gang' },
-      { key: 'Overnatning',     value: 'Nimb Hotel, på stedet' },
-      { key: 'Vielsesceremoni', value: 'Terrassen, eksklusivt' },
-    ],
-    packages: [
-      { name: 'Evening',   desc: 'Middag + terrasse, 4 timer',         price: 'Fra DKK 79.000' },
-      { name: 'Full Nimb', desc: 'Hele terrassen + Tivoli-adgang',     price: 'Fra DKK 109.000', featured: true },
-      { name: 'Intimate',  desc: 'Op til 60 gæster, intim opstilling', price: 'Fra DKK 64.000' },
-    ],
-    directions: 'Rådhuspladsen · Metro + S-tog · Valet parkering tilbydes',
-  },
-};
+        {sent && !isBooked && (
+          <p className="mt-2.5 flex items-center gap-1.5 text-[0.7rem] text-muted">
+            <Check size={10} className="text-sage" /> Ava har kontaktet venuet
+          </p>
+        )}
+      </div>
+    </motion.div>
+  );
+}
 
 /* ═══════════════════════════════════════════════════════════════════════
    VENUE COMPARISON VIEW
@@ -1091,8 +1090,8 @@ function ComparisonView({
                   <img src={imgSrc(v.image)} alt={v.name}
                     className="h-full w-full object-cover transition-transform duration-700 hover:scale-[1.04]" />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#1a221580] to-transparent" />
-                  <div className="absolute left-3 top-3 rounded-full bg-sage px-3 py-1 text-[0.62rem] font-bold uppercase tracking-[0.16em] text-ink">
-                    {v.match}% match
+                  <div className="absolute left-3 top-3">
+                    <RatingBadge rating={v.rating} count={v.reviewCount} />
                   </div>
                   {isBooked && (
                     <div className="absolute right-3 top-3 rounded-full bg-ink px-3 py-1 text-[0.62rem] font-bold uppercase tracking-[0.12em] text-canvas">
@@ -1148,13 +1147,14 @@ function ComparisonView({
 }
 
 /* ══════════════════════════════════════════════════════════════════════
-   VENUE DETAIL PAGE
+   VENUE DETAIL PAGE — real data only; Ava research fills the gaps
 ═══════════════════════════════════════════════════════════════════════ */
 function VenueDetail({
-  venue, allVenues, saved, sent, isBooked, onBack, onSave, onContact, onBook, onRefresh,
+  venue, allVenues, saved, sent, isBooked, onBack, onSave, onContact, onBook, onSelectOther, onRefresh,
 }: {
   venue: DisplayVenue; allVenues: DisplayVenue[]; saved: boolean; sent: boolean; isBooked: boolean;
   onBack: () => void; onSave: () => void; onContact: () => void; onBook: () => void;
+  onSelectOther: (id: string) => void;
   onRefresh: () => Promise<void>;
 }) {
   const [notes, setNotes]         = useState('');
@@ -1162,20 +1162,12 @@ function VenueDetail({
   const [researching, setResearching] = useState(false);
   const [researchError, setResearchError] = useState<string | null>(null);
   const realPhotos = venue.photos ?? [];
-  const gallery  = VENUE_GALLERY[venue.id] ?? ['ceremony', 'florals', 'longTable', 'candles'];
   const research = venue.research;
-  const mockExtra = VENUE_EXTRA[venue.id];
-  const extra = research
-    ? {
-        description: venue.description ?? venue.quote,
-        highlights: research.highlights.length ? research.highlights : venue.why,
-        practical: research.practical.length ? research.practical : (mockExtra?.practical ?? DEFAULT_PRACTICAL),
-        packages: research.packages.length ? research.packages : (mockExtra?.packages ?? DEFAULT_PACKAGES),
-        directions: research.directions ?? mockExtra?.directions,
-      }
-    : mockExtra ?? { description: venue.description ?? venue.quote, highlights: venue.why };
-  const practical = extra.practical ?? DEFAULT_PRACTICAL;
-  const packages  = extra.packages  ?? DEFAULT_PACKAGES;
+  const description = venue.description ?? venue.quote;
+  const highlights = research?.highlights.length ? research.highlights : venue.why;
+  const practical  = research?.practical ?? [];
+  const packages   = research?.packages ?? [];
+  const directions = research?.directions ?? null;
 
   async function runResearch() {
     setResearching(true);
@@ -1226,43 +1218,49 @@ function VenueDetail({
         </div>
       </div>
 
-      {/* ── Photo grid ────────────────────────────────────────────── */}
-      <div className="grid gap-1 sm:grid-cols-[2fr_1fr_1fr] sm:grid-rows-2 h-[300px] sm:h-[460px]">
-        <div className="relative overflow-hidden sm:row-span-2">
+      {/* ── Photos — only what the venue actually has ─────────────── */}
+      {realPhotos.length > 1 ? (
+        <div className="grid gap-1 sm:grid-cols-[2fr_1fr_1fr] sm:grid-rows-2 h-[300px] sm:h-[460px]">
+          <div className="relative overflow-hidden sm:row-span-2">
+            <img src={imgSrc(venue.image)} alt={venue.name}
+              className="absolute inset-0 h-full w-full object-cover object-center" />
+            <div className="absolute bottom-4 right-4 flex items-center gap-1.5 rounded-full bg-canvas/90 px-3 py-1.5 backdrop-blur-sm">
+              <span className="text-[0.68rem] font-medium text-ink">{realPhotos.length} billeder</span>
+            </div>
+          </div>
+          {realPhotos.slice(1, 5).map((url, i) => (
+            <div key={i} className="relative hidden overflow-hidden sm:block">
+              <img src={url} alt="" className="absolute inset-0 h-full w-full object-cover object-center" />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="relative h-[300px] overflow-hidden sm:h-[420px]">
           <img src={imgSrc(venue.image)} alt={venue.name}
             className="absolute inset-0 h-full w-full object-cover object-center" />
-          <div className="absolute bottom-4 right-4 flex items-center gap-1.5 rounded-full bg-canvas/90 px-3 py-1.5 backdrop-blur-sm">
-            <span className="text-[0.68rem] font-medium text-ink">
-              {(realPhotos.length > 1 ? realPhotos.length : gallery.length + 1)} billeder
-            </span>
-          </div>
         </div>
-        {(realPhotos.length > 1
-          ? realPhotos.slice(1, 5).map((url, i) => (
-              <div key={i} className="relative hidden overflow-hidden sm:block">
-                <img src={url} alt="" className="absolute inset-0 h-full w-full object-cover object-center" />
-              </div>
-            ))
-          : gallery.slice(0, 4).map((key, i) => (
-              <div key={i} className="relative hidden overflow-hidden sm:block">
-                <img src={IMAGES[key]} alt="" className="absolute inset-0 h-full w-full object-cover object-center" />
-              </div>
-            )))}
-      </div>
+      )}
 
       {/* ── Main info ─────────────────────────────────────────────── */}
       <div className="px-6 pt-8 sm:px-10 lg:px-16">
 
-        {/* Match badge + name */}
-        <div className="flex flex-wrap items-start gap-3">
+        {/* Badges + name */}
+        <div className="flex flex-wrap items-center gap-2">
           <span className="inline-flex items-center rounded-full bg-sage px-3 py-1 text-[0.65rem] font-bold uppercase tracking-[0.18em] text-ink">
-            {venue.match}% Stil-match · Ava Pick
+            Ava pick
           </span>
+          {venue.rating != null && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-shell px-3 py-1 text-[0.72rem] font-medium text-ink">
+              <Star size={12} fill="currentColor" className="text-[#e6a34e]" />
+              {venue.rating.toFixed(1)}
+              {venue.reviewCount > 0 && <span className="text-muted">· {venue.reviewCount} anmeldelser</span>}
+            </span>
+          )}
         </div>
         <h1 className="display mt-3 text-[clamp(2.4rem,5vw,4rem)] text-ink">{venue.name}</h1>
         <p className="mt-1 text-[0.88rem] text-muted">{venue.location}</p>
-        {extra.directions && (
-          <p className="mt-1 text-[0.8rem] text-muted/70">{extra.directions}</p>
+        {directions && (
+          <p className="mt-1 text-[0.8rem] text-muted/70">{directions}</p>
         )}
 
         {researchError && (
@@ -1289,16 +1287,10 @@ function VenueDetail({
           </div>
         ) : null}
 
-        <div className="mt-4 flex flex-wrap gap-2">
-          {venue.tags.map((tag) => (
-            <span key={tag} className="rounded-full bg-shell px-3 py-1 text-[0.68rem] font-medium uppercase tracking-[0.09em] text-muted">
-              {tag}
-            </span>
-          ))}
-        </div>
-
         {/* Description */}
-        <p className="mt-7 max-w-2xl text-[1.02rem] leading-relaxed text-ink-soft">{extra.description}</p>
+        {description && (
+          <p className="mt-7 max-w-2xl text-[1.02rem] leading-relaxed text-ink-soft">{description}</p>
+        )}
 
         {/* Stats strip */}
         <div className="mt-8 grid grid-cols-3 gap-px overflow-hidden rounded-2xl rule bg-[var(--color-line)]">
@@ -1311,112 +1303,130 @@ function VenueDetail({
             <p className="mt-1.5 font-serif text-[1.4rem] leading-none text-ink">{venue.price}</p>
           </div>
           <div className="bg-ink px-5 py-5">
-            <Eyebrow className="!text-canvas/50">Stil-match</Eyebrow>
-            <p className="mt-1.5 font-serif text-[1.4rem] leading-none text-canvas">{venue.match}%</p>
+            <Eyebrow className="!text-canvas/50">Bedømmelse</Eyebrow>
+            <p className="mt-1.5 font-serif text-[1.4rem] leading-none text-canvas">
+              {venue.rating != null ? `★ ${venue.rating.toFixed(1)}` : '—'}
+            </p>
           </div>
         </div>
 
-        {/* Praktisk info */}
-        <div className="mt-10 rule-t pt-8">
-          <Eyebrow>Praktisk info</Eyebrow>
-          <dl className="mt-5 grid grid-cols-2 gap-x-8 gap-y-5 sm:grid-cols-3">
-            {practical.map(({ key, value }) => (
-              <div key={key}>
-                <dt className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-muted">{key}</dt>
-                <dd className="mt-1 text-[0.95rem] text-ink">{value}</dd>
-              </div>
-            ))}
-          </dl>
-        </div>
+        {/* Praktisk info — only when Ava's research found it */}
+        {practical.length > 0 && (
+          <div className="mt-10 rule-t pt-8">
+            <Eyebrow>Praktisk info</Eyebrow>
+            <dl className="mt-5 grid grid-cols-2 gap-x-8 gap-y-5 sm:grid-cols-3">
+              {practical.map(({ key, value }) => (
+                <div key={key}>
+                  <dt className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-muted">{key}</dt>
+                  <dd className="mt-1 text-[0.95rem] text-ink">{value}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        )}
 
         {/* Highlights */}
-        <div className="mt-10 rule-t pt-8">
-          <Eyebrow>Faciliteter & fordele</Eyebrow>
-          <ul className="mt-5 grid gap-3 sm:grid-cols-2">
-            {extra.highlights.map((h) => (
-              <li key={h} className="flex items-start gap-3">
-                <Check size={15} strokeWidth={2} className="mt-0.5 shrink-0 text-sage" />
-                <span className="text-[0.92rem] text-ink-soft leading-snug">{h}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        {/* Priser & pakker */}
-        <div className="mt-10 rule-t pt-8">
-          <Eyebrow>Priser & pakker</Eyebrow>
-          <p className="mt-1 text-[0.8rem] text-muted">Alle priser ekskl. moms · Kalas forhandler på jeres vegne.</p>
-          <div className="mt-5 grid gap-3 sm:grid-cols-3">
-            {packages.map((pkg, i) => {
-              const active = activePackage === i;
-              return (
-                <button key={pkg.name} onClick={() => setPkg(active ? null : i)}
-                  className={cn(
-                    'group flex flex-col rounded-2xl p-5 text-left cursor-pointer transition-all',
-                    pkg.featured
-                      ? 'bg-ink text-canvas'
-                      : active ? 'bg-card ring-2 ring-ink' : 'bg-card rule hover:shadow-sm',
-                  )}>
-                  {pkg.featured && (
-                    <span className="mb-2 text-[0.58rem] font-bold uppercase tracking-[0.22em] text-sage">Mest valgt</span>
-                  )}
-                  <span className={cn('font-serif text-[1.15rem]', pkg.featured ? 'text-canvas' : 'text-ink')}>
-                    {pkg.name}
-                  </span>
-                  <span className={cn('mt-1 text-[0.76rem] leading-relaxed', pkg.featured ? 'text-canvas/60' : 'text-muted')}>
-                    {pkg.desc}
-                  </span>
-                  <span className={cn('mt-4 font-serif text-[1.5rem] leading-none', pkg.featured ? 'text-canvas' : 'text-ink')}>
-                    {pkg.price}
-                  </span>
-                  {active && !pkg.featured && (
-                    <span className="mt-3 flex items-center gap-1 text-[0.72rem] text-sage">
-                      <Check size={12} /> Valgt
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Ava's analysis */}
-        <div className="mt-10 rule-t pt-8">
-          <Eyebrow>Avas analyse</Eyebrow>
-          <div className="mt-5 rounded-2xl bg-card rule p-6">
-            <blockquote className="font-serif text-[1.2rem] italic leading-relaxed text-ink">
-              "{venue.quote}"
-            </blockquote>
-            <ul className="mt-5 space-y-3 rule-t pt-5">
-              {venue.why.map((reason) => (
-                <li key={reason} className="flex items-start gap-3">
-                  <Check size={13} className="mt-1 shrink-0 text-sage" />
-                  <span className="text-[0.9rem] text-ink-soft leading-relaxed">{reason}</span>
+        {highlights.length > 0 && (
+          <div className="mt-10 rule-t pt-8">
+            <Eyebrow>Faciliteter & fordele</Eyebrow>
+            <ul className="mt-5 grid gap-3 sm:grid-cols-2">
+              {highlights.map((h) => (
+                <li key={h} className="flex items-start gap-3">
+                  <Check size={15} strokeWidth={2} className="mt-0.5 shrink-0 text-sage" />
+                  <span className="text-[0.92rem] text-ink-soft leading-snug">{h}</span>
                 </li>
               ))}
             </ul>
           </div>
-        </div>
+        )}
 
-        {/* Similar venues */}
-        <div className="mt-10 rule-t pt-8">
-          <Eyebrow>Lignende venues</Eyebrow>
-          <div className="mt-5 flex gap-3 overflow-x-auto hide-scrollbar pb-2">
-            {allVenues.filter((v) => v.id !== venue.id).slice(0, 3).map((v) => (
-              <div key={v.id}
-                className="relative shrink-0 overflow-hidden rounded-xl cursor-default"
-                style={{ width: 'min(180px, 45vw)', aspectRatio: '3/4' }}>
-                <img src={imgSrc(v.image)} alt={v.name}
-                  className="absolute inset-0 h-full w-full object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#1a2215e8] via-transparent to-transparent" />
-                <div className="absolute inset-x-0 bottom-0 p-3">
-                  <p className="font-serif text-[0.95rem] leading-tight text-canvas">{v.name}</p>
-                  <p className="mt-0.5 text-[0.65rem] text-canvas/55">{v.match}% match</p>
-                </div>
-              </div>
-            ))}
+        {/* Priser & pakker — only when Ava's research found them */}
+        {packages.length > 0 && (
+          <div className="mt-10 rule-t pt-8">
+            <Eyebrow>Priser & pakker</Eyebrow>
+            <p className="mt-1 text-[0.8rem] text-muted">Fra venueets egne sider — bekræft altid pris og dato direkte.</p>
+            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+              {packages.map((pkg, i) => {
+                const active = activePackage === i;
+                return (
+                  <button key={pkg.name} onClick={() => setPkg(active ? null : i)}
+                    className={cn(
+                      'group flex flex-col rounded-2xl p-5 text-left cursor-pointer transition-all',
+                      pkg.featured
+                        ? 'bg-ink text-canvas'
+                        : active ? 'bg-card ring-2 ring-ink' : 'bg-card rule hover:shadow-sm',
+                    )}>
+                    {pkg.featured && (
+                      <span className="mb-2 text-[0.58rem] font-bold uppercase tracking-[0.22em] text-sage">Mest valgt</span>
+                    )}
+                    <span className={cn('font-serif text-[1.15rem]', pkg.featured ? 'text-canvas' : 'text-ink')}>
+                      {pkg.name}
+                    </span>
+                    <span className={cn('mt-1 text-[0.76rem] leading-relaxed', pkg.featured ? 'text-canvas/60' : 'text-muted')}>
+                      {pkg.desc}
+                    </span>
+                    <span className={cn('mt-4 font-serif text-[1.5rem] leading-none', pkg.featured ? 'text-canvas' : 'text-ink')}>
+                      {pkg.price}
+                    </span>
+                    {active && !pkg.featured && (
+                      <span className="mt-3 flex items-center gap-1 text-[0.72rem] text-sage">
+                        <Check size={12} /> Valgt
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Ava's analysis — only when there is a real why-fit */}
+        {(venue.quote || venue.why.length > 0) && (
+          <div className="mt-10 rule-t pt-8">
+            <Eyebrow>Derfor matcher det jer</Eyebrow>
+            <div className="mt-5 rounded-2xl bg-card rule p-6">
+              {venue.quote && (
+                <blockquote className="font-serif text-[1.2rem] italic leading-relaxed text-ink">
+                  &ldquo;{venue.quote}&rdquo;
+                </blockquote>
+              )}
+              {venue.why.length > 0 && (
+                <ul className={cn('space-y-3', venue.quote && 'mt-5 rule-t pt-5')}>
+                  {venue.why.map((reason) => (
+                    <li key={reason} className="flex items-start gap-3">
+                      <Check size={13} className="mt-1 shrink-0 text-sage" />
+                      <span className="text-[0.9rem] text-ink-soft leading-relaxed">{reason}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Other venues on the list */}
+        {allVenues.length > 1 && (
+          <div className="mt-10 rule-t pt-8">
+            <Eyebrow>Flere fra jeres liste</Eyebrow>
+            <div className="mt-5 flex gap-3 overflow-x-auto hide-scrollbar pb-2">
+              {allVenues.filter((v) => v.id !== venue.id).slice(0, 4).map((v) => (
+                <button key={v.id} type="button" onClick={() => onSelectOther(v.id)}
+                  className="relative shrink-0 overflow-hidden rounded-xl cursor-pointer text-left"
+                  style={{ width: 'min(180px, 45vw)', aspectRatio: '3/4' }}>
+                  <img src={imgSrc(v.image)} alt={v.name}
+                    className="absolute inset-0 h-full w-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#1a2215e8] via-transparent to-transparent" />
+                  <div className="absolute inset-x-0 bottom-0 p-3">
+                    <p className="font-serif text-[0.95rem] leading-tight text-canvas">{v.name}</p>
+                    {v.rating != null && (
+                      <p className="mt-0.5 text-[0.65rem] text-canvas/55">★ {v.rating.toFixed(1)}</p>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Notes */}
         <div className="mt-10 rule-t pt-8">
@@ -1462,266 +1472,6 @@ function VenueDetail({
           </div>
         </div>
 
-      </div>
-    </motion.div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════
-   VENUE CAROUSEL  (Gallery4-style horizontal scroll)
-═══════════════════════════════════════════════════════════════════════ */
-function VenueCarousel({
-  venues, saved, sent, booked, onToggleSave, onOutreach, onBook, onSelect,
-}: {
-  venues: DisplayVenue[]; saved: Set<string>; sent: Set<string>; booked: string | null;
-  onToggleSave: (id: string) => void; onOutreach: (id: string) => void; onBook: (id: string) => void;
-  onSelect: (v: DisplayVenue) => void;
-}) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [current, setCurrent] = useState(0);
-  const [canPrev, setCanPrev] = useState(false);
-  const [canNext, setCanNext] = useState(true);
-
-  const track = () => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const card = el.querySelector('[data-card]') as HTMLElement | null;
-    const cardW = card ? card.offsetWidth + 20 : 360;
-    const idx = Math.round(el.scrollLeft / cardW);
-    setCurrent(Math.max(0, Math.min(idx, venues.length - 1)));
-    setCanPrev(el.scrollLeft > 10);
-    setCanNext(el.scrollLeft < el.scrollWidth - el.clientWidth - 10);
-  };
-
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    el.addEventListener('scroll', track, { passive: true });
-    track();
-    return () => el.removeEventListener('scroll', track);
-  }, []);
-
-  const scrollTo = (i: number) => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const cards = el.querySelectorAll('[data-card]');
-    const card = cards[i] as HTMLElement | undefined;
-    if (card) el.scrollTo({ left: card.offsetLeft - 24, behavior: 'smooth' });
-    setCurrent(i);
-  };
-
-  return (
-    <div>
-      <div className="flex items-end justify-between px-6 sm:px-10 lg:px-16">
-        <div>
-          <Eyebrow>Ava Picks</Eyebrow>
-          <h2 className="display mt-3 text-[clamp(2.2rem,5vw,3.8rem)] text-ink">
-            Venues der <span className="italic">passer til jer.</span>
-          </h2>
-          <p className="mt-3 max-w-md text-ink-soft">
-            Ava har screenet 200+ steder baseret på jeres stilprofil, moodboard og gæsteantal.
-          </p>
-        </div>
-        <div className="hidden md:flex shrink-0 items-center gap-1.5 pb-1 ml-6">
-          <button onClick={() => scrollTo(Math.max(0, current - 1))} disabled={!canPrev}
-            className="flex h-10 w-10 items-center justify-center rounded-full rule hover:bg-card disabled:opacity-30 disabled:cursor-default transition-all cursor-pointer">
-            <ArrowLeft size={16} />
-          </button>
-          <button onClick={() => scrollTo(Math.min(venues.length - 1, current + 1))} disabled={!canNext}
-            className="flex h-10 w-10 items-center justify-center rounded-full rule hover:bg-card disabled:opacity-30 disabled:cursor-default transition-all cursor-pointer">
-            <ArrowRight size={16} />
-          </button>
-        </div>
-      </div>
-
-      <div ref={scrollRef}
-        className="mt-8 flex gap-5 overflow-x-auto hide-scrollbar snap-x snap-mandatory pb-2 pl-6 sm:pl-10 lg:pl-16 [scroll-padding-left:1.5rem] sm:[scroll-padding-left:2.5rem] lg:[scroll-padding-left:4rem]">
-        {venues.map((venue, i) => (
-          <VenueCard key={venue.id} venue={venue} index={i}
-            saved={saved.has(venue.id)} sent={sent.has(venue.id)} isBooked={booked === venue.id}
-            onToggleSave={() => onToggleSave(venue.id)}
-            onOutreach={() => onOutreach(venue.id)}
-            onBook={() => onBook(venue.id)}
-            onSelect={() => onSelect(venue)} />
-        ))}
-        <div className="shrink-0 w-6 sm:w-10 lg:w-16" aria-hidden />
-      </div>
-
-      <div className="mt-6 flex justify-center gap-2">
-        {venues.map((_, i) => (
-          <button key={i} onClick={() => scrollTo(i)} aria-label={`Venue ${i + 1}`}
-            className={cn('rounded-full transition-all duration-300 cursor-pointer',
-              i === current ? 'w-6 h-1.5 bg-ink' : 'w-1.5 h-1.5 bg-shell hover:bg-muted')} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* ── Full-bleed venue card ────────────────────────────────────────────── */
-function VenueCard({
-  venue, index, saved, sent, isBooked, onToggleSave, onOutreach, onBook, onSelect,
-}: {
-  venue: DisplayVenue; index: number; saved: boolean; sent: boolean; isBooked: boolean;
-  onToggleSave: () => void; onOutreach: () => void; onBook: () => void; onSelect: () => void;
-}) {
-  return (
-    <motion.div
-      data-card
-      initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-40px' }}
-      transition={{ duration: 0.65, delay: index * 0.06, ease: [0.22, 1, 0.36, 1] }}
-      className="relative shrink-0 snap-start overflow-hidden rounded-2xl"
-      style={{ width: 'min(320px, 82vw)', minHeight: '27rem' }}>
-
-      <img src={imgSrc(venue.image)} alt={venue.name}
-        className="absolute inset-0 h-full w-full object-cover object-center transition-transform duration-[2s] hover:scale-[1.04]" />
-      <div className="absolute inset-0 bg-gradient-to-t from-[#1a2215f2] via-[#1a221550] to-transparent" />
-      <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-transparent to-transparent" />
-
-      <div className="absolute left-4 right-4 top-4 flex items-center justify-between">
-        <span className="rounded-full bg-sage px-3 py-1 text-[0.65rem] font-bold uppercase tracking-[0.18em] text-ink">
-          {venue.match}% Match
-        </span>
-        <motion.button whileTap={{ scale: 0.85 }} onClick={onToggleSave}
-          className={cn('flex h-9 w-9 items-center justify-center rounded-full backdrop-blur-sm transition-all cursor-pointer',
-            saved ? 'bg-sage text-ink' : 'bg-canvas/20 text-canvas hover:bg-canvas/30')}>
-          <Heart size={15} fill={saved ? 'currentColor' : 'none'} />
-        </motion.button>
-      </div>
-
-      <div className="absolute inset-x-0 bottom-0 p-6">
-        <p className="eyebrow text-canvas/50">Ava Pick · {String(index + 1).padStart(2, '0')}</p>
-        <h3 className="display mt-2 text-[1.7rem] leading-tight text-canvas">{venue.name}</h3>
-        <p className="mt-1 text-[0.75rem] text-canvas/55">{venue.location}</p>
-
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {venue.tags.slice(0, 2).map((tag) => (
-            <span key={tag} className="rounded-full border border-canvas/20 bg-canvas/10 px-2.5 py-0.5 text-[0.58rem] font-medium uppercase tracking-[0.12em] text-canvas/80 backdrop-blur-sm">{tag}</span>
-          ))}
-        </div>
-
-        <ul className="mt-4 space-y-1.5">
-          {venue.why.slice(0, 2).map((reason) => (
-            <li key={reason} className="flex items-start gap-2 text-[0.81rem] text-canvas/80 leading-snug">
-              <Check size={12} className="mt-0.5 shrink-0 text-sage" /> {reason}
-            </li>
-          ))}
-        </ul>
-
-        <div className="mt-5 flex items-end gap-4 border-t border-canvas/15 pt-4">
-          <div className="flex-1">
-            <p className="eyebrow text-canvas/45">Pris</p>
-            <p className="mt-0.5 font-serif text-[1.05rem] leading-none text-canvas">{venue.price}</p>
-          </div>
-          <div className="flex-1">
-            <p className="eyebrow text-canvas/45">Kapacitet</p>
-            <p className="mt-0.5 font-serif text-[1.05rem] leading-none text-canvas">{venue.capacity}</p>
-          </div>
-
-          <AnimatePresence mode="wait">
-            {isBooked ? (
-              <motion.div key="booked" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-                className="flex shrink-0 items-center gap-1.5 rounded-full bg-sage/90 px-3 py-1.5 text-[0.7rem] font-medium text-ink">
-                <Check size={11} /> Booket
-              </motion.div>
-            ) : sent ? (
-              <motion.button key="book" initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={onBook}
-                className="shrink-0 rounded-full bg-canvas/20 backdrop-blur-sm px-3 py-1.5 text-[0.7rem] font-medium text-canvas hover:bg-canvas/35 transition-colors cursor-pointer">
-                Book →
-              </motion.button>
-            ) : (
-              <motion.button key="cta" initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={onSelect}
-                className="shrink-0 rounded-full bg-canvas/90 px-3 py-1.5 text-[0.7rem] font-medium text-ink hover:bg-canvas transition-colors cursor-pointer">
-                Se venue →
-              </motion.button>
-            )}
-          </AnimatePresence>
-        </div>
-
-        {sent && !isBooked && (
-          <p className="mt-2 flex items-center gap-1.5 text-[0.7rem] text-canvas/55">
-            <Check size={10} className="text-sage" /> Ava forbereder forespørgsel…
-          </p>
-        )}
-      </div>
-    </motion.div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════
-   CATEGORY DETAIL
-═══════════════════════════════════════════════════════════════════════ */
-function CategoryDetail({
-  category, onBack, saved, sent, onToggleSave, onOutreach,
-}: {
-  category: Category; onBack: () => void;
-  saved: Set<string>; sent: Set<string>;
-  onToggleSave: (id: string) => void; onOutreach: (id: string) => void;
-}) {
-  const venues = CATEGORY_VENUES.filter((v) => v.cat === category.id);
-  const display = venues.length ? venues : CATEGORY_VENUES;
-
-  return (
-    <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-      transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-      className="px-6 py-8 sm:px-10 lg:px-16">
-      <button onClick={onBack}
-        className="flex items-center gap-2 eyebrow hover:text-ink transition-colors cursor-pointer mb-8">
-        <ArrowLeft size={13} /> Alle stilarter
-      </button>
-      <Eyebrow>{category.name} · {category.count} steder</Eyebrow>
-      <h2 className="display mt-3 text-[clamp(2rem,4vw,3rem)] text-ink italic">{category.tagline}</h2>
-
-      <div className="mt-10 grid gap-5 sm:grid-cols-2">
-        {display.map((v, i) => (
-          <motion.div key={v.id}
-            initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-40px' }}
-            transition={{ duration: 0.6, delay: i * 0.06, ease: [0.22, 1, 0.36, 1] }}
-            className="overflow-hidden rule rounded-2xl">
-            <div className="relative aspect-[4/3] overflow-hidden">
-              <img src={imgSrc(v.image)} alt={v.name}
-                className="h-full w-full object-cover transition-transform duration-[1.5s] hover:scale-[1.04]" />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#1a221590] to-transparent" />
-              <div className="absolute inset-x-0 bottom-0 p-4">
-                <p className="font-serif text-[0.85rem] italic text-canvas/90">"{v.quote}"</p>
-              </div>
-            </div>
-            <div className="p-5">
-              <h3 className="font-serif text-[1.45rem] text-ink">{v.name}</h3>
-              <p className="mt-1 text-[0.78rem] text-muted">{v.location}</p>
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                {v.tags.map((tag) => (
-                  <span key={tag} className="rounded-full rule px-2.5 py-0.5 text-[0.59rem] font-medium uppercase tracking-[0.12em] text-ink-soft">{tag}</span>
-                ))}
-              </div>
-              <div className="mt-4 grid grid-cols-2 gap-4 rule-t pt-4">
-                <div><p className="eyebrow">Kapacitet</p><p className="mt-1 font-serif text-[1.1rem] text-ink">{v.capacity}</p></div>
-                <div><p className="eyebrow">Pris</p><p className="mt-1 font-serif text-[1.1rem] text-ink">{v.price}</p></div>
-              </div>
-              <div className="mt-4 flex items-center gap-2.5 rule-t pt-4">
-                <motion.button whileTap={{ scale: 0.88 }} onClick={() => onToggleSave(v.id)}
-                  className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-full rule transition-all cursor-pointer',
-                    saved.has(v.id) ? 'bg-sage text-ink' : 'text-muted hover:text-ink hover:bg-card')}>
-                  <Heart size={15} fill={saved.has(v.id) ? 'currentColor' : 'none'} />
-                </motion.button>
-                <AnimatePresence mode="wait">
-                  {sent.has(v.id) ? (
-                    <motion.div key="s" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                      className="flex flex-1 items-center gap-2 rounded-full bg-sage-tint px-4 py-2.5 text-[0.78rem] text-ink">
-                      <Check size={13} className="text-sage" /> Ava forbereder forespørgsel…
-                    </motion.div>
-                  ) : (
-                    <motion.button key="c" initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={() => onOutreach(v.id)}
-                      className="flex-1 rounded-full bg-ink px-4 py-2.5 text-center text-[0.75rem] font-medium uppercase tracking-[0.1em] text-canvas hover:bg-ink-soft transition-colors cursor-pointer">
-                      Kontakt venue →
-                    </motion.button>
-                  )}
-                </AnimatePresence>
-              </div>
-            </div>
-          </motion.div>
-        ))}
       </div>
     </motion.div>
   );
