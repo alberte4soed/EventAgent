@@ -320,32 +320,6 @@ export default function VenueDiscovery({
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* ── Floating saved bar ──────────────────────────────────────── */}
-      <AnimatePresence>
-        {saved.size >= 1 && vview === 'list' && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
-            transition={{ type: 'spring', stiffness: 340, damping: 30 }}
-            className="fixed inset-x-0 bottom-24 z-30 flex justify-center lg:bottom-8 pointer-events-none">
-            <div className="flex items-center gap-4 rounded-full bg-ink px-6 py-3.5 shadow-[0_16px_48px_rgba(58,79,55,0.3)] pointer-events-auto">
-              <Heart size={14} fill="currentColor" className="text-sage" />
-              <span className="font-serif text-[0.95rem] text-canvas">
-                {saved.size} {saved.size === 1 ? 'venue gemt' : 'venues gemt'}
-              </span>
-              {saved.size >= 2 && (
-                <>
-                  <span className="h-4 w-px bg-canvas/20" />
-                  <button onClick={() => onNavigate?.('ava')}
-                    className="text-[0.78rem] font-medium uppercase tracking-[0.1em] text-sage hover:text-canvas transition-colors cursor-pointer">
-                    Sammenlign med Ava →
-                  </button>
-                </>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
@@ -1114,7 +1088,8 @@ function PicksView({
         </motion.div>
       )}
 
-      {/* ── Chosen overview ──────────────────────────────────────────── */}
+      {/* ── Chosen overview (only when a venue is booked) ───────────── */}
+      {(onBack || booked) && (
       <div className="px-6 pt-8 sm:px-10 lg:px-16">
         {onBack && (
           <button type="button" onClick={onBack}
@@ -1122,13 +1097,16 @@ function PicksView({
             <ArrowLeft size={13} /> Venues
           </button>
         )}
+        {booked && (
         <ChosenOverview
-          chosen={booked ? venues.find((v) => v.id === booked) ?? null : null}
+          chosen={venues.find((v) => v.id === booked) ?? null}
           couple={couple}
-          onOpenDetail={booked ? () => setSelectedId(booked) : undefined}
+          onOpenDetail={() => setSelectedId(booked)}
           onDiscover={onDiscover}
         />
+        )}
       </div>
+      )}
 
       {/* ── Header + list tools ──────────────────────────────────────── */}
       <div className="px-6 pt-8 sm:px-10 lg:px-16">
