@@ -6,6 +6,7 @@
 import { useState } from 'react';
 import { AnimatePresence, MotionConfig } from 'motion/react';
 import Shell, { type ScreenId } from './Shell';
+import GuidedTour from './GuidedTour';
 import { KalasProvider, useKalas } from './store';
 import { WeddingProvider } from './useWedding';
 import { LanguageProvider, type Lang } from './i18n';
@@ -46,6 +47,14 @@ function AppInner() {
     const saved = sessionStorage.getItem('kalas_screen') as ScreenId | null;
     return saved === 'ava' ? 'home' : saved || 'home';
   });
+  // One-time welcome tour, armed by onboarding completion (or `?tour=1` so it
+  // can be replayed on demand from the real app).
+  const [showTour, setShowTour] = useState(() => {
+    try {
+      if (sessionStorage.getItem('kalas_tour') === '1') return true;
+      return new URLSearchParams(window.location.search).get('tour') === '1';
+    } catch { return false; }
+  });
 
   const navigate = (s: ScreenId) => {
     if (s === 'ava') {
@@ -56,6 +65,12 @@ function AppInner() {
     sessionStorage.setItem('kalas_screen', s);
     setScreen(s);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const finishTour = () => {
+    try { sessionStorage.removeItem('kalas_tour'); } catch { /* ignore */ }
+    setShowTour(false);
+    navigate('home');
   };
 
   type AppScreen = Exclude<ScreenId, 'ava'>;
@@ -77,24 +92,32 @@ function AppInner() {
   const activeScreen = screen === 'ava' ? 'home' : screen;
 
   return (
-    <Shell
-      current={activeScreen}
-      onNavigate={navigate}
-      pendingCount={pendingCount}
-      avaBadge={avaBadge}
-      avaOpen={avaOpen}
-      onAvaOpen={() => setAvaOpen(true)}
-      avaDrawer={
-        <Ava
-          onNavigate={navigate}
-          onClose={() => setAvaOpen(false)}
-          variant="drawer"
-        />
-      }
-    >
-      <AnimatePresence mode="wait">
-        <div key={activeScreen}>{screens[activeScreen as AppScreen]}</div>
+    <>
+      <Shell
+        current={activeScreen}
+        onNavigate={navigate}
+        pendingCount={pendingCount}
+        avaBadge={avaBadge}
+        avaOpen={avaOpen}
+        onAvaOpen={() => setAvaOpen(true)}
+        avaDrawer={
+          <Ava
+            onNavigate={navigate}
+            onClose={() => setAvaOpen(false)}
+            variant="drawer"
+          />
+        }
+      >
+        <AnimatePresence mode="wait">
+          <div key={activeScreen}>{screens[activeScreen as AppScreen]}</div>
+        </AnimatePresence>
+      </Shell>
+
+      <AnimatePresence>
+        {showTour && (
+          <GuidedTour key="guided-tour" onNavigate={navigate} onFinish={finishTour} />
+        )}
       </AnimatePresence>
-    </Shell>
+    </>
   );
 }

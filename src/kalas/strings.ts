@@ -460,4 +460,38 @@ export const EN: Record<string, string> = {
   'Indonesien': 'Indonesia',
   'Japan': 'Japan',
   'USA': 'USA',
+
+  // ── Guided tour ─────────────────────────────────────────────────────
+  'Spring over': 'Skip',
+  'Kom i gang': 'Get started',
+  'Rundvisning': 'Tour',
+  'Jeres overblik': 'Your overview',
+  'Alt der venter på et svar samles her — godkend, afvis eller spørg Ava til råds.':
+    'Everything waiting on an answer gathers here — approve, decline or ask Ava for advice.',
+  'Planen, i rækkefølge': 'The plan, in order',
+  'Ava sekvenserer opgaverne baglæns fra jeres dato, så I altid kender næste skridt.':
+    'Ava sequences the tasks backwards from your date, so you always know the next step.',
+  'Find jeres stil': 'Find your style',
+  'Swipe billeder I elsker — Ava former venues og leverandører efter jeres æstetik.':
+    'Swipe photos you love — Ava shapes venues and vendors around your aesthetic.',
+  'Jeres drømmested': 'Your dream place',
+  'Swipe eller fortæl Ava hvad I drømmer om — så finder hun rigtige steder med priser.':
+    'Swipe or tell Ava what you dream of — she’ll find real places with prices.',
+  'Hele holdet': 'The whole team',
+  'Fotograf, blomster, musik og mere — Ava kontakter dem med jeres brief.':
+    'Photographer, flowers, music and more — Ava contacts them with your brief.',
+  'Styr på pengene': 'Money under control',
+  'Ava fordeler budgettet og siger til, før I rammer loftet.':
+    'Ava splits the budget and warns you before you hit the ceiling.',
+  'Tilføj gæster, og lad Ava sende invitationer og holde styr på RSVP.':
+    'Add guests and let Ava send invitations and keep track of RSVPs.',
+  'Jeres bryllupsside': 'Your wedding site',
+  'Vælg et tema og publicér på minutter — navne, dato og billeder er klar.':
+    'Pick a theme and publish in minutes — names, date and photos are ready.',
+  'Send invitationerne': 'Send the invitations',
+  'Ava skriver ordlyden, I godkender — digitalt eller som fysisk tryk.':
+    'Ava writes the wording, you approve — digital or physical print.',
+  'Byg jeres ønskeliste': 'Build your registry',
+  'Saml ønsker fra hele nettet — gæsterne reserverer med ét klik.':
+    'Collect wishes from across the web — guests reserve with one click.',
 };

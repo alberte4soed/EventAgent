@@ -84,6 +84,16 @@ const HINTS: Record<HintId, HintConfig> = {
 
 const storageKey = (id: HintId) => `kalas_ob2_${id}`;
 
+export const HINT_IDS: HintId[] = [
+  'home', 'ava', 'inspiration', 'venues', 'vendors',
+  'budget', 'guests', 'website', 'invites', 'planning', 'seating',
+];
+
+/** Suppress every per-page hint — used when the guided tour covers them. */
+export function markAllHintsSeen() {
+  try { HINT_IDS.forEach((id) => localStorage.setItem(storageKey(id), '1')); } catch { /* ignore */ }
+}
+
 function Rings() {
   return (
     <svg

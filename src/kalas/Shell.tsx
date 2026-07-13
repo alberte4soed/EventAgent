@@ -348,6 +348,7 @@ function NavRow({ item, active, onClick, badge, collapsed = false, dark = false 
   const Icon = item.icon;
   return (
     <button onClick={onClick} aria-label={t(item.label)} title={collapsed ? t(item.label) : undefined}
+      data-tour={item.id}
       className={cn(
         'group relative mb-1.5 flex w-full items-center rounded-[10px] text-left transition-colors duration-200 cursor-pointer',
         collapsed ? 'justify-center px-0 py-2.5' : 'gap-3 px-3 py-2.5',

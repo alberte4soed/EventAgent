@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import dynamic from 'next/dynamic';
 import {
-  Check, ArrowLeft, ArrowRight, MapPin, Heart, Lock, Star, X, Search,
+  Check, ArrowLeft, ArrowRight, MapPin, Heart, Lock, Star, X, Search, Expand,
 } from 'lucide-react';
 import { GUEST_BANDS, type OnboardingDate } from '@/lib/onboarding';
 import type { ScreenId } from '../Shell';
@@ -10,6 +10,7 @@ import { cn } from '../ui';
 import { useLang } from '../i18n';
 import type { DestinationSuggestion } from '@/app/api/onboarding/destinations/route';
 import type { OnboardingVenueSuggestion } from '@/app/api/onboarding/venues/route';
+import { Lightbox } from '../onboarding/Lightbox';
 
 const WeddingDatePicker = dynamic(() => import('../onboarding/WeddingDatePicker'), { ssr: false });
 const VenueSwipeStep = dynamic(() => import('../onboarding/VenueSwipeStep'), { ssr: false });
@@ -673,13 +674,18 @@ function CountryPanel({
   const cities = cards.filter((s) => s.kind === 'city');
   const weddings = cards.filter((s) => s.kind === 'wedding');
   const [tab, setTab] = useState<'city' | 'wedding'>('city');
+  const [lightbox, setLightbox] = useState<number | null>(null);
 
   useEffect(() => {
     if (cities.length > 0) setTab('city');
     else if (weddings.length > 0) setTab('wedding');
   }, [country, cities.length, weddings.length]);
 
+  // Close the viewer when the tab or country changes so the index stays valid.
+  useEffect(() => { setLightbox(null); }, [tab, country]);
+
   const activeCards = tab === 'city' ? cities : weddings;
+  const galleryPhotos = activeCards.map((s) => s.photo).filter((p): p is string => Boolean(p));
   const tabs = [
     { id: 'city' as const, label: t('Største byer'), count: cities.length },
     { id: 'wedding' as const, label: t('Bryllupsdestinationer'), count: weddings.length },
@@ -726,7 +732,7 @@ function CountryPanel({
           <div className="space-y-3">
             {[0, 1, 2].map((i) => (
               <div key={i} className="animate-pulse overflow-hidden rounded-2xl border border-[var(--color-line)]">
-                <div className="h-24 bg-shell" />
+                <div className="h-32 bg-shell" />
                 <div className="space-y-2 p-3">
                   <div className="h-3.5 w-1/2 rounded bg-shell" />
                   <div className="h-3 w-5/6 rounded bg-shell" />
@@ -751,7 +757,8 @@ function CountryPanel({
           <div className="space-y-3">
             {activeCards.map((s) => (
               <DestinationCard key={valueOf(s)} s={s} country={country} selected={selectedValue === valueOf(s)}
-                loved={loved(s)} onChoose={() => onChoose(s)} onToggleLove={() => onToggleLove(s)} />
+                loved={loved(s)} onChoose={() => onChoose(s)} onToggleLove={() => onToggleLove(s)}
+                onExpand={s.photo ? () => setLightbox(galleryPhotos.indexOf(s.photo!)) : undefined} />
             ))}
           </div>
         )}
@@ -764,6 +771,16 @@ function CountryPanel({
       <p className="shrink-0 border-t border-[var(--color-line)] px-5 py-3 text-[0.72rem] leading-snug text-muted">
         {t('Hjerter gemmes, så Ava kan finde leverandører dér senere.')}
       </p>
+
+      {lightbox !== null && galleryPhotos.length > 0 && (
+        <Lightbox
+          photos={galleryPhotos}
+          index={Math.min(Math.max(lightbox, 0), galleryPhotos.length - 1)}
+          onIndex={setLightbox}
+          onClose={() => setLightbox(null)}
+          alt={country}
+        />
+      )}
     </div>
   );
 }
@@ -772,24 +789,32 @@ function googleSearchUrl(s: DestinationSuggestion, country: string): string {
   return `https://www.google.com/search?q=${encodeURIComponent(`${s.name}, ${country}`)}`;
 }
 
-function DestinationCard({ s, country, selected, loved, onChoose, onToggleLove }: {
+function DestinationCard({ s, country, selected, loved, onChoose, onToggleLove, onExpand }: {
   s: DestinationSuggestion; country: string; selected: boolean; loved: boolean;
-  onChoose: () => void; onToggleLove: () => void;
+  onChoose: () => void; onToggleLove: () => void; onExpand?: () => void;
 }) {
   const { t } = useLang();
   return (
     <div className={cn(
-      'relative overflow-hidden rounded-2xl border transition-colors',
+      'group relative overflow-hidden rounded-2xl border transition-colors',
       selected ? 'border-ink shadow-[0px_6px_18px_rgba(23,60,50,0.12)]' : 'border-[var(--color-line)] hover:border-[var(--color-line-strong)]',
     )}>
       <button type="button" onClick={onChoose} className="block w-full text-left cursor-pointer">
         {s.photo ? (
-          // Places photo URLs are remote googleusercontent links; next/image
-          // would need a domain allowlist, so a plain img is the right tool.
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={s.photo} alt={s.name} loading="lazy" className="h-24 w-full object-cover" />
+          <div className="relative h-32 w-full overflow-hidden">
+            {/* Places photo URLs are remote googleusercontent links; next/image
+                would need a domain allowlist, so a plain img is the right tool. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={s.photo}
+              alt={s.name}
+              loading="lazy"
+              className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.05]"
+            />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+          </div>
         ) : (
-          <div className="flex h-24 w-full items-center justify-center bg-sage-tint">
+          <div className="flex h-32 w-full items-center justify-center bg-sage-tint">
             <MapPin size={20} className="text-ink opacity-40" />
           </div>
         )}
@@ -813,6 +838,16 @@ function DestinationCard({ s, country, selected, loved, onChoose, onToggleLove }
       </button>
 
       <div className="absolute right-2 top-2 flex items-center gap-1.5">
+        {onExpand && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onExpand(); }}
+            aria-label={t('Forstør billede')}
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-[#fffdf7]/90 text-ink-soft shadow-sm transition-colors hover:text-ink cursor-pointer"
+          >
+            <Expand size={15} />
+          </button>
+        )}
         {s.kind === 'city' && (
           <a
             href={googleSearchUrl(s, country)}

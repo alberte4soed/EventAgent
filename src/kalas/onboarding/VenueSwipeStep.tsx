@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform } from 'motion/react';
-import { Heart, X, Check, MapPin, Star, Loader2 } from 'lucide-react';
+import { Heart, X, Check, MapPin, Star, Loader2, Expand } from 'lucide-react';
 import type { OnboardingVenueSuggestion } from '@/app/api/onboarding/venues/route';
 import { GUEST_BANDS } from '@/lib/onboarding';
 import { cn } from '../ui';
 import { useLang } from '../i18n';
+import { Lightbox } from './Lightbox';
 
 const CARD_H = 460;
 
@@ -80,13 +81,19 @@ export default function VenueSwipeStep({ form, onLike, onSwipeComplete }: Props)
   const done = deck.length === 0 && !loading;
   const current = deck[0];
   const swiped = total - deck.length;
-  const extraPhotos = current ? venuePhotos(current).slice(1) : [];
+  const allPhotos = current ? venuePhotos(current) : [];
+  const extraPhotos = allPhotos.slice(1);
+
+  // Fullscreen viewer — holds the index into the *full* photo set of the card.
+  const [lightbox, setLightbox] = useState<number | null>(null);
+  const closeLightbox = useCallback(() => setLightbox(null), []);
 
   const advance = (like: boolean) => {
     if (!current) return;
     if (like) onLike(current);
     const next = deck.slice(1);
     setDeck(next);
+    setLightbox(null);
     if (next.length === 0) onSwipeComplete();
   };
 
@@ -152,7 +159,13 @@ export default function VenueSwipeStep({ form, onLike, onSwipeComplete }: Props)
 
             <AnimatePresence mode="popLayout">
               {!done && current ? (
-                <VenueCard key={current.id} venue={current} onDecide={advance} t={t} />
+                <VenueCard
+                  key={current.id}
+                  venue={current}
+                  onDecide={advance}
+                  onExpand={() => setLightbox(0)}
+                  t={t}
+                />
               ) : (
                 <motion.div
                   key="done"
@@ -176,12 +189,23 @@ export default function VenueSwipeStep({ form, onLike, onSwipeComplete }: Props)
         </div>
 
         {!done && current && extraPhotos.length > 0 && (
-          <VenuePhotoGallery key={current.id} photos={extraPhotos} className="hidden min-w-0 flex-1 lg:block" />
+          <VenuePhotoGallery
+            key={current.id}
+            photos={extraPhotos}
+            onOpen={(i) => setLightbox(i + 1)}
+            className="hidden min-w-0 flex-1 lg:block"
+          />
         )}
       </div>
 
       {!done && current && extraPhotos.length > 0 && (
-        <VenuePhotoGallery key={`${current.id}-m`} photos={extraPhotos} className="mt-4 lg:hidden" compact />
+        <VenuePhotoGallery
+          key={`${current.id}-m`}
+          photos={extraPhotos}
+          onOpen={(i) => setLightbox(i + 1)}
+          className="mt-4 lg:hidden"
+          compact
+        />
       )}
 
       <div className="mx-auto mt-6 w-full max-w-[400px] lg:mx-0">
@@ -216,6 +240,16 @@ export default function VenueSwipeStep({ form, onLike, onSwipeComplete }: Props)
           </button>
         </div>
       )}
+
+      {lightbox !== null && current && allPhotos.length > 0 && (
+        <Lightbox
+          photos={allPhotos}
+          index={Math.min(lightbox, allPhotos.length - 1)}
+          onIndex={setLightbox}
+          onClose={closeLightbox}
+          alt={current.name}
+        />
+      )}
     </div>
   );
 }
@@ -225,21 +259,48 @@ function venuePhotos(venue: OnboardingVenueSuggestion): string[] {
   return venue.photo ? [venue.photo] : [];
 }
 
-function GalleryImage({ url, className }: { url: string; className?: string }) {
+function GalleryImage({
+  url,
+  onOpen,
+  className,
+}: {
+  url: string;
+  onOpen: () => void;
+  className?: string;
+}) {
   return (
-    <div className={cn('overflow-hidden rounded-2xl border border-[var(--color-line)] bg-shell', className)}>
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-label="Forstør billede"
+      className={cn(
+        'group relative block overflow-hidden rounded-2xl border border-[var(--color-line)] bg-shell shadow-[0_2px_10px_rgba(23,60,50,0.06)] transition-shadow hover:shadow-[0_10px_28px_rgba(23,60,50,0.16)] cursor-pointer',
+        className,
+      )}
+    >
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={url} alt="" loading="lazy" className="h-full w-full object-cover" />
-    </div>
+      <img
+        src={url}
+        alt=""
+        loading="lazy"
+        className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.05]"
+      />
+      <div className="pointer-events-none absolute inset-0 bg-[#141a13]/0 transition-colors duration-300 group-hover:bg-[#141a13]/20" />
+      <span className="pointer-events-none absolute right-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full bg-black/35 text-white opacity-0 backdrop-blur-sm transition-opacity duration-300 group-hover:opacity-100">
+        <Expand size={15} />
+      </span>
+    </button>
   );
 }
 
 function VenuePhotoGallery({
   photos,
+  onOpen,
   className,
   compact,
 }: {
   photos: string[];
+  onOpen: (index: number) => void;
   className?: string;
   compact?: boolean;
 }) {
@@ -247,11 +308,12 @@ function VenuePhotoGallery({
 
   if (compact) {
     return (
-      <div className={cn('flex gap-2 overflow-x-auto pb-1', className)}>
+      <div className={cn('flex gap-2.5 overflow-x-auto pb-1', className)}>
         {photos.map((url, i) => (
           <GalleryImage
             key={url}
             url={url}
+            onOpen={() => onOpen(i)}
             className="h-28 w-40 shrink-0"
           />
         ))}
@@ -259,28 +321,30 @@ function VenuePhotoGallery({
     );
   }
 
-  if (photos.length === 1) {
-    return (
-      <div className={cn('h-[460px]', className)}>
-        <GalleryImage url={photos[0]} className="h-full" />
-      </div>
-    );
-  }
-
-  if (photos.length === 2) {
-    return (
-      <div className={cn('grid h-[460px] grid-rows-2 gap-3', className)}>
-        <GalleryImage url={photos[0]} className="min-h-0" />
-        <GalleryImage url={photos[1]} className="min-h-0" />
-      </div>
-    );
-  }
-
+  // `className` carries visibility/flex sizing from the parent (e.g. `lg:block`);
+  // keep it OFF the grid element so it can't override `display:grid`. The inner
+  // element owns the layout and matches the swipe card's height.
+  const shots = photos.slice(0, 3);
   return (
-    <div className={cn('grid h-[460px] grid-cols-2 grid-rows-2 gap-3', className)}>
-      <GalleryImage url={photos[0]} className="row-span-2 min-h-0" />
-      <GalleryImage url={photos[1]} className="min-h-0" />
-      <GalleryImage url={photos[2]} className="min-h-0" />
+    <div className={className}>
+      <div
+        className={cn(
+          'grid gap-3',
+          shots.length === 1 && 'grid-rows-1',
+          shots.length === 2 && 'grid-rows-2',
+          shots.length >= 3 && 'grid-cols-2 grid-rows-2',
+        )}
+        style={{ height: CARD_H }}
+      >
+        {shots.map((url, i) => (
+          <GalleryImage
+            key={url}
+            url={url}
+            onOpen={() => onOpen(i)}
+            className={cn('h-full w-full min-h-0', shots.length >= 3 && i === 0 && 'row-span-2')}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -288,10 +352,12 @@ function VenuePhotoGallery({
 function VenueCard({
   venue,
   onDecide,
+  onExpand,
   t,
 }: {
   venue: OnboardingVenueSuggestion;
   onDecide: (like: boolean) => void;
+  onExpand: () => void;
   t: (s: string, p?: Record<string, string | number>) => string;
 }) {
   const x = useMotionValue(0);
@@ -321,6 +387,17 @@ function VenueCard({
         <div className="h-full w-full bg-sage-tint" />
       )}
       <div className="absolute inset-0 bg-gradient-to-t from-[#1a2215e8] via-transparent to-transparent" />
+      {venue.photo && (
+        <button
+          type="button"
+          onPointerDownCapture={(e) => e.stopPropagation()}
+          onClick={(e) => { e.stopPropagation(); onExpand(); }}
+          aria-label={t('Forstør billede')}
+          className="absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur-sm transition-colors hover:bg-black/55 cursor-pointer"
+        >
+          <Expand size={17} />
+        </button>
+      )}
       <motion.div
         style={{ opacity: likeOp }}
         className="absolute left-5 top-5 rounded-full border-2 border-sage bg-sage/25 px-4 py-1.5 backdrop-blur-sm"

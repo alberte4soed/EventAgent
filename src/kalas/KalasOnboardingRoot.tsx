@@ -8,6 +8,7 @@ import { AnimatePresence, MotionConfig } from 'motion/react';
 import { type ScreenId } from './Shell';
 import Onboarding, { type FormState, toOnboardingPayload } from './screens/Onboarding';
 import { LanguageProvider, useLang, type Lang } from './i18n';
+import { markAllHintsSeen } from './OnboardingHint';
 
 export default function KalasOnboardingRoot({ initialLang = 'da' }: { initialLang?: Lang }) {
   return (
@@ -24,7 +25,7 @@ export default function KalasOnboardingRoot({ initialLang = 'da' }: { initialLan
 function OnboardingShell() {
   const { lang } = useLang();
 
-  const enter = async (form: FormState, s?: ScreenId) => {
+  const enter = async (form: FormState, _s?: ScreenId) => {
     try {
       await fetch('/api/onboarding', {
         method: 'POST',
@@ -43,7 +44,11 @@ function OnboardingShell() {
         // /home's server gate will bounce back here if nothing stuck.
       }
     }
-    sessionStorage.setItem('kalas_screen', s ?? 'home');
+    // Start the app on Home and play the one-time guided tour. Suppress the
+    // individual per-page hints up front so they don't collide with the tour.
+    markAllHintsSeen();
+    sessionStorage.setItem('kalas_screen', 'home');
+    sessionStorage.setItem('kalas_tour', '1');
     window.location.assign('/home');
   };
 

@@ -38,13 +38,31 @@ export async function PATCH(
     .single();
   if (error) return Response.json({ error: error.message }, { status: 500 });
 
-  // Booking a venue settles the venue stage.
-  if (booked && venue.category === "venue") {
-    await supabase
-      .from("events")
-      .update({ chosen_venue_id: venueId })
-      .eq("id", venue.event_id)
-      .is("chosen_venue_id", null);
+  // Choosing a venue settles the venue stage — exactly one is "jeres venue".
+  if (venue.category === "venue") {
+    if (booked) {
+      // Only the newly-chosen venue stays stamped.
+      await supabase
+        .from("venues")
+        .update({ booked_at: null })
+        .eq("event_id", venue.event_id)
+        .eq("category", "venue")
+        .neq("id", venueId);
+      // Always move the pointer to the latest choice (allows switching).
+      const { error: evErr } = await supabase
+        .from("events")
+        .update({ chosen_venue_id: venueId })
+        .eq("id", venue.event_id);
+      if (evErr) return Response.json({ error: evErr.message }, { status: 500 });
+    } else {
+      // Un-choosing: clear the pointer only if it referenced this venue.
+      const { error: evErr } = await supabase
+        .from("events")
+        .update({ chosen_venue_id: null })
+        .eq("id", venue.event_id)
+        .eq("chosen_venue_id", venueId);
+      if (evErr) return Response.json({ error: evErr.message }, { status: 500 });
+    }
   }
 
   return Response.json(data);

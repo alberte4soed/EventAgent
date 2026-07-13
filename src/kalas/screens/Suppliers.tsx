@@ -265,7 +265,7 @@ export default function Suppliers({ onNavigate }: { onNavigate?: (s: ScreenId) =
             </div>
             <Eyebrow className="text-center">Spørg Ava om leverandørerne</Eyebrow>
             <p className="display mt-4 text-[1.8rem] text-ink italic">
-              "Hvad skal vi booke og hvornår?"
+              &ldquo;Hvad skal vi booke og hvornår?&rdquo;
             </p>
             <p className="mt-3 max-w-xs mx-auto text-[0.85rem] text-muted leading-relaxed">
               Ava kender jeres dato, region, budget og stil og giver et personligt svar.
@@ -309,7 +309,7 @@ function SupplierCard({ s, i, onToggleSave }: {
             {s.matchPct}% match
           </div>
         )}
-        <button onClick={() => onToggleSave(s.id)} aria-label={s.liked ? 'Fjern fra gemt' : 'Gem'}
+        <button onClick={() => onToggleSave(s.id)} aria-label={s.liked ? 'Fjern fra listen' : 'Tilføj til liste'}
           className={cn(
             'absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full backdrop-blur-sm transition-all cursor-pointer',
             s.liked ? 'bg-sage text-ink' : 'bg-canvas/20 text-canvas hover:bg-canvas/40',
@@ -335,7 +335,7 @@ function SupplierCard({ s, i, onToggleSave }: {
 
         {s.quote && (
           <p className="mt-3 font-serif text-[0.82rem] italic text-ink-soft leading-snug flex-1">
-            "{s.quote}"
+            &ldquo;{s.quote}&rdquo;
           </p>
         )}
 
@@ -343,7 +343,7 @@ function SupplierCard({ s, i, onToggleSave }: {
           <span className="font-serif text-[1rem] text-ink">{s.price || '—'}</span>
           <button onClick={() => onToggleSave(s.id)}
             className="rounded-full bg-ink px-3.5 py-1.5 text-[0.68rem] font-bold uppercase tracking-[0.12em] text-canvas hover:bg-ink/80 transition-colors cursor-pointer">
-            {s.liked ? 'Gemt ✓' : 'Kontakt →'}
+            {s.liked ? 'På listen ✓' : 'Tilføj til liste'}
           </button>
         </div>
       </div>
