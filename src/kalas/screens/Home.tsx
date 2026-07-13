@@ -7,16 +7,18 @@ import {
 } from 'lucide-react';
 import { useWedding } from '../useWedding';
 import type { ScreenId } from '../Shell';
+import type { NavigateTarget } from '../lib/hub-nav';
+import { navigateToHub } from '../lib/hub-nav';
 import OnboardingHint from '../OnboardingHint';
 import { useLang } from '../i18n';
 import type { JourneyStageKey } from '@/lib/journey';
 import type { ReplyProposalRow, TimelineTaskRow, VenueRow } from '@/lib/db/types';
 import { daysUntilWedding } from '@/lib/wedding-date';
 
-const STAGE_SCREEN: Record<JourneyStageKey, ScreenId> = {
+const STAGE_SCREEN: Record<JourneyStageKey, NavigateTarget> = {
   basics: 'ava',
-  venue: 'venues',
-  vendors: 'vendors',
+  venue: 'team',
+  vendors: 'team',
   invites: 'invites',
 };
 
@@ -25,7 +27,8 @@ type ApprovalItem = {
   category: string;
   title: string;
   meta: string;
-  screen: ScreenId;
+  screen: NavigateTarget;
+  hubTab?: 'shortlist' | 'explore' | 'inbox' | 'booked';
 };
 
 function greetingKey(): string {
@@ -80,7 +83,8 @@ function buildApprovalItems(
       category: 'VENUE',
       title: t('Vælg mellem {n} forslag', { n: likedVenueCount }),
       meta: t('Ava har sammenlignet pris, kapacitet og rejsetid'),
-      screen: 'venues',
+      screen: 'team',
+      hubTab: 'shortlist',
     });
   }
 
@@ -114,7 +118,7 @@ function buildTimelinePath(
   journey: { key: JourneyStageKey; label: string; hint: string; status: string }[],
   locale: string,
   t: (s: string) => string,
-): { id: string; dateLabel: string; title: string; meta: string; state: 'current' | 'next' | 'future'; screen: ScreenId }[] {
+): { id: string; dateLabel: string; title: string; meta: string; state: 'current' | 'next' | 'future'; screen: NavigateTarget }[] {
   const sorted = [...tasks]
     .filter((task) => task.due_date)
     .sort((a, b) => (a.due_date! < b.due_date! ? -1 : 1));
@@ -142,7 +146,7 @@ function buildTimelinePath(
   }));
 }
 
-export default function Home({ onNavigate }: { onNavigate: (s: ScreenId) => void }) {
+export default function Home({ onNavigate }: { onNavigate: (s: NavigateTarget) => void }) {
   const {
     couple, event, journey, proposals, venues, guests, timelineTasks,
   } = useWedding();
@@ -394,7 +398,10 @@ export default function Home({ onNavigate }: { onNavigate: (s: ScreenId) => void
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => onNavigate(item.screen)}
+                  onClick={() => {
+                    if (item.hubTab) navigateToHub(item.hubTab);
+                    onNavigate(item.screen);
+                  }}
                   className="rounded-xl bg-white p-[15px] text-left transition-transform hover:scale-[1.01]"
                 >
                   <div className="flex items-center justify-between">

@@ -6,8 +6,7 @@ import { Search, Heart, MessageCircle, ChevronDown, X } from 'lucide-react';
 import { dnaTraits } from '../data';
 import { useWedding } from '../useWedding';
 import { Eyebrow, Pill, cn } from '../ui';
-import type { ScreenId } from '../Shell';
-import OnboardingHint from '../OnboardingHint';
+import type { NavigateTarget } from '../lib/hub-nav';
 import type { VendorCategory, VenueRow } from '@/lib/db/types';
 
 /* ── Categories (Danish display ↔ backend vendor category) ───────────── */
@@ -79,10 +78,26 @@ const FAQ = [
 /* ══════════════════════════════════════════════════════════════════════
    MAIN EXPORT
 ══════════════════════════════════════════════════════════════════════ */
-export default function Suppliers({ onNavigate }: { onNavigate?: (s: ScreenId) => void }) {
+import type { HubCat } from './team/shared';
+
+export default function Suppliers({
+  onNavigate,
+  hub,
+}: {
+  onNavigate?: (s: NavigateTarget) => void;
+  hub?: {
+    cat: HubCat;
+    query: string;
+    showHint?: boolean;
+  };
+}) {
   const { couple, venues, refresh } = useWedding();
-  const [query,   setQuery]   = useState('');
-  const [cat,     setCat]     = useState<Cat>(() => {
+  const [query, setQuery] = useState(hub?.query ?? '');
+  const [cat, setCat] = useState<Cat>(() => {
+    if (hub?.cat && hub.cat !== 'venue' && hub.cat !== 'alle') {
+      const mapped = hub.cat as Cat;
+      if (CATS.some((c) => c.id === mapped)) return mapped;
+    }
     if (typeof sessionStorage === 'undefined') return 'alle';
     const saved = sessionStorage.getItem('kalas_vendor_cat') as Cat | null;
     if (saved) {
@@ -91,6 +106,16 @@ export default function Suppliers({ onNavigate }: { onNavigate?: (s: ScreenId) =
     }
     return 'alle';
   });
+
+  useEffect(() => {
+    if (hub) setQuery(hub.query);
+  }, [hub?.query, hub]);
+
+  useEffect(() => {
+    if (!hub?.cat || hub.cat === 'venue') return;
+    if (hub.cat === 'alle') setCat('alle');
+    else if (CATS.some((c) => c.id === hub.cat)) setCat(hub.cat as Cat);
+  }, [hub?.cat, hub]);
 
   useEffect(() => {
     void refresh();
@@ -129,10 +154,13 @@ export default function Suppliers({ onNavigate }: { onNavigate?: (s: ScreenId) =
   const savedCount = vendors.filter((v) => v.liked).length;
   const catLabel = CATS.find((c) => c.id === cat)?.label ?? 'Alle';
 
+  const embedded = Boolean(hub);
+
   return (
     <div className="min-h-screen">
 
-      {/* ── Sticky header: search + category chips ──────────────────── */}
+      {/* ── Sticky header: search + category chips (standalone only) ─ */}
+      {!embedded && (
       <div className="sticky top-0 z-20 bg-canvas/95 backdrop-blur-md rule-b">
         <div className="px-6 pt-5 sm:px-10 lg:px-16">
           <div className="flex items-center gap-3 rounded-2xl rule bg-card px-4 py-3">
@@ -166,8 +194,9 @@ export default function Suppliers({ onNavigate }: { onNavigate?: (s: ScreenId) =
           </div>
         </div>
       </div>
+      )}
 
-      <div className="px-6 pt-8 sm:px-10 lg:px-16">
+      <div className={embedded ? 'px-0 pt-2' : 'px-6 pt-8 sm:px-10 lg:px-16'}>
 
         {/* ── DNA context banner ──────────────────────────────────────── */}
         <div className="rule rounded-2xl bg-sage-tint px-6 py-5">
@@ -280,7 +309,6 @@ export default function Suppliers({ onNavigate }: { onNavigate?: (s: ScreenId) =
 
       </div>
 
-      <OnboardingHint id="vendors" />
     </div>
   );
 }

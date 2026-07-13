@@ -10,8 +10,7 @@ import {
 import { IMAGES } from '../data';
 import { useWedding, type Couple } from '../useWedding';
 import { Eyebrow, Pill, cn } from '../ui';
-import type { ScreenId } from '../Shell';
-import OnboardingHint from '../OnboardingHint';
+import type { NavigateTarget } from '../lib/hub-nav';
 import { useLang } from '../i18n';
 import type { VenueRow, EmailDraftRow } from '@/lib/db/types';
 import type { VenueResearchProfile } from '@/lib/venue/research';
@@ -105,7 +104,26 @@ function RatingBadge({ rating, count, className }: { rating: number | null; coun
 /* ══════════════════════════════════════════════════════════════════════
    MAIN EXPORT — venue discovery & management
 ══════════════════════════════════════════════════════════════════════ */
-export default function VenueDiscovery({ onNavigate }: { onNavigate?: (s: ScreenId) => void }) {
+import type { HubCat, HubTab } from './team/shared';
+
+export type VenueHubView = 'discover' | 'list' | 'review';
+
+export type VenueHubConfig = {
+  view: VenueHubView;
+  onViewChange: (view: VenueHubView) => void;
+  onSwitchTab?: (tab: HubTab, cat?: HubCat) => void;
+  searchQuery?: string;
+  category?: HubCat;
+  showHint?: boolean;
+};
+
+export default function VenueDiscovery({
+  onNavigate,
+  hub,
+}: {
+  onNavigate?: (s: NavigateTarget) => void;
+  hub?: VenueHubConfig;
+}) {
   type VView = 'home' | 'discover' | 'list' | 'review';
   const { couple, event, venues: allVenues, outbound, replies, refresh } = useWedding();
 
@@ -121,6 +139,7 @@ export default function VenueDiscovery({ onNavigate }: { onNavigate?: (s: Screen
   // Landing is derived: once the couple has venues (or Ava routed here) we open
   // the list, otherwise discovery — until they navigate, which pins `navView`.
   const [navView, setVView] = useState<VView | null>(() => {
+    if (hub) return hub.view;
     if (typeof window === 'undefined') return null;
     const fromAva = sessionStorage.getItem('kalas_venues_view');
     if (fromAva === 'picks' || fromAva === 'list') {
@@ -129,8 +148,26 @@ export default function VenueDiscovery({ onNavigate }: { onNavigate?: (s: Screen
     }
     return null;
   });
-  // Always start on the project-management home; steps branch out from there.
-  const vview: VView = navView ?? 'home';
+  // Hub mode: controlled view from parent. Standalone: home until user navigates.
+  const vview: VView = hub ? hub.view : (navView ?? 'home');
+
+  const setView = (next: VView) => {
+    if (hub) {
+      if (next === 'discover' || next === 'list' || next === 'review') hub.onViewChange(next);
+      return;
+    }
+    setVView(next);
+  };
+
+  const goInbox = () => {
+    if (hub?.onSwitchTab) hub.onSwitchTab('inbox');
+    else onNavigate?.('inbox');
+  };
+
+  const goVendorsExplore = () => {
+    if (hub?.onSwitchTab) hub.onSwitchTab('explore', 'fotografi');
+    else onNavigate?.('vendors');
+  };
 
   // Derived state from real rows.
   const saved = new Set(venues.filter((v) => v.swipe_status === 'liked').map((v) => v.id));
@@ -184,12 +221,12 @@ export default function VenueDiscovery({ onNavigate }: { onNavigate?: (s: Screen
 
   // Open the list, optionally straight into a venue's detail.
   const [pendingSelect, setPendingSelect] = useState<string | null>(null);
-  const goList = (id: string | null = null) => { setPendingSelect(id); setVView('list'); };
+  const goList = (id: string | null = null) => { setPendingSelect(id); setView('list'); };
 
   // "Find flere som disse" seeds discovery with the names already on the list.
   const [similarSeed, setSimilarSeed] = useState(false);
   const likedNames = displayVenues.filter((v) => saved.has(v.id)).map((v) => v.name);
-  const goDiscover = (similar = false) => { setSimilarSeed(similar); setVView('discover'); };
+  const goDiscover = (similar = false) => { setSimilarSeed(similar); setView('discover'); };
 
   const likedNotContacted = displayVenues.filter((v) => saved.has(v.id) && !sent.has(v.id));
   const likedVenues = displayVenues.filter((v) => saved.has(v.id));
@@ -213,10 +250,10 @@ export default function VenueDiscovery({ onNavigate }: { onNavigate?: (s: Screen
             stageOf={stageOf}
             onDiscover={() => goDiscover(false)}
             onList={() => goList()}
-            onReview={() => setVView('review')}
+            onReview={() => setView('review')}
             onOpenVenue={(id) => goList(id)}
             onOpenDetail={booked ? () => goList(booked) : undefined}
-            onInbox={() => onNavigate?.('inbox')}
+            onInbox={goInbox}
           />
         )}
         {vview === 'discover' && (
@@ -227,7 +264,7 @@ export default function VenueDiscovery({ onNavigate }: { onNavigate?: (s: Screen
             listCount={saved.size}
             similarNames={similarSeed ? likedNames : null}
             onSaved={refresh}
-            onBack={() => setVView('home')}
+            onBack={hub ? undefined : () => setView('home')}
             onViewList={hasRealVenues ? () => goList() : undefined}
           />
         )}
@@ -239,25 +276,24 @@ export default function VenueDiscovery({ onNavigate }: { onNavigate?: (s: Screen
             initialSelectedId={pendingSelect}
             onToggleSave={toggleSave} onOutreach={reqOutreach}
             onBook={bookVenue}
-            onBack={() => setVView('home')}
+            onBack={hub ? undefined : () => setView('home')}
             onDiscover={() => goDiscover(false)}
             onFindMore={likedNames.length > 0 ? () => goDiscover(true) : undefined}
-            onReview={() => setVView('review')}
+            onReview={() => setView('review')}
             onAva={() => onNavigate?.('ava')}
-            onNextStep={() => onNavigate?.('vendors')}
+            onNextStep={goVendorsExplore}
             onRefresh={refresh} />
         )}
         {vview === 'review' && (
           <OutreachReview key="review"
             recipients={likedNotContacted}
-            onBack={() => setVView('list')}
-            onApproved={() => { void refresh(); onNavigate?.('inbox'); }}
+            onBack={() => setView('list')}
+            onApproved={() => { void refresh(); goInbox(); }}
             onAva={() => onNavigate?.('ava')}
           />
         )}
       </AnimatePresence>
 
-      <OnboardingHint id="venues" />
 
       {/* ── "Venue valgt" confirmation toast ───────────────────────────── */}
       <AnimatePresence>

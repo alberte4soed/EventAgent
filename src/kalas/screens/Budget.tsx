@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Plus, X, ChevronDown, ArrowRight, Check } from 'lucide-react';
 import { budgetLines, type BudgetLine } from '../data';
-import { Eyebrow, Chip, Pill, cn } from '../ui';
+import { Eyebrow, Chip, cn } from '../ui';
 import AnimateNumber from '../AnimateNumber';
 import OnboardingHint from '../OnboardingHint';
 import { useWedding } from '../useWedding';
@@ -33,7 +33,7 @@ const PAYMENTS: { label: string; when: string; amount: number | null; paid: bool
   { label: 'Venue & catering · restbetaling', when: 'Sep 2026', amount: null, paid: false },
 ];
 
-export default function Budget({ onNavigate }: { onNavigate?: (s: import('../Shell').ScreenId) => void }) {
+export default function Budget() {
   const { couple, budgetItems, saveBudgetItem, deleteBudgetItem, updateEvent } = useWedding();
   const [estimatorDone, setEstimatorDone] = useState(false);
   const [estimatorOpen, setEstimatorOpen] = useState(false);
@@ -304,29 +304,6 @@ export default function Budget({ onNavigate }: { onNavigate?: (s: import('../She
             </button>
           </div>
         )}
-      </div>
-
-      {/* Ava comment */}
-      <div className="mt-14 rule-t pt-10">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-60px' }}
-          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className="rounded-2xl rule bg-card p-8 lg:p-12">
-          <Eyebrow>Avas kommentar</Eyebrow>
-          <p className="display mt-5 text-[clamp(1.8rem,4vw,3rem)] text-ink italic leading-[1.15] max-w-3xl">
-            Florist-tilbuddet fra Flora er {kr(4200)} DKK over jeres
-            oprindelige estimat. Jeg har fundet to alternativer inden
-            for budget — eller jeg kan trække beløbet fra jeres buffer.
-            Hvad foretrækker I?
-          </p>
-          <div className="mt-8 flex flex-wrap items-center gap-6">
-            <Pill arrow onClick={() => onNavigate?.('home')}>Se alternativer i køen</Pill>
-            <button onClick={() => onNavigate?.('ava')}
-              className="text-[0.75rem] font-bold uppercase tracking-[0.2em] text-ink hover:opacity-60 transition-opacity cursor-pointer">
-              Acceptér & træk fra buffer
-            </button>
-          </div>
-        </motion.div>
       </div>
 
       {/* Payment timeline */}

@@ -7,15 +7,17 @@ import { useKalas } from '../store';
 import { useWedding } from '../useWedding';
 import { cn } from '../ui';
 import { useLang } from '../i18n';
-import type { ScreenId } from '../Shell';
+import type { NavigateTarget } from '../lib/hub-nav';
+import { navigateToHub } from '../lib/hub-nav';
 import OnboardingHint from '../OnboardingHint';
 import { createClient } from '@/lib/supabase/client';
 import { useAgentChat } from '@/lib/hooks/useAgentChat';
 import type { ChatMessageRow, ReplyProposalRow, EmailDraftRow, VenueRow, VendorCategory } from '@/lib/db/types';
 import {
   batchCategory,
+  batchHubCat,
+  batchHubTab,
   batchLabel,
-  batchScreen,
   batchSupplierFilter,
 } from '@/lib/vendor-batch';
 
@@ -26,7 +28,7 @@ export default function Ava({
   onClose,
   variant = 'page',
 }: {
-  onNavigate?: (s: ScreenId) => void;
+  onNavigate?: (s: NavigateTarget) => void;
   onClose?: () => void;
   variant?: 'page' | 'drawer';
 }) {
@@ -80,7 +82,7 @@ function AvaChat({
 }: {
   eventId: string;
   coupleA: string;
-  onNavigate?: (s: ScreenId) => void;
+  onNavigate?: (s: NavigateTarget) => void;
   onClose?: () => void;
   variant: 'page' | 'drawer';
 }) {
@@ -212,7 +214,7 @@ function Bubble({
   onRefresh,
 }: {
   msg: ChatMessageRow;
-  onNavigate?: (s: ScreenId) => void;
+  onNavigate?: (s: NavigateTarget) => void;
   venues: VenueRow[];
   onRefresh: () => Promise<void>;
 }) {
@@ -243,7 +245,7 @@ function PayloadCard({
   onRefresh,
 }: {
   payload: NonNullable<ChatMessageRow['payload']>;
-  onNavigate?: (s: ScreenId) => void;
+  onNavigate?: (s: NavigateTarget) => void;
   venues: VenueRow[];
   onRefresh: () => Promise<void>;
 }) {
@@ -285,7 +287,7 @@ function VenueBatchCard({
 }: {
   payload: Extract<NonNullable<ChatMessageRow['payload']>, { kind: 'venue_batch' }>;
   venues: VenueRow[];
-  onNavigate?: (s: ScreenId) => void;
+  onNavigate?: (s: NavigateTarget) => void;
   onRefresh: () => Promise<void>;
   label: (category: VendorCategory, count: number) => string;
 }) {
@@ -307,11 +309,8 @@ function VenueBatchCard({
       }
       const category = batchCategory(payload, rows);
       const filter = batchSupplierFilter(category);
-      if (filter) sessionStorage.setItem('kalas_vendor_cat', filter);
-      if (batchScreen(category) === 'venues') {
-        sessionStorage.setItem('kalas_venues_view', 'picks');
-      }
-      onNavigate?.(batchScreen(category));
+      navigateToHub(batchHubTab(category), filter ? (filter as import('./team/shared').HubCat) : batchHubCat(category));
+      onNavigate?.('team');
     } finally {
       setBusy(false);
     }
@@ -344,7 +343,7 @@ function CardShell({ label, children }: { label: string; children: React.ReactNo
   );
 }
 
-function ProposalCard({ proposalId, onNavigate }: { proposalId: string; onNavigate?: (s: ScreenId) => void }) {
+function ProposalCard({ proposalId, onNavigate }: { proposalId: string; onNavigate?: (s: NavigateTarget) => void }) {
   const { t } = useLang();
   const supabase = useMemo(() => createClient(), []);
   const { refresh } = useWedding();
@@ -441,7 +440,7 @@ function DraftCard({ draftId }: { draftId: string }) {
   );
 }
 
-function InviteBriefCard({ wording, style, onNavigate }: { wording: string; style: string | null; onNavigate?: (s: ScreenId) => void }) {
+function InviteBriefCard({ wording, style, onNavigate }: { wording: string; style: string | null; onNavigate?: (s: NavigateTarget) => void }) {
   const { t } = useLang();
   const [copied, setCopied] = useState(false);
   const copy = async () => {

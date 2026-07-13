@@ -12,16 +12,15 @@ import { WeddingProvider } from './useWedding';
 import { LanguageProvider, type Lang } from './i18n';
 import Home from './screens/Home';
 import Ava from './screens/Ava';
-import Inspiration from './screens/Moodboard';
-import VenueDiscovery from './screens/Venues';
-import Suppliers from './screens/Suppliers';
+import { migrateSavedScreen, resolveScreenNavigation, type NavigateTarget } from './lib/hub-nav';
+import { isLegacyHubScreen } from './screens/team/shared';
+import VendorHub from './screens/team/VendorHub';
 import Planning from './screens/Planning';
 import Budget from './screens/Budget';
 import Guests from './screens/Guests';
 import Website from './screens/Website';
 import Invites from './screens/Invites';
 import Seating from './screens/Seating';
-import Inbox from './screens/Inbox';
 import Registry from './screens/Registry';
 
 export default function KalasRoot({ initialLang = 'da' }: { initialLang?: Lang }) {
@@ -43,9 +42,11 @@ export default function KalasRoot({ initialLang = 'da' }: { initialLang?: Lang }
 function AppInner() {
   const { pendingCount, avaBadge } = useKalas();
   const [avaOpen, setAvaOpen] = useState(false);
+  const [hubTick, setHubTick] = useState(0);
   const [screen, setScreen] = useState<ScreenId>(() => {
-    const saved = sessionStorage.getItem('kalas_screen') as ScreenId | null;
-    return saved === 'ava' ? 'home' : saved || 'home';
+    const saved = sessionStorage.getItem('kalas_screen');
+    if (saved === 'ava' || saved === 'inspiration') return 'home';
+    return migrateSavedScreen(saved) || 'home';
   });
   // One-time welcome tour, armed by onboarding completion (or `?tour=1` so it
   // can be replayed on demand from the real app).
@@ -56,14 +57,18 @@ function AppInner() {
     } catch { return false; }
   });
 
-  const navigate = (s: ScreenId) => {
+  const navigate = (s: NavigateTarget) => {
     if (s === 'ava') {
       setAvaOpen(true);
       return;
     }
+    const hadDeepLink = isLegacyHubScreen(s)
+      || Boolean(sessionStorage.getItem('kalas_hub_tab') || sessionStorage.getItem('kalas_hub_cat'));
+    const target = resolveScreenNavigation(s);
+    if (target === 'team' && hadDeepLink) setHubTick((t) => t + 1);
     setAvaOpen(false);
-    sessionStorage.setItem('kalas_screen', s);
-    setScreen(s);
+    sessionStorage.setItem('kalas_screen', target);
+    setScreen(target);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -76,12 +81,9 @@ function AppInner() {
   type AppScreen = Exclude<ScreenId, 'ava'>;
   const screens: Record<AppScreen, React.ReactNode> = {
     home:        <Home onNavigate={navigate} />,
-    inspiration: <Inspiration onNavigate={navigate} />,
-    venues:      <VenueDiscovery onNavigate={navigate} />,
-    vendors:     <Suppliers onNavigate={navigate} />,
-    inbox:       <Inbox onNavigate={navigate} />,
+    team:        <VendorHub key={hubTick} onNavigate={navigate} />,
     planning:    <Planning />,
-    budget:      <Budget onNavigate={navigate} />,
+    budget:      <Budget />,
     guests:      <Guests />,
     website:     <Website />,
     registry:    <Registry onNavigate={navigate} />,

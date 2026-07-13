@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X } from 'lucide-react';
 
 export type HintId =
-  | 'home' | 'ava' | 'inspiration' | 'venues' | 'vendors'
+  | 'home' | 'ava' | 'team'
   | 'budget' | 'guests' | 'website' | 'invites' | 'planning' | 'seating';
 
 interface HintConfig {
@@ -26,23 +26,11 @@ const HINTS: Record<HintId, HintConfig> = {
     body: 'Ava kender jeres dato, budget og stil. Prøv: "Hvad bør vi booke inden næste måned?" eller "Hvad koster musik til 120 gæster?" — hun svarer med jer i tankerne.',
     cta: 'Prøv Ava nu',
   },
-  inspiration: {
-    eyebrow: 'Byg jeres moodboard',
-    title: 'Swipe jer til en stilprofil',
-    body: 'Tryk til højre for billeder I elsker — spring resten over. Ava bruger jeres valg til at finde venues, fotografer og blomster der matcher jeres æstetik præcist.',
-    cta: 'Start med at swipe',
-  },
-  venues: {
-    eyebrow: 'Find jeres drømmested',
-    title: 'Start her — swipe eller spørg Ava',
-    body: 'Ingen venues endnu? Swipe jeres stil så Ava ved hvad I leder efter, eller fortæl hende direkte hvad I drømmer om — så finder hun rigtige steder med billeder og priser.',
-    cta: 'Find venues',
-  },
-  vendors: {
-    eyebrow: 'Alle leverandørerne',
-    title: 'Vælg en kategori og start',
-    body: 'Vælg kategori øverst — fotografi, blomster, musik og mere. Ava briefer hver leverandør med jeres stilprofil, så I slipper for at forklare jer to gange.',
-    cta: 'Udforsk kategorier',
+  team: {
+    eyebrow: 'Venue & leverandører',
+    title: 'Ét sted til hele holdet',
+    body: 'Udforsk venues og leverandører, gem dem på shortlisten, følg Ava\'s henvendelser i indbakken og hold styr på hvem I har booket.',
+    cta: 'Kom i gang',
   },
   budget: {
     eyebrow: 'Pengene er jeres råderum',
@@ -85,7 +73,7 @@ const HINTS: Record<HintId, HintConfig> = {
 const storageKey = (id: HintId) => `kalas_ob2_${id}`;
 
 export const HINT_IDS: HintId[] = [
-  'home', 'ava', 'inspiration', 'venues', 'vendors',
+  'home', 'ava', 'team',
   'budget', 'guests', 'website', 'invites', 'planning', 'seating',
 ];
 

@@ -1,7 +1,8 @@
 import type { MessagePayload } from "@/lib/db/types";
 import type { VendorCategory } from "@/lib/db/types";
+import type { HubCat, HubTab } from "@/kalas/screens/team/shared";
 
-export type BatchScreen = "venues" | "vendors";
+export type BatchScreen = "team";
 
 /** UI category chip id used on the Suppliers page. */
 export type SupplierCatFilter =
@@ -51,8 +52,18 @@ export function batchCategory(
   return match?.category ?? "venue";
 }
 
-export function batchScreen(category: VendorCategory): BatchScreen {
-  return category === "venue" ? "venues" : "vendors";
+export function batchScreen(_category: VendorCategory): BatchScreen {
+  return "team";
+}
+
+export function batchHubTab(category: VendorCategory): HubTab {
+  return category === "venue" ? "shortlist" : "explore";
+}
+
+export function batchHubCat(category: VendorCategory): HubCat {
+  if (category === "venue") return "venue";
+  const filter = batchSupplierFilter(category);
+  return (filter ?? "alle") as HubCat;
 }
 
 export function batchSupplierFilter(category: VendorCategory): SupplierCatFilter | null {

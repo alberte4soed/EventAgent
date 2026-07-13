@@ -10,7 +10,7 @@ import { motion } from 'motion/react';
 import { ArrowLeft, Check, FileText, Star, Inbox as InboxIcon } from 'lucide-react';
 import { useWedding } from '../useWedding';
 import { Eyebrow, Chip, Pill, cn } from '../ui';
-import type { ScreenId } from '../Shell';
+import type { NavigateTarget } from '../lib/hub-nav';
 import { createClient } from '@/lib/supabase/client';
 import type {
   EmailAttachmentRow, EmailReplyRow, OutboundEmailRow, ReplyProposalRow, VenueRow,
@@ -24,7 +24,7 @@ const CAT_DA: Record<string, string> = {
 type Tab = 'threads' | 'quotes' | 'files';
 
 /* ══════════════════════════════════════════════════════════════════════ */
-export default function Inbox({ onNavigate }: { onNavigate?: (s: ScreenId) => void }) {
+export default function Inbox({ onNavigate, embedded }: { onNavigate?: (s: NavigateTarget) => void; embedded?: boolean }) {
   const { loading, venues, outbound, replies, attachments, proposals, refresh } = useWedding();
   const [tab, setTab] = useState<Tab>('threads');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -41,7 +41,7 @@ export default function Inbox({ onNavigate }: { onNavigate?: (s: ScreenId) => vo
 
   if (contacted.length === 0 && replies.length === 0) {
     return (
-      <div className="flex min-h-[60vh] flex-col items-center justify-center px-6 text-center">
+      <div className={cn('flex flex-col items-center justify-center text-center', embedded ? 'min-h-[40vh] px-0' : 'min-h-[60vh] px-6')}>
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-ink">
           <InboxIcon size={20} className="text-canvas" />
         </div>
@@ -72,7 +72,9 @@ export default function Inbox({ onNavigate }: { onNavigate?: (s: ScreenId) => vo
   };
 
   return (
-    <div className="px-6 py-8 sm:px-10 lg:px-16 lg:py-12">
+    <div className={embedded ? 'pt-2' : 'px-6 py-8 sm:px-10 lg:px-16 lg:py-12'}>
+      {!embedded && (
+        <>
       <Eyebrow>Koordinering</Eyebrow>
       <h1 className="display mt-4 text-[clamp(2.5rem,5vw,4rem)] text-ink">
         Jeres <span className="italic">henvendelser</span>
@@ -81,9 +83,11 @@ export default function Inbox({ onNavigate }: { onNavigate?: (s: ScreenId) => vo
         Ava skriver på jeres vegne fra én central postkasse. Her ser I hvem hun har
         kontaktet, hvad de svarer, og godkender hendes svar før de sendes.
       </p>
+        </>
+      )}
 
       {/* Tabs */}
-      <div className="mt-8 flex gap-1 rule-b">
+      <div className={cn('flex gap-1 rule-b', embedded ? 'mt-2' : 'mt-8')}>
         {([['threads', `Samtaler${totalUnread ? ` · ${totalUnread}` : ''}`], ['quotes', 'Tilbud'], ['files', `Filer · ${attachments.length}`]] as [Tab, string][]).map(([id, label]) => (
           <button key={id} onClick={() => setTab(id)}
             className={cn('relative px-5 py-3 text-[0.85rem] transition-colors cursor-pointer',
@@ -194,7 +198,7 @@ function latestProposal(venueId: string, replies: EmailReplyRow[], proposals: Re
 /* ── Thread detail ───────────────────────────────────────────────────── */
 function ThreadDetail({ venue, messages, proposal, onBack, onNavigate, onChanged }: {
   venue: VenueRow; messages: ThreadMsg[]; proposal: ReplyProposalRow | null;
-  onBack: () => void; onNavigate?: (s: ScreenId) => void; onChanged: () => Promise<void>;
+  onBack: () => void; onNavigate?: (s: NavigateTarget) => void; onChanged: () => Promise<void>;
 }) {
   const [booking, setBooking] = useState(false);
   const book = async () => {
@@ -256,7 +260,7 @@ function ThreadDetail({ venue, messages, proposal, onBack, onNavigate, onChanged
 
 /* ── Ava's suggested reply (approve / dismiss / regenerate) ──────────── */
 function ProposalReply({ proposal, venueName, onNavigate, onChanged }: {
-  proposal: ReplyProposalRow; venueName: string; onNavigate?: (s: ScreenId) => void; onChanged: () => Promise<void>;
+  proposal: ReplyProposalRow; venueName: string; onNavigate?: (s: NavigateTarget) => void; onChanged: () => Promise<void>;
 }) {
   const [body, setBody] = useState(proposal.body);
   const [busy, setBusy] = useState(false);

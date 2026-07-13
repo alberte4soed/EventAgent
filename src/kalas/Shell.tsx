@@ -2,9 +2,9 @@ import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  Home, MessageCircle, Heart, MapPin, Building2,
+  Home, MessageCircle, UsersRound,
   Wallet, Users, Globe, Mail, ListChecks, LayoutDashboard,
-  LayoutGrid, X, Settings, Inbox, Gift, PanelLeftClose, PanelLeft,
+  LayoutGrid, X, Settings, Gift, PanelLeftClose, PanelLeft,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { couple } from './data';
@@ -12,8 +12,7 @@ import { cn } from './ui';
 import { useLang } from './i18n';
 
 export type ScreenId =
-  | 'home' | 'ava' | 'inspiration'
-  | 'venues' | 'vendors' | 'inbox'
+  | 'home' | 'ava' | 'team'
   | 'budget' | 'guests' | 'website' | 'registry' | 'invites' | 'planning' | 'seating';
 
 type NavItem = { id: ScreenId; label: string; icon: LucideIcon; group: 'main' | 'plan' };
@@ -21,10 +20,7 @@ type NavItem = { id: ScreenId; label: string; icon: LucideIcon; group: 'main' | 
 const NAV: NavItem[] = [
   { id: 'home',        label: 'Hjem',          icon: Home,          group: 'main' },
   { id: 'planning',    label: 'Tidslinje',     icon: ListChecks,    group: 'main' },
-  { id: 'inspiration', label: 'Inspiration',   icon: Heart,         group: 'main' },
-  { id: 'venues',      label: 'Venues',        icon: MapPin,        group: 'plan' },
-  { id: 'vendors',     label: 'Leverandører',  icon: Building2,     group: 'plan' },
-  { id: 'inbox',       label: 'Henvendelser',  icon: Inbox,         group: 'plan' },
+  { id: 'team',        label: 'Venue & leverandører', icon: UsersRound,  group: 'plan' },
   { id: 'budget',      label: 'Budget',        icon: Wallet,        group: 'plan' },
   { id: 'guests',      label: 'Gæster',        icon: Users,         group: 'plan' },
   { id: 'website',     label: 'Hjemmeside',    icon: Globe,         group: 'plan' },
@@ -33,7 +29,7 @@ const NAV: NavItem[] = [
   { id: 'seating',     label: 'Bordplan',      icon: LayoutDashboard, group: 'plan' },
 ];
 
-const MOBILE_TABS: ScreenId[] = ['home', 'inspiration', 'venues'];
+const MOBILE_TABS: ScreenId[] = ['home', 'planning', 'team'];
 
 const SIDEBAR_W = 224;
 const SIDEBAR_RAIL_W = 72;
