@@ -297,6 +297,9 @@ export interface GuestRow {
   plus_one_name: string | null;
   responded_at: string | null;
   rsvp_token: string;
+  rsvp_events: Record<string, boolean>;
+  custom_answers: Record<string, string>;
+  children_count: number;
   created_at: string;
 }
 
@@ -354,6 +357,8 @@ export interface RegistryItemRow {
   currency: string;
   quantity: number;
   sort: number;
+  kind: "gift" | "cash";
+  mobilepay_number: string | null;
   created_at: string;
 }
 
@@ -366,5 +371,49 @@ export interface RegistryClaimRow {
   guest_email: string | null;
   message: string | null;
   quantity: number;
+  created_at: string;
+}
+
+// ── Guest-site extensions (migration 0011) ──────────────────────────────
+
+export interface AccommodationRoomRow {
+  id: string;
+  event_id: string;
+  user_id: string;
+  name: string;
+  description: string | null;
+  capacity: number;
+  price_per_spot_cents: number | null;
+  currency: string;
+  sort: number;
+  created_at: string;
+}
+
+export type ReservationStatus = "confirmed" | "waitlist";
+
+export interface AccommodationReservationRow {
+  id: string;
+  room_id: string;
+  event_id: string;
+  user_id: string;
+  guest_id: string | null;
+  guest_name: string;
+  guest_email: string | null;
+  spots: number;
+  status: ReservationStatus;
+  created_at: string;
+}
+
+export interface SitePhotoRow {
+  id: string;
+  event_id: string;
+  user_id: string;
+  uploader_name: string | null;
+  storage_path: string;
+  content_type: string | null;
+  size_bytes: number | null;
+  uploaded_by: "guest" | "couple";
+  hidden: boolean;
+  consent_at: string | null;
   created_at: string;
 }

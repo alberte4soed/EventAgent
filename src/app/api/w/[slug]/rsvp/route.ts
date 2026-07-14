@@ -1,6 +1,8 @@
 import { NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { matchGuest } from "@/lib/rsvp";
+import { matchGuest, sanitizeRsvpExtras } from "@/lib/rsvp";
+import { notifyCoupleOfRsvp } from "@/lib/rsvp-notify";
+import { parseConfig } from "@/kalas/site/config";
 import type { GuestRow, WeddingSiteRow } from "@/lib/db/types";
 
 /**
@@ -14,6 +16,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     token?: string | null; name?: string; email?: string | null;
     attending?: boolean; plusOne?: boolean; plusOneName?: string | null;
     meal?: string | null; dietary?: string | null; note?: string | null; company?: string;
+    events?: Record<string, unknown> | null;
+    answers?: Record<string, unknown> | null;
+    childrenCount?: unknown;
   };
 
   if (body.company) return Response.json({ ok: true }); // honeypot — pretend success
@@ -32,6 +37,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     .from("guests").select("*").eq("event_id", site.event_id);
   const guests = (guestRows as GuestRow[] | null) ?? [];
 
+  const config = parseConfig(site.config);
+  const extras = sanitizeRsvpExtras(config, {
+    events: body.events, answers: body.answers, childrenCount: body.childrenCount,
+  });
+
   const match = matchGuest(guests, { token: body.token, email: body.email ?? null, name });
   const patch = {
     rsvp: body.attending ? "ja" : "nej",
@@ -42,17 +52,28 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     dietary: body.dietary?.trim() || null,
     notes: body.note?.trim() || null,
     responded_at: new Date().toISOString(),
+    ...extras,
   };
 
+  let guestId: string;
   if (match) {
     const { error } = await admin.from("guests").update(patch).eq("id", match.id);
     if (error) return Response.json({ error: error.message }, { status: 500 });
+    guestId = match.id;
   } else {
-    const { error } = await admin.from("guests").insert({
+    const { data, error } = await admin.from("guests").insert({
       event_id: site.event_id, user_id: site.user_id, name, side: "Fælles", ...patch,
-    });
+    }).select("id").single();
     if (error) return Response.json({ error: error.message }, { status: 500 });
+    guestId = (data as { id: string }).id;
   }
 
-  return Response.json({ ok: true });
+  // Best-effort notification to the couple — never blocks the guest's answer.
+  try {
+    await notifyCoupleOfRsvp({ site, config, guest: { name, ...patch } });
+  } catch (err) {
+    console.error("[rsvp] notification failed:", err);
+  }
+
+  return Response.json({ ok: true, guestId });
 }

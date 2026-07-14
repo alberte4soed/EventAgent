@@ -10,7 +10,9 @@ import { IMAGES } from '../data';
 import { useLang } from '../i18n';
 import type { SiteConfig } from './config';
 import { findLens, findColors, findFont } from './config';
-import type { RegistryItemRow } from '@/lib/db/types';
+import { Monogram } from './Monogram';
+import type { RegistryItemRow, AccommodationRoomRow } from '@/lib/db/types';
+import type { RoomAvailability } from '@/lib/accommodation';
 
 export type PublicCouple = { a: string; b: string; dateLabel: string; dateISO: string | null };
 
@@ -24,12 +26,17 @@ function daysUntil(dateISO: string | null): number {
 }
 
 export function SiteRenderer({
-  couple, config, registryItems = [], claimedByItem = {}, onRsvp, onClaim,
+  couple, config, registryItems = [], claimedByItem = {}, rooms = [], availability = {},
+  monogramUrl, slug, onRsvp, onClaim,
 }: {
   couple: PublicCouple;
   config: SiteConfig;
   registryItems?: RegistryItemRow[];
   claimedByItem?: Record<string, number>;
+  rooms?: AccommodationRoomRow[];
+  availability?: Record<string, RoomAvailability>;
+  monogramUrl?: string | null;
+  slug?: string;
   onRsvp?: () => void;
   onClaim?: (item: RegistryItemRow) => void;
 }) {
@@ -51,7 +58,12 @@ export function SiteRenderer({
       {/* Nav */}
       <nav className="sticky top-0 z-20 flex items-center justify-between px-6 py-4 backdrop-blur-md sm:px-10"
         style={{ background: `${colors.bg}E6`, borderBottom: `1px solid ${colors.text}14` }}>
-        <span style={heading} className="text-[1.05rem]">{names}</span>
+        {config.monogram ? (
+          <Monogram a={couple.a} b={couple.b} style={config.monogramStyle} imageUrl={monogramUrl}
+            color={colors.text} fontFamily={font.style.fontFamily} size={36} />
+        ) : (
+          <span style={heading} className="text-[1.05rem]">{names}</span>
+        )}
         <div className="hidden items-center gap-5 sm:flex">
           {on('story') && <a href="#story" className="text-[0.72rem] uppercase tracking-[0.14em] opacity-70 hover:opacity-100">{t('Historie')}</a>}
           {on('program') && <a href="#program" className="text-[0.72rem] uppercase tracking-[0.14em] opacity-70 hover:opacity-100">{t('Program')}</a>}
@@ -73,6 +85,12 @@ export function SiteRenderer({
           ))}
         </div>
         <div className="relative">
+          {config.monogram && (
+            <div className="mb-4 flex justify-center">
+              <Monogram a={couple.a} b={couple.b} style={config.monogramStyle} imageUrl={monogramUrl}
+                color="#ffffff" fontFamily={font.style.fontFamily} size={64} />
+            </div>
+          )}
           <p className="mb-3 text-[0.75rem] uppercase tracking-[0.34em] text-white/80">{couple.dateLabel}</p>
           <h1 className="text-white" style={{ ...heading, fontSize: 'clamp(2.6rem,9vw,6rem)', lineHeight: 1.05 }}>{names}</h1>
           <p className="mt-4 text-[0.95rem] text-white/85">{config.heroTagline}</p>
@@ -134,9 +152,13 @@ export function SiteRenderer({
           <section id="gifts" className="mb-24">
             <div className="text-center">{kicker(t('Gaveønsker'))}</div>
             {config.giftsText && <p className="mx-auto mb-8 max-w-xl text-center text-[0.98rem] leading-relaxed opacity-80">{config.giftsText}</p>}
-            {registryItems.length > 0 && (
+            {/* Pengeønsker (cash gifts) — MobilePay box, not claimable */}
+            {registryItems.filter((it) => it.kind === 'cash').map((it) => (
+              <CashGiftBox key={it.id} item={it} colors={colors} heading={heading} />
+            ))}
+            {registryItems.filter((it) => it.kind !== 'cash').length > 0 && (
               <div className="grid gap-4 sm:grid-cols-2">
-                {registryItems.map((it) => {
+                {registryItems.filter((it) => it.kind !== 'cash').map((it) => {
                   const claimed = claimedByItem[it.id] ?? 0;
                   const left = Math.max(0, it.quantity - claimed);
                   return (
@@ -181,26 +203,110 @@ export function SiteRenderer({
         )}
 
         {on('transport') && config.transport && (
-          <TextSection id="transport" kicker={kicker} title={t('Transport')} body={config.transport} colors={colors} />
+          <section id="transport" className="mb-24 text-center">
+            {kicker(t('Transport'))}
+            <p className="mx-auto max-w-xl whitespace-pre-line text-[0.98rem] leading-relaxed opacity-80">{config.transport}</p>
+            {config.showMap && (config.mapQuery || config.transport) && (
+              <div className="mx-auto mt-6 max-w-xl overflow-hidden rounded-2xl" style={{ border: `1px solid ${colors.text}18` }}>
+                <iframe
+                  title={t('Kort')}
+                  src={`https://www.google.com/maps?q=${encodeURIComponent(config.mapQuery || config.transport)}&output=embed`}
+                  className="h-64 w-full"
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                />
+              </div>
+            )}
+          </section>
         )}
         {on('dresscode') && config.dresscode && (
           <TextSection title={t('Dresscode')} kicker={kicker} body={config.dresscode} colors={colors} />
         )}
 
-        {on('hotel') && config.hotels.length > 0 && (
+        {on('hotel') && (config.hotels.length > 0 || rooms.length > 0) && (
           <section className="mb-24">
             <div className="text-center">{kicker(t('Overnatning'))}</div>
-            <div className="mx-auto max-w-md space-y-3">
-              {config.hotels.map((h) => (
-                <div key={h.id} className="flex items-center justify-between gap-4 rounded-xl px-5 py-4" style={{ border: `1px solid ${colors.text}18` }}>
-                  <div>
-                    <p className="text-[0.98rem]" style={{ ...heading, fontSize: '1rem' }}>{h.name}</p>
-                    <p className="text-[0.82rem] opacity-60">{h.dist}</p>
-                  </div>
-                  <span className="shrink-0 text-[0.82rem] opacity-70">{h.price}</span>
+
+            {/* On-site rooms — reserved through the RSVP flow */}
+            {rooms.length > 0 && (
+              <div className="mx-auto mb-8 max-w-md">
+                <p className="mb-3 text-center text-[0.9rem] opacity-75">{t('Der er sovepladser på stedet — vælg jeres plads når I svarer på invitationen.')}</p>
+                <div className="space-y-3">
+                  {rooms.map((room) => {
+                    const avail = availability[room.id];
+                    const free = avail?.free ?? room.capacity;
+                    return (
+                      <div key={room.id} className="flex items-center justify-between gap-4 rounded-xl px-5 py-4" style={{ border: `1px solid ${colors.text}18` }}>
+                        <div>
+                          <p className="text-[0.98rem]" style={{ ...heading, fontSize: '1rem' }}>{room.name}</p>
+                          {room.description && <p className="text-[0.82rem] opacity-60">{room.description}</p>}
+                          {room.price_per_spot_cents != null && (
+                            <p className="text-[0.82rem] opacity-60">{(room.price_per_spot_cents / 100).toLocaleString('da-DK')} {room.currency} {t('pr. plads')}</p>
+                          )}
+                        </div>
+                        <span className="shrink-0 rounded-full px-3 py-1 text-[0.74rem] font-medium"
+                          style={free > 0
+                            ? { background: `${colors.accent}30`, color: colors.text }
+                            : { border: `1px solid ${colors.text}25`, opacity: 0.6 }}>
+                          {free > 0 ? t('{n} ledige', { n: String(free) }) : t('Venteliste')}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
-              ))}
-            </div>
+                {on('rsvp') && (
+                  <div className="mt-4 text-center">
+                    <button onClick={onRsvp} className="rounded-full px-5 py-2 text-[0.72rem] font-semibold uppercase tracking-[0.14em] cursor-pointer transition-opacity hover:opacity-85"
+                      style={{ background: colors.accent, color: colors.bg }}>{t('Reservér via RSVP')}</button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Recommended hotels nearby */}
+            {config.hotels.length > 0 && (
+              <div className="mx-auto max-w-md space-y-3">
+                {config.hotels.map((h) => (
+                  <div key={h.id} className="rounded-xl px-5 py-4" style={{ border: `1px solid ${colors.text}18` }}>
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <p className="text-[0.98rem]" style={{ ...heading, fontSize: '1rem' }}>{h.name}</p>
+                        <p className="text-[0.82rem] opacity-60">{h.dist}</p>
+                      </div>
+                      <span className="shrink-0 text-[0.82rem] opacity-70">{h.price}</span>
+                    </div>
+                    {(h.url || h.code || h.mapQuery || h.name) && (
+                      <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                        {h.url && (
+                          <a href={h.url} target="_blank" rel="noopener noreferrer"
+                            className="rounded-full px-3 py-1 text-[0.7rem] font-semibold"
+                            style={{ background: colors.accent, color: colors.bg }}>{t('Book')}</a>
+                        )}
+                        <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(h.mapQuery || h.name)}`}
+                          target="_blank" rel="noopener noreferrer"
+                          className="rounded-full px-3 py-1 text-[0.7rem] font-medium"
+                          style={{ border: `1px solid ${colors.text}25` }}>{t('Se på kort')} ↗</a>
+                        {h.code && (
+                          <span className="text-[0.72rem] opacity-70">{t('Rabatkode')}: <span className="font-mono">{h.code}</span></span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
+        {on('photos') && slug && (
+          <section className="mb-24 text-center">
+            {kicker(t('Del jeres billeder'))}
+            <p className="mx-auto mb-6 max-w-md text-[0.98rem] opacity-80">
+              {t('Har I taget billeder? Upload dem direkte fra telefonen — helt uden login.')}
+            </p>
+            <a href={`/w/${slug}/photos`}
+              className="inline-block rounded-full px-7 py-3 text-[0.78rem] font-semibold uppercase tracking-[0.16em] transition-opacity hover:opacity-85"
+              style={{ background: colors.accent, color: colors.bg }}>{t('Del billeder')}</a>
           </section>
         )}
 
@@ -232,11 +338,52 @@ export function SiteRenderer({
         )}
       </main>
 
-      {!config.hideBranding && (
-        <footer className="py-10 text-center" style={{ borderTop: `1px solid ${colors.text}12` }}>
-          <span className="text-[0.72rem] uppercase tracking-[0.2em] opacity-40">{t('Lavet med')} </span>
-          <span className="font-serif text-[0.9rem] tracking-[0.12em] opacity-60">Kalas</span>
-        </footer>
+      <footer className="py-10 text-center" style={{ borderTop: `1px solid ${colors.text}12` }}>
+        {config.monogram && (
+          <div className="mb-4 flex justify-center opacity-70">
+            <Monogram a={couple.a} b={couple.b} style={config.monogramStyle} imageUrl={monogramUrl}
+              color={colors.text} fontFamily={font.style.fontFamily} size={44} />
+          </div>
+        )}
+        {!config.hideBranding && (
+          <div>
+            <span className="text-[0.72rem] uppercase tracking-[0.2em] opacity-40">{t('Lavet med')} </span>
+            <span className="font-serif text-[0.9rem] tracking-[0.12em] opacity-60">Kalas</span>
+          </div>
+        )}
+      </footer>
+    </div>
+  );
+}
+
+/* Cash gift (pengeønske): MobilePay box with a copy button — no reservation. */
+function CashGiftBox({ item, colors, heading }: {
+  item: RegistryItemRow;
+  colors: { bg: string; text: string; accent: string };
+  heading: React.CSSProperties;
+}) {
+  const { t } = useLang();
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    if (!item.mobilepay_number) return;
+    navigator.clipboard.writeText(item.mobilepay_number).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1600);
+  };
+  return (
+    <div className="mx-auto mb-6 max-w-md rounded-2xl px-6 py-5 text-center"
+      style={{ border: `1px solid ${colors.accent}`, background: `${colors.accent}14` }}>
+      <p className="text-[1.05rem]" style={{ ...heading, fontSize: '1.1rem' }}>{item.title}</p>
+      {item.description && <p className="mt-1 text-[0.88rem] opacity-75">{item.description}</p>}
+      {item.mobilepay_number && (
+        <div className="mt-3 inline-flex items-center gap-2 rounded-full px-4 py-2"
+          style={{ background: colors.bg, border: `1px solid ${colors.text}20` }}>
+          <span className="text-[0.82rem] font-semibold">MobilePay</span>
+          <span className="font-mono text-[0.92rem] tabular-nums">{item.mobilepay_number}</span>
+          <button onClick={copy} className="cursor-pointer text-[0.72rem] font-medium opacity-70 hover:opacity-100">
+            {copied ? t('Kopieret') : t('Kopiér')}
+          </button>
+        </div>
       )}
     </div>
   );

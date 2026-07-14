@@ -2,8 +2,12 @@ import { notFound } from "next/navigation";
 import { cookies } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { parseConfig } from "@/kalas/site/config";
-import { siteCookieName, siteCookieValue } from "@/lib/site-auth";
-import type { EventRow, ProfileRow, RegistryItemRow, RegistryClaimRow, WeddingSiteRow, AppLanguage } from "@/lib/db/types";
+import { siteCookieName, isSiteLocked } from "@/lib/site-auth";
+import { roomAvailability } from "@/lib/accommodation";
+import type {
+  EventRow, ProfileRow, RegistryItemRow, RegistryClaimRow, WeddingSiteRow, AppLanguage,
+  AccommodationRoomRow, AccommodationReservationRow,
+} from "@/lib/db/types";
 import { PublicSite } from "./PublicSite";
 
 export const dynamic = "force-dynamic";
@@ -37,11 +41,13 @@ export default async function PublicWeddingSite({
   const site = siteRow as WeddingSiteRow | null;
   if (!site || !site.published) notFound();
 
-  const [{ data: eventRow }, { data: profileRow }, { data: items }, { data: claims }] = await Promise.all([
+  const [{ data: eventRow }, { data: profileRow }, { data: items }, { data: claims }, { data: roomRows }, { data: resRows }] = await Promise.all([
     admin.from("events").select("*").eq("id", site.event_id).maybeSingle(),
     admin.from("profiles").select("*").eq("user_id", site.user_id).maybeSingle(),
     admin.from("registry_items").select("*").eq("event_id", site.event_id).order("sort"),
     admin.from("registry_claims").select("item_id, quantity").eq("event_id", site.event_id),
+    admin.from("accommodation_rooms").select("*").eq("event_id", site.event_id).order("sort"),
+    admin.from("accommodation_reservations").select("room_id, spots, status").eq("event_id", site.event_id),
   ]);
   const event = eventRow as EventRow | null;
   if (!event) notFound();
@@ -56,14 +62,24 @@ export default async function PublicWeddingSite({
     claimedByItem[c.item_id] = (claimedByItem[c.item_id] ?? 0) + (c.quantity ?? 1);
   }
 
+  const rooms = (roomRows as AccommodationRoomRow[] | null) ?? [];
+  const availability = roomAvailability(
+    rooms,
+    ((resRows as Pick<AccommodationReservationRow, "room_id" | "spots" | "status">[] | null) ?? [])
+  );
+
+  // Uploaded monogram lives in the private site-photos bucket → signed URL.
+  let monogramUrl: string | null = null;
+  if (config.monogram && config.monogramImagePath) {
+    const { data: signed } = await admin.storage
+      .from("site-photos").createSignedUrl(config.monogramImagePath, 3600);
+    monogramUrl = signed?.signedUrl ?? null;
+  }
+
   // Password gate: the raw password never leaves the server; we compare the
   // signed cookie against the expected value.
-  const rawPassword = typeof site.config?.sitePassword === "string" ? (site.config.sitePassword as string) : "";
-  let locked = false;
-  if (config.pwProtected && rawPassword) {
-    const jar = await cookies();
-    locked = jar.get(siteCookieName(slug))?.value !== siteCookieValue(slug, rawPassword);
-  }
+  const jar = await cookies();
+  const locked = isSiteLocked(slug, site.config, jar.get(siteCookieName(slug))?.value);
 
   return (
     <PublicSite
@@ -72,6 +88,9 @@ export default async function PublicWeddingSite({
       config={config}
       registryItems={registryItems}
       claimedByItem={claimedByItem}
+      rooms={rooms}
+      availability={availability}
+      monogramUrl={monogramUrl}
       lang={lang}
       locked={locked}
       rsvpToken={rsvpToken ?? null}

@@ -433,6 +433,49 @@ export const EN: Record<string, string> = {
     "You share one plan — no duplicate lists or copy-pasting. Optional.",
   'Indlæser kloden…': 'Loading the globe…',
 
+  // Guest site: extended RSVP, accommodation, photo sharing, gifts, map
+  'Hvad deltager I i?': 'Which parts will you attend?',
+  'Antal børn': 'Number of children',
+  'Ønsker I overnatning?': 'Would you like to stay overnight?',
+  'Der er sovepladser på stedet — først til mølle.': 'There are sleeping spots at the venue — first come, first served.',
+  'Der er sovepladser på stedet — vælg jeres plads når I svarer på invitationen.':
+    'There are sleeping spots at the venue — pick yours when you RSVP.',
+  'pr. plads': 'per spot',
+  '{n} ledige': '{n} available',
+  'Venteliste': 'Waitlist',
+  'Antal pladser': 'Number of spots',
+  'Reservér soveplads': 'Reserve sleeping spot',
+  'Reservér via RSVP': 'Reserve via RSVP',
+  'Nej tak': 'No thanks',
+  'Jeres soveplads er reserveret.': 'Your sleeping spot is reserved.',
+  'I er skrevet på ventelisten til en soveplads — brudeparret vender tilbage.':
+    "You're on the waitlist for a sleeping spot — the couple will get back to you.",
+  'Kort': 'Map',
+  'Book': 'Book',
+  'Se på kort': 'View on map',
+  'Rabatkode': 'Discount code',
+  'Del jeres billeder': 'Share your photos',
+  'Del billeder': 'Share photos',
+  'Har I taget billeder? Upload dem direkte fra telefonen — helt uden login.':
+    'Took any photos? Upload them straight from your phone — no login needed.',
+  'Upload billeder fra dagen direkte fra telefonen — de samles i ét fælles galleri til brudeparret.':
+    'Upload photos from the day straight from your phone — they all land in one shared gallery for the couple.',
+  'Dit navn (valgfrit)': 'Your name (optional)',
+  'Jeg giver samtykke til, at billederne deles med brudeparret og deres gæster.':
+    'I consent to my photos being shared with the couple and their guests.',
+  'Uploader…': 'Uploading…',
+  'Vælg billeder': 'Choose photos',
+  'Sæt kryds i samtykke for at uploade.': 'Tick the consent box to upload.',
+  'Tak! {n} billeder er delt.': 'Thank you! {n} photos shared.',
+  'Billedet er for stort (maks. 25 MB).': 'The photo is too large (max 25 MB).',
+  'Galleriet er fyldt — tak for alle billederne!': 'The gallery is full — thank you for all the photos!',
+  'Ingen billeder endnu — bliv den første!': 'No photos yet — be the first!',
+  'Gæsternes billeder vises efter den store dag.': "Guests' photos appear after the big day.",
+  'Pengeønske': 'Cash gift',
+  'Bidrag til bryllupsrejsen': 'Contribution to the honeymoon',
+  'Kort besked til gæsterne (valgfrit)': 'Short note to your guests (optional)',
+  'MobilePay-nummer': 'MobilePay number',
+
   // Destination labels (source Danish → English)
   'København': 'Copenhagen',
   'Toscana': 'Tuscany',

@@ -3,107 +3,41 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   Check, Globe, Smartphone, Plus, X, ChevronDown, Trash2,
   Lock, Copy, Eye, EyeOff, MapPin, Gift, HelpCircle, Bed,
-  Camera, Clock, BookOpen, Image, QrCode,
+  Camera, Clock, BookOpen, Image, Download,
 } from 'lucide-react';
-import { IMAGES as IMG, moodboard, guests, TODAY } from '../data';
+import { IMAGES as IMG, TODAY } from '../data';
 import { Eyebrow, cn } from '../ui';
 import OnboardingHint from '../OnboardingHint';
 import { useWedding } from '../useWedding';
 import type { Couple } from '../useWedding';
+import { roomAvailability } from '@/lib/accommodation';
+import { qrSvg, qrPngDataUrl } from '@/lib/qr';
+import { createClient as createSupabaseClient } from '@/lib/supabase/client';
+import type { AccommodationRoomRow, AccommodationReservationRow, SitePhotoRow } from '@/lib/db/types';
 
-const slugify = (s: string) =>
-  s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
-    .replace(/æ/g, 'ae').replace(/ø/g, 'oe').replace(/å/g, 'aa')
-    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'os';
+import {
+  slugify, LENSES, WEBSITE_COLORS, FONTS, LAYOUTS,
+  INIT_SECTIONS, INIT_PROGRAM, INIT_FAQ, INIT_HOTELS, GALLERY_KEYS,
+  MONOGRAM_STYLES,
+} from '../site/config';
+import type {
+  ProgramEvent, FAQItem, HotelItem, RsvpSubEvent, RsvpQuestion,
+  SectionId, SectionMeta, WebColor, WebFont, MonogramStyle,
+} from '../site/config';
+import { Monogram } from '../site/Monogram';
 
-/* ── Types ───────────────────────────────────────────────────────────── */
-type ProgramEvent = { id: string; time: string; label: string; sublabel: string };
-type FAQItem      = { id: string; q: string; a: string };
-type HotelItem    = { id: string; name: string; dist: string; price: string };
-type SectionId    = 'hero' | 'story' | 'program' | 'rsvp' | 'gallery' | 'transport' | 'dresscode' | 'gifts' | 'hotel' | 'faq' | 'photos';
-type SectionMeta  = { id: SectionId; label: string; desc: string; enabled: boolean; locked?: boolean };
-type WTab         = 'design' | 'indhold' | 'indstillinger';
-
-/* ── Lenses ──────────────────────────────────────────────────────────── */
-const LENSES = [
-  { id: 'editorial',  name: 'The Editorial',  tagline: 'Magasin-grid, store overskrifter, sat i serif.', image: 'invitation' as const, dark: false },
-  { id: 'minimalist', name: 'The Minimalist', tagline: 'Luft, ro og næsten ingenting.',                   image: 'rings'      as const, dark: false },
-  { id: 'organic',    name: 'The Organic',    tagline: 'Jordnær, botanisk og varm fornemmelse.',          image: 'olive'      as const, dark: false },
-  { id: 'garden',     name: 'The Garden',     tagline: 'Lyst orangeri, grønt overalt.',                  image: 'orangeri'   as const, dark: false },
-  { id: 'waterside',  name: 'The Waterside',  tagline: 'Skumring ved vandet, varmt lys.',                image: 'lavender'   as const, dark: false },
-  { id: 'noir',       name: 'Noir',           tagline: 'Mørk, dramatisk og luksuriøs.',                  image: 'candles'    as const, dark: true  },
-  { id: 'botanical',  name: 'Botanical',      tagline: 'Blomster overalt, sommerhave-stemning.',         image: 'florals'    as const, dark: false },
-  { id: 'ceremony',   name: 'The Ceremony',   tagline: 'Højtideligt, naturelt og klassisk.',             image: 'ceremony'   as const, dark: false },
-];
-
-/* ── Colors ──────────────────────────────────────────────────────────── */
-type WebColor = { id: string; name: string; bg: string; text: string; accent: string; detail: string };
-const WEBSITE_COLORS: WebColor[] = [
-  { id: 'oat-forest',  name: 'OAT &\nFOREST',   bg: '#F2EDE4', text: '#2C3826', accent: '#AEB080', detail: '#4A4E3C' },
-  { id: 'paper-noir',  name: 'PAPER &\nNOIR',    bg: '#FAFAF8', text: '#1A1A16', accent: '#C8C4B8', detail: '#3D3D38' },
-  { id: 'clay-sand',   name: 'CLAY &\nSAND',     bg: '#F0E8DC', text: '#4A2E1A', accent: '#C17B5C', detail: '#6B3E2A' },
-  { id: 'garden',      name: 'GARDEN',            bg: '#ECF2E6', text: '#2A3D1E', accent: '#7DAA5A', detail: '#3D5C2A' },
-  { id: 'waterside',   name: 'WATERSIDE',         bg: '#E8EFF5', text: '#1E3042', accent: '#7AA4C2', detail: '#2E5C82' },
-  { id: 'blush',       name: 'BLUSH',             bg: '#F7EDEB', text: '#3D1E24', accent: '#C28A90', detail: '#6B3A42' },
-];
-
-/* ── Fonts ───────────────────────────────────────────────────────────── */
-type WebFont = { id: string; name: string; pairs: string; style: React.CSSProperties };
-const FONTS: WebFont[] = [
-  { id: 'editorial-serif',  name: 'Editorial Serif',  pairs: 'Cormorant Garamond · Inter',     style: { fontFamily: 'Georgia, serif', fontStyle: 'italic', fontSize: '1.35rem' } },
-  { id: 'klassisk-magasin', name: 'Klassisk Magasin', pairs: 'Playfair Display · Inter',       style: { fontFamily: 'Georgia, serif', fontWeight: '700', fontSize: '1.25rem', letterSpacing: '-0.02em' } },
-  { id: 'moderne-kontrast', name: 'Moderne Kontrast', pairs: 'DM Serif Display · Work Sans',  style: { fontFamily: 'Georgia, serif', fontSize: '1.2rem', letterSpacing: '0.01em' } },
-  { id: 'stille-og-varm',   name: 'Stille og Varm',   pairs: 'Instrument Serif · Plus Jakarta',style: { fontFamily: 'Georgia, serif', fontWeight: '300', fontSize: '1.3rem', letterSpacing: '0.03em' } },
-  { id: 'ren-sans-serif',   name: 'Ren Sans-Serif',   pairs: 'IBM Plex Sans · Inter',          style: { fontFamily: 'system-ui, sans-serif', fontWeight: '300', fontSize: '1.15rem', letterSpacing: '0.06em' } },
-];
-
-/* ── Layouts ─────────────────────────────────────────────────────────── */
-const LAYOUTS = [
-  { id: 'centered', name: 'Centered', desc: 'Navne midt på, dato over, RSVP under.' },
-  { id: 'split',    name: 'Split',    desc: 'Billede på den ene halvdel, tekst på den anden.' },
-  { id: 'magazine', name: 'Magazine', desc: 'Stor headline øverst, billede-grid nedenunder.' },
-];
-
-/* ── Sections ────────────────────────────────────────────────────────── */
-const INIT_SECTIONS: SectionMeta[] = [
-  { id: 'hero',      label: 'Forside',           desc: 'Navne, dato & velkomstbesked',       enabled: true, locked: true },
-  { id: 'story',     label: 'Vores historie',    desc: 'Fortæl jeres kærlighedshistorie',    enabled: true  },
-  { id: 'program',   label: 'Program for dagen', desc: 'Tidslinje med programpunkter',       enabled: true  },
-  { id: 'rsvp',      label: 'RSVP',              desc: 'Tilmeldingsformular til gæsterne',   enabled: true  },
-  { id: 'gallery',   label: 'Galleri',           desc: 'Billeder fra jeres moodboard',       enabled: true  },
-  { id: 'transport', label: 'Transport',          desc: 'Adresse og vejledning til stedet',   enabled: false },
-  { id: 'dresscode', label: 'Dresscode',          desc: 'Hvad gæsterne skal have på',        enabled: false },
-  { id: 'gifts',     label: 'Gaveønsker',         desc: 'Ønskeliste eller bidrag til rejse', enabled: false },
-  { id: 'hotel',     label: 'Overnatning',        desc: 'Anbefalede hoteller tæt på stedet', enabled: false },
-  { id: 'faq',       label: 'FAQ for gæster',    desc: 'Svar på de hyppige spørgsmål',      enabled: false },
-  { id: 'photos',    label: 'Del billeder',       desc: 'Gæsterne uploader deres fotos',     enabled: true  },
-];
-
-const INIT_PROGRAM: ProgramEvent[] = [
-  { id: 'e1', time: '14:00', label: 'Vielse',                sublabel: 'Sonnerupgaard Kapel' },
-  { id: 'e2', time: '15:30', label: 'Velkomst & champagne',  sublabel: 'Terrassen'           },
-  { id: 'e3', time: '18:00', label: 'Middag',                sublabel: 'Den store sal'       },
-  { id: 'e4', time: '22:00', label: 'Fest, musik & dans',    sublabel: ''                    },
-];
-
-const INIT_FAQ: FAQItem[] = [
-  { id: 'f1', q: 'Hvad er dresscode?',          a: 'Festligt og elegant. Kvinder bedes undgå hvid eller cremefarvet.' },
-  { id: 'f2', q: 'Er der parkering på stedet?', a: 'Ja, gratis parkering. Følg skilte fra indkørslen.'               },
-  { id: 'f3', q: 'Hvornår er RSVP-deadline?',   a: `1. august 2026.`                                                  },
-];
-
-const INIT_HOTELS: HotelItem[] = [
-  { id: 'h1', name: 'Hotel Comwell Roskilde', dist: '8 km fra stedet', price: 'fra 1.200 kr/nat' },
-  { id: 'h2', name: 'Airbnb i området',       dist: '2–5 km',          price: 'fra 800 kr/nat'  },
-];
-
-const GALLERY_KEYS: (keyof typeof IMG)[] = ['florals', 'olive', 'candles', 'arch', 'ceremony', 'rings'];
+type WTab = 'design' | 'indhold' | 'indstillinger';
 
 /* ══════════════════════════════════════════════════════════════════════
    MAIN EXPORT
 ══════════════════════════════════════════════════════════════════════ */
 export default function Website() {
-  const { couple, loading, weddingSite, saveSite } = useWedding();
+  const {
+    couple, loading, weddingSite, saveSite, guests: guestRows,
+    accommodationRooms, accommodationReservations, addRoom, updateRoom, deleteRoom,
+    updateReservation, deleteReservation,
+    sitePhotos, updateSitePhoto, removeSitePhoto,
+  } = useWedding();
   const [tab,      setTab]      = useState<WTab>('design');
 
   /* Design */
@@ -124,11 +58,20 @@ export default function Website() {
   const [rsvpPlusOne,  setRsvpPlusOne]  = useState(true);
   const [rsvpMeal,     setRsvpMeal]     = useState(true);
   const [rsvpDietary,  setRsvpDietary]  = useState(true);
+  const [rsvpEvents,   setRsvpEvents]   = useState<RsvpSubEvent[]>([]);
+  const [rsvpQuestions,setRsvpQuestions]= useState<RsvpQuestion[]>([]);
+  const [rsvpChildren, setRsvpChildren] = useState(false);
   const [galleryKeys,  setGalleryKeys]  = useState<Set<keyof typeof IMG>>(new Set(['florals', 'olive', 'candles', 'arch']));
   const [transport,    setTransport]    = useState('Sonnerupgaard Gods, Sonnerupvej 8, 4060 Kirke Såby');
   const [dresscode,    setDresscode]    = useState('Festligt og elegant. Vi elsker at se jer klædt på til fejring. Kvinder bedes venligst undgå hvid eller cremefarvet.');
   const [giftsText,    setGiftsText]    = useState('Din tilstedeværelse er vores største gave. Har du lyst til at give noget, sætter vi stor pris på bidrag til vores bryllupsrejse.');
   const [giftsUrl,     setGiftsUrl]     = useState('');
+  const [mapQuery,     setMapQuery]     = useState('');
+  const [showMap,      setShowMap]      = useState(true);
+  const [photoWallOpen,setPhotoWallOpen]= useState(false);
+  const [monogram,     setMonogram]     = useState(true);
+  const [monogramStyle,setMonogramStyle]= useState<MonogramStyle>('initials-amp');
+  const [monogramImagePath, setMonogramImagePath] = useState('');
   const [faq,          setFaq]          = useState<FAQItem[]>(INIT_FAQ);
   const [hotels,       setHotels]       = useState<HotelItem[]>(INIT_HOTELS);
 
@@ -165,11 +108,21 @@ export default function Website() {
       if (typeof c.rsvpPlusOne === 'boolean') setRsvpPlusOne(c.rsvpPlusOne);
       if (typeof c.rsvpMeal === 'boolean') setRsvpMeal(c.rsvpMeal);
       if (typeof c.rsvpDietary === 'boolean') setRsvpDietary(c.rsvpDietary);
+      if (Array.isArray(c.rsvpEvents)) setRsvpEvents(c.rsvpEvents as RsvpSubEvent[]);
+      if (Array.isArray(c.rsvpQuestions)) setRsvpQuestions(c.rsvpQuestions as RsvpQuestion[]);
+      if (typeof c.rsvpChildren === 'boolean') setRsvpChildren(c.rsvpChildren);
       if (Array.isArray(c.galleryKeys)) setGalleryKeys(new Set(c.galleryKeys as (keyof typeof IMG)[]));
       if (typeof c.transport === 'string') setTransport(c.transport);
       if (typeof c.dresscode === 'string') setDresscode(c.dresscode);
       if (typeof c.giftsText === 'string') setGiftsText(c.giftsText);
       if (typeof c.giftsUrl === 'string') setGiftsUrl(c.giftsUrl);
+      if (typeof c.mapQuery === 'string') setMapQuery(c.mapQuery);
+      if (typeof c.showMap === 'boolean') setShowMap(c.showMap);
+      if (typeof c.photoWallOpen === 'boolean') setPhotoWallOpen(c.photoWallOpen);
+      if (typeof c.monogram === 'boolean') setMonogram(c.monogram);
+      if (typeof c.monogramStyle === 'string' && (MONOGRAM_STYLES as readonly string[]).includes(c.monogramStyle))
+        setMonogramStyle(c.monogramStyle as MonogramStyle);
+      if (typeof c.monogramImagePath === 'string') setMonogramImagePath(c.monogramImagePath);
       if (Array.isArray(c.faq)) setFaq(c.faq as FAQItem[]);
       if (Array.isArray(c.hotels)) setHotels(c.hotels as HotelItem[]);
       if (typeof c.pwProtected === 'boolean') setPwProtected(c.pwProtected);
@@ -184,10 +137,14 @@ export default function Website() {
     () => ({
       lensId, colorId, fontId, layoutId, sections, heroTagline, storyText, countdown,
       program, rsvpDeadline, rsvpPlusOne, rsvpMeal, rsvpDietary, galleryKeys: [...galleryKeys],
+      rsvpEvents, rsvpQuestions, rsvpChildren, mapQuery, showMap, photoWallOpen,
+      monogram, monogramStyle, monogramImagePath,
       transport, dresscode, giftsText, giftsUrl, faq, hotels, pwProtected, sitePassword, hideBranding,
     }),
     [lensId, colorId, fontId, layoutId, sections, heroTagline, storyText, countdown, program,
      rsvpDeadline, rsvpPlusOne, rsvpMeal, rsvpDietary, galleryKeys, transport, dresscode,
+     rsvpEvents, rsvpQuestions, rsvpChildren, mapQuery, showMap, photoWallOpen,
+     monogram, monogramStyle, monogramImagePath,
      giftsText, giftsUrl, faq, hotels, pwProtected, sitePassword, hideBranding]
   );
 
@@ -438,6 +395,38 @@ export default function Website() {
                   })}
                 </div>
               </section>
+
+              {/* Monogram */}
+              <section>
+                <div className="mb-4 flex items-center justify-between">
+                  <Eyebrow>05 — Monogram</Eyebrow>
+                  <Toggle value={monogram} onChange={setMonogram} />
+                </div>
+                {monogram && (
+                  <>
+                    <div className="grid grid-cols-4 gap-2.5">
+                      {MONOGRAM_STYLES.map((style) => {
+                        const sel = style === monogramStyle && !monogramImagePath;
+                        return (
+                          <button key={style} onClick={() => { setMonogramStyle(style); setMonogramImagePath(''); }}
+                            className={cn('relative flex aspect-square items-center justify-center rounded-xl rule bg-card cursor-pointer transition-all',
+                              sel ? 'ring-2 ring-ink ring-offset-2 ring-offset-canvas' : 'hover:bg-shell/40')}>
+                            <Monogram a={couple.a || 'A'} b={couple.b || 'B'} style={style}
+                              color="var(--color-ink)" fontFamily={font.style.fontFamily} size={44} />
+                            {sel && (
+                              <div className="absolute right-2 top-2 flex h-4 w-4 items-center justify-center rounded-full bg-ink">
+                                <Check size={9} className="text-canvas" />
+                              </div>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <MonogramUpload imagePath={monogramImagePath} onUploaded={setMonogramImagePath} />
+                    <p className="mt-2 text-[0.7rem] text-muted">Vises i toppen af siden, i hero-sektionen og i bunden.</p>
+                  </>
+                )}
+              </section>
             </div>
           </motion.div>
         )}
@@ -524,6 +513,69 @@ export default function Website() {
                   <ToggleRow label="+1 tilladet" value={rsvpPlusOne} onChange={setRsvpPlusOne} />
                   <ToggleRow label="Måltidsvalg (vegetar/standard)" value={rsvpMeal} onChange={setRsvpMeal} />
                   <ToggleRow label="Allergier & kostbehov" value={rsvpDietary} onChange={setRsvpDietary} />
+                  <ToggleRow label="Antal børn" value={rsvpChildren} onChange={setRsvpChildren} />
+
+                  {/* Svar pr. delarrangement */}
+                  <div>
+                    <Label>Delarrangementer (svar pr. event)</Label>
+                    <p className="mb-2 text-[0.7rem] text-muted">Gæsterne svarer ja/nej til hvert punkt — fx fredagshygge, vielse og brunch. Tomt = ét samlet ja/nej.</p>
+                    <div className="space-y-2">
+                      {rsvpEvents.map((ev) => (
+                        <div key={ev.id} className="flex items-start gap-2">
+                          <div className="flex-1 space-y-1.5">
+                            <input value={ev.label}
+                              onChange={(e) => setRsvpEvents((p) => p.map((x) => x.id === ev.id ? { ...x, label: e.target.value } : x))}
+                              className="w-full rounded-lg rule bg-card px-3 py-1.5 text-[0.82rem] text-ink focus:outline-none focus:ring-1 focus:ring-ink/20"
+                              placeholder="Fx Vielse & fest" />
+                            <input value={ev.sublabel}
+                              onChange={(e) => setRsvpEvents((p) => p.map((x) => x.id === ev.id ? { ...x, sublabel: e.target.value } : x))}
+                              className="w-full rounded-lg bg-transparent px-3 py-1 text-[0.74rem] text-muted focus:outline-none"
+                              placeholder="Fx lørdag kl. 14 (valgfrit)" />
+                          </div>
+                          <button onClick={() => setRsvpEvents((p) => p.filter((x) => x.id !== ev.id))}
+                            className="mt-1.5 shrink-0 text-muted hover:text-ink transition-colors cursor-pointer">
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      ))}
+                      <div className="flex items-center gap-4">
+                        <button onClick={() => setRsvpEvents((p) => [...p, { id: `re${Date.now()}`, label: '', sublabel: '' }])}
+                          className="flex items-center gap-2 text-[0.78rem] text-muted hover:text-ink transition-colors cursor-pointer">
+                          <Plus size={14} /> Tilføj delarrangement
+                        </button>
+                        {rsvpEvents.length === 0 && program.length > 0 && (
+                          <button onClick={() => setRsvpEvents(program.map((ev) => ({ id: `re-${ev.id}`, label: ev.label, sublabel: ev.sublabel })))}
+                            className="text-[0.78rem] text-muted hover:text-ink transition-colors cursor-pointer underline underline-offset-2">
+                            Forudfyld fra program
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Egne spørgsmål */}
+                  <div>
+                    <Label>Egne spørgsmål</Label>
+                    <p className="mb-2 text-[0.7rem] text-muted">{'Fx "Hvilken sang får jer på dansegulvet?"'}</p>
+                    <div className="space-y-2">
+                      {rsvpQuestions.map((q) => (
+                        <div key={q.id} className="flex items-center gap-2">
+                          <input value={q.label}
+                            onChange={(e) => setRsvpQuestions((p) => p.map((x) => x.id === q.id ? { ...x, label: e.target.value } : x))}
+                            className="flex-1 rounded-lg rule bg-card px-3 py-1.5 text-[0.82rem] text-ink focus:outline-none focus:ring-1 focus:ring-ink/20"
+                            placeholder="Spørgsmål til gæsterne" />
+                          <button onClick={() => setRsvpQuestions((p) => p.filter((x) => x.id !== q.id))}
+                            className="shrink-0 text-muted hover:text-ink transition-colors cursor-pointer">
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      ))}
+                      <button onClick={() => setRsvpQuestions((p) => [...p, { id: `rq${Date.now()}`, label: '' }])}
+                        className="flex items-center gap-2 text-[0.78rem] text-muted hover:text-ink transition-colors cursor-pointer">
+                        <Plus size={14} /> Tilføj spørgsmål
+                      </button>
+                    </div>
+                  </div>
                 </div>
                 <p className="mt-4 text-[0.72rem] text-muted">Svar synkroniseres automatisk med jeres gæsteliste.</p>
               </SectionCard>
@@ -561,7 +613,18 @@ export default function Website() {
                 icon={<MapPin size={15} />}>
                 <Label>Adresse</Label>
                 <Textarea value={transport} onChange={setTransport} rows={2} placeholder="Venue-navn, adresse, postnummer" />
-                <p className="mt-2 text-[0.7rem] text-muted">Ava tilføjer automatisk et kort-link til gæsterne.</p>
+                <div className="mt-4 flex items-center justify-between">
+                  <Label>Vis kort på siden</Label>
+                  <Toggle value={showMap} onChange={setShowMap} />
+                </div>
+                {showMap && (
+                  <div className="mt-2">
+                    <input value={mapQuery} onChange={(e) => setMapQuery(e.target.value)}
+                      placeholder="Kort-søgning (valgfrit — ellers bruges adressen)"
+                      className="w-full rounded-lg rule bg-card px-3 py-2 text-[0.82rem] text-ink placeholder:text-muted focus:outline-none" />
+                    <p className="mt-1 text-[0.7rem] text-muted">Google Maps indlejres automatisk med denne søgning.</p>
+                  </div>
+                )}
               </SectionCard>
 
               {/* DRESSCODE */}
@@ -606,6 +669,12 @@ export default function Website() {
                             <input value={h.price} onChange={(e) => setHotels((prev) => prev.map((x) => x.id === h.id ? { ...x, price: e.target.value } : x))}
                               className="flex-1 text-[0.75rem] text-muted bg-transparent focus:outline-none" placeholder="Pris" />
                           </div>
+                          <div className="flex gap-3">
+                            <input value={h.url ?? ''} onChange={(e) => setHotels((prev) => prev.map((x) => x.id === h.id ? { ...x, url: e.target.value } : x))}
+                              className="flex-1 text-[0.75rem] text-muted bg-transparent focus:outline-none" placeholder="Booking-link (https://…)" />
+                            <input value={h.code ?? ''} onChange={(e) => setHotels((prev) => prev.map((x) => x.id === h.id ? { ...x, code: e.target.value } : x))}
+                              className="w-28 text-[0.75rem] text-muted bg-transparent focus:outline-none" placeholder="Rabatkode" />
+                          </div>
                         </div>
                         <button onClick={() => setHotels((prev) => prev.filter((x) => x.id !== h.id))}
                           className="shrink-0 text-muted hover:text-ink transition-colors cursor-pointer">
@@ -618,6 +687,23 @@ export default function Website() {
                     className="flex items-center gap-2 text-[0.78rem] text-muted hover:text-ink transition-colors cursor-pointer">
                     <Plus size={14} /> Tilføj hotel
                   </button>
+                </div>
+
+                {/* Soveplads på stedet */}
+                <div className="mt-6">
+                  <Label>Soveplads på stedet</Label>
+                  <p className="mb-2 text-[0.7rem] text-muted">
+                    Opret værelser/senge — gæsterne reserverer direkte i RSVP-flowet. Først til mølle med automatisk venteliste.
+                  </p>
+                  <RoomManager
+                    rooms={accommodationRooms}
+                    reservations={accommodationReservations}
+                    onAdd={addRoom}
+                    onUpdate={updateRoom}
+                    onDelete={deleteRoom}
+                    onUpdateReservation={updateReservation}
+                    onDeleteReservation={deleteReservation}
+                  />
                 </div>
               </SectionCard>
 
@@ -657,10 +743,21 @@ export default function Website() {
               <SectionCard id="photos" section={sections.find((s) => s.id === 'photos')!} onToggle={toggleSection}
                 icon={<Camera size={15} />}>
                 <p className="text-[0.84rem] text-muted leading-relaxed">
-                  Gæsterne får en knap til at uploade egne billeder. Alle billeder samles i jeres private galleri.
+                  Gæsterne uploader billeder uden login via linket eller QR-koden. Alt samles her, hvor I kan skjule, slette og downloade.
                 </p>
                 <div className="mt-3 rule rounded-xl bg-shell px-4 py-3 text-[0.78rem] text-muted">
-                  Upload-link: <span className="font-mono text-ink">{domain}.kalas.dk/del</span>
+                  Upload-link: <span className="font-mono text-ink">{publicUrl.replace(/^https?:\/\//, '')}/photos</span>
+                </div>
+                <div className="mt-4 flex items-center justify-between">
+                  <div>
+                    <Label>Vis gæsternes billeder før dagen</Label>
+                    <p className="text-[0.7rem] text-muted -mt-1">Ellers vises de først efter brylluppet.</p>
+                  </div>
+                  <Toggle value={photoWallOpen} onChange={setPhotoWallOpen} />
+                </div>
+                <div className="mt-4">
+                  <PhotosManager photos={sitePhotos} onToggleHidden={(id, hidden) => void updateSitePhoto(id, { hidden })}
+                    onDelete={(id) => void removeSitePhoto(id)} />
                 </div>
               </SectionCard>
             </div>
@@ -758,22 +855,20 @@ export default function Website() {
               {/* Del link */}
               <section className="rule rounded-2xl bg-card p-6">
                 <p className="font-serif text-[1.15rem] text-ink mb-1">Del med gæsterne</p>
-                <p className="text-[0.8rem] text-muted mb-4">Send linket i invitationen eller print QR-koden.</p>
-                <div className="flex items-start gap-4">
-                  <div className="flex-1 space-y-2">
-                    <div className="rule rounded-xl bg-shell px-4 py-2.5 text-[0.82rem] font-mono text-ink truncate">
-                      {publicUrl.replace(/^https?:\/\//, '')}
-                    </div>
-                    <button onClick={copyLink}
-                      className="flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-[0.7rem] font-bold uppercase tracking-[0.14em] text-canvas hover:bg-ink/80 transition-colors cursor-pointer">
-                      {copied ? <Check size={12} /> : <Copy size={12} />}
-                      {copied ? 'Kopieret!' : 'Kopiér link'}
-                    </button>
+                <p className="text-[0.8rem] text-muted mb-4">Send linket i invitationen eller print QR-koderne — én til siden og én direkte til billeddeling.</p>
+                <div className="mb-5 flex items-center gap-2">
+                  <div className="flex-1 rule rounded-xl bg-shell px-4 py-2.5 text-[0.82rem] font-mono text-ink truncate">
+                    {publicUrl.replace(/^https?:\/\//, '')}
                   </div>
-                  <div className="shrink-0 rule rounded-xl bg-shell p-3 flex flex-col items-center gap-1.5">
-                    <QrCode size={40} className="text-ink" />
-                    <span className="text-[0.6rem] uppercase tracking-[0.12em] text-muted">QR-kode</span>
-                  </div>
+                  <button onClick={copyLink}
+                    className="shrink-0 flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-[0.7rem] font-bold uppercase tracking-[0.14em] text-canvas hover:bg-ink/80 transition-colors cursor-pointer">
+                    {copied ? <Check size={12} /> : <Copy size={12} />}
+                    {copied ? 'Kopieret!' : 'Kopiér'}
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <QrCard label="Bryllupssiden" url={publicUrl} filename={`${domain}-qr`} />
+                  <QrCard label="Billeddeling" url={`${publicUrl}/photos`} filename={`${domain}-billeder-qr`} />
                 </div>
               </section>
 
@@ -809,8 +904,8 @@ export default function Website() {
                 <div className="grid grid-cols-3 gap-px overflow-hidden rounded-xl rule bg-[var(--color-line)]">
                   {[
                     { label: 'Sidevisninger',   value: published ? '34' : '—' },
-                    { label: 'RSVP modtaget',   value: published ? String(guests.filter((g) => g.rsvp !== 'afventer').length) : '—' },
-                    { label: 'Billeder delt',   value: published ? '7'  : '—' },
+                    { label: 'RSVP modtaget',   value: published ? String(guestRows.filter((g) => g.rsvp !== 'afventer').length) : '—' },
+                    { label: 'Billeder delt',   value: published ? String(sitePhotos.length) : '—' },
                   ].map(({ label, value }) => (
                     <div key={label} className="bg-card px-4 py-5 text-center">
                       <div className="font-serif text-[1.6rem] text-ink">{value}</div>
@@ -1000,6 +1095,312 @@ function SectionCard({
           </motion.div>
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+/* ── Room manager (soveplads på stedet) ──────────────────────────────── */
+function RoomManager({ rooms, reservations, onAdd, onUpdate, onDelete, onUpdateReservation, onDeleteReservation }: {
+  rooms: AccommodationRoomRow[];
+  reservations: AccommodationReservationRow[];
+  onAdd: (room: { name: string; capacity: number; description?: string | null; price_per_spot_cents?: number | null }) => Promise<AccommodationRoomRow | null>;
+  onUpdate: (id: string, patch: Partial<AccommodationRoomRow>) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
+  onUpdateReservation: (id: string, patch: Partial<AccommodationReservationRow>) => Promise<{ error: string | null }>;
+  onDeleteReservation: (id: string) => Promise<void>;
+}) {
+  const [newName, setNewName] = useState('');
+  const [newCapacity, setNewCapacity] = useState(2);
+  const [newPrice, setNewPrice] = useState('');
+  const [moveError, setMoveError] = useState<string | null>(null);
+  const availability = roomAvailability(rooms, reservations);
+
+  const add = () => {
+    const name = newName.trim();
+    if (!name || newCapacity < 1) return;
+    const kr = Number.parseInt(newPrice.replace(/[^\d]/g, ''), 10);
+    void onAdd({ name, capacity: newCapacity, price_per_spot_cents: Number.isFinite(kr) && kr > 0 ? kr * 100 : null });
+    setNewName(''); setNewCapacity(2); setNewPrice('');
+  };
+
+  const move = async (res: AccommodationReservationRow, roomId: string) => {
+    setMoveError(null);
+    // Moving a waitlisted guest into a room confirms them; the DB capacity
+    // trigger rejects the move with room_full if it no longer fits.
+    const { error } = await onUpdateReservation(res.id, { room_id: roomId, status: 'confirmed' });
+    if (error) setMoveError(error.includes('room_full') ? 'Ikke plads nok i det værelse.' : error);
+  };
+
+  return (
+    <div className="space-y-3">
+      {rooms.map((room) => {
+        const avail = availability[room.id];
+        const roomRes = reservations.filter((r) => r.room_id === room.id);
+        return (
+          <div key={room.id} className="rule rounded-xl bg-card p-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1 space-y-1.5">
+                <input value={room.name}
+                  onChange={(e) => void onUpdate(room.id, { name: e.target.value })}
+                  className="w-full text-[0.85rem] font-medium text-ink bg-transparent focus:outline-none border-b border-[var(--color-line)] pb-0.5"
+                  placeholder="Fx Værelse 1: dobbeltseng" />
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-1.5 text-[0.75rem] text-muted">
+                    Pladser:
+                    <input type="number" min={1} value={room.capacity}
+                      onChange={(e) => { const v = Number.parseInt(e.target.value, 10); if (v >= 1) void onUpdate(room.id, { capacity: v }); }}
+                      className="w-14 rounded-lg rule bg-shell px-2 py-0.5 text-[0.78rem] text-ink text-center focus:outline-none" />
+                  </label>
+                  <label className="flex items-center gap-1.5 text-[0.75rem] text-muted">
+                    Pris/plads (kr):
+                    <input value={room.price_per_spot_cents != null ? String(room.price_per_spot_cents / 100) : ''}
+                      onChange={(e) => {
+                        const kr = Number.parseInt(e.target.value.replace(/[^\d]/g, ''), 10);
+                        void onUpdate(room.id, { price_per_spot_cents: Number.isFinite(kr) && kr > 0 ? kr * 100 : null });
+                      }}
+                      className="w-16 rounded-lg rule bg-shell px-2 py-0.5 text-[0.78rem] text-ink text-center focus:outline-none"
+                      placeholder="—" />
+                  </label>
+                  <span className={cn('ml-auto rounded-full px-2.5 py-0.5 text-[0.68rem] font-medium',
+                    (avail?.free ?? 0) > 0 ? 'bg-sage-tint text-ink' : 'bg-shell text-muted')}>
+                    {avail?.taken ?? 0}/{room.capacity} optaget
+                  </span>
+                </div>
+              </div>
+              <button onClick={() => { if (roomRes.length === 0 || window.confirm('Slet værelset og alle reservationer?')) void onDelete(room.id); }}
+                className="shrink-0 text-muted hover:text-ink transition-colors cursor-pointer">
+                <Trash2 size={13} />
+              </button>
+            </div>
+
+            {roomRes.length > 0 && (
+              <div className="mt-2.5 space-y-1.5 border-t border-[var(--color-line)] pt-2.5">
+                {roomRes.map((res) => (
+                  <div key={res.id} className="flex items-center gap-2 text-[0.78rem]">
+                    <span className="flex-1 truncate text-ink">{res.guest_name} · {res.spots} {res.spots === 1 ? 'plads' : 'pladser'}</span>
+                    {res.status === 'waitlist' && (
+                      <span className="rounded-full bg-shell px-2 py-0.5 text-[0.64rem] uppercase tracking-[0.08em] text-muted">Venteliste</span>
+                    )}
+                    <select value={res.status === 'waitlist' ? '' : res.room_id}
+                      onChange={(e) => { if (e.target.value) void move(res, e.target.value); }}
+                      className="rounded-lg rule bg-shell px-1.5 py-0.5 text-[0.7rem] text-ink focus:outline-none cursor-pointer">
+                      {res.status === 'waitlist' && <option value="">Flyt til…</option>}
+                      {rooms.map((r) => <option key={r.id} value={r.id}>{r.name || 'Uden navn'}</option>)}
+                    </select>
+                    <button onClick={() => void onDeleteReservation(res.id)}
+                      className="shrink-0 text-muted/60 hover:text-ink transition-colors cursor-pointer">
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {moveError && <p className="text-[0.74rem] text-[var(--color-terracotta)]">{moveError}</p>}
+
+      <div className="flex flex-wrap items-center gap-2">
+        <input value={newName} onChange={(e) => setNewName(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') add(); }}
+          className="flex-1 min-w-[140px] rounded-lg rule bg-card px-3 py-1.5 text-[0.82rem] text-ink focus:outline-none focus:ring-1 focus:ring-ink/20"
+          placeholder="Fx Sovesal: 8 pladser" />
+        <input type="number" min={1} value={newCapacity}
+          onChange={(e) => setNewCapacity(Math.max(1, Number.parseInt(e.target.value, 10) || 1))}
+          className="w-16 rounded-lg rule bg-card px-2 py-1.5 text-[0.82rem] text-ink text-center focus:outline-none"
+          aria-label="Antal pladser" />
+        <input value={newPrice} onChange={(e) => setNewPrice(e.target.value)}
+          className="w-20 rounded-lg rule bg-card px-2 py-1.5 text-[0.82rem] text-ink text-center focus:outline-none"
+          placeholder="kr/plads" />
+        <button onClick={add} disabled={!newName.trim()}
+          className="flex items-center gap-1.5 rounded-full bg-ink px-3.5 py-1.5 text-[0.72rem] font-medium text-canvas disabled:opacity-40 cursor-pointer">
+          <Plus size={12} /> Tilføj
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ── Monogram upload (eget SVG/PNG i stedet for det genererede) ──────── */
+function MonogramUpload({ imagePath, onUploaded }: {
+  imagePath: string;
+  onUploaded: (path: string) => void;
+}) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  const upload = async (files: FileList | null) => {
+    const file = files?.[0];
+    if (!file) return;
+    setBusy(true); setError('');
+    try {
+      const form = new FormData();
+      form.set('file', file);
+      form.set('kind', 'monogram');
+      const res = await fetch('/api/site-photos/upload', { method: 'POST', body: form });
+      const j = (await res.json().catch(() => ({}))) as { path?: string; error?: string };
+      if (!res.ok || !j.path) {
+        setError(j.error === 'file_too_large' ? 'Filen er for stor (maks. 1 MB).' : 'Upload fejlede — prøv igen.');
+        return;
+      }
+      onUploaded(j.path);
+    } finally {
+      setBusy(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  };
+
+  return (
+    <div className="mt-3 flex items-center gap-3">
+      <input ref={fileRef} type="file" accept="image/svg+xml,image/png,image/jpeg,image/webp" hidden
+        onChange={(e) => void upload(e.target.files)} />
+      <button onClick={() => fileRef.current?.click()} disabled={busy}
+        className="flex items-center gap-1.5 rounded-full rule px-3.5 py-1.5 text-[0.72rem] text-ink-soft hover:bg-shell disabled:opacity-40 cursor-pointer">
+        <Plus size={12} /> {busy ? 'Uploader…' : imagePath ? 'Skift eget monogram' : 'Upload eget monogram'}
+      </button>
+      {imagePath && (
+        <button onClick={() => onUploaded('')}
+          className="text-[0.72rem] text-muted hover:text-ink transition-colors cursor-pointer">
+          Brug genereret i stedet
+        </button>
+      )}
+      {error && <span className="text-[0.72rem] text-[var(--color-terracotta)]">{error}</span>}
+    </div>
+  );
+}
+
+/* ── QR card (real code + download for print) ────────────────────────── */
+function QrCard({ label, url, filename }: { label: string; url: string; filename: string }) {
+  const svg = useMemo(() => qrSvg(url), [url]);
+
+  const downloadPng = async () => {
+    try {
+      const dataUrl = await qrPngDataUrl(url, 1024);
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = `${filename}.png`;
+      a.click();
+    } catch { /* canvas unavailable — SVG download still works */ }
+  };
+
+  const downloadSvg = () => {
+    const blob = new Blob([svg], { type: 'image/svg+xml' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${filename}.svg`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
+  return (
+    <div className="rule rounded-xl bg-shell p-4 flex flex-col items-center gap-2">
+      <div className="w-24 rounded-lg bg-white p-1.5 [&>svg]:h-full [&>svg]:w-full"
+        dangerouslySetInnerHTML={{ __html: svg }} />
+      <span className="text-[0.68rem] uppercase tracking-[0.12em] text-muted">{label}</span>
+      <div className="flex gap-2">
+        <button onClick={() => void downloadPng()}
+          className="flex items-center gap-1 text-[0.68rem] text-muted hover:text-ink transition-colors cursor-pointer">
+          <Download size={11} /> PNG
+        </button>
+        <button onClick={downloadSvg}
+          className="flex items-center gap-1 text-[0.68rem] text-muted hover:text-ink transition-colors cursor-pointer">
+          <Download size={11} /> SVG
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ── Photos manager (moderation + upload + download-alt) ─────────────── */
+function PhotosManager({ photos, onToggleHidden, onDelete }: {
+  photos: SitePhotoRow[];
+  onToggleHidden: (id: string, hidden: boolean) => void;
+  onDelete: (id: string) => void;
+}) {
+  const supabase = useMemo(() => createSupabaseClient(), []);
+  const [urls, setUrls] = useState<Record<string, string>>({});
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+
+  // Owner-read storage policy lets the couple sign their own paths directly.
+  useEffect(() => {
+    const missing = photos.filter((p) => !urls[p.id]);
+    if (missing.length === 0) return;
+    let cancelled = false;
+    void (async () => {
+      const { data } = await supabase.storage
+        .from('site-photos')
+        .createSignedUrls(missing.map((p) => p.storage_path), 3600);
+      if (cancelled || !data) return;
+      setUrls((prev) => {
+        const next = { ...prev };
+        missing.forEach((p, i) => {
+          const u = data[i]?.signedUrl;
+          if (u) next[p.id] = u;
+        });
+        return next;
+      });
+    })();
+    return () => { cancelled = true; };
+  }, [photos, supabase, urls]);
+
+  const upload = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setBusy(true);
+    try {
+      for (const file of Array.from(files)) {
+        const form = new FormData();
+        form.set('file', file);
+        form.set('kind', 'photo');
+        await fetch('/api/site-photos/upload', { method: 'POST', body: form });
+      }
+    } finally {
+      setBusy(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  };
+
+  return (
+    <div>
+      <div className="flex flex-wrap items-center gap-2">
+        <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" multiple hidden
+          onChange={(e) => void upload(e.target.files)} />
+        <button onClick={() => fileRef.current?.click()} disabled={busy}
+          className="flex items-center gap-1.5 rounded-full bg-ink px-3.5 py-1.5 text-[0.72rem] font-medium text-canvas disabled:opacity-40 cursor-pointer">
+          <Plus size={12} /> {busy ? 'Uploader…' : 'Upload egne billeder'}
+        </button>
+        {photos.length > 0 && (
+          <a href="/api/site-photos/export" download
+            className="rounded-full rule px-3.5 py-1.5 text-[0.72rem] text-ink-soft hover:bg-shell cursor-pointer">
+            Download alle ({photos.length})
+          </a>
+        )}
+      </div>
+
+      {photos.length > 0 && (
+        <div className="mt-3 grid grid-cols-4 gap-2 sm:grid-cols-5">
+          {photos.map((p) => (
+            <div key={p.id} className={cn('group relative aspect-square overflow-hidden rounded-lg bg-shell', p.hidden && 'opacity-40')}>
+              {urls[p.id] && <img src={urls[p.id]} alt="" className="h-full w-full object-cover" />}
+              <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-ink/60 px-1.5 py-1 opacity-0 transition-opacity group-hover:opacity-100">
+                <button onClick={() => onToggleHidden(p.id, !p.hidden)} title={p.hidden ? 'Vis' : 'Skjul'}
+                  className="text-canvas cursor-pointer">
+                  {p.hidden ? <Eye size={12} /> : <EyeOff size={12} />}
+                </button>
+                <button onClick={() => { if (window.confirm('Slet billedet permanent?')) onDelete(p.id); }}
+                  title="Slet" className="text-canvas cursor-pointer">
+                  <Trash2 size={12} />
+                </button>
+              </div>
+              {p.uploader_name && (
+                <span className="absolute left-1 top-1 rounded bg-ink/50 px-1 text-[0.55rem] text-canvas">{p.uploader_name}</span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

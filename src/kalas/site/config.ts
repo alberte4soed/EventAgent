@@ -12,7 +12,14 @@ export type ImageKey = keyof typeof IMAGES;
 
 export type ProgramEvent = { id: string; time: string; label: string; sublabel: string };
 export type FAQItem = { id: string; q: string; a: string };
-export type HotelItem = { id: string; name: string; dist: string; price: string };
+export type HotelItem = {
+  id: string; name: string; dist: string; price: string;
+  url?: string;      // booking link
+  code?: string;     // rabatkode ved gruppebooking
+  mapQuery?: string; // Google Maps search query
+};
+export type RsvpSubEvent = { id: string; label: string; sublabel: string };
+export type RsvpQuestion = { id: string; label: string };
 export type SectionId =
   | 'hero' | 'story' | 'program' | 'rsvp' | 'gallery'
   | 'transport' | 'dresscode' | 'gifts' | 'hotel' | 'faq' | 'photos';
@@ -98,6 +105,9 @@ export const findLens = (id: string) => LENSES.find((l) => l.id === id) ?? LENSE
 export const findColors = (id: string) => WEBSITE_COLORS.find((c) => c.id === id) ?? WEBSITE_COLORS[0];
 export const findFont = (id: string) => FONTS.find((f) => f.id === id) ?? FONTS[0];
 
+export const MONOGRAM_STYLES = ['initials-dot', 'initials-amp', 'stacked', 'ring'] as const;
+export type MonogramStyle = (typeof MONOGRAM_STYLES)[number];
+
 /** Public-safe, fully-defaulted view of wedding_sites.config (no password). */
 export interface SiteConfig {
   lensId: string; colorId: string; fontId: string; layoutId: string;
@@ -105,8 +115,12 @@ export interface SiteConfig {
   heroTagline: string; storyText: string; countdown: boolean;
   program: ProgramEvent[];
   rsvpDeadline: string; rsvpPlusOne: boolean; rsvpMeal: boolean; rsvpDietary: boolean;
+  rsvpEvents: RsvpSubEvent[]; rsvpQuestions: RsvpQuestion[]; rsvpChildren: boolean;
   galleryKeys: ImageKey[];
   transport: string; dresscode: string; giftsText: string; giftsUrl: string;
+  mapQuery: string; showMap: boolean;
+  photoWallOpen: boolean;
+  monogram: boolean; monogramStyle: MonogramStyle; monogramImagePath: string;
   faq: FAQItem[]; hotels: HotelItem[];
   pwProtected: boolean; hideBranding: boolean;
 }
@@ -132,11 +146,21 @@ export function parseConfig(raw: Record<string, unknown> | null | undefined): Si
     rsvpPlusOne: bool(c.rsvpPlusOne, true),
     rsvpMeal: bool(c.rsvpMeal, true),
     rsvpDietary: bool(c.rsvpDietary, true),
+    rsvpEvents: arr<RsvpSubEvent>(c.rsvpEvents, []),
+    rsvpQuestions: arr<RsvpQuestion>(c.rsvpQuestions, []),
+    rsvpChildren: bool(c.rsvpChildren, false),
     galleryKeys: arr<ImageKey>(c.galleryKeys, GALLERY_KEYS.slice(0, 4)),
     transport: str(c.transport, ''),
     dresscode: str(c.dresscode, ''),
     giftsText: str(c.giftsText, ''),
     giftsUrl: str(c.giftsUrl, ''),
+    mapQuery: str(c.mapQuery, ''),
+    showMap: bool(c.showMap, true),
+    photoWallOpen: bool(c.photoWallOpen, false),
+    monogram: bool(c.monogram, true),
+    monogramStyle: (MONOGRAM_STYLES as readonly string[]).includes(str(c.monogramStyle, ''))
+      ? (c.monogramStyle as MonogramStyle) : 'initials-amp',
+    monogramImagePath: str(c.monogramImagePath, ''),
     faq: arr<FAQItem>(c.faq, INIT_FAQ),
     hotels: arr<HotelItem>(c.hotels, INIT_HOTELS),
     pwProtected: bool(c.pwProtected, false),

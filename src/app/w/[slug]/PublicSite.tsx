@@ -9,7 +9,8 @@ import { useState } from "react";
 import { LanguageProvider, useLang } from "@/kalas/i18n";
 import { SiteRenderer } from "@/kalas/site/SiteRenderer";
 import type { SiteConfig } from "@/kalas/site/config";
-import type { RegistryItemRow, AppLanguage } from "@/lib/db/types";
+import type { RegistryItemRow, AccommodationRoomRow, AppLanguage } from "@/lib/db/types";
+import type { RoomAvailability } from "@/lib/accommodation";
 
 type Couple = { a: string; b: string; dateLabel: string; dateISO: string | null };
 
@@ -19,6 +20,9 @@ interface Props {
   config: SiteConfig;
   registryItems: RegistryItemRow[];
   claimedByItem?: Record<string, number>;
+  rooms?: AccommodationRoomRow[];
+  availability?: Record<string, RoomAvailability>;
+  monogramUrl?: string | null;
   lang: AppLanguage;
   locked: boolean;
   rsvpToken?: string | null;
@@ -34,7 +38,7 @@ export function PublicSite(props: Props) {
   );
 }
 
-function Site({ slug, couple, config, registryItems, claimedByItem = {}, rsvpToken }: Props) {
+function Site({ slug, couple, config, registryItems, claimedByItem = {}, rooms = [], availability = {}, monogramUrl, rsvpToken }: Props) {
   const [rsvpOpen, setRsvpOpen] = useState(false);
   const [claimItem, setClaimItem] = useState<RegistryItemRow | null>(null);
 
@@ -45,10 +49,17 @@ function Site({ slug, couple, config, registryItems, claimedByItem = {}, rsvpTok
         config={config}
         registryItems={registryItems}
         claimedByItem={claimedByItem}
+        rooms={rooms}
+        availability={availability}
+        monogramUrl={monogramUrl}
+        slug={slug}
         onRsvp={() => setRsvpOpen(true)}
         onClaim={(it) => setClaimItem(it)}
       />
-      {rsvpOpen && <RsvpModal slug={slug} config={config} token={rsvpToken ?? null} onClose={() => setRsvpOpen(false)} />}
+      {rsvpOpen && (
+        <RsvpModal slug={slug} config={config} token={rsvpToken ?? null}
+          rooms={rooms} availability={availability} onClose={() => setRsvpOpen(false)} />
+      )}
       {claimItem && <ClaimModal slug={slug} item={claimItem} onClose={() => setClaimItem(null)} />}
     </>
   );
@@ -95,11 +106,18 @@ function PasswordGate({ slug }: { slug: string }) {
 }
 
 /* ── RSVP modal ──────────────────────────────────────────────────────── */
-function RsvpModal({ slug, config, token, onClose }: { slug: string; config: SiteConfig; token: string | null; onClose: () => void }) {
+function RsvpModal({ slug, config, token, rooms, availability, onClose }: {
+  slug: string; config: SiteConfig; token: string | null;
+  rooms: AccommodationRoomRow[]; availability: Record<string, RoomAvailability>;
+  onClose: () => void;
+}) {
   const { t } = useLang();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [attending, setAttending] = useState<boolean | null>(null);
+  const [events, setEvents] = useState<Record<string, boolean>>({});
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [childrenCount, setChildrenCount] = useState(0);
   const [plusOne, setPlusOne] = useState(false);
   const [plusOneName, setPlusOneName] = useState("");
   const [meal, setMeal] = useState("");
@@ -107,42 +125,81 @@ function RsvpModal({ slug, config, token, onClose }: { slug: string; config: Sit
   const [note, setNote] = useState("");
   const [company, setCompany] = useState(""); // honeypot
   const [busy, setBusy] = useState(false);
-  const [done, setDone] = useState<null | boolean>(null);
   const [error, setError] = useState("");
+  const [step, setStep] = useState<"form" | "stay" | "done">("form");
+  const [guestId, setGuestId] = useState<string | null>(null);
+  const [stayResult, setStayResult] = useState<"none" | "confirmed" | "waitlist">("none");
+
+  const hasSubEvents = config.rsvpEvents.length > 0;
+  // With sub-events the overall answer is derived: coming if any event is a yes.
+  const isAttending = hasSubEvents
+    ? (config.rsvpEvents.some((ev) => events[ev.id] === true) ? true
+      : config.rsvpEvents.every((ev) => events[ev.id] === false) ? false : null)
+    : attending;
+
+  const stayEnabled = rooms.length > 0 &&
+    config.sections.some((s) => s.id === "hotel" && s.enabled);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (attending === null || !name.trim()) return;
+    if (isAttending === null || !name.trim()) return;
     setBusy(true); setError("");
     try {
       const res = await fetch(`/api/w/${slug}/rsvp`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          token, name: name.trim(), email: email.trim() || null, attending,
+          token, name: name.trim(), email: email.trim() || null, attending: isAttending,
           plusOne: config.rsvpPlusOne ? plusOne : false, plusOneName: plusOneName.trim() || null,
           meal: config.rsvpMeal ? meal.trim() || null : null,
           dietary: config.rsvpDietary ? dietary.trim() || null : null,
           note: note.trim() || null, company,
+          events, answers,
+          childrenCount: config.rsvpChildren ? childrenCount : 0,
         }),
       });
       if (!res.ok) { setError(t("Noget gik galt — prøv igen.")); return; }
-      setDone(attending);
+      const j = (await res.json()) as { guestId?: string };
+      setGuestId(j.guestId ?? null);
+      setStep(isAttending && stayEnabled ? "stay" : "done");
     } finally { setBusy(false); }
   };
 
-  return (
-    <Overlay onClose={onClose}>
-      {done !== null ? (
+  if (step === "done") {
+    const yes = isAttending === true;
+    return (
+      <Overlay onClose={onClose}>
         <div className="p-8 text-center">
-          <p className="text-[2rem]">{done ? "🥂" : "💛"}</p>
-          <h2 className="mt-3 font-serif text-[1.3rem] text-ink">{done ? t("Tak — vi ses!") : t("Tak for svaret")}</h2>
+          <p className="text-[2rem]">{yes ? "🥂" : "💛"}</p>
+          <h2 className="mt-3 font-serif text-[1.3rem] text-ink">{yes ? t("Tak — vi ses!") : t("Tak for svaret")}</h2>
           <p className="mt-2 text-[0.88rem] text-ink-soft">
-            {done ? t("Vi har noteret jeres deltagelse.") : t("Vi kommer til at savne jer.")}
+            {yes ? t("Vi har noteret jeres deltagelse.") : t("Vi kommer til at savne jer.")}
           </p>
+          {stayResult === "confirmed" && (
+            <p className="mt-2 text-[0.85rem] text-ink-soft">{t("Jeres soveplads er reserveret.")}</p>
+          )}
+          {stayResult === "waitlist" && (
+            <p className="mt-2 text-[0.85rem] text-ink-soft">{t("I er skrevet på ventelisten til en soveplads — brudeparret vender tilbage.")}</p>
+          )}
           <button onClick={onClose} className="mt-5 rounded-full bg-ink px-6 py-2.5 text-[0.82rem] font-medium text-canvas cursor-pointer">{t("Luk")}</button>
         </div>
-      ) : (
-        <form onSubmit={submit} className="max-h-[85vh] overflow-y-auto p-6 sm:p-8">
+      </Overlay>
+    );
+  }
+
+  if (step === "stay") {
+    return (
+      <Overlay onClose={() => setStep("done")}>
+        <StayStep slug={slug} rooms={rooms} availability={availability}
+          guestId={guestId} name={name} email={email}
+          onDone={(result) => { setStayResult(result); setStep("done"); }}
+          onSkip={() => setStep("done")} />
+      </Overlay>
+    );
+  }
+
+  return (
+    <Overlay onClose={onClose}>
+      <form onSubmit={submit} className="max-h-[85vh] overflow-y-auto p-6 sm:p-8">
           <h2 className="font-serif text-[1.4rem] text-ink">{t("Svar på invitation")}</h2>
           {config.rsvpDeadline && <p className="mt-1 text-[0.8rem] text-muted">{t("Svar venligst inden {date}.", { date: config.rsvpDeadline })}</p>}
 
@@ -156,15 +213,33 @@ function RsvpModal({ slug, config, token, onClose }: { slug: string; config: Sit
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputCls} />
           </Field>
 
-          <div className="mt-4">
-            <p className="mb-2 text-[0.78rem] font-semibold uppercase tracking-[0.1em] text-muted">{t("Kommer I?")}</p>
-            <div className="flex gap-2">
-              <Choice active={attending === true} onClick={() => setAttending(true)}>{t("Ja, vi kommer 🎉")}</Choice>
-              <Choice active={attending === false} onClick={() => setAttending(false)}>{t("Desværre ikke")}</Choice>
+          {hasSubEvents ? (
+            <div className="mt-4 space-y-3">
+              <p className="mb-1 text-[0.78rem] font-semibold uppercase tracking-[0.1em] text-muted">{t("Hvad deltager I i?")}</p>
+              {config.rsvpEvents.map((ev) => (
+                <div key={ev.id}>
+                  <p className="mb-1.5 text-[0.9rem] text-ink">
+                    {ev.label}
+                    {ev.sublabel && <span className="ml-2 text-[0.78rem] text-muted">{ev.sublabel}</span>}
+                  </p>
+                  <div className="flex gap-2">
+                    <Choice active={events[ev.id] === true} onClick={() => setEvents((p) => ({ ...p, [ev.id]: true }))}>{t("Ja")}</Choice>
+                    <Choice active={events[ev.id] === false} onClick={() => setEvents((p) => ({ ...p, [ev.id]: false }))}>{t("Nej")}</Choice>
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
+          ) : (
+            <div className="mt-4">
+              <p className="mb-2 text-[0.78rem] font-semibold uppercase tracking-[0.1em] text-muted">{t("Kommer I?")}</p>
+              <div className="flex gap-2">
+                <Choice active={attending === true} onClick={() => setAttending(true)}>{t("Ja, vi kommer 🎉")}</Choice>
+                <Choice active={attending === false} onClick={() => setAttending(false)}>{t("Desværre ikke")}</Choice>
+              </div>
+            </div>
+          )}
 
-          {attending === true && (
+          {isAttending === true && (
             <>
               {config.rsvpPlusOne && (
                 <div className="mt-4">
@@ -177,6 +252,18 @@ function RsvpModal({ slug, config, token, onClose }: { slug: string; config: Sit
                   )}
                 </div>
               )}
+              {config.rsvpChildren && (
+                <div className="mt-4 flex items-center justify-between">
+                  <span className="text-[0.9rem] text-ink">{t("Antal børn")}</span>
+                  <div className="flex items-center gap-3">
+                    <button type="button" onClick={() => setChildrenCount((n) => Math.max(0, n - 1))}
+                      className="h-8 w-8 rounded-full rule text-ink hover:bg-shell cursor-pointer">−</button>
+                    <span className="w-5 text-center text-[0.95rem] tabular-nums text-ink">{childrenCount}</span>
+                    <button type="button" onClick={() => setChildrenCount((n) => Math.min(20, n + 1))}
+                      className="h-8 w-8 rounded-full rule text-ink hover:bg-shell cursor-pointer">+</button>
+                  </div>
+                </div>
+              )}
               {config.rsvpMeal && (
                 <Field label={t("Menuvalg (valgfrit)")}>
                   <input value={meal} onChange={(e) => setMeal(e.target.value)} placeholder={t("f.eks. kød, fisk, vegetar")} className={inputCls} />
@@ -187,6 +274,12 @@ function RsvpModal({ slug, config, token, onClose }: { slug: string; config: Sit
                   <input value={dietary} onChange={(e) => setDietary(e.target.value)} className={inputCls} />
                 </Field>
               )}
+              {config.rsvpQuestions.map((q) => (
+                <Field key={q.id} label={q.label}>
+                  <input value={answers[q.id] ?? ""} maxLength={500}
+                    onChange={(e) => setAnswers((p) => ({ ...p, [q.id]: e.target.value }))} className={inputCls} />
+                </Field>
+              ))}
             </>
           )}
 
@@ -196,15 +289,109 @@ function RsvpModal({ slug, config, token, onClose }: { slug: string; config: Sit
 
           {error && <p className="mt-2 text-[0.8rem] text-[var(--color-terracotta)]">{error}</p>}
           <div className="mt-5 flex gap-2">
-            <button type="submit" disabled={busy || attending === null || !name.trim()}
+            <button type="submit" disabled={busy || isAttending === null || !name.trim()}
               className="flex-1 rounded-full bg-ink px-5 py-3 text-[0.82rem] font-medium text-canvas hover:bg-ink/90 transition-colors cursor-pointer disabled:opacity-50">
               {busy ? t("Sender…") : t("Send svar")}
             </button>
             <button type="button" onClick={onClose} className="rounded-full rule px-5 py-3 text-[0.82rem] text-ink-soft hover:bg-shell cursor-pointer">{t("Annuller")}</button>
           </div>
-        </form>
-      )}
+      </form>
     </Overlay>
+  );
+}
+
+/* ── Accommodation step (inside the RSVP flow) ───────────────────────── */
+function StayStep({ slug, rooms, availability, guestId, name, email, onDone, onSkip }: {
+  slug: string;
+  rooms: AccommodationRoomRow[];
+  availability: Record<string, RoomAvailability>;
+  guestId: string | null;
+  name: string;
+  email: string;
+  onDone: (result: "confirmed" | "waitlist") => void;
+  onSkip: () => void;
+}) {
+  const { t } = useLang();
+  const [roomId, setRoomId] = useState<string | null>(null);
+  const [spots, setSpots] = useState(1);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const fmtPrice = (room: AccommodationRoomRow) =>
+    room.price_per_spot_cents != null
+      ? `${(room.price_per_spot_cents / 100).toLocaleString("da-DK")} ${room.currency} ${t("pr. plads")}`
+      : null;
+
+  const reserve = async () => {
+    if (!roomId) return;
+    setBusy(true); setError("");
+    try {
+      const res = await fetch(`/api/w/${slug}/accommodation/reserve`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roomId, spots, guestId, name: name.trim(), email: email.trim() || null }),
+      });
+      if (!res.ok) { setError(t("Noget gik galt — prøv igen.")); return; }
+      const j = (await res.json()) as { waitlisted?: boolean };
+      onDone(j.waitlisted ? "waitlist" : "confirmed");
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <div className="max-h-[85vh] overflow-y-auto p-6 sm:p-8">
+      <h2 className="font-serif text-[1.4rem] text-ink">{t("Ønsker I overnatning?")}</h2>
+      <p className="mt-1 text-[0.85rem] text-muted">{t("Der er sovepladser på stedet — først til mølle.")}</p>
+
+      <div className="mt-4 space-y-2">
+        {rooms.map((room) => {
+          const avail = availability[room.id];
+          const free = avail?.free ?? room.capacity;
+          const full = free <= 0;
+          const active = roomId === room.id;
+          return (
+            <button key={room.id} type="button" onClick={() => { setRoomId(room.id); setSpots(1); }}
+              className={`w-full rounded-xl border px-4 py-3 text-left transition-colors cursor-pointer ${
+                active ? "border-ink bg-sage-tint" : "border-[var(--color-line-strong)] hover:bg-shell"
+              }`}>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[0.92rem] font-medium text-ink">{room.name}</p>
+                  {room.description && <p className="text-[0.78rem] text-muted">{room.description}</p>}
+                  {fmtPrice(room) && <p className="text-[0.78rem] text-muted">{fmtPrice(room)}</p>}
+                </div>
+                <span className={`shrink-0 rounded-full px-2.5 py-1 text-[0.7rem] font-medium ${
+                  full ? "bg-shell text-muted" : "bg-sage-tint text-ink"
+                }`}>
+                  {full ? t("Venteliste") : t("{n} ledige", { n: String(free) })}
+                </span>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {roomId && (
+        <div className="mt-4 flex items-center justify-between">
+          <span className="text-[0.9rem] text-ink">{t("Antal pladser")}</span>
+          <div className="flex items-center gap-3">
+            <button type="button" onClick={() => setSpots((n) => Math.max(1, n - 1))}
+              className="h-8 w-8 rounded-full rule text-ink hover:bg-shell cursor-pointer">−</button>
+            <span className="w-5 text-center text-[0.95rem] tabular-nums text-ink">{spots}</span>
+            <button type="button" onClick={() => setSpots((n) => Math.min(10, n + 1))}
+              className="h-8 w-8 rounded-full rule text-ink hover:bg-shell cursor-pointer">+</button>
+          </div>
+        </div>
+      )}
+
+      {error && <p className="mt-2 text-[0.8rem] text-[var(--color-terracotta)]">{error}</p>}
+      <div className="mt-5 flex gap-2">
+        <button type="button" onClick={reserve} disabled={busy || !roomId}
+          className="flex-1 rounded-full bg-ink px-5 py-3 text-[0.82rem] font-medium text-canvas hover:bg-ink/90 transition-colors cursor-pointer disabled:opacity-50">
+          {busy ? t("Reserverer…") : t("Reservér soveplads")}
+        </button>
+        <button type="button" onClick={onSkip}
+          className="rounded-full rule px-5 py-3 text-[0.82rem] text-ink-soft hover:bg-shell cursor-pointer">{t("Nej tak")}</button>
+      </div>
+    </div>
   );
 }
 

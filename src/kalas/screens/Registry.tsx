@@ -7,7 +7,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Gift, Plus, Trash2, Link2, Check, X } from 'lucide-react';
+import { Gift, Plus, Trash2, Link2, Check, Banknote } from 'lucide-react';
 import { useWedding } from '../useWedding';
 import { useLang } from '../i18n';
 import { Eyebrow, Pill, cn } from '../ui';
@@ -55,9 +55,20 @@ export default function Registry({ onNavigate }: { onNavigate?: (s: import('../S
       currency: draft.currency ?? 'DKK',
       quantity: draft.quantity ?? 1,
       sort: registryItems.length,
+      kind: draft.kind ?? 'gift',
+      mobilepay_number: draft.mobilepay_number?.trim() || null,
     });
     setDraft(null);
   };
+
+  const startCashDraft = () => setDraft({
+    kind: 'cash',
+    title: t('Bidrag til bryllupsrejsen'),
+    description: null,
+    mobilepay_number: '',
+    quantity: 1,
+    currency: 'DKK',
+  });
 
   return (
     <div className="px-6 py-8 sm:px-10 lg:px-16 lg:py-12">
@@ -82,6 +93,10 @@ export default function Registry({ onNavigate }: { onNavigate?: (s: import('../S
           className="flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-[0.8rem] font-medium text-canvas hover:bg-ink/90 transition-colors cursor-pointer disabled:opacity-50">
           {looking ? t('Henter…') : <><Plus size={14} /> {t('Tilføj')}</>}
         </button>
+        <button onClick={startCashDraft}
+          className="flex items-center gap-2 rounded-full rule px-5 py-2.5 text-[0.8rem] text-ink-soft hover:bg-shell transition-colors cursor-pointer">
+          <Banknote size={14} /> {t('Pengeønske')}
+        </button>
       </div>
 
       {/* Draft editor */}
@@ -99,15 +114,28 @@ export default function Registry({ onNavigate }: { onNavigate?: (s: import('../S
                 <input value={draft.title ?? ''} onChange={(e) => setDraft({ ...draft, title: e.target.value })}
                   placeholder={t('Gavens navn')}
                   className="w-full rounded-lg rule bg-canvas px-3 py-2 font-serif text-[1rem] text-ink focus:border-ink focus:outline-none" />
-                <div className="flex flex-wrap gap-2">
-                  <input value={draft.price_cents != null ? String(draft.price_cents / 100) : ''}
-                    onChange={(e) => { const n = Number(e.target.value.replace(/[^\d.]/g, '')); setDraft({ ...draft, price_cents: Number.isFinite(n) && n > 0 ? Math.round(n * 100) : null }); }}
-                    placeholder={t('Pris')} inputMode="decimal"
-                    className="w-28 rounded-lg rule bg-canvas px-3 py-1.5 text-[0.85rem] text-ink focus:border-ink focus:outline-none" />
-                  <input value={draft.store_name ?? ''} onChange={(e) => setDraft({ ...draft, store_name: e.target.value })}
-                    placeholder={t('Butik')}
-                    className="flex-1 min-w-[120px] rounded-lg rule bg-canvas px-3 py-1.5 text-[0.85rem] text-ink focus:border-ink focus:outline-none" />
-                </div>
+                {draft.kind === 'cash' ? (
+                  <div className="space-y-2">
+                    <textarea value={draft.description ?? ''} rows={2}
+                      onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+                      placeholder={t('Kort besked til gæsterne (valgfrit)')}
+                      className="w-full resize-none rounded-lg rule bg-canvas px-3 py-1.5 text-[0.85rem] text-ink focus:border-ink focus:outline-none" />
+                    <input value={draft.mobilepay_number ?? ''}
+                      onChange={(e) => setDraft({ ...draft, mobilepay_number: e.target.value })}
+                      placeholder={t('MobilePay-nummer')} inputMode="tel"
+                      className="w-44 rounded-lg rule bg-canvas px-3 py-1.5 text-[0.85rem] text-ink focus:border-ink focus:outline-none" />
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    <input value={draft.price_cents != null ? String(draft.price_cents / 100) : ''}
+                      onChange={(e) => { const n = Number(e.target.value.replace(/[^\d.]/g, '')); setDraft({ ...draft, price_cents: Number.isFinite(n) && n > 0 ? Math.round(n * 100) : null }); }}
+                      placeholder={t('Pris')} inputMode="decimal"
+                      className="w-28 rounded-lg rule bg-canvas px-3 py-1.5 text-[0.85rem] text-ink focus:border-ink focus:outline-none" />
+                    <input value={draft.store_name ?? ''} onChange={(e) => setDraft({ ...draft, store_name: e.target.value })}
+                      placeholder={t('Butik')}
+                      className="flex-1 min-w-[120px] rounded-lg rule bg-canvas px-3 py-1.5 text-[0.85rem] text-ink focus:border-ink focus:outline-none" />
+                  </div>
+                )}
                 <div className="flex items-center gap-2 pt-1">
                   <button onClick={save} disabled={!draft.title?.trim()}
                     className="flex items-center gap-1.5 rounded-full bg-sage px-4 py-2 text-[0.78rem] font-medium text-ink hover:bg-sage-strong transition-colors cursor-pointer disabled:opacity-50">
@@ -150,10 +178,16 @@ export default function Registry({ onNavigate }: { onNavigate?: (s: import('../S
                     {it.store_name ? `${it.price_cents != null ? ' · ' : ''}${it.store_name}` : ''}
                   </p>
                   <div className="mt-2 flex items-center gap-2">
-                    <span className={cn('inline-flex items-center rounded-full px-2.5 py-1 text-[0.66rem] font-medium uppercase tracking-[0.1em]',
-                      reserved ? 'bg-sage-tint text-ink' : 'rule text-muted')}>
-                      {reserved ? t('Reserveret') : t('{n}/{q} reserveret', { n: claimed, q: it.quantity })}
-                    </span>
+                    {it.kind === 'cash' ? (
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-sage-tint px-2.5 py-1 text-[0.66rem] font-medium uppercase tracking-[0.1em] text-ink">
+                        <Banknote size={11} /> MobilePay{it.mobilepay_number ? ` ${it.mobilepay_number}` : ''}
+                      </span>
+                    ) : (
+                      <span className={cn('inline-flex items-center rounded-full px-2.5 py-1 text-[0.66rem] font-medium uppercase tracking-[0.1em]',
+                        reserved ? 'bg-sage-tint text-ink' : 'rule text-muted')}>
+                        {reserved ? t('Reserveret') : t('{n}/{q} reserveret', { n: claimed, q: it.quantity })}
+                      </span>
+                    )}
                     {it.product_url && (
                       <a href={it.product_url} target="_blank" rel="noopener noreferrer"
                         className="text-[0.72rem] text-muted hover:text-ink transition-colors">{t('Se produkt ↗')}</a>
