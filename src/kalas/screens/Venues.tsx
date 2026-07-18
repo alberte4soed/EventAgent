@@ -1883,7 +1883,9 @@ function VenueDetail({
 }) {
   const [notes, setNotes]         = useState('');
   const [activePackage, setPkg]   = useState<number | null>(null);
-  const [researching, setResearching] = useState(false);
+  // Start in the researching state when nothing is on file yet — the open
+  // itself kicks off research (below), so the couple never sees an empty page.
+  const [researching, setResearching] = useState(!venue.research);
   const [researchError, setResearchError] = useState<string | null>(null);
   const realPhotos = venue.photos ?? [];
   const research = venue.research;
@@ -1909,6 +1911,19 @@ function VenueDetail({
       setResearching(false);
     }
   }
+
+  // First time a venue is opened, kick off research automatically so the couple
+  // lands on filled-in info instead of an empty page. Only runs when nothing has
+  // been researched yet; the button remains for a manual refresh. The ref guards
+  // against re-firing on re-render (the view is keyed by venue.id, so a different
+  // venue remounts and gets its own auto-run).
+  const autoResearchedRef = useRef(false);
+  useEffect(() => {
+    if (autoResearchedRef.current || venue.research) return;
+    autoResearchedRef.current = true;
+    void runResearch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [venue.id]);
 
   return (
     <motion.div
@@ -2011,10 +2026,17 @@ function VenueDetail({
               ))}
             </ul>
           </div>
-        ) : !research && !researching ? (
+        ) : researching ? (
+          <div className="mt-6 flex items-center gap-3 rounded-[18px] border border-[#e4e0d4] bg-[#fcfbf7] px-5 py-4">
+            <Loader2 size={16} className="shrink-0 animate-spin text-[#314523]" />
+            <p className="text-sm leading-relaxed text-[#6c7561]">
+              Ava researcher venueet — søger på nettet og udfylder kapacitet, priser og praktisk info fra stedets egne sider…
+            </p>
+          </div>
+        ) : !research ? (
           <div className="mt-6 rounded-[18px] border border-dashed border-[#d8d4c7] bg-[#fcfbf7] px-5 py-4">
             <p className="text-sm leading-relaxed text-[#6c7561]">
-              Tryk <span className="font-medium text-[#314523]">Research venue</span> — så søger Ava på nettet og udfylder kapacitet, priser og praktisk info fra venueets egne sider.
+              Ava kunne ikke hente info automatisk. Tryk <span className="font-medium text-[#314523]">Research venue</span> for at prøve igen.
             </p>
           </div>
         ) : null}
