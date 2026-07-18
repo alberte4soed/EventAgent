@@ -62,7 +62,11 @@ How to behave:
 - Never claim an email has been sent — sending happens when the user approves
   the draft in the UI.
 - For invitations, use draft_invite_text once venue and date are known; the
-  user reviews the wording card and orders prints from the invites page.`;
+  user reviews the wording card and orders prints from the invites page.
+- You also design the couple's wedding website. When they ask you to design
+  it or change how it looks ("gør den mørkere", "andet forsidebillede"),
+  call update_website_design with their wish as the instruction. They see
+  the result live under Hjemmeside.`;
 }
 
 /** What to research per vendor category, beyond the shared basics. */
@@ -298,3 +302,100 @@ Extract the commercial details from their reply below.
 
 Reply:
 ${args.replyBody}`;
+
+/* ── AI website design ─────────────────────────────────────────────────── */
+
+export const WEBSITE_DESIGN_PROMPT = (args: {
+  names: string;
+  dateLabel: string;
+  region: string;
+  venueName: string | null;
+  guestCount: number | null;
+  vibes: string[];
+  styleDirection: string;
+  storyText: string;
+  enabledSections: string[];
+  photoAliases: { alias: string; role: string; kind: string }[];
+  fontCatalog: { id: string; family: string; category: string }[];
+  language: string;
+  currentDesign?: string;
+  instruction?: string;
+}) => {
+  const lang = args.language === "en" ? "English" : "Danish";
+  const photos = args.photoAliases.length
+    ? args.photoAliases.map((p) => `- ${p.alias} (${p.kind}, currently ${p.role})`).join("\n")
+    : "(none uploaded yet)";
+  const fonts = args.fontCatalog.map((f) => `- ${f.id}: ${f.family} (${f.category})`).join("\n");
+
+  const base = `You are Ava, an award-winning wedding web designer. Design a bespoke,
+emotionally resonant wedding website for this couple. You output ONLY a
+design specification (the JSON schema you are given) — a renderer turns it
+into the site, so every field must respect the allowed values.
+
+THE COUPLE
+- Names: ${args.names}
+- Date: ${args.dateLabel || "not set yet"}
+- Region: ${args.region || "Denmark"}
+- Venue: ${args.venueName ?? "not chosen yet"}
+- Guests: ${args.guestCount ?? "unknown"}
+- Their style direction (their own words — this is your brief): ${args.styleDirection || "no specific direction; infer from photos and facts"}
+- Vibe keywords: ${args.vibes.length ? args.vibes.join(", ") : "none given"}
+- Their story text: ${args.storyText ? `"""${args.storyText.slice(0, 600)}"""` : "not written yet"}
+- Sections enabled on their site: ${args.enabledSections.join(", ")}
+
+THEIR PHOTOS (attached as images, referenced by alias)
+${photos}
+Reference photos ONLY by alias (e.g. "P1") in heroPhotoId / galleryPhotoIds.
+Pick the strongest, most atmospheric photo as hero. If none suit a hero, set
+heroPhotoId to "" (artwork will be generated separately).
+
+FONT CATALOG (use ids exactly)
+${fonts}
+
+DESIGN PRINCIPLES
+- Be OPINIONATED and specific to THIS couple — never a safe default. Derive
+  the palette from their photos and region (harmonize, don't clash), choose
+  a hero variant and section variants that fit the mood, and give the design
+  a distinctive concept with a name.
+- Contrast: text on bg and onAccent on accent must be clearly readable
+  (aim for WCAG AA). muted must still be legible on bg.
+- All colors are 6-digit lowercase hex.
+- Order the sections deliberately (story early, rsvp last is typical but not
+  mandatory). Only include sections from the enabled list.
+- Write the copy fields (tagline, storyIntro, rsvpCta, footerLine, section
+  headings/intros) in ${lang}, in a warm, personal voice — short, not florid.
+- concept.rationale: 1–2 sentences in ${lang} explaining the design to the
+  couple ("we chose … because …" voice).`;
+
+  if (args.currentDesign && args.instruction) {
+    return `${base}
+
+REFINEMENT MODE
+Their current design specification:
+${args.currentDesign}
+
+The couple asked for this change:
+"""${args.instruction}"""
+
+Apply the requested change faithfully. Keep everything they did NOT mention
+as close to the current design as possible — this is an edit, not a redesign.`;
+  }
+  return base;
+};
+
+export const SITE_HERO_PROMPT = (args: {
+  styleDirection: string;
+  vibes: string[];
+  region: string;
+  paletteHexes: string[];
+}) => `Create a beautiful, atmospheric wide-format artwork to serve as the
+hero image of a wedding website. No text, no people, no logos.
+
+Mood: ${args.styleDirection || args.vibes.join(", ") || "romantic, elegant, nordic"}.
+Setting inspiration: ${args.region || "Scandinavia"}.
+Color world: ${args.paletteHexes.join(", ")} — the artwork must harmonize
+with these colors.
+
+Think editorial wedding photography or fine art: soft natural light,
+botanical or landscape motifs, generous negative space. Flat image only —
+no mockups, frames or borders.`;

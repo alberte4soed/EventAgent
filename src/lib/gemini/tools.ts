@@ -157,4 +157,23 @@ export const functionDeclarations: FunctionDeclaration[] = [
       required: ["reply_id", "body"],
     },
   },
+  {
+    name: "update_website_design",
+    description:
+      "Design or restyle the couple's wedding website. Use when they ask you to design their site, or to change how it looks (colors, fonts, layout, mood — e.g. 'gør hjemmesiden mørkere', 'større forsidebillede'). Pass their request as the instruction; set regenerate=true only when they want a completely fresh design instead of an adjustment.",
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        instruction: {
+          type: Type.STRING,
+          description: "The couple's styling wish, in their own words",
+        },
+        regenerate: {
+          type: Type.BOOLEAN,
+          description: "true = design from scratch; false/omitted = adjust the current design",
+        },
+      },
+      required: ["instruction"],
+    },
+  },
 ];

@@ -38,9 +38,12 @@ export async function POST(request: NextRequest) {
     const orderId = session.metadata?.order_id;
     if (orderId) {
       const supabase = createAdminClient();
+      // order_type discriminates the order table; older sessions without it
+      // are invite orders (backward compatible).
+      const table = session.metadata?.order_type === "website" ? "website_orders" : "invite_orders";
       if (event.type === "checkout.session.completed") {
         await supabase
-          .from("invite_orders")
+          .from(table)
           .update({
             status: "paid",
             stripe_payment_intent:
@@ -50,7 +53,7 @@ export async function POST(request: NextRequest) {
           .eq("status", "pending_payment");
       } else {
         await supabase
-          .from("invite_orders")
+          .from(table)
           .update({ status: "canceled" })
           .eq("id", orderId)
           .eq("status", "pending_payment");

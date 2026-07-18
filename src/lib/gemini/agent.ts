@@ -237,6 +237,10 @@ export async function runAgentTurn(
             currentEvent = (result.event as EventRow) ?? currentEvent;
             delete result.event;
             break;
+          case "update_website_design":
+            onStatus("Designing your wedding website…");
+            result = await execUpdateWebsiteDesign(supabase, currentEvent, args);
+            break;
           case "propose_vendor_reply": {
             onStatus("Drafting a reply to the vendor…");
             const proposal = await execProposeVendorReply(supabase, currentEvent, args);
@@ -608,6 +612,49 @@ async function execMarkStageComplete(
     .single();
   if (error) throw new Error(error.message);
   return { ok: true, event: data as EventRow };
+}
+
+/** Design or restyle the couple's wedding website via the shared generator. */
+async function execUpdateWebsiteDesign(
+  supabase: SupabaseClient,
+  event: EventRow,
+  args: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  const instruction = String(args.instruction ?? "").trim();
+  if (!instruction) return { error: "instruction is required" };
+  const regenerate = args.regenerate === true;
+
+  const { generateSiteDesign, hasWebsiteAccess } = await import("@/lib/website/generate");
+  if (!(await hasWebsiteAccess(supabase, event.id))) {
+    return {
+      error: "payment_required",
+      message:
+        "The AI website designer is a paid feature the couple hasn't unlocked yet. Tell them to open Hjemmeside in the app to unlock it.",
+    };
+  }
+
+  const { data: activeRow } = await supabase
+    .from("website_designs")
+    .select("id")
+    .eq("event_id", event.id)
+    .eq("active", true)
+    .maybeSingle();
+
+  const { design } = await generateSiteDesign({
+    supabase,
+    event,
+    userId: event.user_id,
+    // No existing design, or an explicit fresh start → treat the wish as the brief.
+    ...(regenerate || !activeRow
+      ? { styleDirection: instruction }
+      : { instruction }),
+  });
+  return {
+    ok: true,
+    concept: design.concept.name,
+    rationale: design.concept.rationale,
+    note: "The couple can see the new design under Hjemmeside in the app.",
+  };
 }
 
 /** Draft a revised reply proposal for a vendor reply the user is discussing. */
