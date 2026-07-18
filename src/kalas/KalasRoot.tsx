@@ -44,6 +44,11 @@ function AppInner() {
   const [avaOpen, setAvaOpen] = useState(false);
   const [hubTick, setHubTick] = useState(0);
   const [screen, setScreen] = useState<ScreenId>(() => {
+    // Returning from the website Stripe checkout → land on the builder,
+    // which reads and strips the query param itself.
+    try {
+      if (new URLSearchParams(window.location.search).has('website_checkout')) return 'website';
+    } catch { /* ignore */ }
     const saved = sessionStorage.getItem('kalas_screen');
     if (saved === 'ava' || saved === 'inspiration') return 'home';
     return migrateSavedScreen(saved) || 'home';

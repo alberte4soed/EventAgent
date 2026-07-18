@@ -1,116 +1,41 @@
 import { useState, useId, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  Check, Globe, Smartphone, Plus, X, ChevronDown, Trash2,
-  Lock, Copy, Eye, EyeOff, MapPin, Gift, HelpCircle, Bed,
-  Camera, Clock, BookOpen, Image, QrCode,
+  Check, Globe, Smartphone, Plus, Trash2, Sparkles, Loader2, Upload,
+  Lock, Copy, Eye, MapPin, Gift, HelpCircle, Bed, History, Star,
+  Camera, Clock, BookOpen, Image, QrCode, ChevronDown,
 } from 'lucide-react';
-import { IMAGES as IMG, moodboard, guests, TODAY } from '../data';
+import { IMAGES as IMG, guests } from '../data';
 import { Eyebrow, cn } from '../ui';
 import OnboardingHint from '../OnboardingHint';
-import { useWedding } from '../useWedding';
-import type { Couple } from '../useWedding';
+import { useWedding, type Couple } from '../useWedding';
+import { SiteRenderer } from '../site/SiteRenderer';
+import {
+  parseConfig, slugify, INIT_SECTIONS, INIT_PROGRAM, INIT_FAQ, INIT_HOTELS, GALLERY_KEYS,
+  type SiteConfig, type ProgramEvent, type FAQItem, type HotelItem, type SectionId, type SectionMeta,
+} from '../site/config';
+import { parseSiteDesign, DEFAULT_DESIGN, type SiteDesign } from '../site/design';
+import { googleFontsHref } from '../site/fonts';
+import { websitePriceDkk } from '@/lib/website/pricing';
+import type { SitePhotoRow, WebsiteDesignRow } from '@/lib/db/types';
 
-const slugify = (s: string) =>
-  s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
-    .replace(/æ/g, 'ae').replace(/ø/g, 'oe').replace(/å/g, 'aa')
-    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'os';
+type WTab = 'design' | 'indhold' | 'indstillinger';
 
-/* ── Types ───────────────────────────────────────────────────────────── */
-type ProgramEvent = { id: string; time: string; label: string; sublabel: string };
-type FAQItem      = { id: string; q: string; a: string };
-type HotelItem    = { id: string; name: string; dist: string; price: string };
-type SectionId    = 'hero' | 'story' | 'program' | 'rsvp' | 'gallery' | 'transport' | 'dresscode' | 'gifts' | 'hotel' | 'faq' | 'photos';
-type SectionMeta  = { id: SectionId; label: string; desc: string; enabled: boolean; locked?: boolean };
-type WTab         = 'design' | 'indhold' | 'indstillinger';
-
-/* ── Lenses ──────────────────────────────────────────────────────────── */
-const LENSES = [
-  { id: 'editorial',  name: 'The Editorial',  tagline: 'Magasin-grid, store overskrifter, sat i serif.', image: 'invitation' as const, dark: false },
-  { id: 'minimalist', name: 'The Minimalist', tagline: 'Luft, ro og næsten ingenting.',                   image: 'rings'      as const, dark: false },
-  { id: 'organic',    name: 'The Organic',    tagline: 'Jordnær, botanisk og varm fornemmelse.',          image: 'olive'      as const, dark: false },
-  { id: 'garden',     name: 'The Garden',     tagline: 'Lyst orangeri, grønt overalt.',                  image: 'orangeri'   as const, dark: false },
-  { id: 'waterside',  name: 'The Waterside',  tagline: 'Skumring ved vandet, varmt lys.',                image: 'lavender'   as const, dark: false },
-  { id: 'noir',       name: 'Noir',           tagline: 'Mørk, dramatisk og luksuriøs.',                  image: 'candles'    as const, dark: true  },
-  { id: 'botanical',  name: 'Botanical',      tagline: 'Blomster overalt, sommerhave-stemning.',         image: 'florals'    as const, dark: false },
-  { id: 'ceremony',   name: 'The Ceremony',   tagline: 'Højtideligt, naturelt og klassisk.',             image: 'ceremony'   as const, dark: false },
+/** Style keywords the couple can hand Ava alongside free text. */
+const VIBE_CHIPS = [
+  'Romantisk', 'Minimalistisk', 'Boheme', 'Klassisk',
+  'Moderne', 'Dramatisk', 'Farverigt', 'Nordisk',
 ];
-
-/* ── Colors ──────────────────────────────────────────────────────────── */
-type WebColor = { id: string; name: string; bg: string; text: string; accent: string; detail: string };
-const WEBSITE_COLORS: WebColor[] = [
-  { id: 'oat-forest',  name: 'OAT &\nFOREST',   bg: '#F2EDE4', text: '#2C3826', accent: '#AEB080', detail: '#4A4E3C' },
-  { id: 'paper-noir',  name: 'PAPER &\nNOIR',    bg: '#FAFAF8', text: '#1A1A16', accent: '#C8C4B8', detail: '#3D3D38' },
-  { id: 'clay-sand',   name: 'CLAY &\nSAND',     bg: '#F0E8DC', text: '#4A2E1A', accent: '#C17B5C', detail: '#6B3E2A' },
-  { id: 'garden',      name: 'GARDEN',            bg: '#ECF2E6', text: '#2A3D1E', accent: '#7DAA5A', detail: '#3D5C2A' },
-  { id: 'waterside',   name: 'WATERSIDE',         bg: '#E8EFF5', text: '#1E3042', accent: '#7AA4C2', detail: '#2E5C82' },
-  { id: 'blush',       name: 'BLUSH',             bg: '#F7EDEB', text: '#3D1E24', accent: '#C28A90', detail: '#6B3A42' },
-];
-
-/* ── Fonts ───────────────────────────────────────────────────────────── */
-type WebFont = { id: string; name: string; pairs: string; style: React.CSSProperties };
-const FONTS: WebFont[] = [
-  { id: 'editorial-serif',  name: 'Editorial Serif',  pairs: 'Cormorant Garamond · Inter',     style: { fontFamily: 'Georgia, serif', fontStyle: 'italic', fontSize: '1.35rem' } },
-  { id: 'klassisk-magasin', name: 'Klassisk Magasin', pairs: 'Playfair Display · Inter',       style: { fontFamily: 'Georgia, serif', fontWeight: '700', fontSize: '1.25rem', letterSpacing: '-0.02em' } },
-  { id: 'moderne-kontrast', name: 'Moderne Kontrast', pairs: 'DM Serif Display · Work Sans',  style: { fontFamily: 'Georgia, serif', fontSize: '1.2rem', letterSpacing: '0.01em' } },
-  { id: 'stille-og-varm',   name: 'Stille og Varm',   pairs: 'Instrument Serif · Plus Jakarta',style: { fontFamily: 'Georgia, serif', fontWeight: '300', fontSize: '1.3rem', letterSpacing: '0.03em' } },
-  { id: 'ren-sans-serif',   name: 'Ren Sans-Serif',   pairs: 'IBM Plex Sans · Inter',          style: { fontFamily: 'system-ui, sans-serif', fontWeight: '300', fontSize: '1.15rem', letterSpacing: '0.06em' } },
-];
-
-/* ── Layouts ─────────────────────────────────────────────────────────── */
-const LAYOUTS = [
-  { id: 'centered', name: 'Centered', desc: 'Navne midt på, dato over, RSVP under.' },
-  { id: 'split',    name: 'Split',    desc: 'Billede på den ene halvdel, tekst på den anden.' },
-  { id: 'magazine', name: 'Magazine', desc: 'Stor headline øverst, billede-grid nedenunder.' },
-];
-
-/* ── Sections ────────────────────────────────────────────────────────── */
-const INIT_SECTIONS: SectionMeta[] = [
-  { id: 'hero',      label: 'Forside',           desc: 'Navne, dato & velkomstbesked',       enabled: true, locked: true },
-  { id: 'story',     label: 'Vores historie',    desc: 'Fortæl jeres kærlighedshistorie',    enabled: true  },
-  { id: 'program',   label: 'Program for dagen', desc: 'Tidslinje med programpunkter',       enabled: true  },
-  { id: 'rsvp',      label: 'RSVP',              desc: 'Tilmeldingsformular til gæsterne',   enabled: true  },
-  { id: 'gallery',   label: 'Galleri',           desc: 'Billeder fra jeres moodboard',       enabled: true  },
-  { id: 'transport', label: 'Transport',          desc: 'Adresse og vejledning til stedet',   enabled: false },
-  { id: 'dresscode', label: 'Dresscode',          desc: 'Hvad gæsterne skal have på',        enabled: false },
-  { id: 'gifts',     label: 'Gaveønsker',         desc: 'Ønskeliste eller bidrag til rejse', enabled: false },
-  { id: 'hotel',     label: 'Overnatning',        desc: 'Anbefalede hoteller tæt på stedet', enabled: false },
-  { id: 'faq',       label: 'FAQ for gæster',    desc: 'Svar på de hyppige spørgsmål',      enabled: false },
-  { id: 'photos',    label: 'Del billeder',       desc: 'Gæsterne uploader deres fotos',     enabled: true  },
-];
-
-const INIT_PROGRAM: ProgramEvent[] = [
-  { id: 'e1', time: '14:00', label: 'Vielse',                sublabel: 'Sonnerupgaard Kapel' },
-  { id: 'e2', time: '15:30', label: 'Velkomst & champagne',  sublabel: 'Terrassen'           },
-  { id: 'e3', time: '18:00', label: 'Middag',                sublabel: 'Den store sal'       },
-  { id: 'e4', time: '22:00', label: 'Fest, musik & dans',    sublabel: ''                    },
-];
-
-const INIT_FAQ: FAQItem[] = [
-  { id: 'f1', q: 'Hvad er dresscode?',          a: 'Festligt og elegant. Kvinder bedes undgå hvid eller cremefarvet.' },
-  { id: 'f2', q: 'Er der parkering på stedet?', a: 'Ja, gratis parkering. Følg skilte fra indkørslen.'               },
-  { id: 'f3', q: 'Hvornår er RSVP-deadline?',   a: `1. august 2026.`                                                  },
-];
-
-const INIT_HOTELS: HotelItem[] = [
-  { id: 'h1', name: 'Hotel Comwell Roskilde', dist: '8 km fra stedet', price: 'fra 1.200 kr/nat' },
-  { id: 'h2', name: 'Airbnb i området',       dist: '2–5 km',          price: 'fra 800 kr/nat'  },
-];
-
-const GALLERY_KEYS: (keyof typeof IMG)[] = ['florals', 'olive', 'candles', 'arch', 'ceremony', 'rings'];
 
 /* ══════════════════════════════════════════════════════════════════════
    MAIN EXPORT
 ══════════════════════════════════════════════════════════════════════ */
 export default function Website() {
-  const { couple, loading, weddingSite, saveSite } = useWedding();
+  const {
+    couple, loading, event, weddingSite, saveSite,
+    websiteDesign, websiteDesigns, sitePhotos, websitePaid, refresh,
+  } = useWedding();
   const [tab,      setTab]      = useState<WTab>('design');
-
-  /* Design */
-  const [lensId,   setLensId]   = useState('editorial');
-  const [colorId,  setColorId]  = useState('oat-forest');
-  const [fontId,   setFontId]   = useState('editorial-serif');
-  const [layoutId, setLayoutId] = useState('centered');
 
   /* Sections */
   const [sections, setSections] = useState<SectionMeta[]>(INIT_SECTIONS);
@@ -152,10 +77,6 @@ export default function Website() {
     readyRef.current = true;
     const c = (weddingSite?.config ?? {}) as Record<string, unknown>;
     if (weddingSite && Object.keys(c).length > 0) {
-      if (typeof c.lensId === 'string') setLensId(c.lensId);
-      if (typeof c.colorId === 'string') setColorId(c.colorId);
-      if (typeof c.fontId === 'string') setFontId(c.fontId);
-      if (typeof c.layoutId === 'string') setLayoutId(c.layoutId);
       if (Array.isArray(c.sections)) setSections(c.sections as SectionMeta[]);
       if (typeof c.heroTagline === 'string') setHeroTagline(c.heroTagline);
       if (typeof c.storyText === 'string') setStoryText(c.storyText);
@@ -182,11 +103,11 @@ export default function Website() {
 
   const config = useMemo(
     () => ({
-      lensId, colorId, fontId, layoutId, sections, heroTagline, storyText, countdown,
+      sections, heroTagline, storyText, countdown,
       program, rsvpDeadline, rsvpPlusOne, rsvpMeal, rsvpDietary, galleryKeys: [...galleryKeys],
       transport, dresscode, giftsText, giftsUrl, faq, hotels, pwProtected, sitePassword, hideBranding,
     }),
-    [lensId, colorId, fontId, layoutId, sections, heroTagline, storyText, countdown, program,
+    [sections, heroTagline, storyText, countdown, program,
      rsvpDeadline, rsvpPlusOne, rsvpMeal, rsvpDietary, galleryKeys, transport, dresscode,
      giftsText, giftsUrl, faq, hotels, pwProtected, sitePassword, hideBranding]
   );
@@ -197,14 +118,8 @@ export default function Website() {
     return () => clearTimeout(t);
   }, [config, domain, published, saveSite]);
 
-  const lens   = LENSES.find((l) => l.id === lensId)    ?? LENSES[0];
-  const colors = WEBSITE_COLORS.find((c) => c.id === colorId) ?? WEBSITE_COLORS[0];
-  const font   = FONTS.find((f) => f.id === fontId)     ?? FONTS[0];
-
   const toggleSection = (id: SectionId) =>
     setSections((prev) => prev.map((s) => s.id === id && !s.locked ? { ...s, enabled: !s.enabled } : s));
-
-  const enabledSections = sections.filter((s) => s.enabled);
 
   const publicPath = `/w/${domain}`;
   const publicUrl = typeof window !== 'undefined' ? `${window.location.origin}${publicPath}` : publicPath;
@@ -215,16 +130,135 @@ export default function Website() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // ── AI design state ──────────────────────────────────────────────────
+  const design: SiteDesign = useMemo(
+    () => (websiteDesign ? parseSiteDesign(websiteDesign.design) : DEFAULT_DESIGN),
+    [websiteDesign]
+  );
+
+  // Signed preview URLs for the couple's photos (bucket is private).
+  const [photoUrls, setPhotoUrls] = useState<Record<string, string>>({});
+  const photoIdsKey = sitePhotos.map((p) => p.id).join(',');
+  useEffect(() => {
+    if (!event) return;
+    let alive = true;
+    fetch(`/api/website/photos?eventId=${event.id}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { photos?: (SitePhotoRow & { url: string | null })[] } | null) => {
+        if (!alive || !d?.photos) return;
+        setPhotoUrls(Object.fromEntries(d.photos.filter((p) => p.url).map((p) => [p.id, p.url as string])));
+      })
+      .catch(() => {});
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [event?.id, photoIdsKey]);
+
+  const [working, setWorking] = useState<null | 'generate' | 'refine'>(null);
+  const [genError, setGenError] = useState<string | null>(null);
+  const [needsPayment, setNeedsPayment] = useState(false);
+
+  const callDesignApi = async (path: string, body: Record<string, unknown>, kind: 'generate' | 'refine') => {
+    if (!event) return;
+    setWorking(kind);
+    setGenError(null);
+    try {
+      const res = await fetch(path, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventId: event.id, ...body }),
+      });
+      if (res.status === 402) { setNeedsPayment(true); return; }
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { message?: string; error?: string };
+        setGenError(data.message ?? data.error ?? 'Noget gik galt — prøv igen.');
+        return;
+      }
+      await refresh();
+    } catch {
+      setGenError('Noget gik galt — prøv igen.');
+    } finally {
+      setWorking(null);
+    }
+  };
+
+  const generateDesign = (styleDirection: string, vibes: string[]) =>
+    callDesignApi('/api/website/design', { styleDirection, vibes }, 'generate');
+  const refineDesign = (instruction: string) =>
+    callDesignApi('/api/website/design/refine', { instruction }, 'refine');
+
+  const activateDesign = async (designId: string) => {
+    await fetch('/api/website/design/activate', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ designId }),
+    }).catch(() => {});
+    await refresh();
+  };
+
+  const startCheckout = async () => {
+    if (!event) return;
+    const res = await fetch('/api/website/checkout', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ eventId: event.id }),
+    }).catch(() => null);
+    if (!res) return;
+    if (res.status === 503) { setNeedsPayment(false); return; } // Stripe not configured → unlocked
+    const data = (await res.json().catch(() => ({}))) as { url?: string };
+    if (data.url) window.location.href = data.url;
+  };
+
+  // Back from Stripe: land on this screen and poll until the webhook lands.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has('website_checkout')) return;
+    const success = params.get('website_checkout') === 'success';
+    params.delete('website_checkout');
+    const qs = params.toString();
+    window.history.replaceState({}, '', `${window.location.pathname}${qs ? `?${qs}` : ''}`);
+    if (!success) return;
+    let tries = 0;
+    const t = setInterval(() => {
+      tries += 1;
+      void refresh();
+      if (tries >= 8) clearInterval(t);
+    }, 2000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const uploadPhotos = async (files: FileList | File[]) => {
+    if (!event) return;
+    for (const file of Array.from(files)) {
+      const form = new FormData();
+      form.append('file', file);
+      form.append('eventId', event.id);
+      await fetch('/api/website/photos', { method: 'POST', body: form }).catch(() => {});
+    }
+    await refresh();
+  };
+
+  const deletePhoto = async (photoId: string) => {
+    await fetch(`/api/website/photos/${photoId}`, { method: 'DELETE' }).catch(() => {});
+    await refresh();
+  };
+
+  const setHeroPhoto = async (photoId: string) => {
+    await fetch(`/api/website/photos/${photoId}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: 'hero' }),
+    }).catch(() => {});
+    await refresh();
+  };
+
+  const previewConfig = useMemo(() => parseConfig(config), [config]);
+
   const preview = (
-    <SitePreview
+    <ScaledPreview
+      domain={domain}
       couple={couple}
-      lens={lens} colors={colors} font={font} layoutId={layoutId}
-      sections={enabledSections} heroTagline={heroTagline}
-      storyText={storyText} program={program} domain={domain}
-      countdown={countdown} galleryKeys={galleryKeys}
-      showBranding={!hideBranding}
-      onBrandingClick={() => setShowLanding(true)}
-      onRsvpClick={() => setShowRsvp(true)}
+      config={previewConfig}
+      design={design}
+      photoUrls={photoUrls}
+      onRsvp={() => setShowRsvp(true)}
     />
   );
 
@@ -302,142 +336,27 @@ export default function Website() {
               </div>
             </div>
 
-            {/* Right: design pickers */}
-            <div className="rule-t lg:rule-t-0 px-6 py-10 sm:px-9 lg:py-12 space-y-10 overflow-y-auto">
-
-              {/* Linse */}
-              <section>
-                <Eyebrow className="mb-4">01 — Linse</Eyebrow>
-                <div className="divide-y divide-[var(--color-line)]">
-                  {LENSES.map((l) => {
-                    const sel = l.id === lensId;
-                    return (
-                      <button key={l.id} onClick={() => setLensId(l.id)}
-                        className="flex w-full items-center gap-4 py-3.5 text-left cursor-pointer group">
-                        <div className="relative h-14 w-12 shrink-0 overflow-hidden rounded-xl">
-                          <img src={IMG[l.image]} alt={l.name}
-                            className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                          <div className={cn('absolute inset-0', l.dark ? 'bg-black/50' : 'bg-[#1a2215]/30')} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className={cn('font-serif text-[1rem] leading-tight transition-colors',
-                            sel ? 'text-ink' : 'text-ink-soft group-hover:text-ink')}>
-                            {l.name}
-                          </p>
-                          <p className="mt-0.5 text-[0.72rem] text-muted leading-snug">{l.tagline}</p>
-                        </div>
-                        <div className={cn('flex h-5 w-5 shrink-0 items-center justify-center rounded-full transition-all',
-                          sel ? 'bg-sage' : 'bg-shell group-hover:bg-sage-tint')}>
-                          {sel && <Check size={11} className="text-ink" />}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </section>
-
-              {/* Farver */}
-              <section>
-                <Eyebrow className="mb-4">02 — Farver</Eyebrow>
-                <div className="grid grid-cols-3 gap-2.5">
-                  {WEBSITE_COLORS.map((c) => {
-                    const sel = c.id === colorId;
-                    return (
-                      <button key={c.id} onClick={() => setColorId(c.id)}
-                        className={cn('relative aspect-square rounded-xl flex items-end p-3 cursor-pointer transition-all',
-                          sel ? 'ring-2 ring-ink ring-offset-2 ring-offset-canvas' : 'hover:scale-[1.02]')}
-                        style={{ background: c.bg }}>
-                        <span className="text-[0.58rem] font-semibold uppercase tracking-[0.1em] whitespace-pre-line leading-tight"
-                          style={{ color: c.text }}>{c.name}</span>
-                        {sel && (
-                          <div className="absolute right-2.5 top-2.5 flex h-4 w-4 items-center justify-center rounded-full bg-ink">
-                            <Check size={9} className="text-canvas" />
-                          </div>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </section>
-
-              {/* Typografi */}
-              <section>
-                <Eyebrow className="mb-4">03 — Typografi</Eyebrow>
-                <div className="rule rounded-2xl overflow-hidden divide-y divide-[var(--color-line)]">
-                  {FONTS.map((f) => {
-                    const sel = f.id === fontId;
-                    return (
-                      <button key={f.id} onClick={() => setFontId(f.id)}
-                        className={cn('flex w-full items-center gap-5 px-5 py-3.5 text-left cursor-pointer transition-colors',
-                          sel ? 'bg-shell/60' : 'bg-canvas hover:bg-card/50')}>
-                        <div className="flex-1 min-w-0">
-                          <span style={f.style} className="block text-ink">{couple.a} & {couple.b}</span>
-                          <span className="mt-0.5 block text-[0.65rem] text-muted">{f.pairs}</span>
-                        </div>
-                        <div className={cn('flex h-5 w-5 shrink-0 items-center justify-center rounded-full transition-all',
-                          sel ? 'bg-sage' : 'bg-shell')}>
-                          {sel && <Check size={10} className="text-ink" />}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </section>
-
-              {/* Opsætning */}
-              <section>
-                <Eyebrow className="mb-4">04 — Opsætning</Eyebrow>
-                <div className="grid grid-cols-3 gap-2.5">
-                  {LAYOUTS.map((l) => {
-                    const sel = l.id === layoutId;
-                    return (
-                      <button key={l.id} onClick={() => setLayoutId(l.id)}
-                        className={cn('relative flex flex-col overflow-hidden rounded-xl rule bg-card text-left cursor-pointer transition-all',
-                          sel ? 'ring-2 ring-ink ring-offset-2 ring-offset-canvas' : 'hover:bg-shell/40')}>
-                        <div className="w-full p-2.5 pb-0">
-                          {l.id === 'centered' && (
-                            <svg viewBox="0 0 120 80" className="w-full rounded overflow-hidden">
-                              <rect width="120" height="80" fill="var(--color-shell)" />
-                              <rect x="35" y="18" width="50" height="5" rx="2" fill="var(--color-ink)" opacity="0.2" />
-                              <rect x="40" y="27" width="40" height="7" rx="2" fill="var(--color-ink)" opacity="0.35" />
-                              <rect x="42" y="39" width="36" height="3" rx="1.5" fill="var(--color-muted)" opacity="0.3" />
-                              <rect x="44" y="56" width="32" height="10" rx="5" fill="var(--color-sage)" opacity="0.55" />
-                            </svg>
-                          )}
-                          {l.id === 'split' && (
-                            <svg viewBox="0 0 120 80" className="w-full rounded overflow-hidden">
-                              <rect width="120" height="80" fill="var(--color-shell)" />
-                              <rect width="54" height="80" fill="var(--color-line-strong)" opacity="0.35" />
-                              <rect x="62" y="22" width="48" height="6" rx="2" fill="var(--color-ink)" opacity="0.2" />
-                              <rect x="62" y="33" width="40" height="5" rx="2" fill="var(--color-muted)" opacity="0.3" />
-                              <rect x="62" y="56" width="36" height="10" rx="5" fill="var(--color-sage)" opacity="0.55" />
-                            </svg>
-                          )}
-                          {l.id === 'magazine' && (
-                            <svg viewBox="0 0 120 80" className="w-full rounded overflow-hidden">
-                              <rect width="120" height="80" fill="var(--color-shell)" />
-                              <rect x="6" y="10" width="80" height="7" rx="2" fill="var(--color-ink)" opacity="0.2" />
-                              <rect x="6" y="22" width="55" height="3.5" rx="2" fill="var(--color-muted)" opacity="0.3" />
-                              <rect x="6"  y="34" width="33" height="36" rx="3" fill="var(--color-line-strong)" opacity="0.35" />
-                              <rect x="43" y="34" width="33" height="36" rx="3" fill="var(--color-line-strong)" opacity="0.28" />
-                              <rect x="80" y="34" width="33" height="36" rx="3" fill="var(--color-line-strong)" opacity="0.22" />
-                            </svg>
-                          )}
-                        </div>
-                        <div className="p-2.5 pt-2">
-                          <p className="font-serif text-[0.92rem] text-ink">{l.name}</p>
-                          <p className="mt-0.5 text-[0.68rem] text-muted leading-snug">{l.desc}</p>
-                        </div>
-                        {sel && (
-                          <div className="absolute right-2 top-2 flex h-4 w-4 items-center justify-center rounded-full bg-ink">
-                            <Check size={9} className="text-canvas" />
-                          </div>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </section>
+            {/* Right: Ava design studio */}
+            <div className="rule-t lg:rule-t-0 px-6 py-10 sm:px-9 lg:py-12 overflow-y-auto">
+              <DesignStudio
+                hasDesign={Boolean(websiteDesign)}
+                design={design}
+                designs={websiteDesigns}
+                activeId={websiteDesign?.id ?? null}
+                photos={sitePhotos}
+                photoUrls={photoUrls}
+                working={working}
+                genError={genError}
+                needsPayment={needsPayment}
+                websitePaid={websitePaid}
+                onGenerate={generateDesign}
+                onRefine={refineDesign}
+                onActivate={activateDesign}
+                onCheckout={startCheckout}
+                onUpload={uploadPhotos}
+                onDeletePhoto={deletePhoto}
+                onSetHero={setHeroPhoto}
+              />
             </div>
           </motion.div>
         )}
@@ -786,18 +705,18 @@ export default function Website() {
                       Et diskret "Lavet med Kalas" vises i bunden af jeres side — og hjælper andre par finde Kalas.
                     </p>
                   </div>
-                  {hideBranding
-                    ? <span className="shrink-0 rounded-full bg-sage-tint px-3 py-1 text-[0.65rem] font-bold uppercase tracking-[0.14em] text-ink">Pro</span>
-                    : <Toggle value={!hideBranding} onChange={(v) => { if (!v) setHideBranding(true); }} />
+                  {websitePaid
+                    ? <Toggle value={!hideBranding} onChange={(v) => setHideBranding(!v)} />
+                    : <span className="shrink-0 rounded-full bg-sage-tint px-3 py-1 text-[0.65rem] font-bold uppercase tracking-[0.14em] text-ink">Inkluderet i køb</span>
                   }
                 </div>
-                {hideBranding && (
+                {!websitePaid && (
                   <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
                     className="mt-4 rule rounded-xl bg-shell px-4 py-3 flex items-center justify-between gap-4">
-                    <p className="text-[0.78rem] text-muted">Skjul branding med Kalas Pro</p>
-                    <button onClick={() => setHideBranding(false)}
+                    <p className="text-[0.78rem] text-muted">Branding fjernes når I låser Ava-designeren op</p>
+                    <button onClick={() => void startCheckout()}
                       className="shrink-0 rounded-full bg-ink px-4 py-1.5 text-[0.65rem] font-bold uppercase tracking-[0.14em] text-canvas hover:bg-ink/80 transition-colors cursor-pointer">
-                      Opgrader · 1.199 kr
+                      Lås op · {websitePriceDkk()} kr
                     </button>
                   </motion.div>
                 )}
@@ -1040,179 +959,351 @@ function ToggleRow({ label, value, onChange }: { label: string; value: boolean; 
   );
 }
 
-/* ── Live preview ─────────────────────────────────────────────────────── */
-function SitePreview({
-  couple, lens, colors, font, layoutId, sections, heroTagline, storyText, program, domain, countdown, galleryKeys,
-  showBranding, onBrandingClick, onRsvpClick,
-}: {
-  couple: Couple;
-  lens: typeof LENSES[number];
-  colors: WebColor;
-  font: WebFont;
-  layoutId: string;
-  sections: SectionMeta[];
-  heroTagline: string;
-  storyText: string;
-  program: ProgramEvent[];
+/* ── Live preview — the real public renderer, scaled down ─────────────── */
+function ScaledPreview({ domain, couple, config, design, photoUrls, onRsvp }: {
   domain: string;
-  countdown: boolean;
-  galleryKeys: Set<keyof typeof IMG>;
-  showBranding?: boolean;
-  onBrandingClick?: () => void;
-  onRsvpClick?: () => void;
+  couple: Couple;
+  config: SiteConfig;
+  design: SiteDesign;
+  photoUrls: Record<string, string>;
+  onRsvp: () => void;
 }) {
-  const daysLeft = couple.dateISO
-    ? Math.ceil((new Date(couple.dateISO).getTime() - TODAY.getTime()) / 86400000)
-    : 0;
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+  const [scale, setScale] = useState(0.35);
+  const FULL_W = 1180; // desktop viewport the site is designed at
+
+  useEffect(() => {
+    const measure = () => {
+      const w = wrapRef.current?.clientWidth ?? 420;
+      setScale(w / FULL_W);
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, []);
 
   return (
-    <motion.div layout
-      className="overflow-hidden rounded-2xl rule bg-card shadow-[0_20px_60px_-20px_rgba(58,79,55,0.12)]">
+    <div className="overflow-hidden rounded-2xl rule bg-card shadow-[0_16px_48px_-20px_rgba(0,0,0,0.25)]">
+      {/* Fonts the current design uses — loaded app-side for the preview */}
+      <link rel="stylesheet" href={googleFontsHref([design.typography.displayFont, design.typography.bodyFont])} />
       {/* Browser chrome */}
-      <div className="flex items-center gap-2 rule-b bg-card px-4 py-2.5">
-        <span className="h-2 w-2 rounded-full bg-[var(--color-line-strong)]" />
-        <span className="h-2 w-2 rounded-full bg-[var(--color-line-strong)]" />
-        <span className="h-2 w-2 rounded-full bg-[var(--color-line-strong)]" />
-        <div className="ml-3 flex flex-1 items-center gap-1.5 rounded-full bg-shell px-3 py-1">
-          <Globe size={9} className="text-muted" />
-          <span className="text-[0.65rem] text-muted">{domain}.kalas.dk</span>
+      <div className="flex items-center gap-2 rule-b bg-shell px-4 py-2.5">
+        <div className="flex gap-1.5">
+          {[0, 1, 2].map((i) => <span key={i} className="h-2 w-2 rounded-full bg-[var(--color-line-strong)]" />)}
+        </div>
+        <div className="mx-auto flex items-center gap-1.5 rounded-full bg-canvas px-3 py-1 text-[0.68rem] text-muted">
+          <Lock size={9} /> {domain}.kalas.dk
         </div>
       </div>
-
-      {/* Mock site */}
-      <div className="overflow-y-auto hide-scrollbar" style={{ maxHeight: 520 }}>
-
-        {/* Nav */}
-        <div className="flex items-center justify-between px-5 py-2.5 rule-b" style={{ background: colors.bg }}>
-          <span style={{ ...font.style, fontSize: '0.72rem', fontStyle: 'normal', letterSpacing: '0.05em', color: colors.text }}>
-            {couple.a} & {couple.b}
-          </span>
-          <div className="flex items-center gap-3">
-            {sections.slice(0, 3).map((s) => (
-              <span key={s.id} className="text-[0.52rem] uppercase tracking-[0.14em]"
-                style={{ color: colors.text, opacity: 0.5 }}>{s.label}</span>
-            ))}
-          </div>
+      {/* Scaled real site */}
+      <div ref={wrapRef} className="relative h-[520px] overflow-hidden">
+        <div
+          className="absolute left-0 top-0 origin-top-left overflow-y-auto"
+          style={{ width: FULL_W, height: 520 / scale, transform: `scale(${scale})` }}
+        >
+          <SiteRenderer
+            couple={{ a: couple.a, b: couple.b, dateLabel: couple.dateLabel, dateISO: couple.dateISO }}
+            config={config}
+            design={design}
+            photoUrls={photoUrls}
+            onRsvp={onRsvp}
+          />
         </div>
+      </div>
+    </div>
+  );
+}
 
-        {/* Hero */}
-        <div className="relative" style={{ height: layoutId === 'split' ? 180 : 200 }}>
-          {layoutId === 'split' ? (
-            <div className="flex h-full">
-              <div className="w-1/2 relative overflow-hidden">
-                <img src={IMG[lens.image]} alt="" className="absolute inset-0 h-full w-full object-cover" />
-              </div>
-              <div className="w-1/2 flex flex-col items-start justify-center px-5"
-                style={{ background: colors.bg }}>
-                <p className="text-[0.45rem] uppercase tracking-[0.28em] mb-2" style={{ color: colors.accent }}>{couple.dateLabel.toUpperCase()}</p>
-                <p style={{ ...font.style, fontSize: 'clamp(1.1rem,3vw,1.8rem)', lineHeight: 1.1, color: colors.text }}>{couple.a} & {couple.b}</p>
-                <p className="mt-1.5 text-[0.52rem] leading-relaxed" style={{ color: colors.text, opacity: 0.6 }}>{heroTagline}</p>
-              </div>
-            </div>
-          ) : (
-            <>
-              <img src={IMG[lens.image]} alt="" className="absolute inset-0 h-full w-full object-cover transition-all duration-700" />
-              <div className={cn('absolute inset-0', lens.dark ? 'bg-black/60' : 'bg-[#3a4f3780]')} />
-              {/* palette stripe */}
-              <div className="absolute top-0 left-0 right-0 h-0.5 flex">
-                {[colors.bg, colors.accent, colors.text, colors.detail, colors.bg].map((c, i) => (
-                  <div key={i} className="flex-1" style={{ background: c }} />
-                ))}
-              </div>
-              <div className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center">
-                <p className="text-[0.44rem] uppercase tracking-[0.32em] text-canvas/70 mb-1">{couple.dateLabel.toUpperCase()}</p>
-                <p className="text-canvas" style={{ ...font.style, fontSize: 'clamp(1.4rem,4vw,2.2rem)', lineHeight: 1.1 }}>
-                  {couple.a} & {couple.b}
-                </p>
-                <p className="mt-1.5 text-[0.5rem] text-canvas/70">{heroTagline}</p>
-                {countdown && daysLeft > 0 && (
-                  <div className="mt-3 flex items-center gap-1 rounded-full px-3 py-1"
-                    style={{ background: `${colors.accent}CC`, color: colors.bg }}>
-                    <span className="text-[0.52rem] font-bold">{daysLeft}</span>
-                    <span className="text-[0.44rem] uppercase tracking-[0.1em]"> dage</span>
-                  </div>
-                )}
-                <button onClick={onRsvpClick}
-                  className="mt-3 rounded-full px-3 py-1 text-[0.48rem] font-semibold uppercase tracking-[0.14em] cursor-pointer hover:opacity-80 transition-opacity"
-                  style={{ background: colors.accent, color: colors.bg }}>RSVP</button>
-              </div>
-            </>
-          )}
+/* ── Ava design studio — intake, generation, refinement, versions ─────── */
+function DesignStudio({
+  hasDesign, design, designs, activeId, photos, photoUrls, working, genError,
+  needsPayment, websitePaid, onGenerate, onRefine, onActivate, onCheckout,
+  onUpload, onDeletePhoto, onSetHero,
+}: {
+  hasDesign: boolean;
+  design: SiteDesign;
+  designs: WebsiteDesignRow[];
+  activeId: string | null;
+  photos: SitePhotoRow[];
+  photoUrls: Record<string, string>;
+  working: null | 'generate' | 'refine';
+  genError: string | null;
+  needsPayment: boolean;
+  websitePaid: boolean;
+  onGenerate: (styleDirection: string, vibes: string[]) => void;
+  onRefine: (instruction: string) => void;
+  onActivate: (designId: string) => void;
+  onCheckout: () => void;
+  onUpload: (files: FileList) => void;
+  onDeletePhoto: (id: string) => void;
+  onSetHero: (id: string) => void;
+}) {
+  const [styleDirection, setStyleDirection] = useState('');
+  const [vibes, setVibes] = useState<Set<string>>(new Set());
+  const [instruction, setInstruction] = useState('');
+  const [showVersions, setShowVersions] = useState(false);
+
+  const toggleVibe = (v: string) =>
+    setVibes((prev) => {
+      const n = new Set(prev);
+      if (n.has(v)) n.delete(v); else n.add(v);
+      return n;
+    });
+
+  const submitRefine = () => {
+    const text = instruction.trim();
+    if (!text || working) return;
+    setInstruction('');
+    onRefine(text);
+  };
+
+  /* Paywall card takes over the studio until unlocked. */
+  if (needsPayment && !websitePaid) {
+    return (
+      <div className="rule rounded-2xl bg-card p-7 text-center">
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-ink">
+          <Sparkles size={20} className="text-canvas" />
         </div>
+        <p className="font-serif text-[1.4rem] text-ink leading-tight">Lås Ava-designeren op</p>
+        <p className="mx-auto mt-2 max-w-xs text-[0.85rem] text-muted leading-relaxed">
+          Ava designer jeres personlige hjemmeside ud fra jeres billeder og stil — og I kan bede hende justere, indtil den er helt rigtig. Engangsbeløb, inkl. fjernelse af Kalas-branding.
+        </p>
+        <button onClick={onCheckout}
+          className="mt-6 rounded-full bg-ink px-7 py-3 text-[0.75rem] font-bold uppercase tracking-[0.16em] text-canvas hover:bg-ink/80 transition-colors cursor-pointer">
+          Lås op · {websitePriceDkk()} kr
+        </button>
+        <p className="mt-3 text-[0.7rem] text-muted">Betaling via Stripe · gælder hele jeres bryllup</p>
+      </div>
+    );
+  }
 
-        {/* Program */}
-        {sections.some((s) => s.id === 'program') && program.length > 0 && (
-          <div className="px-5 py-4" style={{ background: colors.bg }}>
-            <p className="mb-2.5 text-[0.46rem] font-semibold uppercase tracking-[0.22em]"
-              style={{ color: colors.accent }}>Program</p>
-            {program.slice(0, 4).map((ev) => (
-              <div key={ev.id} className="flex items-start gap-2.5 py-1.5 border-b last:border-b-0"
-                style={{ borderColor: `${colors.text}12` }}>
-                <span className="w-7 shrink-0 tabular-nums text-[0.44rem]"
-                  style={{ color: colors.text, opacity: 0.4 }}>{ev.time}</span>
-                <div className="h-1 w-1 rounded-full mt-[3px] shrink-0" style={{ background: colors.accent }} />
-                <div>
-                  <span className="text-[0.54rem]" style={{ color: colors.text }}>{ev.label}</span>
-                  {ev.sublabel && <span className="block text-[0.46rem]" style={{ color: colors.text, opacity: 0.45 }}>{ev.sublabel}</span>}
-                </div>
-              </div>
+  /* Working state. */
+  if (working) {
+    return (
+      <div className="rule rounded-2xl bg-card p-8 text-center">
+        <Loader2 size={26} className="mx-auto animate-spin text-ink" />
+        <p className="mt-4 font-serif text-[1.25rem] text-ink">
+          {working === 'generate' ? 'Ava designer jeres side…' : 'Ava justerer designet…'}
+        </p>
+        <p className="mx-auto mt-2 max-w-xs text-[0.82rem] text-muted leading-relaxed">
+          Hun kigger på jeres billeder, vælger farver og typografi og bygger siden op. Det tager typisk under et minut.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+      {genError && (
+        <p className="rule rounded-xl bg-[#f2e3dd] px-4 py-3 text-[0.82rem] text-[var(--color-terracotta)]">{genError}</p>
+      )}
+
+      {/* Concept / intake */}
+      {hasDesign ? (
+        <section className="rule rounded-2xl bg-card p-6">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <Eyebrow className="mb-2">Jeres design</Eyebrow>
+              <p className="font-serif text-[1.5rem] leading-tight text-ink">{design.concept.name}</p>
+            </div>
+            <span className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sage-tint">
+              <Sparkles size={15} className="text-ink" />
+            </span>
+          </div>
+          <p className="mt-2 text-[0.85rem] leading-relaxed text-muted">{design.concept.rationale}</p>
+          <div className="mt-4 flex items-center gap-1.5">
+            {[design.palette.bg, design.palette.surface, design.palette.accent, design.palette.text].map((c, i) => (
+              <span key={i} className="h-5 w-5 rounded-full rule" style={{ background: c }} />
             ))}
+            <span className="ml-2 text-[0.7rem] text-muted">{design.typography.displayFont} · {design.typography.bodyFont}</span>
           </div>
-        )}
 
-        {/* Vores historie */}
-        {sections.some((s) => s.id === 'story') && (
-          <div className="px-5 py-4" style={{ background: colors.bg, opacity: 0.9 }}>
-            <p className="mb-2 text-[0.46rem] font-semibold uppercase tracking-[0.22em]"
-              style={{ color: colors.accent }}>Vores historie</p>
-            <p className="font-serif leading-relaxed line-clamp-3"
-              style={{ fontSize: '0.62rem', color: colors.text, opacity: 0.75 }}>{storyText}</p>
-          </div>
-        )}
-
-        {/* Gallery */}
-        {sections.some((s) => s.id === 'gallery') && galleryKeys.size > 0 && (
-          <div className="px-5 py-4" style={{ background: colors.bg }}>
-            <p className="mb-2 text-[0.46rem] font-semibold uppercase tracking-[0.22em]"
-              style={{ color: colors.accent }}>Galleri</p>
-            <div className="grid grid-cols-3 gap-1">
-              {[...galleryKeys].slice(0, 3).map((key) => (
-                <div key={key} className="aspect-square overflow-hidden rounded-md">
-                  <img src={IMG[key]} alt="" className="h-full w-full object-cover" />
-                </div>
-              ))}
+          {/* Refine */}
+          <div className="mt-5 rule-t pt-5">
+            <Label>Fortæl Ava hvad der skal ændres</Label>
+            <div className="mt-2 flex gap-2">
+              <input
+                value={instruction}
+                onChange={(e) => setInstruction(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') submitRefine(); }}
+                placeholder="f.eks. gør den mørkere, større billeder…"
+                className="min-w-0 flex-1 rule rounded-xl bg-shell px-4 py-2.5 text-[0.85rem] text-ink placeholder:text-muted focus:outline-none"
+              />
+              <button onClick={submitRefine} disabled={!instruction.trim()}
+                className="shrink-0 rounded-full bg-ink px-4 py-2 text-[0.7rem] font-bold uppercase tracking-[0.14em] text-canvas hover:bg-ink/80 disabled:opacity-40 transition-colors cursor-pointer">
+                Justér
+              </button>
+            </div>
+            <div className="mt-3 flex items-center justify-between">
+              <button onClick={() => onGenerate(styleDirection, [...vibes])}
+                className="flex items-center gap-1.5 text-[0.75rem] text-muted hover:text-ink transition-colors cursor-pointer">
+                <Sparkles size={12} /> Helt nyt design
+              </button>
+              {designs.length > 1 && (
+                <button onClick={() => setShowVersions((v) => !v)}
+                  className="flex items-center gap-1.5 text-[0.75rem] text-muted hover:text-ink transition-colors cursor-pointer">
+                  <History size={12} /> Versioner ({designs.length})
+                </button>
+              )}
             </div>
           </div>
-        )}
 
-        {/* Remaining sections as tags */}
-        {sections.filter((s) => !['hero', 'program', 'story', 'gallery', 'rsvp'].includes(s.id)).length > 0 && (
-          <div className="flex flex-wrap gap-1.5 px-5 py-3" style={{ background: colors.bg }}>
-            {sections.filter((s) => !['hero', 'program', 'story', 'gallery'].includes(s.id)).map((s) => (
-              <span key={s.id} className="rounded-full px-2.5 py-0.5 text-[0.52rem] uppercase tracking-[0.1em]"
-                style={{ border: `1px solid ${colors.text}20`, color: colors.text, opacity: 0.6 }}>
-                {s.label}
-              </span>
-            ))}
+          {/* Version history */}
+          <AnimatePresence>
+            {showVersions && (
+              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                <div className="mt-4 space-y-2">
+                  {designs.map((d) => {
+                    const pd = parseSiteDesign(d.design);
+                    const isActive = d.id === activeId;
+                    return (
+                      <button key={d.id} onClick={() => { if (!isActive) void onActivate(d.id); }}
+                        className={cn('flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors cursor-pointer',
+                          isActive ? 'bg-sage-tint' : 'bg-shell hover:bg-card')}>
+                        <span className="flex gap-1">
+                          {[pd.palette.bg, pd.palette.accent, pd.palette.text].map((c, i) => (
+                            <span key={i} className="h-3.5 w-3.5 rounded-full rule" style={{ background: c }} />
+                          ))}
+                        </span>
+                        <span className="min-w-0 flex-1 truncate text-[0.82rem] text-ink">{pd.concept.name}</span>
+                        <span className="shrink-0 text-[0.65rem] text-muted">
+                          {new Date(d.created_at).toLocaleDateString('da-DK', { day: 'numeric', month: 'short' })}
+                        </span>
+                        {isActive && <Check size={13} className="shrink-0 text-ink" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </section>
+      ) : (
+        <section className="rule rounded-2xl bg-card p-6">
+          <Eyebrow className="mb-2">Ava designer jeres side</Eyebrow>
+          <p className="font-serif text-[1.4rem] leading-tight text-ink">Hvordan skal den føles?</p>
+          <p className="mt-2 text-[0.85rem] leading-relaxed text-muted">
+            Vælg stemninger, beskriv jeres stil med egne ord, og upload et par billeder — så designer Ava en side, der er helt jeres.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {VIBE_CHIPS.map((v) => {
+              const on = vibes.has(v);
+              return (
+                <button key={v} onClick={() => toggleVibe(v)}
+                  className={cn('rounded-full px-3.5 py-1.5 text-[0.75rem] font-medium transition-colors cursor-pointer',
+                    on ? 'bg-ink text-canvas' : 'rule bg-shell text-ink-soft hover:text-ink')}>
+                  {v}
+                </button>
+              );
+            })}
           </div>
-        )}
-
-        {/* Kalas branding footer */}
-        {showBranding && (
-          <button
-            onClick={onBrandingClick}
-            className="w-full py-3 flex items-center justify-center gap-1.5 cursor-pointer hover:opacity-80 transition-opacity"
-            style={{ background: colors.bg, borderTop: `1px solid ${colors.text}10` }}
-          >
-            <span className="text-[0.48rem] uppercase tracking-[0.18em]" style={{ color: colors.text, opacity: 0.35 }}>
-              Lavet med
-            </span>
-            <span className="font-serif text-[0.6rem] tracking-[0.12em]" style={{ color: colors.text, opacity: 0.5 }}>
-              Kalas
-            </span>
+          <textarea
+            value={styleDirection}
+            onChange={(e) => setStyleDirection(e.target.value)}
+            rows={3}
+            placeholder="f.eks. Vi drømmer om noget let og botanisk med varme toner — ikke for stift…"
+            className="mt-3 w-full resize-none rule rounded-xl bg-shell px-4 py-3 text-[0.85rem] text-ink placeholder:text-muted focus:outline-none"
+          />
+          <button onClick={() => onGenerate(styleDirection, [...vibes])}
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-ink py-3.5 text-[0.75rem] font-bold uppercase tracking-[0.16em] text-canvas hover:bg-ink/80 transition-colors cursor-pointer">
+            <Sparkles size={14} /> Lad Ava designe jeres side
           </button>
-        )}
+        </section>
+      )}
+
+      {/* Photos */}
+      <PhotoManager
+        photos={photos}
+        photoUrls={photoUrls}
+        onUpload={onUpload}
+        onDelete={onDeletePhoto}
+        onSetHero={onSetHero}
+      />
+    </div>
+  );
+}
+
+/* ── Photo manager — the couple's own photos feed the design ──────────── */
+function PhotoManager({ photos, photoUrls, onUpload, onDelete, onSetHero }: {
+  photos: SitePhotoRow[];
+  photoUrls: Record<string, string>;
+  onUpload: (files: FileList) => void;
+  onDelete: (id: string) => void;
+  onSetHero: (id: string) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const handleFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setBusy(true);
+    try { await onUpload(files); } finally { setBusy(false); }
+  };
+
+  return (
+    <section className="rule rounded-2xl bg-card p-6">
+      <div className="flex items-center justify-between">
+        <Eyebrow>Jeres billeder</Eyebrow>
+        <span className="text-[0.7rem] text-muted">{photos.length} / 24</span>
       </div>
-    </motion.div>
+      <p className="mt-2 text-[0.8rem] leading-relaxed text-muted">
+        Ava designer ud fra jeres egne billeder — forlovelsesbilleder, stedet, jer to. Markér ét som forsidebillede.
+      </p>
+
+      <div className="mt-4 grid grid-cols-3 gap-2">
+        {photos.map((p) => {
+          const url = photoUrls[p.id];
+          return (
+            <div key={p.id} className="group relative aspect-square overflow-hidden rounded-xl bg-shell">
+              {url
+                ? <img src={url} alt="" className="h-full w-full object-cover" />
+                : <span className="flex h-full items-center justify-center"><Image size={16} className="text-muted" /></span>}
+              {p.role === 'hero' && (
+                <span className="absolute left-1.5 top-1.5 flex items-center gap-1 rounded-full bg-ink/80 px-2 py-0.5 text-[0.55rem] font-bold uppercase tracking-[0.1em] text-canvas">
+                  <Star size={8} /> Forside
+                </span>
+              )}
+              {p.kind === 'generated' && (
+                <span className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-canvas/85">
+                  <Sparkles size={10} className="text-ink" />
+                </span>
+              )}
+              <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-gradient-to-t from-black/60 to-transparent p-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+                {p.role !== 'hero' ? (
+                  <button onClick={() => onSetHero(p.id)} title="Brug som forsidebillede"
+                    className="flex h-6 w-6 items-center justify-center rounded-full bg-canvas/90 text-ink hover:bg-canvas cursor-pointer">
+                    <Star size={11} />
+                  </button>
+                ) : <span />}
+                <button onClick={() => onDelete(p.id)} title="Slet billede"
+                  className="flex h-6 w-6 items-center justify-center rounded-full bg-canvas/90 text-ink hover:bg-canvas cursor-pointer">
+                  <Trash2 size={11} />
+                </button>
+              </div>
+            </div>
+          );
+        })}
+
+        <button
+          onClick={() => inputRef.current?.click()}
+          disabled={busy || photos.length >= 24}
+          className="flex aspect-square flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-[var(--color-line-strong)] text-muted transition-colors hover:border-ink/40 hover:text-ink disabled:opacity-40 cursor-pointer"
+        >
+          {busy ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+          <span className="text-[0.62rem] font-semibold uppercase tracking-[0.1em]">Upload</span>
+        </button>
+      </div>
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        multiple
+        className="hidden"
+        onChange={(e) => { void handleFiles(e.target.files); e.target.value = ''; }}
+      />
+      <p className="mt-3 text-[0.68rem] text-muted">JPEG, PNG eller WebP · max 8 MB pr. billede</p>
+    </section>
   );
 }
