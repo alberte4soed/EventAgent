@@ -234,7 +234,7 @@ export default function Seating() {
   return (
     <div className="pb-24">
       {/* ── Header ──────────────────────────────────────────────────── */}
-      <div className="px-6 py-8 sm:px-10 lg:px-16 lg:py-12">
+      <div className="px-6 py-8 sm:px-9 lg:px-12 lg:py-8">
         <p className="max-w-lg text-ink-soft leading-relaxed">
           Vælg bordform og kapacitet — tilføj borde efter behov, og placer jeres gæster
           ved at vælge et bord og klikke på gæsterne nedenfor.
@@ -286,7 +286,7 @@ export default function Seating() {
       </div>
 
       {/* ── Add table bar ────────────────────────────────────────────── */}
-      <div className="px-6 sm:px-10 lg:px-16 mb-8">
+      <div className="px-6 sm:px-9 lg:px-12 mb-8">
         <div className="flex flex-wrap items-center gap-3">
           <Eyebrow className="mr-1">Tilføj bord</Eyebrow>
           {(Object.entries(SHAPE_META) as [Shape, typeof SHAPE_META[Shape]][]).map(([shape, meta]) => (
@@ -301,7 +301,7 @@ export default function Seating() {
       </div>
 
       {/* ── Floor plan ──────────────────────────────────────────────── */}
-      <div className="px-6 sm:px-10 lg:px-16 mb-10">
+      <div className="px-6 sm:px-9 lg:px-12 mb-10">
         <FloorPlan tables={tables} activeId={activeId} onSelect={setActiveId}
           positions={positions} onMove={moveTable} />
         {/* Shape legend */}
@@ -317,7 +317,7 @@ export default function Seating() {
       </div>
 
       {/* ── Table cards ─────────────────────────────────────────────── */}
-      <div className="px-6 sm:px-10 lg:px-16 mb-12">
+      <div className="px-6 sm:px-9 lg:px-12 mb-12">
         <Eyebrow className="mb-5">Borde · {tables.length} i alt</Eyebrow>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {tables.map((t) => (
@@ -339,7 +339,7 @@ export default function Seating() {
       </div>
 
       {/* ── Guest pool ──────────────────────────────────────────────── */}
-      <div className="px-6 sm:px-10 lg:px-16">
+      <div className="px-6 sm:px-9 lg:px-12">
         <div className="rule rounded-2xl overflow-hidden">
           {/* Pool header */}
           <div className="flex items-center justify-between bg-card px-6 py-4 rule-b">

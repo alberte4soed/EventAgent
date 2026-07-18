@@ -346,7 +346,7 @@ function InvitesStudio({ couple, venueName, eventId }: { couple: InviteCouple; v
   /* ── Browse mode — pick a design like flipping through paper samples ── */
   if (mode === 'browse') {
     return (
-      <div className="min-h-full px-6 py-10 sm:px-10 lg:px-16 lg:py-14">
+      <div className="min-h-full px-6 py-8 sm:px-9 lg:px-12 lg:py-8">
         <div className="max-w-2xl">
           <p className="max-w-md text-[0.95rem] leading-relaxed text-ink-soft">
             Fem designs sat med jeres navne og dato. Vælg det der føles rigtigt —
@@ -397,7 +397,7 @@ function InvitesStudio({ couple, venueName, eventId }: { couple: InviteCouple; v
     <div className="min-h-screen lg:grid lg:grid-cols-[1fr_360px]">
 
       {/* ── Left: studio panel ─────────────────────────────────────── */}
-      <div className="px-6 py-8 sm:px-10 lg:px-12 lg:py-10" style={{ background:'#FBF9F5' }}>
+      <div className="px-6 py-8 sm:px-9 lg:px-12 lg:py-8" style={{ background:'#FBF9F5' }}>
 
         {/* Header */}
         <button onClick={() => setMode('browse')}

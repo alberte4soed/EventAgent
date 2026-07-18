@@ -162,7 +162,7 @@ export default function Suppliers({
       {/* ── Sticky header: search + category chips (standalone only) ─ */}
       {!embedded && (
       <div className="sticky top-0 z-20 bg-canvas/95 backdrop-blur-md rule-b">
-        <div className="px-6 pt-5 sm:px-10 lg:px-16">
+        <div className="px-6 pt-5 sm:px-9 lg:px-12">
           <div className="flex items-center gap-3 rounded-2xl rule bg-card px-4 py-3">
             <Search size={16} className="shrink-0 text-muted" />
             <input
@@ -196,20 +196,20 @@ export default function Suppliers({
       </div>
       )}
 
-      <div className={embedded ? 'px-0 pt-2' : 'px-6 pt-8 sm:px-10 lg:px-16'}>
+      <div className={embedded ? 'px-0 pt-2' : 'px-6 pt-8 sm:px-9 lg:px-12'}>
 
         {/* ── DNA context banner ──────────────────────────────────────── */}
-        <div className="rule rounded-2xl bg-sage-tint px-6 py-5">
-          <p className="text-[0.62rem] font-medium tracking-[0.28em] uppercase text-muted mb-3">
+        <div className="rounded-[18px] border border-[#d8d4c7] bg-[#ece9df] px-6 py-5">
+          <p className="mb-3 text-[0.62rem] font-medium uppercase tracking-[0.28em] text-[#8a9079]">
             Moodboard-DNA · {couple.a || 'I'}{couple.b ? ` & ${couple.b}` : ''}
           </p>
           <div className="flex flex-wrap gap-2">
             {dnaTraits.slice(0, 4).map((t) => (
               <span key={t.label}
-                className="inline-flex items-center gap-2 rounded-full rule bg-canvas px-3.5 py-1.5">
-                <span className="h-[3px] rounded-full bg-sage shrink-0"
+                className="inline-flex items-center gap-2 rounded-full border border-[#e4e0d4] bg-[#fcfbf7] px-3.5 py-1.5">
+                <span className="h-[3px] shrink-0 rounded-full bg-[#314523]"
                   style={{ width: `${Math.round(t.pct / 12)}px` }} />
-                <span className="text-[0.68rem] font-medium text-ink">{t.label}</span>
+                <span className="text-[0.68rem] font-medium text-[#314523]">{t.label}</span>
               </span>
             ))}
           </div>
@@ -218,22 +218,22 @@ export default function Suppliers({
         {/* Ask-Ava-to-send banner when vendors are saved */}
         {savedCount > 0 && (
           <button onClick={() => onNavigate?.('ava')}
-            className="mt-4 flex w-full items-center justify-between rounded-2xl rule bg-card px-5 py-3.5 text-left transition-colors hover:bg-shell cursor-pointer">
-            <span className="text-[0.85rem] text-ink">
+            className="mt-4 flex w-full items-center justify-between rounded-[18px] border border-[#d8d4c7] bg-[#fcfbf7] px-5 py-3.5 text-left transition-colors hover:bg-[#f7f5ef] cursor-pointer">
+            <span className="text-sm text-[#314523]">
               {savedCount} leverandør{savedCount === 1 ? '' : 'er'} gemt — bed Ava sende henvendelser
             </span>
-            <MessageCircle size={16} className="text-muted" />
+            <MessageCircle size={16} className="text-[#6c7561]" />
           </button>
         )}
 
         {/* ── Results header ───────────────────────────────────────────── */}
         <div className="mt-10 flex items-baseline justify-between">
-          <Eyebrow>
+          <Eyebrow className="!text-[#8a9079]">
             {cat === 'alle' ? 'Jeres leverandører' : catLabel} · {results.length} resultater
           </Eyebrow>
           {savedCount > 0 && (
-            <span className="flex items-center gap-1.5 text-[0.7rem] text-muted">
-              <Heart size={11} fill="currentColor" className="text-ink" />
+            <span className="flex items-center gap-1.5 text-[0.7rem] text-[#6c7561]">
+              <Heart size={11} fill="currentColor" className="text-[#314523]" />
               {savedCount} gemt
             </span>
           )}
@@ -245,13 +245,13 @@ export default function Suppliers({
             <motion.div key="empty"
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="mt-16 text-center">
-              <p className="font-serif text-[1.3rem] text-ink-soft italic">
+              <p className="font-serif text-[1.3rem] italic text-[#6c7561]">
                 {vendors.length === 0 ? 'Ingen leverandører fundet endnu' : `Ingen resultater for "${query}"`}
               </p>
               {vendors.length === 0 ? (
                 <button onClick={() => onNavigate?.('ava')}
-                  className="mt-4 inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-[0.8rem] font-medium text-canvas hover:bg-ink/90 transition-colors cursor-pointer">
-                  <MessageCircle size={14} /> Bed Ava finde leverandører
+                  className="mt-4 inline-flex h-8 items-center gap-1.5 rounded-full bg-[#314523] px-3 text-xs font-semibold text-[#f7f5ef] hover:opacity-90 transition-colors cursor-pointer">
+                  <MessageCircle size={13} /> Bed Ava finde leverandører
                 </button>
               ) : (
                 <button onClick={() => { setQuery(''); setCat('alle'); }}
@@ -322,7 +322,7 @@ function SupplierCard({ s, i, onToggleSave }: {
     <motion.div
       initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: Math.min(i * 0.04, 0.3), ease: [0.22, 1, 0.36, 1] }}
-      className="rule rounded-2xl bg-card overflow-hidden flex flex-col">
+      className="flex flex-col overflow-hidden rounded-[18px] border border-[#d8d4c7] bg-[#fcfbf7]">
       <div className="relative aspect-[4/3] overflow-hidden">
         {s.image ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -333,28 +333,28 @@ function SupplierCard({ s, i, onToggleSave }: {
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-[#1a221550] to-transparent" />
         {s.matchPct != null && (
-          <div className="absolute left-3 top-3 rounded-full bg-sage px-2.5 py-1 text-[0.6rem] font-bold uppercase tracking-[0.16em] text-ink">
+          <div className="absolute left-3 top-3 rounded-full bg-[#eef1e6] px-2.5 py-1 text-[0.6rem] font-bold uppercase tracking-[0.16em] text-[#314523]">
             {s.matchPct}% match
           </div>
         )}
         <button onClick={() => onToggleSave(s.id)} aria-label={s.liked ? 'Fjern fra listen' : 'Tilføj til liste'}
           className={cn(
             'absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full backdrop-blur-sm transition-all cursor-pointer',
-            s.liked ? 'bg-sage text-ink' : 'bg-canvas/20 text-canvas hover:bg-canvas/40',
+            s.liked ? 'bg-[#eef1e6] text-[#314523]' : 'bg-[#f7f5ef]/80 text-[#314523] hover:bg-[#f7f5ef]',
           )}>
           <Heart size={14} fill={s.liked ? 'currentColor' : 'none'} />
         </button>
       </div>
 
       <div className="flex flex-1 flex-col p-4">
-        <p className="text-[0.6rem] font-semibold uppercase tracking-[0.18em] text-muted">{catLabel}</p>
-        <h3 className="display mt-1 text-[1.1rem] text-ink leading-tight">{s.name}</h3>
-        {s.style && <p className="mt-0.5 text-[0.76rem] text-muted">{s.style}</p>}
+        <p className="text-[0.6rem] font-semibold uppercase tracking-[0.18em] text-[#8a9079]">{catLabel}</p>
+        <h3 className="mt-1 font-serif text-[1.1rem] leading-tight text-[#314523]">{s.name}</h3>
+        {s.style && <p className="mt-0.5 text-[0.76rem] text-[#6c7561]">{s.style}</p>}
 
         {s.tags.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-1.5">
             {s.tags.map((t) => (
-              <span key={t} className="rounded-full bg-shell px-2.5 py-0.5 text-[0.58rem] font-medium uppercase tracking-[0.1em] text-ink-soft">
+              <span key={t} className="rounded-full bg-[#f0ede5] px-2.5 py-0.5 text-[0.58rem] font-medium uppercase tracking-[0.1em] text-[#6c7561]">
                 {t}
               </span>
             ))}
@@ -362,15 +362,15 @@ function SupplierCard({ s, i, onToggleSave }: {
         )}
 
         {s.quote && (
-          <p className="mt-3 font-serif text-[0.82rem] italic text-ink-soft leading-snug flex-1">
+          <p className="mt-3 flex-1 font-serif text-[0.82rem] italic leading-snug text-[#6c7561]">
             &ldquo;{s.quote}&rdquo;
           </p>
         )}
 
-        <div className="mt-4 flex items-center justify-between rule-t pt-4">
-          <span className="font-serif text-[1rem] text-ink">{s.price || '—'}</span>
+        <div className="mt-4 flex items-center justify-between border-t border-[#e4e0d4] pt-4">
+          <span className="font-serif text-[1rem] text-[#314523]">{s.price || '—'}</span>
           <button onClick={() => onToggleSave(s.id)}
-            className="rounded-full bg-ink px-3.5 py-1.5 text-[0.68rem] font-bold uppercase tracking-[0.12em] text-canvas hover:bg-ink/80 transition-colors cursor-pointer">
+            className="h-8 rounded-full bg-[#314523] px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#f7f5ef] hover:opacity-85 transition-colors cursor-pointer">
             {s.liked ? 'På listen ✓' : 'Tilføj til liste'}
           </button>
         </div>

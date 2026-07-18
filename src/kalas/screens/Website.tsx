@@ -233,7 +233,7 @@ export default function Website() {
 
       {/* ── Sticky tab header ─────────────────────────────────────────── */}
       <div className="sticky top-0 z-20 bg-canvas/95 backdrop-blur-md rule-b">
-        <div className="flex items-center justify-between px-6 pt-5 sm:px-10 lg:px-16">
+        <div className="flex items-center justify-between px-6 pt-5 sm:px-9 lg:px-12">
           <div className="flex items-end gap-8 pb-0">
             {([
               { id: 'design',         label: 'Design'         },
@@ -274,7 +274,7 @@ export default function Website() {
             className="grid lg:grid-cols-[1fr_400px] lg:min-h-[calc(100vh-76px)]">
 
             {/* Left: live preview */}
-            <div className="px-6 py-10 sm:px-10 lg:px-16 lg:py-12 lg:rule-r">
+            <div className="px-6 py-10 sm:px-9 lg:px-12 lg:py-12 lg:rule-r">
               <div className="sticky top-20">
                 <div className="flex items-center justify-between mb-5">
                   <p className="eyebrow">Live forhåndsvisning</p>
@@ -303,7 +303,7 @@ export default function Website() {
             </div>
 
             {/* Right: design pickers */}
-            <div className="rule-t lg:rule-t-0 px-6 py-10 sm:px-8 lg:py-12 space-y-10 overflow-y-auto">
+            <div className="rule-t lg:rule-t-0 px-6 py-10 sm:px-9 lg:py-12 space-y-10 overflow-y-auto">
 
               {/* Linse */}
               <section>
@@ -449,7 +449,7 @@ export default function Website() {
             className="grid lg:grid-cols-[1fr_380px] lg:min-h-[calc(100vh-76px)]">
 
             {/* Left: section editors */}
-            <div className="px-6 py-10 sm:px-10 lg:px-16 lg:py-12 space-y-3 lg:rule-r">
+            <div className="px-6 py-10 sm:px-9 lg:px-12 lg:py-12 space-y-3 lg:rule-r">
               <div className="mb-8">
                 <Eyebrow>Sektioner</Eyebrow>
                 <p className="mt-2 text-[0.88rem] text-muted">Tænd/sluk sektioner og rediger indholdet. Siden opdateres til højre.</p>
@@ -679,7 +679,7 @@ export default function Website() {
           <motion.div key="indstillinger"
             initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
             transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-            className="px-6 py-10 sm:px-10 lg:px-16 max-w-2xl">
+            className="px-6 py-10 sm:px-9 lg:px-12 max-w-2xl">
 
             <Eyebrow className="mb-8">Publicering & indstillinger</Eyebrow>
 

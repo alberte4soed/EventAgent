@@ -2,7 +2,6 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { useWedding } from '../../useWedding';
-import { useLang } from '../../i18n';
 import OnboardingHint from '../../OnboardingHint';
 import type { NavigateTarget } from '../../lib/hub-nav';
 import type { VenueHubView } from '../Venues';
@@ -21,7 +20,6 @@ import {
 } from './shared';
 
 export default function VendorHub({ onNavigate }: { onNavigate?: (s: NavigateTarget) => void }) {
-  const { t } = useLang();
   const { venues, outbound, replies, event, loading } = useWedding();
 
   const deepLink = useMemo(() => readHubDeepLink(), []);
@@ -31,7 +29,6 @@ export default function VendorHub({ onNavigate }: { onNavigate?: (s: NavigateTar
     return resolveDefaultTab(venues, outbound, replies, event?.chosen_venue_id);
   });
   const [cat, setCat] = useState<HubCat>(deepLink.cat ?? 'alle');
-  const [query, setQuery] = useState('');
   const [venueView, setVenueView] = useState<VenueHubView>(
     deepLink.tab === 'shortlist' ? 'list' : 'discover',
   );
@@ -66,25 +63,18 @@ export default function VendorHub({ onNavigate }: { onNavigate?: (s: NavigateTar
   }
 
   return (
-    <div className="min-h-full px-6 py-8 sm:px-10 lg:px-16 lg:py-12">
-      <p className="max-w-xl text-[0.9rem] text-ink-soft">
-        {t('Fra opdagelse til henvendelser og booking — ét samlet overblik over jeres bryllupsteam.')}
-      </p>
-
-      <CategoryFilterBar
-        query={query}
-        cat={cat}
-        onQueryChange={setQuery}
-        onCatChange={setCat}
-      />
-
+    <div className="min-h-full bg-[#f5f3ee] px-6 py-8 sm:px-9 lg:px-12 lg:py-8">
       <HubTabBar tab={tab} badges={badges} onChange={onTabChange} />
 
-      <div className="mt-8">
+      {(tab === 'explore' || tab === 'shortlist') && (
+        <CategoryFilterBar cat={cat} onCatChange={setCat} />
+      )}
+
+      <div className="mt-6">
         {tab === 'explore' && (
           <ExplorePanel
             cat={cat}
-            query={query}
+            query=""
             venueView={venueView}
             onVenueViewChange={setVenueView}
             onNavigate={onNavigate}
@@ -94,7 +84,7 @@ export default function VendorHub({ onNavigate }: { onNavigate?: (s: NavigateTar
         {tab === 'shortlist' && (
           <ShortlistPanel
             cat={cat}
-            query={query}
+            query=""
             venueView={venueView}
             onVenueViewChange={setVenueView}
             onNavigate={onNavigate}

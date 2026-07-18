@@ -72,7 +72,7 @@ export default function Inbox({ onNavigate, embedded }: { onNavigate?: (s: Navig
   };
 
   return (
-    <div className={embedded ? 'pt-2' : 'px-6 py-8 sm:px-10 lg:px-16 lg:py-12'}>
+    <div className={embedded ? 'pt-2' : 'px-6 py-8 sm:px-9 lg:px-12 lg:py-8'}>
       {!embedded && (
         <p className="max-w-lg text-[0.9rem] text-ink-soft">
           Ava skriver på jeres vegne fra én central postkasse. Her ser I hvem hun har

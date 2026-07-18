@@ -74,7 +74,7 @@ export default function Guests() {
   const sides = ['Fælles', couple.a || 'Partner 1', couple.b || 'Partner 2'].filter(Boolean);
 
   return (
-    <div className="px-6 py-8 sm:px-10 lg:px-16 lg:py-12">
+    <div className="px-6 py-8 sm:px-9 lg:px-12 lg:py-8">
       <div className="flex items-center justify-end gap-2">
         <div className="hidden items-center gap-2 sm:flex">
           <Pill variant="outline"><Upload size={15} /> Importér</Pill>

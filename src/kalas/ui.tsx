@@ -7,6 +7,10 @@ export function cn(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(' ');
 }
 
+/** Shared page gutters — keep Home / Timeline / Budget / Venues aligned. */
+export const pagePad = 'px-6 py-8 sm:px-9 lg:px-12 lg:py-8';
+export const pagePadX = 'px-6 sm:px-9 lg:px-12';
+
 /** Shared action-button size — matches shell “Spørg Ava” (h-8 / text-xs). */
 export const btnSize =
   'inline-flex h-8 items-center justify-center gap-1.5 rounded-full px-3 text-xs font-semibold';

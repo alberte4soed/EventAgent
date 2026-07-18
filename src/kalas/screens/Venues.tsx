@@ -77,7 +77,7 @@ type VenueStage = 'idle' | 'contacted' | 'replied' | 'quoted';
 const STAGE_META: Record<VenueStage, { label: string; cls: string; Icon: typeof Mail }> = {
   idle:      { label: 'Ikke kontaktet', cls: 'bg-shell text-muted',                 Icon: Clock },
   contacted: { label: 'Kontaktet',      cls: 'bg-[#e9edf2] text-[#3f5b6b]',          Icon: Send },
-  replied:   { label: 'Svar modtaget',  cls: 'bg-[#e5ead8] text-[#4e5742]',          Icon: Mail },
+  replied:   { label: 'Svar modtaget',  cls: 'bg-[#e5ead8] text-[#59634f]',          Icon: Mail },
   quoted:    { label: 'Tilbud',         cls: 'bg-[#f3d8cf] text-[#7b4032]',          Icon: Mail },
 };
 
@@ -266,6 +266,7 @@ export default function VenueDiscovery({
             onSaved={refresh}
             onBack={hub ? undefined : () => setView('home')}
             onViewList={hasRealVenues ? () => goList() : undefined}
+            embedded={Boolean(hub)}
           />
         )}
         {vview === 'list' && (
@@ -282,7 +283,8 @@ export default function VenueDiscovery({
             onReview={() => setView('review')}
             onAva={() => onNavigate?.('ava')}
             onNextStep={goVendorsExplore}
-            onRefresh={refresh} />
+            onRefresh={refresh}
+            embedded={Boolean(hub)} />
         )}
         {vview === 'review' && (
           <OutreachReview key="review"
@@ -306,15 +308,15 @@ export default function VenueDiscovery({
             role="status" aria-live="polite"
             className="fixed inset-x-0 bottom-24 z-40 flex justify-center px-4 lg:bottom-8 pointer-events-none"
           >
-            <div className="pointer-events-auto flex items-center gap-3.5 rounded-full bg-[#173c32] py-3 pl-4 pr-5 shadow-[0_16px_48px_rgba(23,60,50,0.32)]">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#e66b4e]">
+            <div className="pointer-events-auto flex items-center gap-3.5 rounded-full bg-[#314523] py-3 pl-4 pr-5 shadow-[0_16px_48px_rgba(23,60,50,0.32)]">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#8a9079]">
                 <Check size={16} className="text-white" strokeWidth={3} />
               </span>
               <div className="min-w-0">
-                <p className="truncate font-serif text-[0.98rem] leading-snug text-[#fffdf7]">
+                <p className="truncate font-serif text-[0.98rem] leading-snug text-[#f7f5ef]">
                   {chosenToast ? `${chosenToast} er nu jeres venue` : 'Venue valgt'}
                 </p>
-                <p className="text-[0.72rem] text-[#b8ccc3]">Alt om stedet samles nu på jeres oversigt.</p>
+                <p className="text-[0.72rem] text-[#a6b0aa]">Alt om stedet samles nu på jeres oversigt.</p>
               </div>
             </div>
           </motion.div>
@@ -330,15 +332,15 @@ function ChosenOverview({ chosen, couple, onOpenDetail, onDiscover }: {
   onOpenDetail?: () => void; onDiscover: () => void;
 }) {
   return (
-    <div className="flex min-h-[210px] flex-col overflow-hidden rounded-[18px] bg-[#173c32] sm:flex-row">
+    <div className="flex min-h-[210px] flex-col overflow-hidden rounded-[18px] bg-[#314523] sm:flex-row">
       <div className="relative flex min-h-[150px] w-full shrink-0 flex-col justify-end overflow-hidden sm:min-h-0 sm:w-[42%]">
         {chosen ? (
           <>
             <img src={imgSrc(chosen.image)} alt={chosen.name} className="absolute inset-0 h-full w-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#173c32]/90 via-[#173c32]/25 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#314523]/90 via-[#314523]/25 to-transparent" />
           </>
         ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-[#3d6b58] via-[#2a5245] to-[#173c32]" />
+          <div className="absolute inset-0 bg-gradient-to-br from-[#4d5638] via-[#3B432A] to-[#314523]" />
         )}
         <div className="relative p-5">
           {chosen ? (
@@ -358,12 +360,12 @@ function ChosenOverview({ chosen, couple, onOpenDetail, onDiscover }: {
       <div className="flex flex-1 flex-col justify-between gap-4 p-6">
         <div className="flex flex-col gap-2">
           {chosen ? (
-            <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-[#fffdf7] px-[10px] py-1 text-[9px] font-bold uppercase tracking-wide text-[#173c32]"><Check size={11} /> Valgt venue</span>
+            <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-[#f7f5ef] px-[10px] py-1 text-[9px] font-bold uppercase tracking-wide text-[#314523]"><Check size={11} /> Valgt venue</span>
           ) : (
             <span className="inline-flex w-fit rounded-full bg-white/15 px-[10px] py-1 text-[9px] font-bold uppercase tracking-wide text-white/80">Ingen venue valgt endnu</span>
           )}
           <h2 className="font-serif text-[1.6rem] leading-snug text-white">{chosen ? chosen.name : 'I har ikke valgt et sted endnu'}</h2>
-          <p className="max-w-[420px] text-xs leading-[1.6] text-[#b8ccc3]">
+          <p className="max-w-[420px] text-xs leading-[1.6] text-[#a6b0aa]">
             {chosen
               ? (chosen.quote || chosen.why[0] || chosen.location || 'Jeres valgte sted.')
               : 'Byg jeres liste nedenfor, lad Ava kontakte dem, og vælg til sidst det sted der føles rigtigt.'}
@@ -371,7 +373,7 @@ function ChosenOverview({ chosen, couple, onOpenDetail, onDiscover }: {
         </div>
         <div className="flex flex-wrap items-center gap-3">
           {chosen && onOpenDetail && (
-            <button type="button" onClick={onOpenDetail} className="inline-flex items-center gap-2 rounded-full bg-[#fffdf7] px-5 py-2.5 text-[13px] font-bold text-[#173c32] transition-opacity hover:opacity-90 cursor-pointer">Se detaljer</button>
+            <button type="button" onClick={onOpenDetail} className="inline-flex items-center gap-2 rounded-full bg-[#f7f5ef] px-5 py-2.5 text-[13px] font-bold text-[#314523] transition-opacity hover:opacity-90 cursor-pointer">Se detaljer</button>
           )}
           <button type="button" onClick={onDiscover} className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2.5 text-[13px] font-bold text-white transition-colors hover:bg-white/20 cursor-pointer"><GlobeIcon size={15} /> Udforsk venues</button>
         </div>
@@ -434,13 +436,13 @@ function VenuesHome({
     <motion.div
       initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
       transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-      className="flex min-w-0 flex-1 flex-col gap-6 px-6 py-7 sm:px-9 lg:px-[34px]"
+      className="flex min-w-0 flex-1 flex-col gap-6 px-6 py-8 sm:px-9 lg:px-12"
     >
       {/* Header */}
       <div>
-        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#e66b4e]">Planlægning</p>
-        <h1 className="mt-1 font-serif text-[clamp(2rem,4vw,2.4rem)] leading-[1.1] tracking-[-0.02em] text-[#173c32]">Venues</h1>
-        <p className="mt-1 max-w-xl text-[13px] text-[#526a61]">
+        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#8a9079]">Planlægning</p>
+        <h1 className="mt-1 font-serif text-[clamp(2rem,4vw,2.4rem)] leading-[1.1] tracking-[-0.02em] text-[#314523]">Venues</h1>
+        <p className="mt-1 max-w-xl text-[13px] text-[#6c7561]">
           Fra opdagelse til det endelige ja — her er jeres overblik og de næste skridt.
         </p>
       </div>
@@ -453,7 +455,7 @@ function VenuesHome({
         {metrics.map((m, i) => (
           <div key={m.label} className={cn('px-5 py-4', i < 3 && 'sm:border-r border-[var(--color-line)]', i % 2 === 0 && 'border-r sm:border-r')}>
             <p className="text-[0.62rem] font-bold uppercase tracking-[0.14em] text-muted">{m.label}</p>
-            <p className={cn('mt-1 font-serif text-[1.6rem] leading-none', m.accent ? 'text-[#e66b4e]' : 'text-ink')}>{m.value}</p>
+            <p className={cn('mt-1 font-serif text-[1.6rem] leading-none', m.accent ? 'text-[#8a9079]' : 'text-ink')}>{m.value}</p>
           </div>
         ))}
       </div>
@@ -466,7 +468,7 @@ function VenuesHome({
           </p>
           {list.length > 0 && (
             <button type="button" onClick={onList}
-              className="text-[0.72rem] font-bold uppercase tracking-[0.1em] text-[#173c32] hover:underline cursor-pointer">
+              className="text-[0.72rem] font-bold uppercase tracking-[0.1em] text-[#314523] hover:underline cursor-pointer">
               Rediger liste →
             </button>
           )}
@@ -475,9 +477,9 @@ function VenuesHome({
           <button
             type="button"
             onClick={onDiscover}
-            className="flex w-full items-center gap-4 rounded-2xl border border-dashed border-[var(--color-line-strong)] bg-card p-5 text-left transition-colors hover:border-[#173c32]/40 cursor-pointer"
+            className="flex w-full items-center gap-4 rounded-2xl border border-dashed border-[var(--color-line-strong)] bg-card p-5 text-left transition-colors hover:border-[#314523]/40 cursor-pointer"
           >
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#173c32]">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#314523]">
               <GlobeIcon size={18} className="text-white" />
             </span>
             <div>
@@ -518,7 +520,7 @@ function VenuesHome({
               <button
                 type="button"
                 onClick={onList}
-                className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-[var(--color-line-strong)] bg-card p-4 text-center transition-colors hover:border-[#173c32]/40 cursor-pointer"
+                className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-[var(--color-line-strong)] bg-card p-4 text-center transition-colors hover:border-[#314523]/40 cursor-pointer"
               >
                 <span className="font-serif text-[1.4rem] text-ink">+{list.length - 8}</span>
                 <span className="text-[0.7rem] font-semibold text-muted">flere på listen</span>
@@ -534,9 +536,9 @@ function VenuesHome({
         <div className="relative">
           {steps.map((s, i) => {
             const badge = s.state === 'done'
-              ? 'bg-[#173c32] text-white'
+              ? 'bg-[#314523] text-white'
               : s.state === 'active'
-                ? 'bg-[#e66b4e] text-white'
+                ? 'bg-[#8a9079] text-white'
                 : 'bg-shell text-muted';
             return (
               <div key={s.n} className="relative flex gap-4 pb-3 last:pb-0">
@@ -554,21 +556,21 @@ function VenuesHome({
                     'flex flex-1 items-center justify-between gap-4 rounded-2xl border p-4 text-left transition-all',
                     s.disabled
                       ? 'cursor-not-allowed border-[var(--color-line)] bg-card opacity-55'
-                      : 'border-[var(--color-line)] bg-card hover:border-[#173c32]/40 hover:shadow-sm cursor-pointer',
+                      : 'border-[var(--color-line)] bg-card hover:border-[#314523]/40 hover:shadow-sm cursor-pointer',
                   )}
                 >
                   <div className="flex min-w-0 items-start gap-3.5">
-                    <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#eef3ef] text-[#173c32]">
+                    <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#eef1e6] text-[#314523]">
                       <s.Icon size={17} />
                     </span>
                     <div className="min-w-0">
                       <p className="font-serif text-[1.15rem] leading-tight text-ink">{s.title}</p>
                       <p className="mt-0.5 text-[0.8rem] leading-snug text-ink-soft">{s.desc}</p>
-                      <span className="mt-1.5 inline-block rounded-full bg-shell px-2.5 py-1 text-[0.66rem] font-bold uppercase tracking-[0.08em] text-[#526a61]">{s.stat}</span>
+                      <span className="mt-1.5 inline-block rounded-full bg-shell px-2.5 py-1 text-[0.66rem] font-bold uppercase tracking-[0.08em] text-[#6c7561]">{s.stat}</span>
                     </div>
                   </div>
                   {!s.disabled && (
-                    <span className="flex shrink-0 items-center gap-1.5 text-[0.72rem] font-bold uppercase tracking-[0.1em] text-[#173c32]">
+                    <span className="flex shrink-0 items-center gap-1.5 text-[0.72rem] font-bold uppercase tracking-[0.1em] text-[#314523]">
                       {s.cta} <ArrowRight size={14} />
                     </span>
                   )}
@@ -586,7 +588,7 @@ function VenuesHome({
    DISCOVER VIEW — globe → country → destination → real venues
 ═══════════════════════════════════════════════════════════════════════ */
 function DiscoverView({
-  couple, savedPlaceIds, listCount, similarNames, onSaved, onBack, onViewList,
+  couple, savedPlaceIds, listCount, similarNames, onSaved, onBack, onViewList, embedded = false,
 }: {
   couple: Couple;
   savedPlaceIds: Set<string>;
@@ -595,6 +597,7 @@ function DiscoverView({
   onSaved: () => Promise<void>;
   onBack?: () => void;
   onViewList?: () => void;
+  embedded?: boolean;
 }) {
   const { lang } = useLang();
   const venueArea = venueAreaLabel(couple.region);
@@ -740,7 +743,10 @@ function DiscoverView({
     <motion.div
       initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
       transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-      className="flex min-w-0 flex-1 flex-col gap-5 px-6 py-7 sm:px-9 lg:px-[34px]"
+      className={cn(
+        'flex min-w-0 flex-1 flex-col gap-5',
+        embedded ? 'px-0 py-0' : 'px-6 py-8 sm:px-9 lg:px-12',
+      )}
     >
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
@@ -750,11 +756,11 @@ function DiscoverView({
               <ArrowLeft size={13} /> Venues
             </button>
           )}
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#e66b4e]">Trin 1 · Opdag</p>
-          <h1 className="mt-1 font-serif text-[clamp(2rem,4vw,2.25rem)] leading-[1.1] tracking-[-0.02em] text-[#173c32]">
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#8a9079]">Trin 1 · Opdag</p>
+          <h1 className="mt-1 font-serif text-[clamp(2rem,4vw,2.25rem)] leading-[1.1] tracking-[-0.02em] text-[#314523]">
             Byg jeres liste af venues
           </h1>
-          <p className="mt-1 max-w-xl text-[13px] text-[#526a61]">
+          <p className="mt-1 max-w-xl text-[13px] text-[#6c7561]">
             Drej på kloden og tryk på et land — Ava researcher rigtige venues. Tilføj dem I kan lide til listen.
           </p>
         </div>
@@ -762,23 +768,23 @@ function DiscoverView({
           <button
             type="button"
             onClick={onViewList}
-            className="flex shrink-0 items-center gap-2 rounded-full bg-[#173c32] px-5 py-3 text-[0.78rem] font-bold text-white shadow-[0px_6px_16px_rgba(23,60,50,0.2)] transition-transform hover:scale-[1.02] cursor-pointer"
+            className="flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-[#314523] px-3 text-xs font-semibold text-[#f7f5ef] transition-opacity hover:opacity-90 cursor-pointer"
           >
-            Se din liste ({listCount}) <ArrowUpRight size={16} />
+            Se din liste ({listCount}) <ArrowUpRight size={13} />
           </button>
         )}
       </div>
 
       <div className="grid gap-[18px] xl:grid-cols-[minmax(0,1fr)_400px]">
         {/* Globe */}
-        <div className="relative h-[min(62vh,560px)] overflow-hidden rounded-3xl border border-[#d4dbd5] bg-[#f4f1ea]">
+        <div className="relative h-[min(62vh,560px)] overflow-hidden rounded-[28px] border border-[#d8d4c7] bg-[#f7f5ef]">
           <DestinationGlobe selectedCountry={country} onCountryPick={pickCountry} />
         </div>
 
         {/* Panel */}
-        <div className="flex min-h-[320px] max-h-[min(62vh,560px)] flex-col overflow-hidden rounded-3xl border border-[#d4dbd5] bg-white">
+        <div className="flex min-h-[320px] max-h-[min(62vh,560px)] flex-col overflow-hidden rounded-[28px] border border-[#d8d4c7] bg-[#fcfbf7]">
           {/* Panel header */}
-          <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[#e6e9e5] px-5 py-4">
+          <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[#e4e0d4] px-5 py-4">
             <div className="min-w-0">
               <p className="text-[0.62rem] font-semibold uppercase tracking-[0.2em] text-muted">
                 {destination ? 'Venues' : 'Destination'}
@@ -802,7 +808,7 @@ function DiscoverView({
             {/* Nothing picked yet */}
             {!country && !destination && (
               <div className="flex h-full flex-col items-center justify-center gap-4 px-4 text-center">
-                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#173c32]">
+                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#314523]">
                   <GlobeIcon size={19} className="text-white" />
                 </div>
                 <p className="text-[0.88rem] leading-relaxed text-ink-soft">
@@ -812,7 +818,7 @@ function DiscoverView({
                   <button
                     type="button"
                     onClick={() => void searchVenues(venueArea)}
-                    className="inline-flex items-center gap-2 rounded-full bg-[#173c32] px-4 py-2.5 text-[0.78rem] font-bold text-white transition-opacity hover:opacity-90 cursor-pointer"
+                    className="inline-flex items-center gap-2 rounded-full bg-[#314523] px-4 py-2.5 text-[0.78rem] font-bold text-white transition-opacity hover:opacity-90 cursor-pointer"
                   >
                     <MapPin size={13} />
                     Søg venues nær {venueArea}
@@ -834,23 +840,23 @@ function DiscoverView({
                       key={`${s.kind}-${s.name}`}
                       type="button"
                       onClick={() => void searchVenues(`${s.name}, ${country}`)}
-                      className="flex items-center gap-3 rounded-2xl border border-[#e6e9e5] p-2.5 text-left transition-colors hover:border-[#173c32]/40 hover:bg-[#fafaf8] cursor-pointer"
+                      className="flex items-center gap-3 rounded-2xl border border-[#e4e0d4] p-2.5 text-left transition-colors hover:border-[#314523]/40 hover:bg-[#fcfbf7] cursor-pointer"
                     >
                       {s.photo ? (
                         <img src={s.photo} alt="" className="h-14 w-14 shrink-0 rounded-xl object-cover" />
                       ) : (
-                        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[#e8f2ed]">
-                          <MapPin size={17} className="text-[#173c32]" />
+                        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[#eef1e6]">
+                          <MapPin size={17} className="text-[#314523]" />
                         </div>
                       )}
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <p className="truncate text-[0.88rem] font-bold text-[#173c32]">{s.name}</p>
-                          <span className="shrink-0 rounded-full bg-[#eaf0ec] px-2 py-0.5 text-[0.56rem] font-bold uppercase tracking-[0.1em] text-[#173c32]">
+                          <p className="truncate text-[0.88rem] font-bold text-[#314523]">{s.name}</p>
+                          <span className="shrink-0 rounded-full bg-[#f0ede5] px-2 py-0.5 text-[0.56rem] font-bold uppercase tracking-[0.1em] text-[#314523]">
                             {s.kind === 'city' ? 'By' : 'Bryllup'}
                           </span>
                         </div>
-                        <p className="mt-0.5 line-clamp-2 text-[0.72rem] leading-snug text-[#526a61]">{s.blurb}</p>
+                        <p className="mt-0.5 line-clamp-2 text-[0.72rem] leading-snug text-[#6c7561]">{s.blurb}</p>
                       </div>
                     </button>
                   ))}
@@ -869,7 +875,7 @@ function DiscoverView({
                   {results.filter((v) => !dismissed.has(v.id)).map((v) => {
                     const already = isSaved(v);
                     return (
-                      <div key={v.id} className="overflow-hidden rounded-2xl border border-[#e6e9e5]">
+                      <div key={v.id} className="overflow-hidden rounded-2xl border border-[#e4e0d4]">
                         {v.photo && (
                           <div className="relative h-32 w-full overflow-hidden">
                             <img src={v.photo} alt={v.name} className="absolute inset-0 h-full w-full object-cover" />
@@ -885,13 +891,13 @@ function DiscoverView({
                           </div>
                         )}
                         <div className="p-3.5">
-                          <p className="text-[0.92rem] font-bold text-[#173c32]">{v.name}</p>
-                          {v.address && <p className="mt-0.5 text-[0.7rem] text-[#526a61]">{v.address}</p>}
+                          <p className="text-[0.92rem] font-bold text-[#314523]">{v.name}</p>
+                          {v.address && <p className="mt-0.5 text-[0.7rem] text-[#6c7561]">{v.address}</p>}
                           {v.why_fit && (
                             <p className="mt-1.5 text-[0.76rem] leading-snug text-ink-soft">{v.why_fit}</p>
                           )}
                           {(v.capacity || v.price_hint) && (
-                            <p className="mt-1.5 text-[0.68rem] font-medium text-[#526a61]">
+                            <p className="mt-1.5 text-[0.68rem] font-medium text-[#6c7561]">
                               {[v.capacity, v.price_hint].filter(Boolean).join(' · ')}
                             </p>
                           )}
@@ -903,8 +909,8 @@ function DiscoverView({
                               className={cn(
                                 'inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[0.72rem] font-bold transition-colors',
                                 already
-                                  ? 'bg-[#e8f2ed] text-[#236b53] cursor-default'
-                                  : 'bg-[#173c32] text-white hover:opacity-90 cursor-pointer',
+                                  ? 'bg-[#eef1e6] text-[#314523] cursor-default'
+                                  : 'bg-[#314523] text-white hover:opacity-90 cursor-pointer',
                               )}
                             >
                               {savingId === v.id ? (
@@ -920,7 +926,7 @@ function DiscoverView({
                               <button
                                 type="button"
                                 onClick={() => dismissVenue(v.id)}
-                                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[0.72rem] font-semibold text-[#7b8a80] transition-colors hover:text-[#173c32] cursor-pointer"
+                                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[0.72rem] font-semibold text-[#6c7561] transition-colors hover:text-[#314523] cursor-pointer"
                               >
                                 <X size={12} /> Afvis
                               </button>
@@ -934,7 +940,7 @@ function DiscoverView({
                     <button
                       type="button"
                       onClick={onViewList}
-                      className="rounded-full bg-[#e66b4e] px-4 py-2.5 text-[0.78rem] font-bold text-white transition-opacity hover:opacity-90 cursor-pointer"
+                      className="h-8 rounded-full bg-[#314523] px-3 text-xs font-semibold text-[#f7f5ef] transition-opacity hover:opacity-90 cursor-pointer"
                     >
                       Se jeres liste →
                     </button>
@@ -965,7 +971,7 @@ function PanelError({ label, onRetry }: { label: string; onRetry: () => void }) 
       <button
         type="button"
         onClick={onRetry}
-        className="rounded-full border border-[#173c32]/20 px-4 py-2 text-[0.75rem] font-bold text-[#173c32] hover:bg-[#f4f1ea] transition-colors cursor-pointer"
+        className="rounded-full border border-[#314523]/20 px-4 py-2 text-[0.75rem] font-bold text-[#314523] hover:bg-[#f7f5ef] transition-colors cursor-pointer"
       >
         Prøv igen
       </button>
@@ -977,7 +983,7 @@ function PanelError({ label, onRetry }: { label: string; onRetry: () => void }) 
    PICKS VIEW — venue management
 ═══════════════════════════════════════════════════════════════════════ */
 function PicksView({
-  venues, couple, saved, sent, booked, stageOf, initialSelectedId, onToggleSave, onOutreach, onBook, onDiscover, onBack, onFindMore, onReview, onAva, onNextStep, onRefresh,
+  venues, couple, saved, sent, booked, stageOf, initialSelectedId, onToggleSave, onOutreach, onBook, onDiscover, onBack, onFindMore, onReview, onAva, onNextStep, onRefresh, embedded = false,
 }: {
   venues: DisplayVenue[];
   couple: Couple;
@@ -991,12 +997,14 @@ function PicksView({
   onReview: () => void;
   onNextStep?: () => void;
   onRefresh: () => Promise<void>;
+  embedded?: boolean;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(initialSelectedId ?? null);
   const [comparing, setComparing] = useState(false);
   const venueCity = venueAreaLabel(couple.region);
   const savedVenues = venues.filter(v => saved.has(v.id));
   const selectedVenue = selectedId ? venues.find((v) => v.id === selectedId) ?? null : null;
+  const padX = embedded ? 'px-0' : 'px-6 sm:px-9 lg:px-12';
 
   // Booked first, then saved, then the rest.
   const sortedVenues = [...venues].sort((a, b) => {
@@ -1043,7 +1051,7 @@ function PicksView({
     return (
       <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
         className="flex min-h-[60vh] flex-col items-center justify-center px-6 text-center">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#173c32]">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#314523]">
           <MapPin size={22} className="text-white" />
         </div>
         <h2 className="display mt-5 text-[1.8rem] text-ink">Ingen venues på listen endnu</h2>
@@ -1069,7 +1077,7 @@ function PicksView({
       {/* ── Booked celebration banner ────────────────────────────────── */}
       {bookedVenue && (
         <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-          className="mx-6 mt-8 sm:mx-10 lg:mx-16 flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-ink px-6 py-5 text-canvas">
+          className="mx-6 mt-8 sm:mx-9 lg:mx-12 flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-ink px-6 py-5 text-canvas">
           <div className="flex items-center gap-4 min-w-0">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-canvas/15">
               <Check size={18} />
@@ -1090,7 +1098,7 @@ function PicksView({
 
       {/* ── Chosen overview (only when a venue is booked) ───────────── */}
       {(onBack || booked) && (
-      <div className="px-6 pt-8 sm:px-10 lg:px-16">
+      <div className={cn(padX, 'pt-8')}>
         {onBack && (
           <button type="button" onClick={onBack}
             className="mb-5 flex items-center gap-2 text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted hover:text-ink transition-colors cursor-pointer">
@@ -1109,10 +1117,10 @@ function PicksView({
       )}
 
       {/* ── Header + list tools ──────────────────────────────────────── */}
-      <div className="px-6 pt-8 sm:px-10 lg:px-16">
+      <div className={cn(padX, 'pt-8')}>
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#e66b4e]">Trin 2 · Jeres liste</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#8a9079]">Trin 2 · Jeres liste</p>
             <h2 className="display mt-2 text-[clamp(2rem,5vw,3rem)] text-ink">
               Venues I <span className="italic">overvejer.</span>
             </h2>
@@ -1144,7 +1152,7 @@ function PicksView({
 
       {/* ── Outreach progress → review page ──────────────────────────── */}
       {savedVenues.length > 0 && (
-        <div className="px-6 pt-8 sm:px-10 lg:px-16">
+        <div className={cn(padX, 'pt-8')}>
           <OutreachBanner
             notContacted={savedVenues.filter((v) => !sent.has(v.id)).length}
             contacted={savedVenues.filter((v) => sent.has(v.id)).length}
@@ -1154,7 +1162,7 @@ function PicksView({
       )}
 
       {/* ── Venue grid ───────────────────────────────────────────────── */}
-      <div className="px-6 pt-8 sm:px-10 lg:px-16">
+      <div className={cn(padX, 'pt-8')}>
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {sortedVenues.map((venue, i) => (
             <VenueGridCard key={venue.id} venue={venue} index={i}
@@ -1171,7 +1179,7 @@ function PicksView({
             onClick={onDiscover}
             className="flex min-h-[280px] flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed border-[var(--color-line-strong)] p-6 text-center transition-colors hover:border-ink/40 hover:bg-card cursor-pointer"
           >
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#173c32]">
+            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#314523]">
               <GlobeIcon size={18} className="text-white" />
             </div>
             <div>
@@ -1185,7 +1193,7 @@ function PicksView({
       </div>
 
       {/* ── Ask Ava ──────────────────────────────────────────────────── */}
-      <div className="px-6 pt-12 sm:px-10 lg:px-16">
+      <div className={cn(padX, 'pt-12')}>
         <motion.div
           initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-50px' }}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
@@ -1210,7 +1218,7 @@ function OutreachBanner({
   notContacted: number; contacted: number; onReview: () => void;
 }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-[#173c32] px-6 py-5 text-canvas">
+    <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-[#314523] px-6 py-5 text-canvas">
       <div className="flex items-center gap-4">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/12">
           <Send size={17} />
@@ -1230,7 +1238,7 @@ function OutreachBanner({
       {notContacted > 0 && (
         <button
           onClick={onReview}
-          className="flex shrink-0 items-center gap-2 rounded-full bg-[#e66b4e] px-5 py-2.5 text-[0.72rem] font-bold uppercase tracking-[0.14em] text-white hover:opacity-90 transition-opacity cursor-pointer"
+          className="flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-[#314523] px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#f7f5ef] hover:opacity-90 transition-opacity cursor-pointer"
         >
           Lad Ava kontakte ({notContacted}) <ArrowRight size={14} />
         </button>
@@ -1252,7 +1260,7 @@ function VenueGridCard({
       initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-40px' }}
       transition={{ duration: 0.5, delay: Math.min(index, 6) * 0.05, ease: [0.22, 1, 0.36, 1] }}
-      className="group flex flex-col overflow-hidden rounded-2xl rule bg-card">
+      className="group flex flex-col overflow-hidden rounded-[18px] border border-[#d8d4c7] bg-[#fcfbf7]">
 
       <button type="button" onClick={onSelect} className="relative block aspect-[4/3] overflow-hidden cursor-pointer text-left">
         <img src={imgSrc(venue.image)} alt={venue.name}
@@ -1276,43 +1284,43 @@ function VenueGridCard({
       <div className="flex flex-1 flex-col p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h3 className="font-serif text-[1.15rem] leading-tight text-ink">{venue.name}</h3>
-            {venue.location && <p className="mt-0.5 truncate text-[0.72rem] text-muted">{venue.location}</p>}
+            <h3 className="font-serif text-[1.15rem] leading-tight text-[#314523]">{venue.name}</h3>
+            {venue.location && <p className="mt-0.5 truncate text-[0.72rem] text-[#6c7561]">{venue.location}</p>}
           </div>
           <motion.button whileTap={{ scale: 0.85 }} onClick={onToggleSave} aria-label={saved ? 'Fjern fra listen' : 'Tilføj til liste'}
-            className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-full rule transition-all cursor-pointer',
-              saved ? 'bg-sage text-ink' : 'text-muted hover:text-ink hover:bg-shell')}>
-            {saved ? <Check size={15} /> : <Plus size={15} />}
+            className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#e4e0d4] transition-all cursor-pointer',
+              saved ? 'bg-[#eef1e6] text-[#314523]' : 'text-[#6c7561] hover:text-[#314523] hover:bg-[#f7f5ef]')}>
+            {saved ? <Check size={14} /> : <Plus size={14} />}
           </motion.button>
         </div>
 
         {venue.quote && (
-          <p className="mt-2 line-clamp-2 text-[0.78rem] leading-snug text-ink-soft">{venue.quote}</p>
+          <p className="mt-2 line-clamp-2 text-[0.78rem] leading-snug text-[#6c7561]">{venue.quote}</p>
         )}
 
         <div className="mt-auto flex items-end gap-5 pt-4">
           <div>
-            <p className="eyebrow">Pris</p>
-            <p className="mt-0.5 font-serif text-[0.95rem] leading-none text-ink">{venue.price}</p>
+            <p className="eyebrow !text-[#8a9079]">Pris</p>
+            <p className="mt-0.5 font-serif text-[0.95rem] leading-none text-[#314523]">{venue.price}</p>
           </div>
           <div>
-            <p className="eyebrow">Kapacitet</p>
-            <p className="mt-0.5 font-serif text-[0.95rem] leading-none text-ink">{venue.capacity}</p>
+            <p className="eyebrow !text-[#8a9079]">Kapacitet</p>
+            <p className="mt-0.5 font-serif text-[0.95rem] leading-none text-[#314523]">{venue.capacity}</p>
           </div>
         </div>
 
         <div className="mt-4 flex items-center gap-2">
           <button onClick={onSelect}
-            className="flex-1 rounded-full border border-[var(--color-line-strong)] px-3.5 py-2 text-[0.72rem] font-semibold text-ink hover:bg-shell transition-colors cursor-pointer">
+            className="flex h-8 flex-1 items-center justify-center rounded-full border border-[#e4e0d4] px-3 text-xs font-semibold text-[#314523] hover:bg-[#f7f5ef] transition-colors cursor-pointer">
             Se venue
           </button>
           {isBooked ? (
-            <span className="flex items-center gap-1.5 rounded-full bg-sage px-3.5 py-2 text-[0.72rem] font-bold text-ink">
+            <span className="flex h-8 items-center gap-1.5 rounded-full bg-[#eef1e6] px-3 text-xs font-semibold text-[#314523]">
               <Check size={12} /> Jeres venue
             </span>
           ) : (
             <button onClick={onChoose}
-              className="flex items-center gap-1.5 rounded-full bg-ink px-4 py-2 text-[0.72rem] font-bold text-canvas hover:opacity-85 transition-opacity cursor-pointer">
+              className="flex h-8 items-center gap-1.5 rounded-full bg-[#314523] px-3 text-xs font-semibold text-[#f7f5ef] hover:opacity-85 transition-opacity cursor-pointer">
               <Check size={12} /> Vælg
             </button>
           )}
@@ -1377,7 +1385,7 @@ function ComparisonView({
   return (
     <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
       transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}>
-      <div className="px-6 pt-8 sm:px-10 lg:px-16">
+      <div className="px-6 pt-8 sm:px-9 lg:px-12">
         <button onClick={onBack}
           className="mb-8 flex items-center gap-2 text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted hover:text-ink transition-colors cursor-pointer">
           <ArrowLeft size={13} /> Tilbage
@@ -1391,7 +1399,7 @@ function ComparisonView({
         </p>
       </div>
 
-      <div className="mt-8 flex flex-col gap-6 px-6 pb-16 sm:px-10 lg:px-16">
+      <div className="mt-8 flex flex-col gap-6 px-6 pb-16 sm:px-9 lg:px-12">
         {venues.map((v, i) => {
           const isBooked = booked === v.id;
           const isSaved = saved.has(v.id);
@@ -1462,7 +1470,7 @@ function ComparisonView({
                       <div
                         key={`${v.id}-${field.label}`}
                         className={cn(
-                          'rounded-[14px] border border-[var(--color-line)] bg-[#fafaf8] px-4 py-3.5',
+                          'rounded-[14px] border border-[var(--color-line)] bg-[#fcfbf7] px-4 py-3.5',
                           field.wide && 'sm:col-span-2',
                         )}
                       >
@@ -1561,17 +1569,17 @@ function OutreachReview({
     <motion.div
       initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
       transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-      className="mx-auto max-w-3xl px-6 py-7 sm:px-9 lg:px-[34px]"
+      className="mx-auto max-w-3xl px-6 py-8 sm:px-9 lg:px-12"
     >
       <button type="button" onClick={onBack}
         className="mb-4 flex items-center gap-2 text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted hover:text-ink transition-colors cursor-pointer">
         <ArrowLeft size={13} /> Tilbage til listen
       </button>
-      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#e66b4e]">Trin 3 · Godkend</p>
-      <h1 className="mt-1 font-serif text-[clamp(1.9rem,4vw,2.4rem)] leading-[1.1] tracking-[-0.02em] text-[#173c32]">
+      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#8a9079]">Trin 3 · Godkend</p>
+      <h1 className="mt-1 font-serif text-[clamp(1.9rem,4vw,2.4rem)] leading-[1.1] tracking-[-0.02em] text-[#314523]">
         Ava kontakter {recipients.length} {recipients.length === 1 ? 'venue' : 'venues'}
       </h1>
-      <p className="mt-2 text-[13px] text-[#526a61]">
+      <p className="mt-2 text-[13px] text-[#6c7561]">
         Ava sender en personlig mail til hvert sted fra jeres Kalas-postkasse og samler alle svar under Henvendelser. I godkender her — intet sendes uden.
       </p>
 
@@ -1600,7 +1608,7 @@ function OutreachReview({
       <div className="mt-4 rounded-2xl border border-[var(--color-line)] bg-card p-5">
         <div className="flex items-center justify-between">
           <p className="text-[0.62rem] font-bold uppercase tracking-[0.18em] text-muted">Avas udkast</p>
-          <button onClick={onAva} className="text-[0.72rem] font-semibold text-[#e66b4e] hover:underline cursor-pointer">Rediger med Ava</button>
+          <button onClick={onAva} className="text-[0.72rem] font-semibold text-[#8a9079] hover:underline cursor-pointer">Rediger med Ava</button>
         </div>
         {preparing ? (
           <div className="flex items-center gap-2.5 py-6 text-ink-soft">
@@ -1628,7 +1636,7 @@ function OutreachReview({
         <button
           onClick={() => void approve()}
           disabled={approving || preparing || !draft || recipients.length === 0}
-          className="flex items-center gap-2 rounded-full bg-[#173c32] px-7 py-3.5 text-[0.85rem] font-bold text-canvas transition-opacity hover:opacity-90 cursor-pointer disabled:opacity-50"
+          className="flex items-center gap-2 rounded-full bg-[#314523] px-7 py-3.5 text-[0.85rem] font-bold text-canvas transition-opacity hover:opacity-90 cursor-pointer disabled:opacity-50"
         >
           {approving ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}
           Godkend & lad Ava sende
@@ -1686,42 +1694,49 @@ function VenueDetail({
     <motion.div
       initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0 }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-      className="min-h-screen pb-24">
+      className="min-h-full bg-[#f5f3ee] pb-24">
 
       {/* ── Top bar ───────────────────────────────────────────────── */}
-      <div className="sticky top-0 z-20 flex items-center justify-between bg-canvas/90 px-6 py-4 backdrop-blur-md rule-b sm:px-10 lg:px-16">
-        <button onClick={onBack}
-          className="flex cursor-pointer items-center gap-2 text-[0.85rem] text-muted hover:text-ink transition-colors">
-          <ArrowLeft size={16} /> Tilbage
+      <div className="sticky top-0 z-20 flex items-center justify-between border-b border-[#e0ddd2] bg-[#f5f3ee]/95 px-6 py-3 backdrop-blur-md sm:px-9 lg:px-12">
+        <button type="button" onClick={onBack}
+          className="flex h-8 cursor-pointer items-center gap-1.5 text-sm text-[#6c7561] transition-colors hover:text-[#314523]">
+          <ArrowLeft size={15} /> Tilbage
         </button>
         <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={() => void runResearch()}
             disabled={researching}
             className={cn(
-              'flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 text-[0.8rem] font-medium rule transition-all',
-              researching ? 'bg-card text-muted' : 'bg-canvas text-ink hover:bg-card',
+              'flex h-8 cursor-pointer items-center gap-1.5 rounded-full px-3 text-xs font-semibold transition-all',
+              researching
+                ? 'border border-[#e4e0d4] bg-[#f7f5ef] text-[#9a9686]'
+                : 'border border-[#e4e0d4] bg-[#fcfbf7] text-[#314523] hover:bg-[#f7f5ef]',
             )}>
-            {researching ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+            {researching ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
             {researching ? 'Ava researcher…' : research ? 'Opdater research' : 'Research venue'}
           </button>
-          <motion.button whileTap={{ scale: 0.88 }} onClick={onSave}
-            className={cn('flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 text-[0.8rem] font-medium rule transition-all',
-              saved ? 'bg-sage-tint text-ink' : 'bg-canvas text-ink hover:bg-card')}>
-            <Heart size={14} fill={saved ? 'currentColor' : 'none'} />
+          <motion.button type="button" whileTap={{ scale: 0.88 }} onClick={onSave}
+            className={cn(
+              'flex h-8 cursor-pointer items-center gap-1.5 rounded-full px-3 text-xs font-semibold transition-all',
+              saved
+                ? 'bg-[#eef1e6] text-[#314523]'
+                : 'border border-[#e4e0d4] bg-[#fcfbf7] text-[#314523] hover:bg-[#f7f5ef]',
+            )}>
+            <Heart size={13} fill={saved ? 'currentColor' : 'none'} />
             {saved ? 'Gemt' : 'Gem'}
           </motion.button>
         </div>
       </div>
 
-      {/* ── Photos — only what the venue actually has ─────────────── */}
+      {/* ── Photos ────────────────────────────────────────────────── */}
       {realPhotos.length > 1 ? (
-        <div className="grid gap-1 sm:grid-cols-[2fr_1fr_1fr] sm:grid-rows-2 h-[300px] sm:h-[460px]">
+        <div className="grid h-[300px] gap-1 sm:h-[460px] sm:grid-cols-[2fr_1fr_1fr] sm:grid-rows-2">
           <div className="relative overflow-hidden sm:row-span-2">
             <img src={imgSrc(venue.image)} alt={venue.name}
               className="absolute inset-0 h-full w-full object-cover object-center" />
-            <div className="absolute bottom-4 right-4 flex items-center gap-1.5 rounded-full bg-canvas/90 px-3 py-1.5 backdrop-blur-sm">
-              <span className="text-[0.68rem] font-medium text-ink">{realPhotos.length} billeder</span>
+            <div className="absolute bottom-4 right-4 flex items-center gap-1.5 rounded-full border border-[#d8d4c7] bg-[#fcfbf7]/95 px-3 py-1.5 backdrop-blur-sm">
+              <span className="text-[0.68rem] font-medium text-[#314523]">{realPhotos.length} billeder</span>
             </div>
           </div>
           {realPhotos.slice(1, 5).map((url, i) => (
@@ -1738,134 +1753,133 @@ function VenueDetail({
       )}
 
       {/* ── Main info ─────────────────────────────────────────────── */}
-      <div className="px-6 pt-8 sm:px-10 lg:px-16">
+      <div className="px-6 pt-8 sm:px-9 lg:px-12">
 
-        {/* Badges + name */}
         <div className="flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center rounded-full bg-sage px-3 py-1 text-[0.65rem] font-bold uppercase tracking-[0.18em] text-ink">
+          <span className="inline-flex items-center rounded-full bg-[#eef1e6] px-3 py-1 text-[0.65rem] font-bold uppercase tracking-[0.18em] text-[#314523]">
             Ava pick
           </span>
           {venue.rating != null && (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-shell px-3 py-1 text-[0.72rem] font-medium text-ink">
-              <Star size={12} fill="currentColor" className="text-[#e6a34e]" />
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#e4e0d4] bg-[#f7f5ef] px-3 py-1 text-[0.72rem] font-medium text-[#314523]">
+              <Star size={12} fill="currentColor" className="text-[#8a7d5c]" />
               {venue.rating.toFixed(1)}
-              {venue.reviewCount > 0 && <span className="text-muted">· {venue.reviewCount} anmeldelser</span>}
+              {venue.reviewCount > 0 && <span className="text-[#6c7561]">· {venue.reviewCount} anmeldelser</span>}
             </span>
           )}
         </div>
-        <h1 className="display mt-3 text-[clamp(2.4rem,5vw,4rem)] text-ink">{venue.name}</h1>
-        <p className="mt-1 text-[0.88rem] text-muted">{venue.location}</p>
+        <h1 className="mt-3 font-serif text-[clamp(2rem,4.5vw,3.25rem)] font-semibold leading-[1.05] text-[#314523]">
+          {venue.name}
+        </h1>
+        <p className="mt-1 text-sm text-[#6c7561]">{venue.location}</p>
         {directions && (
-          <p className="mt-1 text-[0.8rem] text-muted/70">{directions}</p>
+          <p className="mt-1 text-[0.8rem] text-[#8a9079]">{directions}</p>
         )}
 
         {researchError && (
-          <p className="mt-4 rounded-xl bg-shell px-4 py-3 text-[0.85rem] text-ink-soft">{researchError}</p>
+          <p className="mt-4 rounded-[14px] border border-[#e8d5c8] bg-[#faf4ef] px-4 py-3 text-sm text-[#7b4032]">{researchError}</p>
         )}
 
         {research?.briefing?.length ? (
-          <div className="mt-6 rounded-2xl bg-[#173c32] p-6 text-canvas">
-            <Eyebrow className="!text-canvas/55">Avas briefing</Eyebrow>
+          <div className="mt-6 rounded-[18px] bg-[#314523] p-6 text-[#f7f5ef]">
+            <p className="text-[0.62rem] font-bold uppercase tracking-[0.18em] text-[#a6b0aa]">Avas briefing</p>
             <ul className="mt-4 space-y-2.5">
               {research.briefing.map((line) => (
                 <li key={line} className="flex items-start gap-3 text-[0.92rem] leading-snug">
-                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-sage" />
+                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#dce3d3]" />
                   <span>{line}</span>
                 </li>
               ))}
             </ul>
           </div>
         ) : !research && !researching ? (
-          <div className="mt-6 rounded-2xl border border-dashed border-[var(--color-line)] bg-card/50 px-5 py-4">
-            <p className="text-[0.88rem] leading-relaxed text-ink-soft">
-              Tryk <span className="font-medium text-ink">Research venue</span> — så søger Ava på nettet og udfylder kapacitet, priser og praktisk info fra venueets egne sider.
+          <div className="mt-6 rounded-[18px] border border-dashed border-[#d8d4c7] bg-[#fcfbf7] px-5 py-4">
+            <p className="text-sm leading-relaxed text-[#6c7561]">
+              Tryk <span className="font-medium text-[#314523]">Research venue</span> — så søger Ava på nettet og udfylder kapacitet, priser og praktisk info fra venueets egne sider.
             </p>
           </div>
         ) : null}
 
-        {/* Description */}
         {description && (
-          <p className="mt-7 max-w-2xl text-[1.02rem] leading-relaxed text-ink-soft">{description}</p>
+          <p className="mt-7 max-w-2xl text-[1.02rem] leading-relaxed text-[#59634f]">{description}</p>
         )}
 
         {/* Stats strip */}
-        <div className="mt-8 grid grid-cols-3 gap-px overflow-hidden rounded-2xl rule bg-[var(--color-line)]">
-          <div className="bg-card px-5 py-5">
-            <Eyebrow>Kapacitet</Eyebrow>
-            <p className="mt-1.5 font-serif text-[1.4rem] leading-none text-ink">{venue.capacity}</p>
+        <div className="mt-8 grid grid-cols-3 items-stretch gap-px overflow-hidden rounded-[18px] border border-[#d8d4c7] bg-[#d8d4c7]">
+          <div className="flex min-h-[5.5rem] flex-col bg-[#fcfbf7] px-4 py-4 sm:px-5 sm:py-5">
+            <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[#6c7561]">Kapacitet</p>
+            <p className="mt-2 text-[0.9rem] font-semibold leading-snug text-[#314523]">{venue.capacity || '—'}</p>
           </div>
-          <div className="bg-card px-5 py-5">
-            <Eyebrow>Pris fra</Eyebrow>
-            <p className="mt-1.5 font-serif text-[1.4rem] leading-none text-ink">{venue.price}</p>
+          <div className="flex min-h-[5.5rem] flex-col bg-[#eef1e6] px-4 py-4 sm:px-5 sm:py-5">
+            <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[#6c7561]">Pris fra</p>
+            <p className="mt-2 text-[0.9rem] font-semibold leading-snug text-[#314523]">{venue.price || '—'}</p>
           </div>
-          <div className="bg-ink px-5 py-5">
-            <Eyebrow className="!text-canvas/50">Bedømmelse</Eyebrow>
-            <p className="mt-1.5 font-serif text-[1.4rem] leading-none text-canvas">
+          <div className="flex min-h-[5.5rem] flex-col bg-[#314523] px-4 py-4 sm:px-5 sm:py-5">
+            <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[#c5ccc4]">Bedømmelse</p>
+            <p className="mt-2 font-serif text-[1.35rem] leading-none text-[#f7f5ef]">
               {venue.rating != null ? `★ ${venue.rating.toFixed(1)}` : '—'}
             </p>
           </div>
         </div>
 
-        {/* Praktisk info — only when Ava's research found it */}
         {practical.length > 0 && (
-          <div className="mt-10 rule-t pt-8">
-            <Eyebrow>Praktisk info</Eyebrow>
-            <dl className="mt-5 grid grid-cols-2 gap-x-8 gap-y-5 sm:grid-cols-3">
+          <div className="mt-10 border-t border-[#e0ddd2] pt-8">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#314523]">Praktisk info</p>
+            <dl className="mt-5 grid grid-cols-2 gap-x-8 gap-y-6 sm:grid-cols-3">
               {practical.map(({ key, value }) => (
                 <div key={key}>
-                  <dt className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-muted">{key}</dt>
-                  <dd className="mt-1 text-[0.95rem] text-ink">{value}</dd>
+                  <dt className="text-[0.72rem] font-bold uppercase tracking-[0.12em] text-[#6c7561]">{key}</dt>
+                  <dd className="mt-1.5 text-[0.92rem] leading-snug text-[#314523]">{value}</dd>
                 </div>
               ))}
             </dl>
           </div>
         )}
 
-        {/* Highlights */}
         {highlights.length > 0 && (
-          <div className="mt-10 rule-t pt-8">
-            <Eyebrow>Faciliteter & fordele</Eyebrow>
+          <div className="mt-10 border-t border-[#e0ddd2] pt-8">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#314523]">Faciliteter & fordele</p>
             <ul className="mt-5 grid gap-3 sm:grid-cols-2">
               {highlights.map((h) => (
                 <li key={h} className="flex items-start gap-3">
-                  <Check size={15} strokeWidth={2} className="mt-0.5 shrink-0 text-sage" />
-                  <span className="text-[0.92rem] text-ink-soft leading-snug">{h}</span>
+                  <Check size={15} strokeWidth={2} className="mt-0.5 shrink-0 text-[#7a9068]" />
+                  <span className="text-[0.92rem] leading-snug text-[#59634f]">{h}</span>
                 </li>
               ))}
             </ul>
           </div>
         )}
 
-        {/* Priser & pakker — only when Ava's research found them */}
         {packages.length > 0 && (
-          <div className="mt-10 rule-t pt-8">
-            <Eyebrow>Priser & pakker</Eyebrow>
-            <p className="mt-1 text-[0.8rem] text-muted">Fra venueets egne sider — bekræft altid pris og dato direkte.</p>
+          <div className="mt-10 border-t border-[#e0ddd2] pt-8">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#314523]">Priser & pakker</p>
+            <p className="mt-1.5 text-[0.8rem] text-[#6c7561]">Fra venueets egne sider — bekræft altid pris og dato direkte.</p>
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
               {packages.map((pkg, i) => {
                 const active = activePackage === i;
                 return (
-                  <button key={pkg.name} onClick={() => setPkg(active ? null : i)}
+                  <button key={pkg.name} type="button" onClick={() => setPkg(active ? null : i)}
                     className={cn(
-                      'group flex flex-col rounded-2xl p-5 text-left cursor-pointer transition-all',
+                      'group flex flex-col rounded-[18px] p-5 text-left transition-all cursor-pointer',
                       pkg.featured
-                        ? 'bg-ink text-canvas'
-                        : active ? 'bg-card ring-2 ring-ink' : 'bg-card rule hover:shadow-sm',
+                        ? 'bg-[#314523] text-[#f7f5ef]'
+                        : active
+                          ? 'border-2 border-[#314523] bg-[#fcfbf7]'
+                          : 'border border-[#d8d4c7] bg-[#fcfbf7] hover:bg-[#f7f5ef]',
                     )}>
                     {pkg.featured && (
-                      <span className="mb-2 text-[0.58rem] font-bold uppercase tracking-[0.22em] text-sage">Mest valgt</span>
+                      <span className="mb-2 text-[0.58rem] font-bold uppercase tracking-[0.22em] text-[#dce3d3]">Mest valgt</span>
                     )}
-                    <span className={cn('font-serif text-[1.15rem]', pkg.featured ? 'text-canvas' : 'text-ink')}>
+                    <span className={cn('font-serif text-[1.15rem]', pkg.featured ? 'text-[#f7f5ef]' : 'text-[#314523]')}>
                       {pkg.name}
                     </span>
-                    <span className={cn('mt-1 text-[0.76rem] leading-relaxed', pkg.featured ? 'text-canvas/60' : 'text-muted')}>
+                    <span className={cn('mt-1 text-[0.76rem] leading-relaxed', pkg.featured ? 'text-[#a6b0aa]' : 'text-[#6c7561]')}>
                       {pkg.desc}
                     </span>
-                    <span className={cn('mt-4 font-serif text-[1.5rem] leading-none', pkg.featured ? 'text-canvas' : 'text-ink')}>
+                    <span className={cn('mt-4 font-serif text-[1.5rem] leading-none', pkg.featured ? 'text-[#f7f5ef]' : 'text-[#314523]')}>
                       {pkg.price}
                     </span>
                     {active && !pkg.featured && (
-                      <span className="mt-3 flex items-center gap-1 text-[0.72rem] text-sage">
+                      <span className="mt-3 flex items-center gap-1 text-[0.72rem] text-[#7a9068]">
                         <Check size={12} /> Valgt
                       </span>
                     )}
@@ -1876,22 +1890,21 @@ function VenueDetail({
           </div>
         )}
 
-        {/* Ava's analysis — only when there is a real why-fit */}
         {(venue.quote || venue.why.length > 0) && (
-          <div className="mt-10 rule-t pt-8">
-            <Eyebrow>Derfor matcher det jer</Eyebrow>
-            <div className="mt-5 rounded-2xl bg-card rule p-6">
+          <div className="mt-10 border-t border-[#e0ddd2] pt-8">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#314523]">Derfor matcher det jer</p>
+            <div className="mt-5 rounded-[18px] border border-[#d8d4c7] bg-[#fcfbf7] p-6">
               {venue.quote && (
-                <blockquote className="font-serif text-[1.2rem] italic leading-relaxed text-ink">
+                <blockquote className="font-serif text-[1.2rem] italic leading-relaxed text-[#314523]">
                   &ldquo;{venue.quote}&rdquo;
                 </blockquote>
               )}
               {venue.why.length > 0 && (
-                <ul className={cn('space-y-3', venue.quote && 'mt-5 rule-t pt-5')}>
+                <ul className={cn('space-y-3', venue.quote && 'mt-5 border-t border-[#e4e0d4] pt-5')}>
                   {venue.why.map((reason) => (
                     <li key={reason} className="flex items-start gap-3">
-                      <Check size={13} className="mt-1 shrink-0 text-sage" />
-                      <span className="text-[0.9rem] text-ink-soft leading-relaxed">{reason}</span>
+                      <Check size={13} className="mt-1 shrink-0 text-[#7a9068]" />
+                      <span className="text-[0.9rem] leading-relaxed text-[#59634f]">{reason}</span>
                     </li>
                   ))}
                 </ul>
@@ -1900,22 +1913,21 @@ function VenueDetail({
           </div>
         )}
 
-        {/* Other venues on the list */}
         {allVenues.length > 1 && (
-          <div className="mt-10 rule-t pt-8">
-            <Eyebrow>Flere fra jeres liste</Eyebrow>
+          <div className="mt-10 border-t border-[#e0ddd2] pt-8">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#314523]">Flere fra jeres liste</p>
             <div className="mt-5 flex gap-3 overflow-x-auto hide-scrollbar pb-2">
               {allVenues.filter((v) => v.id !== venue.id).slice(0, 4).map((v) => (
                 <button key={v.id} type="button" onClick={() => onSelectOther(v.id)}
-                  className="relative shrink-0 overflow-hidden rounded-xl cursor-pointer text-left"
+                  className="relative shrink-0 overflow-hidden rounded-[14px] text-left cursor-pointer"
                   style={{ width: 'min(180px, 45vw)', aspectRatio: '3/4' }}>
                   <img src={imgSrc(v.image)} alt={v.name}
                     className="absolute inset-0 h-full w-full object-cover" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#1a2215e8] via-transparent to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#314523]/90 via-transparent to-transparent" />
                   <div className="absolute inset-x-0 bottom-0 p-3">
-                    <p className="font-serif text-[0.95rem] leading-tight text-canvas">{v.name}</p>
+                    <p className="font-serif text-[0.95rem] leading-tight text-[#f7f5ef]">{v.name}</p>
                     {v.rating != null && (
-                      <p className="mt-0.5 text-[0.65rem] text-canvas/55">★ {v.rating.toFixed(1)}</p>
+                      <p className="mt-0.5 text-[0.65rem] text-[#dce3d3]">★ {v.rating.toFixed(1)}</p>
                     )}
                   </div>
                 </button>
@@ -1924,43 +1936,45 @@ function VenueDetail({
           </div>
         )}
 
-        {/* Notes */}
-        <div className="mt-10 rule-t pt-8">
-          <Eyebrow>Jeres noter</Eyebrow>
+        <div className="mt-10 border-t border-[#e0ddd2] pt-8">
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#314523]">Jeres noter</p>
           <textarea
             value={notes} onChange={(e) => setNotes(e.target.value)}
             placeholder="Skriv noter om dette venue — spørgsmål, mavefornemmelser, hvad I vil spørge om til visning…"
             rows={4}
-            className="mt-3 w-full resize-none rounded-2xl rule bg-card px-5 py-4 text-[0.9rem] text-ink placeholder:text-muted focus:outline-none leading-relaxed"
+            className="mt-3 w-full resize-none rounded-[18px] border border-[#d8d4c7] bg-[#fcfbf7] px-5 py-4 text-[0.9rem] leading-relaxed text-[#314523] placeholder:text-[#9a9686] focus:outline-none"
           />
         </div>
 
-        {/* CTAs */}
-        <div className="mt-8 rule-t pt-8">
-          <p className="text-[0.8rem] text-muted mb-4">
+        <div className="mt-8 border-t border-[#e0ddd2] pt-8">
+          <p className="mb-4 text-[0.8rem] text-[#6c7561]">
             Ava forbereder en personlig henvendelse og sender den på jeres vegne.
           </p>
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2">
             {isBooked ? (
-              <div className="flex items-center gap-2 rounded-full bg-sage px-6 py-3 text-[0.85rem] font-bold text-ink">
-                <Check size={14} /> Jeres venue
+              <div className="flex h-8 items-center gap-1.5 rounded-full bg-[#eef1e6] px-3 text-xs font-semibold text-[#314523]">
+                <Check size={13} /> Jeres venue
               </div>
             ) : (
               <>
-                <button onClick={onBook}
-                  className="cursor-pointer flex items-center gap-2 rounded-full bg-ink px-6 py-3 text-[0.85rem] font-bold text-canvas hover:opacity-80 transition-opacity">
-                  <Check size={15} /> Vælg som jeres venue
+                <button type="button" onClick={onBook}
+                  className="flex h-8 cursor-pointer items-center gap-1.5 rounded-full bg-[#314523] px-3 text-xs font-semibold text-[#f7f5ef] hover:opacity-85 transition-opacity">
+                  <Check size={13} /> Vælg som jeres venue
                 </button>
-                <button onClick={onContact}
-                  className="cursor-pointer rounded-full rule bg-canvas px-5 py-3 text-[0.85rem] font-medium text-ink hover:bg-card transition-colors">
+                <button type="button" onClick={onContact}
+                  className="flex h-8 cursor-pointer items-center rounded-full border border-[#e4e0d4] bg-[#fcfbf7] px-3 text-xs font-semibold text-[#314523] hover:bg-[#f7f5ef] transition-colors">
                   {sent ? 'Ava har kontaktet stedet' : 'Book visning via Ava →'}
                 </button>
               </>
             )}
-            <button onClick={onSave}
-              className={cn('cursor-pointer flex items-center gap-2 rounded-full px-5 py-3 text-[0.85rem] font-medium rule transition-colors',
-                saved ? 'bg-sage-tint text-ink' : 'bg-canvas text-ink hover:bg-card')}>
-              <Heart size={14} fill={saved ? 'currentColor' : 'none'} />
+            <button type="button" onClick={onSave}
+              className={cn(
+                'flex h-8 cursor-pointer items-center gap-1.5 rounded-full px-3 text-xs font-semibold transition-colors',
+                saved
+                  ? 'bg-[#eef1e6] text-[#314523]'
+                  : 'border border-[#e4e0d4] bg-[#fcfbf7] text-[#314523] hover:bg-[#f7f5ef]',
+              )}>
+              <Heart size={13} fill={saved ? 'currentColor' : 'none'} />
               {saved ? 'Gemt' : 'Gem venue'}
             </button>
           </div>

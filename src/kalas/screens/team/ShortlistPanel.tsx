@@ -96,7 +96,7 @@ export default function ShortlistPanel({
           <button
             type="button"
             onClick={() => onSwitchTab('explore', cat === 'alle' ? 'venue' : cat)}
-            className="mt-4 inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-[0.8rem] font-medium text-canvas hover:bg-ink/90 transition-colors cursor-pointer"
+            className="mt-4 inline-flex h-8 items-center gap-1.5 rounded-full bg-[#314523] px-3 text-xs font-semibold text-[#f7f5ef] hover:opacity-90 transition-colors cursor-pointer"
           >
             Udforsk {cat === 'venue' ? 'venues' : 'leverandører'}
           </button>
@@ -140,7 +140,7 @@ function VendorShortlist({
 
   return (
     <section>
-      <Eyebrow>Leverandører på shortlisten · {items.length}</Eyebrow>
+      <Eyebrow className="!text-[#8a9079]">Leverandører på shortlisten · {items.length}</Eyebrow>
       <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((v) => {
           const isContacted = contacted.has(v.id);
@@ -148,21 +148,21 @@ function VendorShortlist({
             <motion.div
               key={v.id}
               layout
-              className="rule flex flex-col rounded-2xl bg-card p-4"
+              className="flex flex-col rounded-[18px] border border-[#d8d4c7] bg-[#fcfbf7] p-4"
             >
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <p className="text-[0.6rem] font-semibold uppercase tracking-[0.18em] text-muted">
+                  <p className="text-[0.6rem] font-semibold uppercase tracking-[0.18em] text-[#8a9079]">
                     {CAT_LABEL[v.category] ?? v.category}
                   </p>
-                  <h3 className="display mt-1 text-[1.05rem] text-ink">{v.name}</h3>
-                  {v.price_hint && <p className="mt-1 font-serif text-[0.95rem] text-ink">{v.price_hint}</p>}
+                  <h3 className="mt-1 font-serif text-[1.05rem] text-[#314523]">{v.name}</h3>
+                  {v.price_hint && <p className="mt-1 font-serif text-[0.95rem] text-[#314523]">{v.price_hint}</p>}
                 </div>
                 <button
                   type="button"
                   onClick={() => void toggle(v.id, true)}
                   disabled={busy === v.id}
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sage text-ink cursor-pointer"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#eef1e6] text-[#314523] cursor-pointer"
                   aria-label="Fjern fra shortlist"
                 >
                   <Heart size={14} fill="currentColor" />
@@ -170,14 +170,14 @@ function VendorShortlist({
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
                 {isContacted ? (
-                  <span className="rounded-full bg-shell px-3 py-1 text-[0.65rem] font-bold uppercase tracking-[0.1em] text-muted">
+                  <span className="rounded-full bg-[#f0ede5] px-3 py-1 text-[0.65rem] font-bold uppercase tracking-[0.1em] text-[#6c7561]">
                     Kontaktet
                   </span>
                 ) : (
                   <button
                     type="button"
                     onClick={() => onNavigate?.('ava')}
-                    className="rounded-full bg-ink px-3.5 py-1.5 text-[0.68rem] font-bold uppercase tracking-[0.12em] text-canvas cursor-pointer"
+                    className="h-8 rounded-full bg-[#314523] px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#f7f5ef] cursor-pointer"
                   >
                     Bed Ava kontakte
                   </button>
@@ -191,11 +191,11 @@ function VendorShortlist({
         type="button"
         onClick={() => onExplore('alle')}
         className={cn(
-          'mt-6 flex w-full items-center justify-center gap-2 rounded-2xl rule bg-card px-5 py-3.5',
-          'text-[0.85rem] text-ink hover:bg-shell transition-colors cursor-pointer',
+          'mt-6 flex h-11 w-full items-center justify-center gap-2 rounded-[18px] border border-[#d8d4c7] bg-[#fcfbf7] px-5',
+          'text-sm text-[#314523] hover:bg-[#f7f5ef] transition-colors cursor-pointer',
         )}
       >
-        <MessageCircle size={16} className="text-muted" />
+        <MessageCircle size={16} className="text-[#6c7561]" />
         Find flere leverandører
       </button>
     </section>

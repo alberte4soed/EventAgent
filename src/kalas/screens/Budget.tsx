@@ -116,7 +116,7 @@ export default function Budget() {
   const startAdding = () => { setAddingNew(true); setTimeout(() => inputRef.current?.focus(), 50); };
 
   return (
-    <div className="px-6 py-8 sm:px-10 lg:px-16 lg:py-12">
+    <div className="px-6 py-8 sm:px-9 lg:px-12 lg:py-8">
       {/* ── Budget estimator ──────────────────────────────────────────── */}
       <div className="rule rounded-2xl overflow-hidden">
         <button onClick={() => setEstimatorOpen(v => !v)}
