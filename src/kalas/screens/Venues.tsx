@@ -1883,9 +1883,10 @@ function VenueDetail({
 }) {
   const [notes, setNotes]         = useState('');
   const [activePackage, setPkg]   = useState<number | null>(null);
-  // Start in the researching state when nothing is on file yet — the open
-  // itself kicks off research (below), so the couple never sees an empty page.
-  const [researching, setResearching] = useState(!venue.research);
+  // Start in the researching state when a shortlisted venue has nothing on file
+  // yet — opening it kicks off research (below), so the couple never sees an
+  // empty page. Non-shortlisted venues wait for a manual press.
+  const [researching, setResearching] = useState(!venue.research && saved);
   const [researchError, setResearchError] = useState<string | null>(null);
   const realPhotos = venue.photos ?? [];
   const research = venue.research;
@@ -1912,14 +1913,15 @@ function VenueDetail({
     }
   }
 
-  // First time a venue is opened, kick off research automatically so the couple
-  // lands on filled-in info instead of an empty page. Only runs when nothing has
-  // been researched yet; the button remains for a manual refresh. The ref guards
-  // against re-firing on re-render (the view is keyed by venue.id, so a different
-  // venue remounts and gets its own auto-run).
+  // First time a shortlisted venue is opened, kick off research automatically so
+  // the couple lands on filled-in info instead of an empty page. Only runs for
+  // venues on their list and only when nothing has been researched yet; the
+  // button remains for a manual refresh. The ref guards against re-firing on
+  // re-render (the view is keyed by venue.id, so a different venue remounts and
+  // gets its own auto-run).
   const autoResearchedRef = useRef(false);
   useEffect(() => {
-    if (autoResearchedRef.current || venue.research) return;
+    if (autoResearchedRef.current || venue.research || !saved) return;
     autoResearchedRef.current = true;
     void runResearch();
     // eslint-disable-next-line react-hooks/exhaustive-deps
