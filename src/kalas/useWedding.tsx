@@ -31,6 +31,9 @@ import type {
   VendorCategory,
   VenueRow,
   WeddingSiteRow,
+  WebsiteDesignRow,
+  SitePhotoRow,
+  WebsiteOrderRow,
 } from "@/lib/db/types";
 
 /** Adapter shaped like the old mock `couple` so screens swap in easily. */
@@ -71,6 +74,12 @@ interface WeddingData {
   seatingPlan: SeatingPlanRow | null;
   registryItems: RegistryItemRow[];
   registryClaims: RegistryClaimRow[];
+  /** All generations, newest first; the active one drives the live site. */
+  websiteDesigns: WebsiteDesignRow[];
+  websiteDesign: WebsiteDesignRow | null;
+  sitePhotos: SitePhotoRow[];
+  websiteOrders: WebsiteOrderRow[];
+  websitePaid: boolean;
 
   refresh: () => Promise<void>;
   updateEvent: (patch: Partial<EventRow>) => Promise<void>;
@@ -188,6 +197,9 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
   const [seatingPlan, setSeatingPlan] = useState<SeatingPlanRow | null>(null);
   const [registryItems, setRegistryItems] = useState<RegistryItemRow[]>([]);
   const [registryClaims, setRegistryClaims] = useState<RegistryClaimRow[]>([]);
+  const [websiteDesigns, setWebsiteDesigns] = useState<WebsiteDesignRow[]>([]);
+  const [sitePhotos, setSitePhotos] = useState<SitePhotoRow[]>([]);
+  const [websiteOrders, setWebsiteOrders] = useState<WebsiteOrderRow[]>([]);
 
   const load = useCallback(async () => {
     const {
@@ -226,7 +238,7 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
     setEvent(ev);
 
     if (ev) {
-      const [v, d, o, r, at, p, io, idz, bi, g, tt, mb, ws, sp, ri, rc] = await Promise.all([
+      const [v, d, o, r, at, p, io, idz, bi, g, tt, mb, ws, sp, ri, rc, wd, sph, wo] = await Promise.all([
         supabase.from("venues").select("*").eq("event_id", ev.id).order("created_at"),
         supabase.from("email_drafts").select("*").eq("event_id", ev.id),
         supabase.from("outbound_emails").select("*").eq("event_id", ev.id).order("created_at"),
@@ -243,6 +255,9 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
         supabase.from("seating_plans").select("*").eq("event_id", ev.id).maybeSingle(),
         supabase.from("registry_items").select("*").eq("event_id", ev.id).order("sort"),
         supabase.from("registry_claims").select("*").eq("event_id", ev.id).order("created_at"),
+        supabase.from("website_designs").select("*").eq("event_id", ev.id).order("created_at", { ascending: false }),
+        supabase.from("site_photos").select("*").eq("event_id", ev.id).order("sort").order("created_at"),
+        supabase.from("website_orders").select("*").eq("event_id", ev.id).order("created_at", { ascending: false }),
       ]);
       setVenues((v.data ?? []) as VenueRow[]);
       setDrafts((d.data ?? []) as EmailDraftRow[]);
@@ -260,6 +275,9 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
       setSeatingPlan((sp.data as SeatingPlanRow | null) ?? null);
       setRegistryItems((ri.data ?? []) as RegistryItemRow[]);
       setRegistryClaims((rc.data ?? []) as RegistryClaimRow[]);
+      setWebsiteDesigns((wd.data ?? []) as WebsiteDesignRow[]);
+      setSitePhotos((sph.data ?? []) as SitePhotoRow[]);
+      setWebsiteOrders((wo.data ?? []) as WebsiteOrderRow[]);
     }
     setLoading(false);
   }, [supabase]);
@@ -610,6 +628,22 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
       )
       .on(
         "postgres_changes",
+        { event: "*", schema: "public", table: "website_designs", filter: `event_id=eq.${eventId}` },
+        (p) =>
+          p.eventType === "DELETE"
+            ? setWebsiteDesigns((rows) => removeById(rows, (p.old as { id: string }).id))
+            : setWebsiteDesigns((rows) => upsertById(rows, p.new as WebsiteDesignRow))
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "site_photos", filter: `event_id=eq.${eventId}` },
+        (p) =>
+          p.eventType === "DELETE"
+            ? setSitePhotos((rows) => removeById(rows, (p.old as { id: string }).id))
+            : setSitePhotos((rows) => upsertById(rows, p.new as SitePhotoRow))
+      )
+      .on(
+        "postgres_changes",
         { event: "*", schema: "public", table: "seating_plans", filter: `event_id=eq.${eventId}` },
         (p) => p.eventType !== "DELETE" && setSeatingPlan(p.new as SeatingPlanRow)
       )
@@ -680,6 +714,11 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
       seatingPlan,
       registryItems,
       registryClaims,
+      websiteDesigns,
+      websiteDesign: websiteDesigns.find((d) => d.active) ?? null,
+      sitePhotos,
+      websiteOrders,
+      websitePaid: websiteOrders.some((o) => o.status === "paid"),
       refresh: load,
       updateEvent,
       saveBudgetItem,
@@ -702,7 +741,8 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
     [
       loading, event, profile, email, venues, drafts, outbound, replies, attachments, proposals,
       inviteOrders, inviteDesigns, journey, budgetItems, guests, timelineTasks,
-      moodboardItems, weddingSite, seatingPlan, registryItems, registryClaims, load, updateEvent, saveBudgetItem,
+      moodboardItems, weddingSite, seatingPlan, registryItems, registryClaims,
+      websiteDesigns, sitePhotos, websiteOrders, load, updateEvent, saveBudgetItem,
       deleteBudgetItem, addGuest, updateGuest, deleteGuest, addTask, updateTask, deleteTask, seedTasks,
       addMoodboardItem, removeMoodboardItem, saveSite, saveSeating,
       addRegistryItem, updateRegistryItem, deleteRegistryItem,

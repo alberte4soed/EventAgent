@@ -9,6 +9,7 @@ import { useState } from "react";
 import { LanguageProvider, useLang } from "@/kalas/i18n";
 import { SiteRenderer } from "@/kalas/site/SiteRenderer";
 import type { SiteConfig } from "@/kalas/site/config";
+import type { SiteDesign } from "@/kalas/site/design";
 import type { RegistryItemRow, AppLanguage } from "@/lib/db/types";
 
 type Couple = { a: string; b: string; dateLabel: string; dateISO: string | null };
@@ -17,6 +18,8 @@ interface Props {
   slug: string;
   couple: Couple;
   config: SiteConfig;
+  design: SiteDesign;
+  photoUrls: Record<string, string>;
   registryItems: RegistryItemRow[];
   claimedByItem?: Record<string, number>;
   lang: AppLanguage;
@@ -34,7 +37,7 @@ export function PublicSite(props: Props) {
   );
 }
 
-function Site({ slug, couple, config, registryItems, claimedByItem = {}, rsvpToken }: Props) {
+function Site({ slug, couple, config, design, photoUrls, registryItems, claimedByItem = {}, rsvpToken }: Props) {
   const [rsvpOpen, setRsvpOpen] = useState(false);
   const [claimItem, setClaimItem] = useState<RegistryItemRow | null>(null);
 
@@ -43,6 +46,8 @@ function Site({ slug, couple, config, registryItems, claimedByItem = {}, rsvpTok
       <SiteRenderer
         couple={couple}
         config={config}
+        design={design}
+        photoUrls={photoUrls}
         registryItems={registryItems}
         claimedByItem={claimedByItem}
         onRsvp={() => setRsvpOpen(true)}
