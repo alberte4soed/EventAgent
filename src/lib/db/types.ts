@@ -334,6 +334,46 @@ export interface WeddingSiteRow {
   updated_at: string;
 }
 
+// ── AI website tables (migration 0012) ──────────────────────────────────
+
+export interface WebsiteDesignRow {
+  id: string;
+  event_id: string;
+  user_id: string;
+  brief: Record<string, unknown>;
+  design: Record<string, unknown>;
+  active: boolean;
+  created_at: string;
+}
+
+export type SitePhotoKind = "upload" | "generated";
+export type SitePhotoRole = "hero" | "gallery";
+
+export interface SitePhotoRow {
+  id: string;
+  event_id: string;
+  user_id: string;
+  storage_path: string;
+  kind: SitePhotoKind;
+  role: SitePhotoRole;
+  sort: number;
+  created_at: string;
+}
+
+export type WebsiteOrderStatus = "pending_payment" | "paid" | "canceled";
+
+export interface WebsiteOrderRow {
+  id: string;
+  event_id: string;
+  user_id: string;
+  amount_cents: number | null;
+  currency: string;
+  stripe_session_id: string | null;
+  stripe_payment_intent: string | null;
+  status: WebsiteOrderStatus;
+  created_at: string;
+}
+
 export interface SeatingPlanRow {
   id: string;
   event_id: string;
