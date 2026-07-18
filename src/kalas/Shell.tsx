@@ -2,9 +2,10 @@ import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  Home, MessageCircle, UsersRound,
+  Home, UsersRound,
   Wallet, Users, Globe, Mail, ListChecks, LayoutDashboard,
   LayoutGrid, X, Settings, Gift, PanelLeftClose, PanelLeft,
+  Bell, Sparkles,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { couple } from './data';
@@ -96,15 +97,16 @@ export default function Shell({
   const sidebarRail = sidebarCollapsed;
   const navigate = (s: ScreenId) => { setMoreOpen(false); onNavigate(s); };
   const moreActive = !MOBILE_TABS.includes(current);
+  const currentLabel = NAV.find((n) => n.id === current)?.label ?? 'Hjem';
 
   return (
-    <div className="flex min-h-screen bg-[#f5f3ee] text-ink">
-      {/* ── Desktop sidebar ─────────────────────────────────────────── */}
+    <div className="flex h-dvh overflow-hidden bg-[#173c32] text-ink">
+      {/* ── Desktop sidebar (same chrome as header — flush L) ────────── */}
       <motion.aside
         initial={false}
         animate={{ width: sidebarRail ? SIDEBAR_RAIL_W : SIDEBAR_W }}
         transition={shellTransition}
-        className="sticky top-0 hidden h-dvh shrink-0 self-start overflow-hidden bg-[#173c32] lg:block"
+        className="hidden h-full shrink-0 overflow-hidden bg-[#173c32] lg:block"
       >
         <div className={cn(
           'flex h-full min-h-0 flex-col py-5',
@@ -206,24 +208,59 @@ export default function Shell({
         </div>
       </motion.aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        {/* ── Mobile top bar ──────────────────────────────────────────── */}
-        <header className="rule-b sticky top-0 z-30 flex items-center justify-between bg-canvas/90 px-5 py-4 backdrop-blur-md lg:hidden">
-          <Wordmark />
-          <Initials />
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        {/* ── Header — same green as sidebar, icons top-right ─────────── */}
+        <header className="flex h-14 shrink-0 items-center justify-between gap-4 px-4 lg:h-[56px] lg:px-5">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="lg:hidden"><Wordmark light /></span>
+            <p className="hidden truncate text-sm font-semibold text-[#dde8e2] lg:block">
+              {t(currentLabel)}
+            </p>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              aria-label={t('Notifikationer')}
+              className="flex size-8 items-center justify-center rounded-full border border-white/15 text-[#dde8e2] transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
+            >
+              <Bell size={15} />
+            </button>
+            <button
+              type="button"
+              onClick={onAvaOpen}
+              aria-label={avaBadge > 0 ? t('Tal med Ava — {n} nye beskeder', { n: avaBadge }) : t('Spørg Ava')}
+              className="relative flex h-8 items-center gap-1.5 rounded-full bg-[#fffdf7] px-3 text-xs font-semibold text-[#173c32] transition-opacity hover:opacity-90 cursor-pointer"
+            >
+              <Sparkles size={13} />
+              <span className="hidden sm:inline">{t('Spørg Ava')}</span>
+              {avaBadge > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-[#e66b4e] px-0.5 text-[0.5rem] font-bold text-white">
+                  {avaBadge}
+                </span>
+              )}
+            </button>
+            <a
+              href="/settings"
+              aria-label={t('Indstillinger')}
+              className="flex size-8 items-center justify-center rounded-full border border-white/15 text-[#dde8e2] transition-colors hover:bg-white/10 hover:text-white"
+            >
+              <Settings size={15} strokeWidth={1.6} />
+            </a>
+            <span className="lg:hidden"><Initials light /></span>
+          </div>
         </header>
 
-        {/* ── Content + Ava drawer (push layout) ─────────────────────── */}
-        <div className="flex min-h-0 flex-1">
-          <main className="min-w-0 flex-1">
-            <div className="min-h-screen pb-28 lg:pb-0">{children}</div>
+        {/* ── Page flush to bottom + right; left inset for chrome gap ─── */}
+        <div className="flex min-h-0 flex-1 pl-2.5 lg:pl-3">
+          <main className="min-w-0 flex-1 overflow-y-auto rounded-tl-[20px] bg-[#f5f3ee] pb-28 lg:pb-0">
+            <div className="min-h-full">{children}</div>
           </main>
 
           <motion.aside
             initial={false}
             animate={{ width: avaOpen ? DRAWER_W : 0 }}
             transition={shellTransition}
-            className="sticky top-0 h-dvh shrink-0 self-start overflow-hidden border-l border-[#d9ded9] bg-[#f5f3ee] lg:h-screen"
+            className="h-full shrink-0 overflow-hidden border-l border-[#d9ded9] bg-[#f5f3ee]"
             role={avaOpen ? 'dialog' : undefined}
             aria-label={t('Tal med Ava')}
             aria-hidden={!avaOpen}
@@ -234,26 +271,6 @@ export default function Shell({
           </motion.aside>
         </div>
       </div>
-
-      {/* ── Floating Ava button ─────────────────────────────────────── */}
-      {!avaOpen && (
-        <motion.button
-          key="ava-fab"
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: 'spring', stiffness: 340, damping: 26 }}
-          onClick={onAvaOpen}
-          aria-label={avaBadge > 0 ? t('Tal med Ava — {n} nye beskeder', { n: avaBadge }) : t('Tal med Ava')}
-          className="fixed bottom-36 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-ink text-canvas shadow-[0_8px_24px_rgba(46,51,37,0.22)] hover:scale-105 active:scale-95 transition-transform cursor-pointer lg:bottom-10 lg:right-10">
-          <MessageCircle size={22} strokeWidth={1.6} />
-          {avaBadge > 0 && (
-            <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--color-terracotta)] opacity-70" />
-              <span className="relative flex h-4 w-4 items-center justify-center rounded-full bg-[var(--color-terracotta)] text-[0.55rem] font-bold text-canvas">{avaBadge}</span>
-            </span>
-          )}
-        </motion.button>
-      )}
 
       {/* ── Mobile bottom nav ───────────────────────────────────────── */}
       <nav className="fixed inset-x-0 bottom-0 z-40 lg:hidden">

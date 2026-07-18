@@ -9,7 +9,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { ArrowLeft, Check, FileText, Star, Inbox as InboxIcon } from 'lucide-react';
 import { useWedding } from '../useWedding';
-import { Eyebrow, Chip, Pill, cn } from '../ui';
+import { Chip, Pill, cn } from '../ui';
 import type { NavigateTarget } from '../lib/hub-nav';
 import { createClient } from '@/lib/supabase/client';
 import type {
@@ -74,20 +74,14 @@ export default function Inbox({ onNavigate, embedded }: { onNavigate?: (s: Navig
   return (
     <div className={embedded ? 'pt-2' : 'px-6 py-8 sm:px-10 lg:px-16 lg:py-12'}>
       {!embedded && (
-        <>
-      <Eyebrow>Koordinering</Eyebrow>
-      <h1 className="display mt-4 text-[clamp(2.5rem,5vw,4rem)] text-ink">
-        Jeres <span className="italic">henvendelser</span>
-      </h1>
-      <p className="mt-3 max-w-lg text-[0.9rem] text-ink-soft">
-        Ava skriver på jeres vegne fra én central postkasse. Her ser I hvem hun har
-        kontaktet, hvad de svarer, og godkender hendes svar før de sendes.
-      </p>
-        </>
+        <p className="max-w-lg text-[0.9rem] text-ink-soft">
+          Ava skriver på jeres vegne fra én central postkasse. Her ser I hvem hun har
+          kontaktet, hvad de svarer, og godkender hendes svar før de sendes.
+        </p>
       )}
 
       {/* Tabs */}
-      <div className={cn('flex gap-1 rule-b', embedded ? 'mt-2' : 'mt-8')}>
+      <div className={cn('flex gap-1 rule-b', embedded ? 'mt-2' : 'mt-6')}>
         {([['threads', `Samtaler${totalUnread ? ` · ${totalUnread}` : ''}`], ['quotes', 'Tilbud'], ['files', `Filer · ${attachments.length}`]] as [Tab, string][]).map(([id, label]) => (
           <button key={id} onClick={() => setTab(id)}
             className={cn('relative px-5 py-3 text-[0.85rem] transition-colors cursor-pointer',

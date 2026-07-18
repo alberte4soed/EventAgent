@@ -257,7 +257,7 @@ export default function Website() {
           </div>
           <button onClick={() => setPublished((v) => !v)}
             className={cn(
-              'mb-3 rounded-full px-5 py-2.5 text-[0.72rem] font-bold uppercase tracking-[0.18em] transition-all cursor-pointer',
+              'mb-3 h-8 rounded-full px-3 text-xs font-semibold uppercase tracking-[0.12em] transition-all cursor-pointer',
               published ? 'bg-sage text-ink' : 'bg-ink text-canvas hover:bg-ink/80',
             )}>
             {published ? '● Live' : 'Publicér'}

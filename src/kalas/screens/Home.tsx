@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { motion } from 'motion/react';
 import {
-  Bell, Check, MapPin, Sparkles, Flower2, Music, Camera, UtensilsCrossed,
+  Check, MapPin, Flower2, Music, Camera, UtensilsCrossed,
 } from 'lucide-react';
 import { useWedding } from '../useWedding';
 import type { NavigateTarget } from '../lib/hub-nav';
@@ -178,35 +178,7 @@ export default function Home({ onNavigate }: { onNavigate: (s: NavigateTarget) =
   };
 
   return (
-    <div className="flex min-h-screen flex-col gap-10 bg-[#f5f3ee] px-6 py-8 sm:px-9 lg:px-12 lg:py-8">
-      {/* Top bar */}
-      <motion.header
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex w-full items-center justify-between"
-      >
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#6c7561]">
-          {t('Planlægningshjem')}
-        </p>
-        <div className="flex items-center gap-2.5">
-          <button
-            type="button"
-            aria-label={t('Notifikationer')}
-            className="flex size-[42px] items-center justify-center rounded-full border border-[#d9ded9] bg-white text-[#173c32]"
-          >
-            <Bell size={18} />
-          </button>
-          <button
-            type="button"
-            onClick={() => onNavigate('ava')}
-            className="flex h-[42px] items-center gap-2 rounded-full bg-[#173c32] px-5 text-sm font-semibold text-white"
-          >
-            <Sparkles size={16} />
-            {t('Spørg Ava')}
-          </button>
-        </div>
-      </motion.header>
-
+    <div className="flex min-h-full flex-col gap-10 bg-[#f5f3ee] px-6 py-8 sm:px-9 lg:px-12 lg:py-8">
       {/* Hero */}
       <motion.section
         initial={{ opacity: 0, y: 12 }}
@@ -296,9 +268,9 @@ export default function Home({ onNavigate }: { onNavigate: (s: NavigateTarget) =
               {t('Steder der matcher gæsteantal, stemning, placering og budget.')}
             </p>
           </div>
-          <span className="relative mt-4 inline-flex w-fit items-center gap-2 rounded-full bg-[#f7f5ef] px-5 py-3 text-sm font-bold text-[#314523]">
+          <span className="relative mt-4 inline-flex h-8 w-fit items-center gap-1.5 rounded-full bg-[#f7f5ef] px-3 text-xs font-semibold text-[#314523]">
             {t('Udforsk venues')}
-            <MapPin size={16} />
+            <MapPin size={13} />
           </span>
         </button>
 

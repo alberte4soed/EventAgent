@@ -2,7 +2,6 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { useWedding } from '../../useWedding';
-import { Eyebrow } from '../../ui';
 import { useLang } from '../../i18n';
 import OnboardingHint from '../../OnboardingHint';
 import type { NavigateTarget } from '../../lib/hub-nav';
@@ -67,12 +66,8 @@ export default function VendorHub({ onNavigate }: { onNavigate?: (s: NavigateTar
   }
 
   return (
-    <div className="min-h-screen px-6 py-8 sm:px-10 lg:px-16 lg:py-12">
-      <Eyebrow>{t('Planlægning')}</Eyebrow>
-      <h1 className="display mt-4 text-[clamp(2.2rem,4.5vw,3.5rem)] text-ink">
-        {t('Venue & leverandører')}
-      </h1>
-      <p className="mt-3 max-w-xl text-[0.9rem] text-ink-soft">
+    <div className="min-h-full px-6 py-8 sm:px-10 lg:px-16 lg:py-12">
+      <p className="max-w-xl text-[0.9rem] text-ink-soft">
         {t('Fra opdagelse til henvendelser og booking — ét samlet overblik over jeres bryllupsteam.')}
       </p>
 

@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Gift, Plus, Trash2, Link2, Check, X } from 'lucide-react';
 import { useWedding } from '../useWedding';
 import { useLang } from '../i18n';
-import { Eyebrow, Pill, cn } from '../ui';
+import { Pill, cn } from '../ui';
 import type { RegistryItemRow } from '@/lib/db/types';
 
 export default function Registry({ onNavigate }: { onNavigate?: (s: import('../Shell').ScreenId) => void }) {
@@ -61,11 +61,7 @@ export default function Registry({ onNavigate }: { onNavigate?: (s: import('../S
 
   return (
     <div className="px-6 py-8 sm:px-10 lg:px-16 lg:py-12">
-      <Eyebrow>{t('Ønskeliste')}</Eyebrow>
-      <h1 className="display mt-4 text-[clamp(2.5rem,5vw,4rem)] text-ink">
-        {t('Gaver, I faktisk')} <span className="italic">{t('ønsker jer')}</span>
-      </h1>
-      <p className="mt-3 max-w-lg text-[0.9rem] text-ink-soft">
+      <p className="max-w-lg text-[0.9rem] text-ink-soft">
         {t('Indsæt et link til en gave, så henter vi billede og pris. Gæsterne kan reservere den fra jeres bryllupsside — så to ikke køber det samme.')}
       </p>
 

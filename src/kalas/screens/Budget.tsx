@@ -117,13 +117,8 @@ export default function Budget() {
 
   return (
     <div className="px-6 py-8 sm:px-10 lg:px-16 lg:py-12">
-      <Eyebrow>Budget · Avas fordeling</Eyebrow>
-      <h1 className="display mt-4 text-[clamp(2.5rem,5vw,4rem)] text-ink">
-        Mit forslag — <span className="italic">jeres at justere</span>
-      </h1>
-
       {/* ── Budget estimator ──────────────────────────────────────────── */}
-      <div className="mt-8 rule rounded-2xl overflow-hidden">
+      <div className="rule rounded-2xl overflow-hidden">
         <button onClick={() => setEstimatorOpen(v => !v)}
           className="w-full flex items-center justify-between px-6 py-4 bg-card hover:bg-shell transition-colors cursor-pointer">
           <div className="flex items-center gap-3">
@@ -184,7 +179,7 @@ export default function Budget() {
                 </div>
 
                 <button onClick={applyEstimate}
-                  className="flex items-center gap-2 rounded-full bg-ink px-6 py-3 text-[0.72rem] font-bold uppercase tracking-[0.16em] text-canvas hover:bg-ink/80 transition-colors cursor-pointer">
+                  className="flex h-8 items-center gap-1.5 rounded-full bg-ink px-3 text-xs font-semibold uppercase tracking-[0.12em] text-canvas hover:bg-ink/80 transition-colors cursor-pointer">
                   Fordel budgettet automatisk <ArrowRight size={13} />
                 </button>
                 <p className="text-[0.72rem] text-muted -mt-2">
@@ -287,7 +282,7 @@ export default function Budget() {
                 className="flex-1 bg-transparent font-serif text-[1.2rem] text-ink placeholder:text-muted/50 focus:outline-none border-b border-[var(--color-line-strong)] pb-1"
               />
               <button onClick={addLine}
-                className="rounded-full bg-ink px-4 py-1.5 text-[0.7rem] font-bold uppercase tracking-[0.14em] text-canvas hover:bg-ink/80 transition-colors cursor-pointer">
+                className="h-8 rounded-full bg-ink px-3 text-xs font-semibold uppercase tracking-[0.12em] text-canvas hover:bg-ink/80 transition-colors cursor-pointer">
                 Tilføj
               </button>
               <button onClick={() => { setAddingNew(false); setNewLabel(''); }}

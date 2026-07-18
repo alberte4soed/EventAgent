@@ -1,7 +1,7 @@
 import { useState, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Plus, Upload, Utensils, Send, Users, Clock, CheckCheck, ChevronRight, Trash2, Search, X, Check, Link2 } from 'lucide-react';
-import { Eyebrow, Pill, Chip, cn } from '../ui';
+import { Pill, Chip, cn } from '../ui';
 import AnimateNumber from '../AnimateNumber';
 import OnboardingHint from '../OnboardingHint';
 import { useWedding } from '../useWedding';
@@ -75,14 +75,7 @@ export default function Guests() {
 
   return (
     <div className="px-6 py-8 sm:px-10 lg:px-16 lg:py-12">
-      {/* Header */}
-      <div className="flex items-end justify-between gap-6">
-        <div>
-          <Eyebrow>Gæster · {rsvpStats.invited} inviteret</Eyebrow>
-          <h1 className="display mt-4 text-[clamp(2.5rem,5vw,4rem)] text-ink">
-            Listen, der <span className="italic">tæller for jer</span>
-          </h1>
-        </div>
+      <div className="flex items-center justify-end gap-2">
         <div className="hidden items-center gap-2 sm:flex">
           <Pill variant="outline"><Upload size={15} /> Importér</Pill>
           <Pill arrow onClick={startAdding}><Plus size={15} /> Tilføj</Pill>
@@ -90,7 +83,7 @@ export default function Guests() {
       </div>
 
       {/* RSVP rings */}
-      <div className="mt-10 grid gap-10 sm:grid-cols-3">
+      <div className="mt-6 grid gap-10 sm:grid-cols-3">
         <Ring value={rsvpStats.ja}       total={rsvpStats.invited} label="Bekræftet"    color="var(--color-sage)" />
         <Ring value={rsvpStats.afventer} total={rsvpStats.invited} label="Mangler svar" color="var(--color-line-strong)" track />
         <Ring value={rsvpStats.nej}      total={rsvpStats.invited} label="Afbud"        color="var(--color-clay)" />
@@ -135,7 +128,7 @@ export default function Guests() {
                 </div>
                 <button
                   onClick={() => setTab('beskeder')}
-                  className="shrink-0 rounded-full bg-ink px-4 py-2 text-[0.72rem] font-bold uppercase tracking-[0.14em] text-canvas hover:bg-ink/80 transition-colors cursor-pointer">
+                  className="shrink-0 h-8 rounded-full bg-ink px-3 text-xs font-semibold uppercase tracking-[0.12em] text-canvas hover:bg-ink/80 transition-colors cursor-pointer">
                   Send påmindelser
                 </button>
               </motion.div>
@@ -319,7 +312,7 @@ function MessagingPanel() {
           <p className="text-[0.82rem] text-muted">{THREADS.length} beskeder sendt eller kladde</p>
           <button
             onClick={() => { setComposing(true); setActiveThread(null); }}
-            className="flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-[0.72rem] font-medium uppercase tracking-widest text-canvas hover:opacity-90 transition-opacity cursor-pointer"
+            className="flex h-8 items-center gap-1.5 rounded-full bg-ink px-3 text-xs font-semibold uppercase tracking-widest text-canvas hover:opacity-90 transition-opacity cursor-pointer"
           >
             <Send size={11} /> Ny besked
           </button>
@@ -402,10 +395,10 @@ function MessagingPanel() {
                     placeholder="Skriv din besked her..." />
                 </div>
                 <div className="flex gap-3 pt-1">
-                  <button className="flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-[0.72rem] font-medium uppercase tracking-widest text-canvas hover:opacity-90 cursor-pointer">
+                  <button className="flex h-8 items-center gap-1.5 rounded-full bg-ink px-3 text-xs font-semibold uppercase tracking-widest text-canvas hover:opacity-90 cursor-pointer">
                     <Send size={11} /> Send
                   </button>
-                  <button onClick={() => setComposing(false)} className="rounded-full border border-[var(--color-line)] px-5 py-2.5 text-[0.72rem] uppercase tracking-widest text-muted hover:text-ink cursor-pointer">
+                  <button onClick={() => setComposing(false)} className="h-8 rounded-full border border-[var(--color-line)] px-3 text-xs font-semibold uppercase tracking-widest text-muted hover:text-ink cursor-pointer">
                     Annuller
                   </button>
                 </div>

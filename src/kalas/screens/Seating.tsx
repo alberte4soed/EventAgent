@@ -235,11 +235,7 @@ export default function Seating() {
     <div className="pb-24">
       {/* ── Header ──────────────────────────────────────────────────── */}
       <div className="px-6 py-8 sm:px-10 lg:px-16 lg:py-12">
-        <Eyebrow>Bordplan</Eyebrow>
-        <h1 className="display mt-4 text-[clamp(2.5rem,5vw,4rem)] text-ink">
-          Byg jeres <span className="italic">opstilling.</span>
-        </h1>
-        <p className="mt-4 max-w-lg text-ink-soft leading-relaxed">
+        <p className="max-w-lg text-ink-soft leading-relaxed">
           Vælg bordform og kapacitet — tilføj borde efter behov, og placer jeres gæster
           ved at vælge et bord og klikke på gæsterne nedenfor.
         </p>
@@ -261,17 +257,17 @@ export default function Seating() {
           <div className="ml-auto flex items-center gap-2 self-start">
             {unassigned.length > 0 && (
               <button onClick={autoSeat}
-                className="flex items-center gap-2 rounded-full px-5 py-2.5 text-[0.72rem] font-bold uppercase tracking-[0.14em] text-canvas hover:opacity-90 transition-opacity cursor-pointer"
+                className="flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-semibold uppercase tracking-[0.12em] text-canvas hover:opacity-90 transition-opacity cursor-pointer"
                 style={{ background: 'var(--color-terracotta)' }}>
                 Lad Ava placere resten ({unassigned.length})
               </button>
             )}
             <button onClick={() => setExported(true)}
-              className="flex items-center gap-2 rounded-full rule px-4 py-2.5 text-[0.78rem] text-ink-soft hover:text-ink hover:bg-card transition-all cursor-pointer">
-              <Download size={14} /> {exported ? 'Eksporteret' : 'Eksportér PDF'}
+              className="flex h-8 items-center gap-1.5 rounded-full rule px-3 text-xs font-semibold text-ink-soft hover:text-ink hover:bg-card transition-all cursor-pointer">
+              <Download size={13} /> {exported ? 'Eksporteret' : 'Eksportér PDF'}
             </button>
-            <button className="flex items-center gap-2 rounded-full rule px-4 py-2.5 text-[0.78rem] text-ink-soft hover:text-ink hover:bg-card transition-all cursor-pointer">
-              <Share2 size={14} /> Del med venue
+            <button className="flex h-8 items-center gap-1.5 rounded-full rule px-3 text-xs font-semibold text-ink-soft hover:text-ink hover:bg-card transition-all cursor-pointer">
+              <Share2 size={13} /> Del med venue
             </button>
           </div>
         </div>

@@ -7,12 +7,16 @@ export function cn(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(' ');
 }
 
+/** Shared action-button size — matches shell “Spørg Ava” (h-8 / text-xs). */
+export const btnSize =
+  'inline-flex h-8 items-center justify-center gap-1.5 rounded-full px-3 text-xs font-semibold';
+
 /* ── Eyebrow / tracked label ─────────────────────────────────────────── */
 export function Eyebrow({ children, className }: { children: React.ReactNode; className?: string }) {
   return <p className={cn('eyebrow', className)}>{children}</p>;
 }
 
-/* ── Pill button — sage fill or ghost. The only two button shapes in Kalas. */
+/* ── Pill button — matches shell “Spørg Ava” size (h-8). ─────────────── */
 export function Pill({
   children,
   onClick,
@@ -30,17 +34,20 @@ export function Pill({
   type?: 'button' | 'submit';
   disabled?: boolean;
 }) {
-  const base =
-    'group inline-flex items-center justify-center gap-2.5 rounded-full text-[0.8125rem] font-medium tracking-[0.12em] uppercase transition-colors duration-200 cursor-pointer disabled:opacity-40 disabled:cursor-default';
+  const base = cn(
+    'group cursor-pointer transition-colors duration-200 disabled:opacity-40 disabled:cursor-default',
+    btnSize,
+    'tracking-[0.12em] uppercase',
+  );
   const styles = {
-    solid: 'bg-sage text-ink px-7 py-3.5 hover:bg-sage-strong',
-    outline: 'rule text-ink px-7 py-3.5 hover:bg-card',
-    ghost: 'text-muted px-2 py-3.5 hover:text-ink',
+    solid: 'bg-sage text-ink hover:bg-sage-strong',
+    outline: 'rule text-ink hover:bg-card',
+    ghost: 'px-2 text-muted hover:text-ink',
   }[variant];
   return (
     <button type={type} onClick={onClick} disabled={disabled} className={cn(base, styles, className)}>
       {children}
-      {arrow && <ArrowRight size={15} className="transition-transform duration-200 group-hover:translate-x-0.5" />}
+      {arrow && <ArrowRight size={13} className="transition-transform duration-200 group-hover:translate-x-0.5" />}
     </button>
   );
 }

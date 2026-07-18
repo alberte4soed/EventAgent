@@ -346,13 +346,9 @@ function InvitesStudio({ couple, venueName, eventId }: { couple: InviteCouple; v
   /* ── Browse mode — pick a design like flipping through paper samples ── */
   if (mode === 'browse') {
     return (
-      <div className="min-h-screen px-6 py-10 sm:px-10 lg:px-16 lg:py-14">
+      <div className="min-h-full px-6 py-10 sm:px-10 lg:px-16 lg:py-14">
         <div className="max-w-2xl">
-          <p className="eyebrow mb-3">Invitation Studio</p>
-          <h1 className="display text-[clamp(2.4rem,5vw,3.8rem)] text-ink leading-[1.05]">
-            Vælg jeres <span className="italic">udgangspunkt.</span>
-          </h1>
-          <p className="mt-4 max-w-md text-[0.95rem] leading-relaxed text-ink-soft">
+          <p className="max-w-md text-[0.95rem] leading-relaxed text-ink-soft">
             Fem designs sat med jeres navne og dato. Vælg det der føles rigtigt —
             alt kan tilpasses bagefter.
           </p>
@@ -383,12 +379,12 @@ function InvitesStudio({ couple, venueName, eventId }: { couple: InviteCouple; v
 
         <div className="mt-16 flex flex-wrap items-center gap-3 rule-t pt-8">
           <button onClick={() => { setPreset(null); setMode('edit'); }}
-            className="rounded-full px-6 py-3 text-[0.72rem] font-bold uppercase tracking-[0.16em] text-canvas hover:opacity-90 transition-opacity cursor-pointer"
+            className="h-8 rounded-full px-3 text-xs font-semibold uppercase tracking-[0.12em] text-canvas hover:opacity-90 transition-opacity cursor-pointer"
             style={{ background: 'var(--color-terracotta)' }}>
             Byg fra bunden
           </button>
           <button onClick={() => { setPreset(null); shuffle(); setMode('edit'); }}
-            className="flex items-center gap-2 rounded-full rule px-6 py-3 text-[0.72rem] font-medium uppercase tracking-[0.16em] text-ink hover:bg-card transition-colors cursor-pointer">
+            className="flex h-8 items-center gap-1.5 rounded-full rule px-3 text-xs font-semibold uppercase tracking-[0.12em] text-ink hover:bg-card transition-colors cursor-pointer">
             <Shuffle size={12} /> Overrask mig
           </button>
         </div>
