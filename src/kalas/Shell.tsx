@@ -38,12 +38,20 @@ const DRAWER_W = 448;
 
 const shellTransition = { type: 'spring' as const, stiffness: 380, damping: 36 };
 
+/** Page cream — main content surface */
+const PAGE_BG = '#f5f3ee';
+/** Soft mint chrome behind sidebar + header (slightly greener than page cream) */
+const CHROME_BG = '#f0f1ec';
+/** Soft green wash from top-left (sits behind sidebar + header as one layer) */
+const CHROME_WASH =
+  'radial-gradient(ellipse 520px 380px at 0% 0%, rgba(31,77,64,0.16) 0%, rgba(31,77,64,0.07) 42%, transparent 72%)';
+
 function Wordmark({ light = false }: { light?: boolean }) {
   return (
     <span
       className={cn(
         'text-[1.75rem] leading-none lowercase',
-        light ? 'text-[#fffdf7]' : 'text-ink',
+        light ? 'text-[#fffdf7]' : 'text-[#314523]',
       )}
       style={{ fontFamily: 'var(--font-logo)', fontWeight: 600, letterSpacing: '-0.02em' }}
     >
@@ -97,178 +105,191 @@ export default function Shell({
   const sidebarRail = sidebarCollapsed;
   const navigate = (s: ScreenId) => { setMoreOpen(false); onNavigate(s); };
   const moreActive = !MOBILE_TABS.includes(current);
-  const currentLabel = NAV.find((n) => n.id === current)?.label ?? 'Hjem';
 
   return (
-    <div className="flex h-dvh overflow-hidden bg-[#173c32] text-ink">
-      {/* ── Desktop sidebar (same chrome as header — flush L) ────────── */}
-      <motion.aside
-        initial={false}
-        animate={{ width: sidebarRail ? SIDEBAR_RAIL_W : SIDEBAR_W }}
-        transition={shellTransition}
-        className="hidden h-full shrink-0 overflow-hidden bg-[#173c32] lg:block"
-      >
-        <div className={cn(
-          'flex h-full min-h-0 flex-col py-5',
-          sidebarRail ? 'px-2.5' : 'px-4',
-        )}>
+    <div className="flex h-dvh overflow-hidden text-ink" style={{ backgroundColor: CHROME_BG }}>
+      {/*
+        Shared chrome frame: sidebar + header sit in one relative plane so a
+        single top-left wash can span both (Miceops-style). Main content is
+        solid so it clips the wash below the header.
+      */}
+      <div className="relative flex min-h-0 min-w-0 flex-1">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 z-0"
+          style={{ backgroundImage: CHROME_WASH }}
+        />
+
+        {/* ── Desktop sidebar (transparent over shared wash) ──────────── */}
+        <motion.aside
+          initial={false}
+          animate={{ width: sidebarRail ? SIDEBAR_RAIL_W : SIDEBAR_W }}
+          transition={shellTransition}
+          className="relative z-10 hidden h-full shrink-0 overflow-hidden lg:block"
+        >
           <div className={cn(
-            'shrink-0',
-            sidebarRail ? 'flex flex-col items-center gap-2 px-1 pb-2' : 'flex h-16 items-center justify-between px-3',
+            'flex h-full min-h-0 flex-col py-5',
+            sidebarRail ? 'px-2.5' : 'px-4',
           )}>
-            {sidebarRail ? (
-              <>
-                <div className="flex w-full justify-end">
+            <div className={cn(
+              'shrink-0',
+              sidebarRail ? 'flex flex-col items-center gap-2 px-1 pb-2' : 'flex h-16 items-center justify-between px-3',
+            )}>
+              {sidebarRail ? (
+                <>
+                  <div className="flex w-full justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setSidebarCollapsed(false)}
+                      aria-label={t('Vis menu')}
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] text-[#6c7561] transition-colors hover:bg-[#314523]/8 hover:text-[#314523] cursor-pointer"
+                    >
+                      <PanelLeft size={18} strokeWidth={1.6} />
+                    </button>
+                  </div>
+                  <span className="font-serif text-[1.35rem] leading-none text-[#314523]" aria-hidden>K</span>
+                </>
+              ) : (
+                <>
+                  <Wordmark />
                   <button
                     type="button"
-                    onClick={() => setSidebarCollapsed(false)}
-                    aria-label={t('Vis menu')}
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] text-[#b8ccc3] transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
+                    onClick={() => setSidebarCollapsed(true)}
+                    aria-label={t('Skjul menu')}
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] text-[#6c7561] transition-colors hover:bg-[#314523]/8 hover:text-[#314523] cursor-pointer"
                   >
-                    <PanelLeft size={18} strokeWidth={1.6} />
+                    <PanelLeftClose size={18} strokeWidth={1.6} />
                   </button>
-                </div>
-                <span className="font-serif text-[1.35rem] leading-none text-[#fffdf7]" aria-hidden>K</span>
-              </>
-            ) : (
-              <>
-                <Wordmark light />
-                <button
-                  type="button"
-                  onClick={() => setSidebarCollapsed(true)}
-                  aria-label={t('Skjul menu')}
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] text-[#b8ccc3] transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
-                >
-                  <PanelLeftClose size={18} strokeWidth={1.6} />
-                </button>
-              </>
-            )}
-          </div>
-
-          <nav className={cn('min-h-0 flex-1 overflow-y-auto', sidebarRail ? 'pt-1' : 'mt-1 pt-[18px]')}>
-            {NAV.filter((n) => n.group === 'main').map((n) => (
-              <NavRow key={n.id} item={n} active={current === n.id} onClick={() => navigate(n.id)}
-                badge={n.id === 'home' ? pendingCount : undefined}
-                collapsed={sidebarRail}
-                dark />
-            ))}
-            {!sidebarRail && (
-              <p className="mt-6 pb-2 pl-3 text-[10px] font-bold uppercase tracking-[0.16em] text-[#8aa498]">
-                {t('Planlægning')}
-              </p>
-            )}
-            {sidebarRail && <div className="mx-auto my-3 h-px w-8 bg-white/12" />}
-            {NAV.filter((n) => n.group === 'plan').map((n) => (
-              <NavRow key={n.id} item={n} active={current === n.id} onClick={() => navigate(n.id)}
-                collapsed={sidebarRail}
-                dark />
-            ))}
-          </nav>
-
-          <div className={cn(
-            'mt-4 shrink-0 border-t border-white/12 pt-4',
-            sidebarRail ? 'flex flex-col items-center gap-2' : 'flex items-center gap-2',
-          )}>
-            {sidebarRail ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => navigate('home')}
-                  aria-label={`${couple.a}${couple.b ? ` & ${couple.b}` : ''}`}
-                  className="cursor-pointer transition-opacity hover:opacity-90"
-                >
-                  <Initials light />
-                </button>
-                <a href="/settings" aria-label={t('Indstillinger')}
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] text-[#b8ccc3] transition-colors hover:bg-white/10 hover:text-white">
-                  <Settings size={17} strokeWidth={1.6} />
-                </a>
-              </>
-            ) : (
-              <>
-                <button
-                  onClick={() => navigate('home')}
-                  className="flex min-w-0 flex-1 items-center gap-2.5 text-left transition-opacity hover:opacity-90 cursor-pointer"
-                >
-                  <Initials light />
-                  <div className="min-w-0">
-                    <div className="truncate text-[13px] font-semibold text-white">
-                      {couple.a}{couple.b ? ` & ${couple.b}` : ''}
-                    </div>
-                    <div className="truncate text-[11px] text-[#b8ccc3]">{couple.dateLabel}</div>
-                  </div>
-                </button>
-                <a href="/settings" aria-label={t('Indstillinger')}
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] text-[#b8ccc3] transition-colors hover:bg-white/10 hover:text-white">
-                  <Settings size={17} strokeWidth={1.6} />
-                </a>
-              </>
-            )}
-          </div>
-        </div>
-      </motion.aside>
-
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        {/* ── Header — same green as sidebar, icons top-right ─────────── */}
-        <header className="flex h-14 shrink-0 items-center justify-between gap-4 px-4 lg:h-[56px] lg:px-5">
-          <div className="flex min-w-0 items-center gap-3">
-            <span className="lg:hidden"><Wordmark light /></span>
-            <p className="hidden truncate text-sm font-semibold text-[#dde8e2] lg:block">
-              {t(currentLabel)}
-            </p>
-          </div>
-          <div className="flex shrink-0 items-center gap-2">
-            <button
-              type="button"
-              aria-label={t('Notifikationer')}
-              className="flex size-8 items-center justify-center rounded-full border border-white/15 text-[#dde8e2] transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
-            >
-              <Bell size={15} />
-            </button>
-            <button
-              type="button"
-              onClick={onAvaOpen}
-              aria-label={avaBadge > 0 ? t('Tal med Ava — {n} nye beskeder', { n: avaBadge }) : t('Spørg Ava')}
-              className="relative flex h-8 items-center gap-1.5 rounded-full bg-[#fffdf7] px-3 text-xs font-semibold text-[#173c32] transition-opacity hover:opacity-90 cursor-pointer"
-            >
-              <Sparkles size={13} />
-              <span className="hidden sm:inline">{t('Spørg Ava')}</span>
-              {avaBadge > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-[#e66b4e] px-0.5 text-[0.5rem] font-bold text-white">
-                  {avaBadge}
-                </span>
+                </>
               )}
-            </button>
-            <a
-              href="/settings"
-              aria-label={t('Indstillinger')}
-              className="flex size-8 items-center justify-center rounded-full border border-white/15 text-[#dde8e2] transition-colors hover:bg-white/10 hover:text-white"
-            >
-              <Settings size={15} strokeWidth={1.6} />
-            </a>
-            <span className="lg:hidden"><Initials light /></span>
-          </div>
-        </header>
-
-        {/* ── Page flush to bottom + right; left inset for chrome gap ─── */}
-        <div className="flex min-h-0 flex-1 pl-2.5 lg:pl-3">
-          <main className="min-w-0 flex-1 overflow-y-auto rounded-tl-[20px] bg-[#f5f3ee] pb-28 lg:pb-0">
-            <div className="min-h-full">{children}</div>
-          </main>
-
-          <motion.aside
-            initial={false}
-            animate={{ width: avaOpen ? DRAWER_W : 0 }}
-            transition={shellTransition}
-            className="h-full shrink-0 overflow-hidden border-l border-[#d9ded9] bg-[#f5f3ee]"
-            role={avaOpen ? 'dialog' : undefined}
-            aria-label={t('Tal med Ava')}
-            aria-hidden={!avaOpen}
-          >
-            <div className="flex h-full w-[min(100vw,28rem)] flex-col">
-              {avaOpen ? avaDrawer : null}
             </div>
-          </motion.aside>
+
+            <nav className={cn('min-h-0 flex-1 overflow-y-auto', sidebarRail ? 'pt-1' : 'mt-1 pt-[18px]')}>
+              {NAV.filter((n) => n.group === 'main').map((n) => (
+                <NavRow key={n.id} item={n} active={current === n.id} onClick={() => navigate(n.id)}
+                  badge={n.id === 'home' ? pendingCount : undefined}
+                  collapsed={sidebarRail}
+                />
+              ))}
+              {!sidebarRail && (
+                <p className="mt-6 pb-2 pl-3 text-[10px] font-bold uppercase tracking-[0.16em] text-[#8a9079]">
+                  {t('Planlægning')}
+                </p>
+              )}
+              {sidebarRail && <div className="mx-auto my-3 h-px w-8 bg-[#d8d4c7]" />}
+              {NAV.filter((n) => n.group === 'plan').map((n) => (
+                <NavRow key={n.id} item={n} active={current === n.id} onClick={() => navigate(n.id)}
+                  collapsed={sidebarRail}
+                />
+              ))}
+            </nav>
+
+            <div className={cn(
+              'mt-4 shrink-0 border-t border-[#e0ddd2] pt-4',
+              sidebarRail ? 'flex flex-col items-center gap-2' : 'flex items-center gap-2',
+            )}>
+              {sidebarRail ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => navigate('home')}
+                    aria-label={`${couple.a}${couple.b ? ` & ${couple.b}` : ''}`}
+                    className="cursor-pointer transition-opacity hover:opacity-90"
+                  >
+                    <Initials />
+                  </button>
+                  <a href="/settings" aria-label={t('Indstillinger')}
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] text-[#6c7561] transition-colors hover:bg-[#314523]/8 hover:text-[#314523]">
+                    <Settings size={17} strokeWidth={1.6} />
+                  </a>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => navigate('home')}
+                    className="flex min-w-0 flex-1 items-center gap-2.5 text-left transition-opacity hover:opacity-90 cursor-pointer"
+                  >
+                    <Initials />
+                    <div className="min-w-0">
+                      <div className="truncate text-[13px] font-semibold text-[#314523]">
+                        {couple.a}{couple.b ? ` & ${couple.b}` : ''}
+                      </div>
+                      <div className="truncate text-[11px] text-[#6c7561]">{couple.dateLabel}</div>
+                    </div>
+                  </button>
+                  <a href="/settings" aria-label={t('Indstillinger')}
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] text-[#6c7561] transition-colors hover:bg-[#314523]/8 hover:text-[#314523]">
+                    <Settings size={17} strokeWidth={1.6} />
+                  </a>
+                </>
+              )}
+            </div>
+          </div>
+        </motion.aside>
+
+        <div className="relative z-10 flex min-h-0 min-w-0 flex-1 flex-col">
+          {/* Header shares the same wash layer as the sidebar (no own bg) */}
+          <header className="flex h-14 shrink-0 items-center justify-between gap-4 px-4 lg:h-[56px] lg:px-5">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="lg:hidden"><Wordmark /></span>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                aria-label={t('Notifikationer')}
+                className="flex size-8 items-center justify-center rounded-full border border-[#d8d4c7] text-[#6c7561] transition-colors hover:bg-[#314523]/6 hover:text-[#314523] cursor-pointer"
+              >
+                <Bell size={15} />
+              </button>
+              <button
+                type="button"
+                onClick={onAvaOpen}
+                aria-label={avaBadge > 0 ? t('Tal med Ava — {n} nye beskeder', { n: avaBadge }) : t('Spørg Ava')}
+                className="relative flex h-8 items-center gap-1.5 rounded-full bg-[#314523] px-3 text-xs font-semibold text-[#fffdf7] transition-opacity hover:opacity-90 cursor-pointer"
+              >
+                <Sparkles size={13} />
+                <span className="hidden sm:inline">{t('Spørg Ava')}</span>
+                {avaBadge > 0 && (
+                  <span className="absolute -right-1 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-[#e66b4e] px-0.5 text-[0.5rem] font-bold text-white">
+                    {avaBadge}
+                  </span>
+                )}
+              </button>
+              <a
+                href="/settings"
+                aria-label={t('Indstillinger')}
+                className="flex size-8 items-center justify-center rounded-full border border-[#d8d4c7] text-[#6c7561] transition-colors hover:bg-[#314523]/6 hover:text-[#314523]"
+              >
+                <Settings size={15} strokeWidth={1.6} />
+              </a>
+              <span className="lg:hidden"><Initials /></span>
+            </div>
+          </header>
+
+          {/* Solid page surface — covers the wash below the header */}
+          <div className="flex min-h-0 flex-1 pl-2.5 lg:pl-3">
+            <main
+              className="min-w-0 flex-1 overflow-y-auto rounded-tl-[20px] border border-[#e0ddd2] border-b-0 border-r-0 pb-28 lg:pb-0"
+              style={{ backgroundColor: PAGE_BG }}
+            >
+              <div className="min-h-full">{children}</div>
+            </main>
+
+            <motion.aside
+              initial={false}
+              animate={{ width: avaOpen ? DRAWER_W : 0 }}
+              transition={shellTransition}
+              className="h-full shrink-0 overflow-hidden border-l border-[#d9ded9]"
+              style={{ backgroundColor: PAGE_BG }}
+              role={avaOpen ? 'dialog' : undefined}
+              aria-label={t('Tal med Ava')}
+              aria-hidden={!avaOpen}
+            >
+              <div className="flex h-full w-[min(100vw,28rem)] flex-col">
+                {avaOpen ? avaDrawer : null}
+              </div>
+            </motion.aside>
+          </div>
         </div>
       </div>
 
@@ -354,8 +375,8 @@ export default function Shell({
   );
 }
 
-function NavRow({ item, active, onClick, badge, collapsed = false, dark = false }: {
-  item: NavItem; active: boolean; onClick: () => void; badge?: number; collapsed?: boolean; dark?: boolean;
+function NavRow({ item, active, onClick, badge, collapsed = false }: {
+  item: NavItem; active: boolean; onClick: () => void; badge?: number; collapsed?: boolean;
 }) {
   const { t } = useLang();
   const Icon = item.icon;
@@ -365,18 +386,10 @@ function NavRow({ item, active, onClick, badge, collapsed = false, dark = false 
       className={cn(
         'group relative mb-1.5 flex w-full items-center rounded-[10px] text-left transition-colors duration-200 cursor-pointer',
         collapsed ? 'justify-center px-0 py-2.5' : 'gap-3 px-3 py-2.5',
-        dark
-          ? active
-            ? 'bg-[#fffdf7] text-[#173c32]'
-            : 'text-[#dde8e2] hover:text-white'
-          : active
-            ? 'text-ink'
-            : 'text-ink-soft hover:text-ink',
+        active
+          ? 'bg-white/70 text-[#314523] shadow-sm'
+          : 'text-[#59634f] hover:bg-[#314523]/[0.06] hover:text-[#314523]',
       )}>
-      {!dark && active && (
-        <motion.span layoutId="kalas-nav" className="absolute inset-0 rounded-xl bg-card"
-          transition={{ type: 'spring', stiffness: 360, damping: 32 }} />
-      )}
       <span className="relative z-10 shrink-0">
         <Icon size={18} strokeWidth={2} />
         {collapsed && badge ? (

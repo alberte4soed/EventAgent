@@ -4,7 +4,11 @@ import { pollPlatformReplies } from "@/lib/gmail/poll";
 export const maxDuration = 300;
 
 /**
- * GET /api/cron/poll-replies — Vercel Cron entrypoint (see vercel.json).
+ * GET /api/cron/poll-replies — manual/emergency poll trigger.
+ * Scheduled polling runs on Render (render.yaml → worker/poll.ts) because
+ * Netlify ignores vercel.json crons and caps function time (~10–26s; the
+ * maxDuration export above is a Vercel-ism Netlify ignores), so a large
+ * backlog can time out here — harmless, the worker's next tick finishes it.
  * Polls the platform Kalas mailbox for vendor replies across all users:
  * quotes are extracted, attachments stored, and Ava reply proposals queued.
  * Protected by CRON_SECRET bearer auth.

@@ -50,7 +50,6 @@ export const EN: Record<string, string> = {
   'Send save the dates': 'Send your save the dates',
   '{done} af {total} klaret': '{done} of {total} done',
   'De første skridt for at sætte planlægningen i gang.': 'A few first steps to get your planning moving.',
-  'Færdig': 'Completed',
   'Mangler': 'To do',
   'Find jeres venue': 'Find your venue',
   'Steder der matcher gæsteantal, stemning, placering og budget.': 'Places matched to your guest count, atmosphere, location and budget.',

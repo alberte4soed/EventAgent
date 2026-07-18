@@ -147,7 +147,7 @@ export interface QuoteExtraction {
 
 export interface EmailReplyRow {
   id: string;
-  outbound_email_id: string;
+  outbound_email_id: string | null;
   venue_id: string;
   event_id: string;
   user_id: string;
@@ -160,6 +160,7 @@ export interface EmailReplyRow {
   quote_status: "quoted" | "no_availability" | "needs_info" | "unclear" | null;
   rfc822_message_id: string | null;
   read_at: string | null;
+  matched_via: "thread" | "tag" | "sender";
   created_at: string;
 }
 

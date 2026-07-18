@@ -31,9 +31,14 @@ export default function Inbox({ onNavigate, embedded }: { onNavigate?: (s: Navig
   const [catFilter, setCatFilter] = useState<string>('all');
 
   const contacted = useMemo(() => {
-    const ids = new Set(outbound.map((o) => o.venue_id));
+    // Replies count too: a tag-matched reply can exist for a vendor that
+    // wrote to the plus address before any outreach went out.
+    const ids = new Set([
+      ...outbound.map((o) => o.venue_id),
+      ...replies.map((r) => r.venue_id),
+    ]);
     return venues.filter((v) => ids.has(v.id));
-  }, [outbound, venues]);
+  }, [outbound, replies, venues]);
 
   if (loading) {
     return <div className="flex min-h-[60vh] items-center justify-center"><Dots /></div>;
