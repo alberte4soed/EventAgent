@@ -6,7 +6,9 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   Heart, Check, MessageCircle, ArrowLeft, MapPin, ArrowUpRight,
   Star, Loader2, Sparkles, Globe as GlobeIcon, Plus, X, Send, Mail, Clock, ArrowRight,
+  Expand, Search, PenLine,
 } from 'lucide-react';
+import { Lightbox } from '../onboarding/Lightbox';
 import { IMAGES } from '../data';
 import { useWedding, type Couple } from '../useWedding';
 import { Eyebrow, Pill, cn } from '../ui';
@@ -608,6 +610,12 @@ function DiscoverView({
   const [destFailed, setDestFailed] = useState(false);
   const seenDest = useRef<Record<string, DestinationSuggestion[]>>({});
 
+  // City ↔ wedding-destination toggle (mirrors the onboarding globe step).
+  const [destTab, setDestTab] = useState<'city' | 'wedding'>('city');
+  // "Write your own" location box.
+  const [custom, setCustom] = useState(false);
+  const [customValue, setCustomValue] = useState('');
+
   const [destination, setDestination] = useState<string | null>(null);
   const [results, setResults] = useState<OnboardingVenueSuggestion[]>([]);
   const [resultsLoading, setResultsLoading] = useState(false);
@@ -615,11 +623,26 @@ function DiscoverView({
   const seenVenues = useRef<Record<string, OnboardingVenueSuggestion[]>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
   const [justSaved, setJustSaved] = useState<Set<string>>(new Set());
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+
+  // Fullscreen photo viewer for destinations and venues.
+  const [lightbox, setLightbox] = useState<{ photos: string[]; index: number; alt: string } | null>(null);
+  // The results section below the globe — scrolled into view once a place is chosen.
+  const resultsRef = useRef<HTMLDivElement | null>(null);
+  const scrollToResults = () => {
+    requestAnimationFrame(() =>
+      resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+    );
+  };
+
+  // Default the toggle to whichever category actually has cards.
+  const applyDefaultTab = (list: DestinationSuggestion[]) =>
+    setDestTab(list.some((s) => s.kind === 'city') ? 'city' : 'wedding');
 
   const loadDestinations = async (c: string) => {
     setDestFailed(false);
     const hit = seenDest.current[c];
-    if (hit) { setDestCards(hit); return; }
+    if (hit) { setDestCards(hit); applyDefaultTab(hit); return; }
     setDestLoading(true);
     setDestCards([]);
     try {
@@ -630,6 +653,7 @@ function DiscoverView({
       if (list.length === 0) { setDestFailed(true); return; }
       seenDest.current[c] = list;
       setDestCards(list);
+      applyDefaultTab(list);
     } catch {
       setDestFailed(true);
     } finally {
@@ -638,14 +662,15 @@ function DiscoverView({
   };
 
   const pickCountry = (c: string) => {
+    setCustom(false);
     setCountry(c);
-    setDestination(null);
     void loadDestinations(c);
   };
 
   const searchVenues = async (dest: string) => {
     setDestination(dest);
     setResultsFailed(false);
+    scrollToResults();
     const hit = seenVenues.current[dest];
     if (hit) { setResults(hit); return; }
     setResultsLoading(true);
@@ -679,6 +704,7 @@ function DiscoverView({
   const searchSimilar = async (names: string[]) => {
     setDestination(SIMILAR_KEY);
     setResultsFailed(false);
+    scrollToResults();
     const hit = seenVenues.current[SIMILAR_KEY];
     if (hit) { setResults(hit); return; }
     setResultsLoading(true);
@@ -715,6 +741,11 @@ function DiscoverView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [similarNames]);
 
+  const submitCustom = () => {
+    const v = customValue.trim();
+    if (v) void searchVenues(v);
+  };
+
   const saveVenue = async (v: OnboardingVenueSuggestion) => {
     setSavingId(v.id);
     try {
@@ -736,15 +767,21 @@ function DiscoverView({
 
   // Dismissing an AI suggestion just hides it for this session (there is no DB
   // row to reject yet — it only exists once added to the list).
-  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const dismissVenue = (id: string) => setDismissed((prev) => new Set(prev).add(id));
+
+  const cities = destCards.filter((s) => s.kind === 'city');
+  const weddings = destCards.filter((s) => s.kind === 'wedding');
+  const activeDest = destTab === 'city' ? cities : weddings;
+
+  const visibleResults = results.filter((v) => !dismissed.has(v.id));
+  const destTitle = destination === SIMILAR_KEY ? 'Ligner jeres liste' : destination;
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
       transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
       className={cn(
-        'flex min-w-0 flex-1 flex-col gap-5',
+        'flex min-w-0 flex-1 flex-col gap-6',
         embedded ? 'px-0 py-0' : 'px-6 py-8 sm:px-9 lg:px-12',
       )}
     >
@@ -761,7 +798,7 @@ function DiscoverView({
             Byg jeres liste af venues
           </h1>
           <p className="mt-1 max-w-xl text-[13px] text-[#6c7561]">
-            Drej på kloden og tryk på et land — Ava researcher rigtige venues. Tilføj dem I kan lide til listen.
+            Drej på kloden og vælg et land, eller skriv selv et sted — Ava researcher rigtige venues, som I kan gå på opdagelse i nedenfor.
           </p>
         </div>
         {onViewList && listCount > 0 && (
@@ -781,38 +818,90 @@ function DiscoverView({
           <DestinationGlobe selectedCountry={country} onCountryPick={pickCountry} />
         </div>
 
-        {/* Panel */}
+        {/* Destination panel — pick a country, toggle city/wedding, or write your own */}
         <div className="flex min-h-[320px] max-h-[min(62vh,560px)] flex-col overflow-hidden rounded-[28px] border border-[#d8d4c7] bg-[#fcfbf7]">
-          {/* Panel header */}
           <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[#e4e0d4] px-5 py-4">
             <div className="min-w-0">
-              <p className="text-[0.62rem] font-semibold uppercase tracking-[0.2em] text-muted">
-                {destination ? 'Venues' : 'Destination'}
-              </p>
-              <h3 className="truncate font-serif text-[1.2rem] leading-tight text-ink">
-                {destination ?? country ?? 'Vælg et land'}
-              </h3>
+              <p className="text-[0.62rem] font-semibold uppercase tracking-[0.2em] text-muted">Destination</p>
+              <h3 className="truncate font-serif text-[1.2rem] leading-tight text-ink">{country ?? 'Vælg et sted'}</h3>
             </div>
-            {destination && (
-              <button
-                type="button"
-                onClick={() => setDestination(null)}
-                className="shrink-0 text-[0.72rem] font-medium text-muted hover:text-ink transition-colors cursor-pointer"
-              >
-                ← {country ?? 'Tilbage'}
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => setCustom((c) => !c)}
+              aria-pressed={custom}
+              className={cn(
+                'flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[0.72rem] font-semibold transition-colors cursor-pointer',
+                custom
+                  ? 'border-[#314523] bg-[#eef1e6] text-[#314523]'
+                  : 'border-[#d8d4c7] text-[#6c7561] hover:border-[#314523] hover:text-[#314523]',
+              )}
+            >
+              <PenLine size={13} /> Skriv selv
+            </button>
           </div>
 
+          {/* Write-your-own location box */}
+          <AnimatePresence initial={false}>
+            {custom && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                className="shrink-0 overflow-hidden border-b border-[#e4e0d4] bg-[#f7f5ef]"
+              >
+                <div className="flex items-center gap-2 px-4 py-3">
+                  <input
+                    value={customValue}
+                    onChange={(e) => setCustomValue(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') submitCustom(); }}
+                    placeholder="f.eks. Sydfyn · Toscana · jeres sommerhusby"
+                    className="h-9 min-w-0 flex-1 rounded-full border border-[#d8d4c7] bg-[#fcfbf7] px-4 text-[0.82rem] text-ink placeholder:text-[#9a9686] focus:border-[#314523] focus:outline-none"
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    onClick={submitCustom}
+                    disabled={!customValue.trim()}
+                    className="flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-[#314523] px-3.5 text-[0.72rem] font-semibold text-[#f7f5ef] transition-opacity hover:opacity-90 disabled:opacity-40 cursor-pointer"
+                  >
+                    <Search size={13} /> Søg
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* City ↔ wedding-destination toggle */}
+          {!destLoading && !destFailed && country && (cities.length > 0 || weddings.length > 0) && (
+            <div className="flex shrink-0 gap-0.5 border-b border-[#e4e0d4] px-3">
+              {[
+                { id: 'city' as const, label: 'Største byer', count: cities.length },
+                { id: 'wedding' as const, label: 'Bryllupsdestinationer', count: weddings.length },
+              ].map(({ id, label, count }) => (
+                <button
+                  key={id}
+                  type="button"
+                  disabled={count === 0}
+                  onClick={() => setDestTab(id)}
+                  className={cn(
+                    'flex-1 border-b-2 px-2 py-2.5 text-center text-[0.64rem] font-bold uppercase tracking-[0.08em] transition-colors cursor-pointer',
+                    destTab === id ? 'border-[#314523] text-[#314523]' : 'border-transparent text-muted hover:text-ink',
+                    count === 0 && 'cursor-not-allowed opacity-40',
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+
           <div className="min-h-0 flex-1 overflow-y-auto p-4">
-            {/* Nothing picked yet */}
-            {!country && !destination && (
+            {!country ? (
               <div className="flex h-full flex-col items-center justify-center gap-4 px-4 text-center">
                 <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#314523]">
                   <GlobeIcon size={19} className="text-white" />
                 </div>
                 <p className="text-[0.88rem] leading-relaxed text-ink-soft">
-                  Tryk på et land på kloden for at se byer og bryllupsdestinationer.
+                  Tryk på et land på kloden — eller skriv selv et sted — for at se byer og bryllupsdestinationer.
                 </p>
                 {venueArea && (
                   <button
@@ -825,133 +914,264 @@ function DiscoverView({
                   </button>
                 )}
               </div>
-            )}
-
-            {/* Destination list for a picked country */}
-            {country && !destination && (
-              destLoading ? (
-                <PanelSpinner label={`Finder byer og destinationer i ${country}…`} />
-              ) : destFailed ? (
-                <PanelError label="Kunne ikke hente destinationer." onRetry={() => void loadDestinations(country)} />
-              ) : (
-                <div className="flex flex-col gap-2">
-                  {destCards.map((s) => (
-                    <button
-                      key={`${s.kind}-${s.name}`}
-                      type="button"
-                      onClick={() => void searchVenues(`${s.name}, ${country}`)}
-                      className="flex items-center gap-3 rounded-2xl border border-[#e4e0d4] p-2.5 text-left transition-colors hover:border-[#314523]/40 hover:bg-[#fcfbf7] cursor-pointer"
-                    >
-                      {s.photo ? (
-                        <img src={s.photo} alt="" className="h-14 w-14 shrink-0 rounded-xl object-cover" />
-                      ) : (
-                        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[#eef1e6]">
-                          <MapPin size={17} className="text-[#314523]" />
-                        </div>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="truncate text-[0.88rem] font-bold text-[#314523]">{s.name}</p>
-                          <span className="shrink-0 rounded-full bg-[#f0ede5] px-2 py-0.5 text-[0.56rem] font-bold uppercase tracking-[0.1em] text-[#314523]">
-                            {s.kind === 'city' ? 'By' : 'Bryllup'}
-                          </span>
-                        </div>
-                        <p className="mt-0.5 line-clamp-2 text-[0.72rem] leading-snug text-[#6c7561]">{s.blurb}</p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )
-            )}
-
-            {/* Venue results for a destination */}
-            {destination && (
-              resultsLoading ? (
-                <PanelSpinner label={`Ava researcher rigtige venues i ${destination}… Det tager typisk under et minut.`} />
-              ) : resultsFailed ? (
-                <PanelError label="Kunne ikke finde venues her." onRetry={() => void searchVenues(destination)} />
-              ) : (
-                <div className="flex flex-col gap-3">
-                  {results.filter((v) => !dismissed.has(v.id)).map((v) => {
-                    const already = isSaved(v);
-                    return (
-                      <div key={v.id} className="overflow-hidden rounded-2xl border border-[#e4e0d4]">
-                        {v.photo && (
-                          <div className="relative h-32 w-full overflow-hidden">
-                            <img src={v.photo} alt={v.name} className="absolute inset-0 h-full w-full object-cover" />
-                            <RatingBadge rating={v.rating} count={v.review_count ?? 0} className="absolute left-2.5 top-2.5" />
-                            <button
-                              type="button"
-                              onClick={() => dismissVenue(v.id)}
-                              aria-label={`Afvis ${v.name}`}
-                              className="absolute right-2.5 top-2.5 flex h-7 w-7 items-center justify-center rounded-full bg-[#141a13]/45 text-white backdrop-blur-sm transition-colors hover:bg-[#141a13]/70 cursor-pointer"
-                            >
-                              <X size={14} />
-                            </button>
-                          </div>
-                        )}
-                        <div className="p-3.5">
-                          <p className="text-[0.92rem] font-bold text-[#314523]">{v.name}</p>
-                          {v.address && <p className="mt-0.5 text-[0.7rem] text-[#6c7561]">{v.address}</p>}
-                          {v.why_fit && (
-                            <p className="mt-1.5 text-[0.76rem] leading-snug text-ink-soft">{v.why_fit}</p>
-                          )}
-                          {(v.capacity || v.price_hint) && (
-                            <p className="mt-1.5 text-[0.68rem] font-medium text-[#6c7561]">
-                              {[v.capacity, v.price_hint].filter(Boolean).join(' · ')}
-                            </p>
-                          )}
-                          <div className="mt-2.5 flex items-center gap-2">
-                            <button
-                              type="button"
-                              disabled={already || savingId === v.id}
-                              onClick={() => void saveVenue(v)}
-                              className={cn(
-                                'inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[0.72rem] font-bold transition-colors',
-                                already
-                                  ? 'bg-[#eef1e6] text-[#314523] cursor-default'
-                                  : 'bg-[#314523] text-white hover:opacity-90 cursor-pointer',
-                              )}
-                            >
-                              {savingId === v.id ? (
-                                <Loader2 size={12} className="animate-spin" />
-                              ) : already ? (
-                                <Check size={12} />
-                              ) : (
-                                <Plus size={12} />
-                              )}
-                              {already ? 'På listen' : 'Tilføj til liste'}
-                            </button>
-                            {!already && (
-                              <button
-                                type="button"
-                                onClick={() => dismissVenue(v.id)}
-                                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[0.72rem] font-semibold text-[#6c7561] transition-colors hover:text-[#314523] cursor-pointer"
-                              >
-                                <X size={12} /> Afvis
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                  {justSaved.size > 0 && onViewList && (
-                    <button
-                      type="button"
-                      onClick={onViewList}
-                      className="h-8 rounded-full bg-[#314523] px-3 text-xs font-semibold text-[#f7f5ef] transition-opacity hover:opacity-90 cursor-pointer"
-                    >
-                      Se jeres liste →
-                    </button>
-                  )}
-                </div>
-              )
+            ) : destLoading ? (
+              <PanelSpinner label={`Finder byer og destinationer i ${country}…`} />
+            ) : destFailed ? (
+              <PanelError label="Kunne ikke hente destinationer." onRetry={() => void loadDestinations(country)} />
+            ) : (
+              <div className="flex flex-col gap-3">
+                {activeDest.map((s) => (
+                  <DiscoverDestCard
+                    key={`${s.kind}-${s.name}`}
+                    s={s}
+                    active={destination === `${s.name}, ${country}`}
+                    onChoose={() => void searchVenues(`${s.name}, ${country}`)}
+                    onExpand={s.photo ? () => setLightbox({ photos: [s.photo!], index: 0, alt: s.name }) : undefined}
+                  />
+                ))}
+                {activeDest.length === 0 && (
+                  <p className="px-1 py-6 text-center text-[0.85rem] text-ink-soft">Ingen forslag i denne kategori.</p>
+                )}
+              </div>
             )}
           </div>
         </div>
       </div>
+
+      {/* ── Chosen place → real venues, listed & picture-rich (no swipe) ─── */}
+      <div ref={resultsRef} className="scroll-mt-6">
+        {destination && (
+          <div className="flex flex-col gap-5">
+            <div className="flex flex-wrap items-end justify-between gap-3 border-b border-[#e0ddd2] pb-3">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#8a9079]">Venues</p>
+                <h2 className="mt-1 font-serif text-[clamp(1.5rem,3vw,2rem)] leading-tight text-[#314523]">
+                  {destTitle}
+                </h2>
+                <p className="mt-1 text-[13px] text-[#6c7561]">
+                  Klik på et venue for at se billederne, eller tilføj det til jeres liste.
+                </p>
+              </div>
+              {onViewList && listCount > 0 && (
+                <button
+                  type="button"
+                  onClick={onViewList}
+                  className="flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-[#d8d4c7] px-3 text-xs font-semibold text-[#314523] transition-colors hover:bg-[#eef1e6] cursor-pointer"
+                >
+                  Se din liste ({listCount}) <ArrowUpRight size={13} />
+                </button>
+              )}
+            </div>
+
+            {resultsLoading ? (
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {[0, 1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="animate-pulse overflow-hidden rounded-2xl border border-[#e4e0d4] bg-[#fcfbf7]">
+                    <div className="h-44 bg-[#f0ede5]" />
+                    <div className="space-y-2 p-4">
+                      <div className="h-4 w-1/2 rounded bg-[#f0ede5]" />
+                      <div className="h-3 w-5/6 rounded bg-[#f0ede5]" />
+                      <div className="h-3 w-2/3 rounded bg-[#f0ede5]" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : resultsFailed ? (
+              <div className="rounded-2xl border border-[#e4e0d4] bg-[#fcfbf7] p-8 text-center">
+                <p className="text-[0.9rem] text-ink-soft">Kunne ikke finde venues her.</p>
+                <button
+                  type="button"
+                  onClick={() => void searchVenues(destination)}
+                  className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-[#314523] px-4 py-2 text-[0.78rem] font-bold text-white transition-opacity hover:opacity-90 cursor-pointer"
+                >
+                  Prøv igen
+                </button>
+              </div>
+            ) : visibleResults.length === 0 ? (
+              <div className="rounded-2xl border border-[#e4e0d4] bg-[#fcfbf7] p-8 text-center">
+                <p className="text-[0.9rem] text-ink-soft">Ingen venues tilbage her — prøv et andet sted.</p>
+              </div>
+            ) : (
+              <>
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                  {visibleResults.map((v) => (
+                    <DiscoverVenueCard
+                      key={v.id}
+                      v={v}
+                      saved={isSaved(v)}
+                      saving={savingId === v.id}
+                      onSave={() => void saveVenue(v)}
+                      onDismiss={() => dismissVenue(v.id)}
+                      onExpand={
+                        v.photos.length || v.photo
+                          ? () => setLightbox({ photos: v.photos.length ? v.photos : [v.photo!], index: 0, alt: v.name })
+                          : undefined
+                      }
+                    />
+                  ))}
+                </div>
+                {justSaved.size > 0 && onViewList && (
+                  <div className="flex justify-center pt-1">
+                    <button
+                      type="button"
+                      onClick={onViewList}
+                      className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[#314523] px-5 text-xs font-semibold text-[#f7f5ef] transition-opacity hover:opacity-90 cursor-pointer"
+                    >
+                      Se jeres liste ({justSaved.size}) <ArrowRight size={14} />
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      {lightbox && lightbox.photos.length > 0 && (
+        <Lightbox
+          photos={lightbox.photos}
+          index={Math.min(Math.max(lightbox.index, 0), lightbox.photos.length - 1)}
+          onIndex={(i) => setLightbox((lb) => (lb ? { ...lb, index: i } : lb))}
+          onClose={() => setLightbox(null)}
+          alt={lightbox.alt}
+        />
+      )}
     </motion.div>
+  );
+}
+
+/* Photo-rich destination card — choosing it loads that place's venues below. */
+function DiscoverDestCard({ s, active, onChoose, onExpand }: {
+  s: DestinationSuggestion; active: boolean; onChoose: () => void; onExpand?: () => void;
+}) {
+  return (
+    <div className={cn(
+      'group relative overflow-hidden rounded-2xl border transition-colors',
+      active ? 'border-[#314523] shadow-[0_6px_18px_rgba(23,60,50,0.12)]' : 'border-[#e4e0d4] hover:border-[#314523]/40',
+    )}>
+      <button type="button" onClick={onChoose} className="block w-full text-left cursor-pointer">
+        {s.photo ? (
+          <div className="relative h-28 w-full overflow-hidden">
+            <img src={s.photo} alt={s.name} loading="lazy"
+              className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.05]" />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+          </div>
+        ) : (
+          <div className="flex h-28 w-full items-center justify-center bg-[#eef1e6]">
+            <MapPin size={18} className="text-[#314523] opacity-40" />
+          </div>
+        )}
+        <div className="p-3">
+          <div className="flex items-center gap-2">
+            <p className="truncate font-serif text-[0.98rem] text-[#314523]">{s.name}</p>
+            <span className="shrink-0 rounded-full bg-[#f0ede5] px-2 py-0.5 text-[0.56rem] font-bold uppercase tracking-[0.1em] text-[#314523]">
+              {s.kind === 'city' ? 'By' : 'Bryllup'}
+            </span>
+            {s.rating != null && (
+              <span className="ml-auto inline-flex shrink-0 items-center gap-1 text-[0.7rem] text-ink-soft">
+                <Star size={11} className="fill-[#e6a34e] text-[#e6a34e]" />{s.rating.toFixed(1)}
+              </span>
+            )}
+          </div>
+          {s.blurb && <p className="mt-1 line-clamp-2 text-[0.74rem] leading-snug text-[#6c7561]">{s.blurb}</p>}
+          <p className="mt-2 inline-flex items-center gap-1.5 text-[0.7rem] font-bold uppercase tracking-[0.08em] text-[#314523]">
+            {active ? <><Check size={12} /> Viser venues</> : <>Se venues <ArrowRight size={12} /></>}
+          </p>
+        </div>
+      </button>
+      {onExpand && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onExpand(); }}
+          aria-label="Forstør billede"
+          className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-[#fcfbf7]/90 text-ink-soft shadow-sm transition-colors hover:text-ink cursor-pointer"
+        >
+          <Expand size={14} />
+        </button>
+      )}
+    </div>
+  );
+}
+
+/* Picture-rich venue card for the discovery list — click the image to browse
+   photos, or add it straight to the couple's list. No swipe. */
+function DiscoverVenueCard({ v, saved, saving, onSave, onDismiss, onExpand }: {
+  v: OnboardingVenueSuggestion; saved: boolean; saving: boolean;
+  onSave: () => void; onDismiss: () => void; onExpand?: () => void;
+}) {
+  return (
+    <div className="group flex flex-col overflow-hidden rounded-2xl border border-[#e4e0d4] bg-[#fcfbf7] transition-shadow hover:shadow-[0_10px_28px_rgba(23,60,50,0.10)]">
+      <button
+        type="button"
+        onClick={onExpand}
+        disabled={!onExpand}
+        aria-label={onExpand ? `Se billeder af ${v.name}` : undefined}
+        className={cn('relative h-44 w-full overflow-hidden bg-[#eef1e6]', onExpand && 'cursor-pointer')}
+      >
+        {v.photo ? (
+          <img src={v.photo} alt={v.name} loading="lazy"
+            className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]" />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center">
+            <MapPin size={22} className="text-[#314523] opacity-40" />
+          </div>
+        )}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent" />
+        {v.rating != null && (
+          <span className="absolute left-2.5 top-2.5 inline-flex items-center gap-1 rounded-full bg-canvas/90 px-2.5 py-1 text-[0.68rem] font-semibold text-ink backdrop-blur-sm">
+            <Star size={11} fill="currentColor" className="text-[#e6a34e]" />
+            {v.rating.toFixed(1)}
+            {v.review_count ? <span className="font-normal text-muted">({v.review_count})</span> : null}
+          </span>
+        )}
+        {onExpand && (
+          <span className="absolute right-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full bg-[#141a13]/40 text-white opacity-0 backdrop-blur-sm transition-opacity duration-200 group-hover:opacity-100">
+            <Expand size={14} />
+          </span>
+        )}
+        {v.photos.length > 1 && (
+          <span className="absolute bottom-2.5 right-2.5 rounded-full bg-black/45 px-2 py-0.5 text-[0.6rem] font-semibold text-white backdrop-blur-sm">
+            {v.photos.length} billeder
+          </span>
+        )}
+      </button>
+      <div className="flex flex-1 flex-col p-4">
+        <p className="font-serif text-[1.05rem] leading-tight text-[#314523]">{v.name}</p>
+        {v.address && (
+          <p className="mt-1 flex items-start gap-1 text-[0.72rem] text-[#6c7561]">
+            <MapPin size={11} className="mt-0.5 shrink-0" /><span className="line-clamp-1">{v.address}</span>
+          </p>
+        )}
+        {v.why_fit && <p className="mt-2 line-clamp-2 text-[0.78rem] leading-snug text-ink-soft">{v.why_fit}</p>}
+        {(v.capacity || v.price_hint) && (
+          <p className="mt-2 text-[0.7rem] font-medium text-[#6c7561]">
+            {[v.capacity, v.price_hint].filter(Boolean).join(' · ')}
+          </p>
+        )}
+        <div className="mt-3 flex items-center gap-2 pt-1">
+          <button
+            type="button"
+            disabled={saved || saving}
+            onClick={onSave}
+            className={cn(
+              'inline-flex flex-1 items-center justify-center gap-1.5 rounded-full px-3.5 py-2 text-[0.74rem] font-bold transition-colors',
+              saved ? 'bg-[#eef1e6] text-[#314523] cursor-default' : 'bg-[#314523] text-white hover:opacity-90 cursor-pointer',
+            )}
+          >
+            {saving ? <Loader2 size={13} className="animate-spin" /> : saved ? <Check size={13} /> : <Plus size={13} />}
+            {saved ? 'På listen' : 'Tilføj til liste'}
+          </button>
+          <button
+            type="button"
+            onClick={onDismiss}
+            aria-label={`Afvis ${v.name}`}
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[#6c7561] transition-colors hover:bg-[#f0ede5] hover:text-[#314523] cursor-pointer"
+          >
+            <X size={15} />
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
