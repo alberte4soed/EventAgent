@@ -702,7 +702,7 @@ export default function Website() {
                   <div>
                     <p className="font-serif text-[1.15rem] text-ink">Kalas-branding</p>
                     <p className="mt-1 text-[0.8rem] text-muted">
-                      Et diskret "Lavet med Kalas" vises i bunden af jeres side — og hjælper andre par finde Kalas.
+                      Et diskret &quot;Lavet med Kalas&quot; vises i bunden af jeres side — og hjælper andre par finde Kalas.
                     </p>
                   </div>
                   {websitePaid

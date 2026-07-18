@@ -25,10 +25,6 @@ type KalasStore = {
   avaBadge: number;
   clearAvaBadge: () => void;
 
-  /* Real auth is handled by Supabase before this app mounts; only the
-     mock unlock/payment flag lives here. */
-  paid: boolean;
-  setPaid: (v: boolean) => void;
 };
 
 const Ctx = createContext<KalasStore | null>(null);
@@ -38,9 +34,6 @@ export function KalasProvider({ children }: { children: React.ReactNode }) {
   const [doneIds, setDoneIds] = useState<Set<string>>(() => new Set(ORIG_DONE));
   const [queueHandled, setQueueHandled] = useState<Record<string, QueueStatus>>({});
   const [avaBadge, setAvaBadge] = useState(2);
-  const [paid, setPaid] = useState(() => sessionStorage.getItem('kalas_paid') === '1');
-
-  const persistPaid = (v: boolean) => { sessionStorage.setItem('kalas_paid', v ? '1' : '0'); setPaid(v); };
 
   const toggleDone = (id: string): boolean => {
     const nowDone = !doneIds.has(id);
@@ -73,8 +66,7 @@ export function KalasProvider({ children }: { children: React.ReactNode }) {
     tasks, setTasks, doneIds, toggleDone, resetTimeline,
     queueHandled, handleQueueItem, undoQueueItem, pendingCount,
     avaBadge, clearAvaBadge: () => setAvaBadge(0),
-    paid, setPaid: persistPaid,
-  }), [tasks, doneIds, queueHandled, avaBadge, paid]);
+  }), [tasks, doneIds, queueHandled, avaBadge]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
