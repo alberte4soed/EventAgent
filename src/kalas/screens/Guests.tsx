@@ -157,7 +157,7 @@ export default function Guests() {
                     </div>
                     <button onClick={addGuest} aria-label="Gem gæst"
                       className="flex h-8 w-8 items-center justify-center rounded-full text-canvas hover:opacity-90 transition-opacity cursor-pointer"
-                      style={{ background: 'var(--color-terracotta)' }}>
+                      style={{ background: 'var(--color-ink)' }}>
                       <Check size={14} />
                     </button>
                     <button onClick={() => setAdding(false)} aria-label="Annuller"
@@ -183,7 +183,7 @@ export default function Guests() {
               </div>
               <button onClick={startAdding}
                 className="sm:hidden flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-canvas cursor-pointer"
-                style={{ background: 'var(--color-terracotta)' }} aria-label="Tilføj gæst">
+                style={{ background: 'var(--color-ink)' }} aria-label="Tilføj gæst">
                 <Plus size={16} />
               </button>
             </div>

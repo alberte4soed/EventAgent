@@ -863,7 +863,7 @@ export default function Website() {
                 <button
                   onClick={() => { setShowRsvp(false); setShowLanding(true); }}
                   className="mt-5 w-full rounded-2xl py-3.5 text-[0.75rem] font-bold uppercase tracking-[0.16em] text-canvas hover:opacity-90 transition-opacity cursor-pointer"
-                  style={{ background: 'var(--color-terracotta)' }}
+                  style={{ background: 'var(--color-ink)' }}
                 >
                   Prøv Kalas gratis →
                 </button>
@@ -920,7 +920,7 @@ export default function Website() {
 
               <button
                 className="mt-8 w-full rounded-2xl py-4 text-[0.8rem] font-bold uppercase tracking-[0.18em] text-canvas hover:opacity-90 transition-opacity cursor-pointer"
-                style={{ background: 'var(--color-terracotta)' }}
+                style={{ background: 'var(--color-ink)' }}
                 onClick={() => setShowLanding(false)}
               >
                 Start gratis — ingen kreditkort

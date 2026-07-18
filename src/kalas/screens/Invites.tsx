@@ -380,7 +380,7 @@ function InvitesStudio({ couple, venueName, eventId }: { couple: InviteCouple; v
         <div className="mt-16 flex flex-wrap items-center gap-3 rule-t pt-8">
           <button onClick={() => { setPreset(null); setMode('edit'); }}
             className="h-8 rounded-full px-3 text-xs font-semibold uppercase tracking-[0.12em] text-canvas hover:opacity-90 transition-opacity cursor-pointer"
-            style={{ background: 'var(--color-terracotta)' }}>
+            style={{ background: 'var(--color-ink)' }}>
             Byg fra bunden
           </button>
           <button onClick={() => { setPreset(null); shuffle(); setMode('edit'); }}

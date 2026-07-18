@@ -67,7 +67,7 @@ function Initials({ light = false }: { light?: boolean }) {
     <div
       className={cn(
         'flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-full text-[0.72rem] font-bold tracking-wide',
-        light ? 'bg-[#e66b4e] text-white' : 'bg-ink text-canvas',
+        light ? 'bg-[#b34e37] text-white' : 'bg-ink text-canvas',
       )}
     >
       {a}{b ? `+${b}` : ''}
@@ -250,7 +250,7 @@ export default function Shell({
                 <Sparkles size={13} />
                 <span className="hidden sm:inline">{t('Spørg Ava')}</span>
                 {avaBadge > 0 && (
-                  <span className="absolute -right-1 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-[#e66b4e] px-0.5 text-[0.5rem] font-bold text-white">
+                  <span className="absolute -right-1 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-[#b34e37] px-0.5 text-[0.5rem] font-bold text-white">
                     {avaBadge}
                   </span>
                 )}
@@ -393,7 +393,7 @@ function NavRow({ item, active, onClick, badge, collapsed = false }: {
       <span className="relative z-10 shrink-0">
         <Icon size={18} strokeWidth={2} />
         {collapsed && badge ? (
-          <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#e66b4e] px-0.5 text-[0.55rem] font-bold text-white">
+          <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#b34e37] px-0.5 text-[0.55rem] font-bold text-white">
             {badge}
           </span>
         ) : null}
@@ -402,7 +402,7 @@ function NavRow({ item, active, onClick, badge, collapsed = false }: {
         <>
           <span className="relative z-10 text-sm font-semibold">{t(item.label)}</span>
           {badge ? (
-            <span className="relative z-10 ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-[#e66b4e] px-1.5 text-[0.65rem] font-bold text-white">
+            <span className="relative z-10 ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-[#b34e37] px-1.5 text-[0.65rem] font-bold text-white">
               {badge}
             </span>
           ) : null}

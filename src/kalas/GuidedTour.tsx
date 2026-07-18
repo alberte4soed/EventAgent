@@ -38,7 +38,7 @@ const STEPS: Step[] = [
     body: 'Saml ønsker fra hele nettet — gæsterne reserverer med ét klik.' },
 ];
 
-const ACCENT = '#e66b4e';
+const ACCENT = '#b34e37';
 const CARD_W = 340;
 
 type Anchor = { top: number; left: number; width: number; height: number };
@@ -230,7 +230,7 @@ export default function GuidedTour({
                 <button
                   type="button"
                   onClick={() => go(idx + 1)}
-                  className="flex h-10 items-center gap-2 rounded-xl px-5 text-[0.88rem] font-bold text-white shadow-[0_8px_20px_rgba(230,107,78,0.28)] transition-transform hover:scale-[1.02] active:scale-[0.99] cursor-pointer"
+                  className="flex h-10 items-center gap-2 rounded-xl px-5 text-[0.88rem] font-bold text-white shadow-[0_8px_20px_rgba(179,78,55,0.28)] transition-transform hover:scale-[1.02] active:scale-[0.99] cursor-pointer"
                   style={{ backgroundColor: ACCENT }}
                 >
                   {last ? (

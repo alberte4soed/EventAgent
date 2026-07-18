@@ -41,35 +41,37 @@ html {
   --color-on-velvet: #f6f0e8;
 
   /* ── Kalas app tokens (Brand DNA: warm ivory · sage · deep forest) ──
-     Names disjoint from the marketing set; ink/fonts are overridden per
-     subtree via .theme-kalas instead. */
-  --color-canvas: #F5EFE5;          /* main background — warm ivory       */
-  --color-card: #EDE6D6;            /* raised paper                       */
-  --color-blush: #F1EADD;           /* alt warm section                   */
-  --color-shell: #E3DAC5;           /* sidebar / inset                    */
+     Canonical values are taken from the Home screen — the reference the
+     rest of the app standardizes on. Names disjoint from the marketing
+     set; ink/fonts are overridden per subtree via .theme-kalas instead.
+     See docs/DESIGN_SYSTEM.md. */
+  --color-canvas: #f5f3ee;          /* main background — warm ivory       */
+  --color-card: #fcfbf7;            /* raised card — bright ivory         */
+  --color-blush: #ece9df;           /* alt warm band                      */
+  --color-shell: #f0ede5;           /* inset tile / chip                  */
 
-  --color-muted: #6B6E55;           /* meta + tracked labels (AA)         */
-  --color-faint: #AEAB93;           /* disabled / placeholder             */
+  --color-muted: #6c7561;           /* meta + tracked labels (AA)         */
+  --color-faint: #8a9992;           /* labels / captions                  */
 
-  --color-sage: #A9B380;            /* primary action (sage)              */
-  --color-sage-strong: #8F9A64;     /* hover / active                     */
-  --color-sage-tint: #DCE0C6;       /* sage wash                          */
+  --color-sage: #8a9079;            /* sage accent + eyebrow labels       */
+  --color-sage-strong: #7a9068;     /* sage hover / "done"                */
+  --color-sage-tint: #dce3d3;       /* sage wash                          */
 
-  --color-line: #3B432A24;          /* hairline rule — forest @ ~14%      */
-  --color-line-strong: #3B432A42;
+  --color-line: #d8d4c7;            /* hairline rule                      */
+  --color-line-strong: #c4bfae;
 
   --color-clay: #9c8a63;            /* warm khaki accent (awaiting)       */
-  --color-terracotta: #364528;      /* deep forest — CTAs / decisions     */
-  --color-terracotta-tint: #E2E6D2; /* forest wash                        */
-  --color-success: #3F5C33;         /* deep olive-green                   */
+  --color-terracotta: #b34e37;      /* the single accent — links / → / errors */
+  --color-terracotta-tint: #f2e3dd; /* warm terracotta wash               */
+  --color-success: #3f5436;         /* olive-green (positive)             */
 }
 
 /* ── Kalas subtree re-skin ───────────────────────────────────────────────
    Applied on the app/onboarding root divs. Overrides the shared token
    names with Kalas values (forest ink, Cormorant/Hanken type). */
 .theme-kalas {
-  --color-ink: #3B432A;
-  --color-ink-soft: #4D5638;
+  --color-ink: #314523;
+  --color-ink-soft: #59634f;
   --font-serif: var(--font-cormorant);
   --font-sans: var(--font-hanken);
   font-feature-settings: "ss01", "cv01";

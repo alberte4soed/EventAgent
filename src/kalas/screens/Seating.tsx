@@ -32,11 +32,11 @@ const GROUP_COLORS: Record<string, string> = {
   'Venner':             '#4A7A9B',
   'Emmas kolleger':     '#8A5A6A',
   'Frederiks kolleger': '#5A7A5A',
-  'Brudepar':           '#3A4F37',
+  'Brudepar':           '#314523',
 };
 
 // Stable colour for any group label (real guest sides fall outside the map).
-const GROUP_PALETTE = ['#6A8C5A', '#9B7040', '#4A7A9B', '#8A5A6A', '#5A7A5A', '#3A4F37', '#7A6A9B'];
+const GROUP_PALETTE = ['#6A8C5A', '#9B7040', '#4A7A9B', '#8A5A6A', '#5A7A5A', '#314523', '#7A6A9B'];
 function colorFor(group: string): string {
   if (GROUP_COLORS[group]) return GROUP_COLORS[group];
   let h = 0;
@@ -258,7 +258,7 @@ export default function Seating() {
             {unassigned.length > 0 && (
               <button onClick={autoSeat}
                 className="flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-semibold uppercase tracking-[0.12em] text-canvas hover:opacity-90 transition-opacity cursor-pointer"
-                style={{ background: 'var(--color-terracotta)' }}>
+                style={{ background: 'var(--color-ink)' }}>
                 Lad Ava placere resten ({unassigned.length})
               </button>
             )}
@@ -466,15 +466,15 @@ function FloorPlan({
             <g className="cursor-grab active:cursor-grabbing"
               onPointerDown={startDrag('head', cx, cy)}>
               {isActive && <rect x={cx - 127} y={cy - 26} width="254" height="52" rx="26"
-                fill="none" stroke="#3A4F37" strokeWidth="2" opacity="0.35" />}
+                fill="none" stroke="#314523" strokeWidth="2" opacity="0.35" />}
               <rect x={cx - 120} y={cy - 22} width="240" height="44" rx="22"
-                fill={isActive ? '#3A4F37' : '#3a4f3720'}
-                stroke="#3A4F37" strokeWidth={isActive ? 0 : 1.5} />
+                fill={isActive ? '#314523' : '#31452320'}
+                stroke="#314523" strokeWidth={isActive ? 0 : 1.5} />
               {/* Seat count indicator */}
-              <text x={cx} y={cy - 5} fill={isActive ? '#f3f1e6cc' : '#3a4f3799'}
+              <text x={cx} y={cy - 5} fill={isActive ? '#f7f5efcc' : '#31452399'}
                 fontSize="8" textAnchor="middle"
                 fontFamily="Hanken Grotesk, sans-serif" letterSpacing="2">BRUDEBORDET</text>
-              <text x={cx} y={cy + 11} fill={isActive ? '#f3f1e680' : '#3a4f3760'}
+              <text x={cx} y={cy + 11} fill={isActive ? '#f7f5ef80' : '#31452360'}
                 fontSize="8" textAnchor="middle" fontFamily="Hanken Grotesk, sans-serif">
                 {filled}/{cap} gæster
               </text>
@@ -489,7 +489,7 @@ function FloorPlan({
           const { cx, cy } = pos;
           const isActive   = activeId === t.id;
           const fillPct    = t.guestIds.length / t.capacity;
-          const col        = '#3A4F37';
+          const col        = '#314523';
           const bgAlpha    = isActive ? 'cc' : '22';
           const strokeAlpha = isActive ? '' : '66';
 
@@ -530,7 +530,7 @@ function FloorPlan({
 
               {/* Number label */}
               <text x={cx} y={cy + 4}
-                fill={isActive ? '#f3f1e6dd' : '#3a4f3799'}
+                fill={isActive ? '#f7f5efdd' : '#31452399'}
                 fontSize="9.5" textAnchor="middle" fontWeight="600"
                 fontFamily="Hanken Grotesk, sans-serif">
                 {t.name.replace('Bord ', '')}

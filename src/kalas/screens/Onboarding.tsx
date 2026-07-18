@@ -241,7 +241,7 @@ function OnboardingHeader({
         </div>
         <div className="h-1.5 overflow-hidden rounded-full bg-[#ded9c8]">
           <motion.div
-            className="h-full rounded-full bg-[#e66b4e]"
+            className="h-full rounded-full bg-[#b34e37]"
             animate={{ width: `${progress}%` }}
             transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
           />
@@ -310,7 +310,7 @@ function ContextPanel({ step, t }: { step: number; t: (s: string) => string }) {
   return (
     <aside className="hidden w-full max-w-[430px] shrink-0 flex-col justify-between rounded-3xl bg-[#173c32] p-[38px] shadow-[0px_18px_50px_rgba(23,60,50,0.16)] lg:flex lg:min-h-[620px]">
       <div className="flex flex-col gap-6">
-        <div className="flex h-[52px] w-[52px] items-center justify-center rounded-full bg-[#e66b4e]">
+        <div className="flex h-[52px] w-[52px] items-center justify-center rounded-full bg-[#b34e37]">
           <Heart size={22} className="text-[#fffdf7]" />
         </div>
         <div className="flex flex-col gap-3.5">
@@ -365,7 +365,7 @@ function OnboardingFooter({
               'flex h-[52px] flex-1 items-center justify-center gap-2.5 rounded-[14px] px-6 text-[15px] font-bold transition-opacity cursor-pointer sm:flex-initial sm:min-w-[200px]',
               nextDisabled
                 ? 'cursor-not-allowed bg-[#ded9c8] text-[#8a8f87]'
-                : 'bg-[#e66b4e] text-[#fffdf7] shadow-[0px_8px_22px_rgba(230,107,78,0.24)] hover:opacity-95',
+                : 'bg-[#b34e37] text-[#fffdf7] shadow-[0px_8px_22px_rgba(179,78,55,0.24)] hover:opacity-95',
             )}
           >
             {nextLabel} {!nextDisabled && <ArrowRight size={17} />}
