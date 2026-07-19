@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, X, ChevronDown, ArrowRight, Check } from 'lucide-react';
+import { Plus, X, ChevronDown, ArrowRight, Check, Pencil } from 'lucide-react';
 import { budgetLines, type BudgetLine } from '../data';
 import { Eyebrow, Chip, cn } from '../ui';
 import AnimateNumber from '../AnimateNumber';
@@ -49,15 +49,17 @@ export default function Budget() {
     () => Object.fromEntries(budgetLines.map((b) => [b.id, Math.round((total * b.pct) / 100)])),
   );
 
-  // Reconcile from the persisted budget: saved category amounts win, and any
-  // custom categories the couple added come back as extra lines.
+  // Once anything is persisted, `budget_items` is the source of truth for which
+  // categories exist and what they're called — so removing or renaming a
+  // standard category sticks. `budgetLines` only supplies the pct/hint defaults.
   useEffect(() => {
     if (budgetItems.length === 0) return;
-    const stdIds = new Set(budgetLines.map((l) => l.id));
-    const customLines: BudgetLine[] = budgetItems
-      .filter((i) => !stdIds.has(i.category))
-      .map((i) => ({ id: i.category, label: i.label, pct: 0, spent: i.paid_amount, hint: '' }));
-    setLines([...budgetLines, ...customLines]);
+    const stdById = new Map(budgetLines.map((l) => [l.id, l]));
+    const nextLines: BudgetLine[] = budgetItems.map((i) => {
+      const std = stdById.get(i.category);
+      return { id: i.category, label: i.label, pct: std?.pct ?? 0, spent: i.paid_amount, hint: std?.hint ?? '' };
+    });
+    setLines(nextLines);
     setAmounts((prev) => {
       const next = { ...prev };
       for (const i of budgetItems) next[i.category] = i.planned_amount;
@@ -66,7 +68,25 @@ export default function Budget() {
     setEstimatorDone(true);
   }, [budgetItems]);
 
+  // First mutation while nothing is persisted seeds the whole current list, so
+  // budget_items becomes authoritative in one batch (no partial state that the
+  // reconcile above would then treat as "the only categories").
+  const seededRef = useRef(false);
+  const seedAll = async (ls: BudgetLine[], amts: Record<string, number>) => {
+    if (seededRef.current) return;
+    seededRef.current = true;
+    await Promise.all(
+      ls.map((l, idx) =>
+        saveBudgetItem({ category: l.id, label: l.label, planned_amount: amts[l.id] ?? 0, paid_amount: l.spent, sort: idx })
+      )
+    );
+  };
+
   const persist = (id: string, amount: number) => {
+    if (budgetItems.length === 0) {
+      void seedAll(lines, { ...amounts, [id]: amount });
+      return;
+    }
     const line = lines.find((l) => l.id === id);
     void saveBudgetItem({ category: id, label: line?.label ?? id, planned_amount: amount });
   };
@@ -79,6 +99,7 @@ export default function Budget() {
     setAmounts((prev) => ({ ...prev, ...newAmounts }));
     setEstimatorDone(true);
     setEstimatorOpen(false);
+    seededRef.current = true; // the benchmark set below becomes the persisted base
     await updateEvent({ budget: String(estTotal), guest_count: estGuests });
     await Promise.all(
       BENCHMARK_DIST.map((d) =>
@@ -89,6 +110,8 @@ export default function Budget() {
   const [addingNew, setAddingNew] = useState(false);
   const [newLabel, setNewLabel] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editLabel, setEditLabel] = useState('');
 
   const allocated = useMemo(() => Object.values(amounts).reduce((a, b) => a + b, 0), [amounts]);
   const remaining = total - allocated;
@@ -100,17 +123,37 @@ export default function Budget() {
     const label = newLabel.trim();
     if (!label) return;
     const id = `custom-${Date.now()}`;
-    setLines((prev) => [...prev, { id, label, pct: 0, spent: 0, hint: '' }]);
+    const newLine: BudgetLine = { id, label, pct: 0, spent: 0, hint: '' };
+    setLines((prev) => [...prev, newLine]);
     setAmounts((prev) => ({ ...prev, [id]: 0 }));
     setNewLabel('');
     setAddingNew(false);
-    void saveBudgetItem({ category: id, label, planned_amount: 0 });
+    if (budgetItems.length === 0) void seedAll([...lines, newLine], { ...amounts, [id]: 0 });
+    else void saveBudgetItem({ category: id, label, planned_amount: 0 });
   };
 
   const removeLine = (id: string) => {
-    setLines((prev) => prev.filter((b) => b.id !== id));
+    const remaining = lines.filter((b) => b.id !== id);
+    setLines(remaining);
     setAmounts((prev) => { const next = { ...prev }; delete next[id]; return next; });
-    void deleteBudgetItem(id);
+    if (editingId === id) setEditingId(null);
+    // When nothing is persisted yet, seed everything *except* the removed line
+    // so the removal sticks; otherwise delete the persisted row.
+    if (budgetItems.length === 0) void seedAll(remaining, amounts);
+    else void deleteBudgetItem(id);
+  };
+
+  const startEditLabel = (id: string, label: string) => { setEditingId(id); setEditLabel(label); };
+  const commitEditLabel = () => {
+    const id = editingId;
+    if (!id) return;
+    const label = editLabel.trim();
+    setEditingId(null);
+    if (!label) return;
+    const renamed = lines.map((b) => (b.id === id ? { ...b, label } : b));
+    setLines(renamed);
+    if (budgetItems.length === 0) void seedAll(renamed, amounts);
+    else void saveBudgetItem({ category: id, label, planned_amount: amounts[id] ?? 0 });
   };
 
   const startAdding = () => { setAddingNew(true); setTimeout(() => inputRef.current?.focus(), 50); };
@@ -232,20 +275,37 @@ export default function Budget() {
             transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
             className="py-5">
             <div className="flex items-baseline justify-between gap-4">
-              <div className="flex items-center gap-2.5">
-                <span className="font-serif text-[1.2rem] text-ink">{b.label}</span>
+              <div className="flex items-center gap-2.5 min-w-0">
+                {editingId === b.id ? (
+                  <input
+                    autoFocus
+                    value={editLabel}
+                    onChange={(e) => setEditLabel(e.target.value)}
+                    onBlur={commitEditLabel}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') commitEditLabel();
+                      if (e.key === 'Escape') setEditingId(null);
+                    }}
+                    aria-label={`Omdøb ${b.label}`}
+                    className="min-w-0 flex-1 bg-transparent font-serif text-[1.2rem] text-ink focus:outline-none border-b border-[var(--color-line-strong)] pb-0.5"
+                  />
+                ) : (
+                  <button onClick={() => startEditLabel(b.id, b.label)}
+                    className="group flex items-center gap-1.5 text-left cursor-pointer" title="Omdøb kategori">
+                    <span className="font-serif text-[1.2rem] text-ink">{b.label}</span>
+                    <Pencil size={12} className="text-muted/0 group-hover:text-muted transition-colors" />
+                  </button>
+                )}
                 {b.spent > 0 && <Chip tone="success">{kr(b.spent)} kr betalt</Chip>}
               </div>
-              <div className="flex items-baseline gap-3">
+              <div className="flex items-baseline gap-3 shrink-0">
                 <div className="font-serif text-[1.3rem] text-ink tabular-nums">
                   <AnimateNumber value={amounts[b.id] ?? 0} suffix=" kr" />
                 </div>
-                {b.id.startsWith('custom-') && (
-                  <button onClick={() => removeLine(b.id)} aria-label="Fjern"
-                    className="text-muted hover:text-ink transition-colors cursor-pointer">
-                    <X size={14} />
-                  </button>
-                )}
+                <button onClick={() => removeLine(b.id)} aria-label={`Fjern ${b.label}`}
+                  className="text-muted hover:text-[var(--color-terracotta)] transition-colors cursor-pointer">
+                  <X size={14} />
+                </button>
               </div>
             </div>
             <div className="mt-3 flex items-center gap-4">

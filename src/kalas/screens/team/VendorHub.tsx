@@ -14,6 +14,7 @@ import {
   hubBadges,
   readHubDeepLink,
   resolveDefaultTab,
+  venueLockedIn,
   type HubCat,
   type HubTab,
 } from './shared';
@@ -35,6 +36,12 @@ export default function VendorHub({ onNavigate }: { onNavigate?: (s: NavigateTar
   const badges = useMemo(
     () => hubBadges(venues, outbound, replies, event?.chosen_venue_id),
     [venues, outbound, replies, event?.chosen_venue_id],
+  );
+
+  // Non-venue categories stay locked until a venue is locked in from the shortlist.
+  const vendorsLocked = useMemo(
+    () => !venueLockedIn(venues, event?.chosen_venue_id),
+    [venues, event?.chosen_venue_id],
   );
 
   const onSwitchTab = useCallback((next: HubTab, nextCat?: HubCat) => {
@@ -67,7 +74,7 @@ export default function VendorHub({ onNavigate }: { onNavigate?: (s: NavigateTar
 
       <div className="px-6 py-8 sm:px-9 lg:px-12">
         {(tab === 'explore' || tab === 'shortlist') && (
-          <CategoryFilterBar cat={cat} onCatChange={setCat} />
+          <CategoryFilterBar cat={cat} onCatChange={setCat} vendorsLocked={vendorsLocked} />
         )}
 
         <div className={(tab === 'explore' || tab === 'shortlist') ? 'mt-6' : undefined}>
@@ -79,6 +86,7 @@ export default function VendorHub({ onNavigate }: { onNavigate?: (s: NavigateTar
               onVenueViewChange={setVenueView}
               onNavigate={onNavigate}
               onSwitchTab={onSwitchTab}
+              vendorsLocked={vendorsLocked}
             />
           )}
           {tab === 'shortlist' && (
@@ -89,6 +97,7 @@ export default function VendorHub({ onNavigate }: { onNavigate?: (s: NavigateTar
               onVenueViewChange={setVenueView}
               onNavigate={onNavigate}
               onSwitchTab={onSwitchTab}
+              vendorsLocked={vendorsLocked}
             />
           )}
           {tab === 'booked' && <BookedPanel onSwitchTab={onSwitchTab} />}

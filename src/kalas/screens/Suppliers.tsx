@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, Heart, MessageCircle, ChevronDown, X } from 'lucide-react';
+import { Search, Heart, MessageCircle, ChevronDown, X, Lock } from 'lucide-react';
 import { dnaTraits } from '../data';
 import { useWedding } from '../useWedding';
 import { Eyebrow, Pill, cn } from '../ui';
@@ -89,9 +89,12 @@ export default function Suppliers({
     cat: HubCat;
     query: string;
     showHint?: boolean;
+    locked?: boolean;
+    onGoToVenue?: () => void;
   };
 }) {
   const { couple, venues, refresh } = useWedding();
+  const locked = hub?.locked ?? false;
   const [query, setQuery] = useState(hub?.query ?? '');
   const [cat, setCat] = useState<Cat>(() => {
     if (hub?.cat && hub.cat !== 'venue' && hub.cat !== 'alle') {
@@ -198,6 +201,29 @@ export default function Suppliers({
 
       <div className={embedded ? 'px-0 pt-2' : 'px-6 pt-8 sm:px-9 lg:px-12'}>
 
+        {/* ── Locked until a venue is chosen ──────────────────────────── */}
+        {locked && (
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-[18px] border border-[#d8d4c7] bg-[#f0ede5] px-5 py-4">
+            <div className="flex items-start gap-3">
+              <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#e0dccf]">
+                <Lock size={13} className="text-[#6c7561]" />
+              </span>
+              <div>
+                <p className="text-[0.88rem] font-medium text-[#314523]">Vælg jeres lokation først</p>
+                <p className="mt-0.5 text-[0.76rem] text-[#6c7561]">
+                  Når I har låst jeres venue, åbner vi leverandørerne — så kan Ava finde og kontakte dem for jer.
+                </p>
+              </div>
+            </div>
+            {hub?.onGoToVenue && (
+              <button onClick={hub.onGoToVenue}
+                className="shrink-0 h-8 rounded-full bg-[#314523] px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#f7f5ef] hover:opacity-90 transition-colors cursor-pointer">
+                Til venues
+              </button>
+            )}
+          </div>
+        )}
+
         {/* ── DNA context banner ──────────────────────────────────────── */}
         <div className="rounded-[18px] border border-[#d8d4c7] bg-[#ece9df] px-6 py-5">
           <p className="mb-3 text-[0.62rem] font-medium uppercase tracking-[0.28em] text-[#8a9079]">
@@ -215,8 +241,8 @@ export default function Suppliers({
           </div>
         </div>
 
-        {/* Ask-Ava-to-send banner when vendors are saved */}
-        {savedCount > 0 && (
+        {/* Ask-Ava-to-send banner when vendors are saved (gated until venue chosen) */}
+        {savedCount > 0 && !locked && (
           <button onClick={() => onNavigate?.('ava')}
             className="mt-4 flex w-full items-center justify-between rounded-[18px] border border-[#d8d4c7] bg-[#fcfbf7] px-5 py-3.5 text-left transition-colors hover:bg-[#f7f5ef] cursor-pointer">
             <span className="text-sm text-[#314523]">
@@ -249,10 +275,16 @@ export default function Suppliers({
                 {vendors.length === 0 ? 'Ingen leverandører fundet endnu' : `Ingen resultater for "${query}"`}
               </p>
               {vendors.length === 0 ? (
-                <button onClick={() => onNavigate?.('ava')}
-                  className="mt-4 inline-flex h-8 items-center gap-1.5 rounded-full bg-[#314523] px-3 text-xs font-semibold text-[#f7f5ef] hover:opacity-90 transition-colors cursor-pointer">
-                  <MessageCircle size={13} /> Bed Ava finde leverandører
-                </button>
+                locked ? (
+                  <p className="mt-3 text-[0.78rem] text-[#6c7561]">
+                    Vælg jeres lokation, så finder Ava leverandører der matcher.
+                  </p>
+                ) : (
+                  <button onClick={() => onNavigate?.('ava')}
+                    className="mt-4 inline-flex h-8 items-center gap-1.5 rounded-full bg-[#314523] px-3 text-xs font-semibold text-[#f7f5ef] hover:opacity-90 transition-colors cursor-pointer">
+                    <MessageCircle size={13} /> Bed Ava finde leverandører
+                  </button>
+                )
               ) : (
                 <button onClick={() => { setQuery(''); setCat('alle'); }}
                   className="mt-4 text-[0.78rem] text-muted hover:text-ink transition-colors cursor-pointer underline underline-offset-2">
