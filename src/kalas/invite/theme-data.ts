@@ -46,26 +46,43 @@ export type Composition = 'centered' | 'top' | 'spread';
 export const ALIGNMENTS: readonly Alignment[] = ['center', 'left'];
 export const COMPOSITIONS: readonly Composition[] = ['centered', 'top', 'spread'];
 
+/** Card silhouette — a straight card, softly rounded, or an arched top. */
+export type Shape = 'rectangle' | 'rounded' | 'arched';
+export const SHAPES: readonly Shape[] = ['rectangle', 'rounded', 'arched'];
+/** Decorative border drawn inside the card edge. */
+export type Frame = 'none' | 'line' | 'botanical';
+export const FRAMES: readonly Frame[] = ['none', 'line', 'botanical'];
+
 export const paletteById = (id: string) => PALETTES.find((p) => p.id === id) ?? PALETTES[0];
 export const fontById = (id: string) => FONTS.find((f) => f.id === id) ?? FONTS[0];
 /** Wax-seal colour for a palette — its accent reads as sealing wax. */
 export const sealColor = (id: string) => paletteById(id).accent;
 
 /* ─── Curated templates — one tap applies the whole look ───────────────── */
+export const CATEGORIES = ['Alle', 'Editorial', 'Botanisk', 'Klassisk', 'Romantisk', 'Foto', 'Dramatisk'] as const;
+export type Category = (typeof CATEGORIES)[number];
+
 export interface InvitePreset {
   id: string; name: string; desc: string;
+  category: Exclude<Category, 'Alle'>;
   pal: PaletteId; font: FontId;
   align: Alignment; comp: Composition;
+  shape: Shape; frame: Frame;
+  /** Whether this template shows the couple photo on the card face by default. */
+  photo?: boolean;
 }
 
 export const PRESETS: InvitePreset[] = [
-  { id: 'olivenlund', name: 'Olivenlund', desc: 'Oliven & burgundy, editorial',  pal: 'olive-burgundy', font: 'marcellus',  align: 'center', comp: 'centered' },
-  { id: 'ivory-brun', name: 'Ivory & Brun', desc: 'Elfenben & varm brun',        pal: 'ivory-brown',    font: 'eb-garamond', align: 'center', comp: 'centered' },
-  { id: 'botanisk',   name: 'Botanisk',   desc: 'Grønt, roligt, jeres stil',     pal: 'botanisk',       font: 'cormorant',  align: 'center', comp: 'centered' },
-  { id: 'editorial',  name: 'Editorial',  desc: 'Sort/hvid, skarpt, moderne',    pal: 'black-tie',      font: 'italiana',   align: 'center', comp: 'centered' },
-  { id: 'romantisk',  name: 'Romantisk',  desc: 'Blush, script, blødt',          pal: 'blush',          font: 'pinyon',     align: 'center', comp: 'centered' },
-  { id: 'klassisk',   name: 'Klassisk',   desc: 'Champagne og guld',             pal: 'ivory-gold',     font: 'playfair',   align: 'left',   comp: 'top' },
-  { id: 'noir',       name: 'Noir',       desc: 'Mørk, festlig, dramatisk',      pal: 'midnight',       font: 'bodoni',     align: 'center', comp: 'spread' },
+  { id: 'olivenlund', name: 'Olivenlund', desc: 'Oliven & burgundy, editorial',  category: 'Editorial', pal: 'olive-burgundy', font: 'marcellus',  align: 'center', comp: 'centered', shape: 'arched',    frame: 'line' },
+  { id: 'greenery',   name: 'Greenery',   desc: 'Buet top med botanisk ramme',   category: 'Botanisk',  pal: 'botanisk',       font: 'cormorant',  align: 'center', comp: 'centered', shape: 'arched',    frame: 'botanical' },
+  { id: 'ivory-brun', name: 'Ivory & Brun', desc: 'Elfenben & varm brun',        category: 'Klassisk',  pal: 'ivory-brown',    font: 'eb-garamond', align: 'center', comp: 'centered', shape: 'rounded',   frame: 'line' },
+  { id: 'portraet',   name: 'Portræt',    desc: 'Jeres foto på buet kort',       category: 'Foto',      pal: 'greige',         font: 'marcellus',  align: 'center', comp: 'top',      shape: 'arched',    frame: 'none', photo: true },
+  { id: 'botanisk',   name: 'Botanisk',   desc: 'Grønt, roligt, jeres stil',     category: 'Botanisk',  pal: 'botanisk',       font: 'cormorant',  align: 'center', comp: 'centered', shape: 'rectangle', frame: 'none' },
+  { id: 'editorial',  name: 'Editorial',  desc: 'Sort/hvid, skarpt, moderne',    category: 'Editorial', pal: 'black-tie',      font: 'italiana',   align: 'center', comp: 'centered', shape: 'rectangle', frame: 'none' },
+  { id: 'romantisk',  name: 'Romantisk',  desc: 'Blush, script, blødt',          category: 'Romantisk', pal: 'blush',          font: 'pinyon',     align: 'center', comp: 'centered', shape: 'arched',    frame: 'botanical' },
+  { id: 'vintage',    name: 'Vintage',    desc: 'Champagne med fin linjeramme',  category: 'Klassisk',  pal: 'champagne',      font: 'playfair',   align: 'center', comp: 'centered', shape: 'rounded',   frame: 'line' },
+  { id: 'klassisk',   name: 'Klassisk',   desc: 'Champagne og guld',             category: 'Klassisk',  pal: 'ivory-gold',     font: 'playfair',   align: 'left',   comp: 'top',      shape: 'rectangle', frame: 'line' },
+  { id: 'noir',       name: 'Noir',       desc: 'Mørk, festlig, dramatisk',      category: 'Dramatisk', pal: 'midnight',       font: 'bodoni',     align: 'center', comp: 'spread',   shape: 'rectangle', frame: 'line' },
 ];
 export const presetById = (id: string | null) => PRESETS.find((p) => p.id === id) ?? null;
 

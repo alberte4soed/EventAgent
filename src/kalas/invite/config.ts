@@ -7,8 +7,8 @@
    design.ts. */
 
 import {
-  PALETTE_IDS, FONT_IDS, ALIGNMENTS, COMPOSITIONS, presetById,
-  type PaletteId, type FontId, type Alignment, type Composition, type ProgramRow,
+  PALETTE_IDS, FONT_IDS, ALIGNMENTS, COMPOSITIONS, SHAPES, FRAMES, presetById,
+  type PaletteId, type FontId, type Alignment, type Composition, type Shape, type Frame, type ProgramRow,
 } from './theme-data';
 
 export interface InviteEnvelope {
@@ -26,6 +26,9 @@ export interface InviteConfig {
   fontId: FontId;
   alignment: Alignment;
   composition: Composition;
+  shape: Shape;
+  frame: Frame;
+  photoOnCard: boolean;
   // Content
   eyebrow: string;
   names: string;
@@ -83,6 +86,9 @@ export const DEFAULT_INVITE: InviteConfig = {
   fontId: 'marcellus',
   alignment: 'center',
   composition: 'centered',
+  shape: 'arched',
+  frame: 'line',
+  photoOnCard: false,
   eyebrow: 'Vi skal giftes',
   names: '',
   dateLabel: '',
@@ -112,8 +118,8 @@ export function parseInviteConfig(raw: Record<string, unknown> | null | undefine
   // A valid preset seeds palette/font/etc. defaults so stored look stays coherent.
   const preset = presetById(typeof c.presetId === 'string' ? c.presetId : null);
   const look = preset
-    ? { paletteId: preset.pal as PaletteId, fontId: preset.font as FontId, alignment: preset.align, composition: preset.comp }
-    : { paletteId: D.paletteId, fontId: D.fontId, alignment: D.alignment, composition: D.composition };
+    ? { paletteId: preset.pal as PaletteId, fontId: preset.font as FontId, alignment: preset.align, composition: preset.comp, shape: preset.shape, frame: preset.frame, photoOnCard: Boolean(preset.photo) }
+    : { paletteId: D.paletteId, fontId: D.fontId, alignment: D.alignment, composition: D.composition, shape: D.shape, frame: D.frame, photoOnCard: D.photoOnCard };
 
   return {
     presetId: preset ? preset.id : null,
@@ -121,6 +127,9 @@ export function parseInviteConfig(raw: Record<string, unknown> | null | undefine
     fontId: oneOf(c.fontId, FONT_IDS, look.fontId),
     alignment: oneOf(c.alignment, ALIGNMENTS, look.alignment),
     composition: oneOf(c.composition, COMPOSITIONS, look.composition),
+    shape: oneOf(c.shape, SHAPES, look.shape),
+    frame: oneOf(c.frame, FRAMES, look.frame),
+    photoOnCard: bool(c.photoOnCard, look.photoOnCard),
     eyebrow: str(c.eyebrow, D.eyebrow, 120),
     names: str(c.names, D.names, 120),
     dateLabel: str(c.dateLabel, D.dateLabel, 120),

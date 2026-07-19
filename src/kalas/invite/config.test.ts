@@ -31,7 +31,23 @@ describe("parseInviteConfig", () => {
     expect(c.presetId).toBe("ivory-brun");
     expect(c.paletteId).toBe("ivory-brown");
     expect(c.fontId).toBe("eb-garamond");
+    expect(c.shape).toBe("rounded");
+    expect(c.frame).toBe("line");
     expect(parseInviteConfig({ presetId: "nope" }).presetId).toBeNull();
+  });
+
+  it("seeds photoOnCard from a photo preset", () => {
+    expect(parseInviteConfig({ presetId: "portraet" }).photoOnCard).toBe(true);
+    expect(parseInviteConfig({ presetId: "greenery" }).photoOnCard).toBe(false);
+  });
+
+  it("whitelists shape and frame, falling back on junk", () => {
+    const c = parseInviteConfig({ shape: "hexagon", frame: "neon" });
+    expect(c.shape).toBe(DEFAULT_INVITE.shape);
+    expect(c.frame).toBe(DEFAULT_INVITE.frame);
+    const ok = parseInviteConfig({ shape: "rounded", frame: "botanical" });
+    expect(ok.shape).toBe("rounded");
+    expect(ok.frame).toBe("botanical");
   });
 
   it("only accepts YYYY-MM-DD for dateISO", () => {

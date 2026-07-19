@@ -15,9 +15,9 @@ import { cn } from '../ui';
 import OnboardingHint from '../OnboardingHint';
 import { slugify } from '../site/config';
 import {
-  PALETTES, FONTS, PRESETS, useInviteFonts,
+  PALETTES, FONTS, PRESETS, CATEGORIES, useInviteFonts,
   InviteCard, InviteBack, FlipCard, paletteById, fontById,
-  type PaletteId, type FontId, type Alignment, type Composition, type InvitePreset,
+  type PaletteId, type FontId, type Alignment, type Composition, type Shape, type Frame, type Category, type InvitePreset,
 } from '../invite/theme';
 import { EnvelopeReveal } from '../invite/EnvelopeReveal';
 import { parseInviteConfig, type InviteConfig } from '../invite/config';
@@ -99,6 +99,7 @@ function InvitesStudio({ couple, venueName, eventId, invitation, guests, saveInv
     setCfg((c) => ({ ...c, envelope: { ...c.envelope, ...patch } }));
 
   const [mode, setMode] = useState<'browse' | 'edit'>(invitation ? 'edit' : 'browse');
+  const [category, setCategory] = useState<Category>('Alle');
   const [tab, setTab]   = useState<Tab>('design');
   const [side, setSide] = useState<'front' | 'back'>('front');
   const [avaDraft, setAva] = useState(false);
@@ -139,7 +140,7 @@ function InvitesStudio({ couple, venueName, eventId, invitation, guests, saveInv
   const shareLink = `${linkBase}/i/${slug}`;
 
   const applyPreset = (p: InvitePreset) => {
-    update({ presetId: p.id, paletteId: p.pal, fontId: p.font, alignment: p.align, composition: p.comp });
+    update({ presetId: p.id, paletteId: p.pal, fontId: p.font, alignment: p.align, composition: p.comp, shape: p.shape, frame: p.frame, photoOnCard: Boolean(p.photo) });
   };
 
   const shuffle = () => update({ presetId: null, paletteId: rand(PALETTES).id as PaletteId, fontId: rand(FONTS).id as FontId });
@@ -185,6 +186,7 @@ function InvitesStudio({ couple, venueName, eventId, invitation, guests, saveInv
 
   const front = (
     <InviteCard paletteId={cfg.paletteId} fontId={cfg.fontId} alignment={cfg.alignment} composition={cfg.composition}
+      shape={cfg.shape} frame={cfg.frame} photoUrl={photoUrl} photoOnCard={cfg.photoOnCard}
       eyebrow={cfg.eyebrow} names={cfg.names} date={cfg.dateLabel} venue={cfg.venue} closing={cfg.closing} />
   );
   const back = (
@@ -194,6 +196,7 @@ function InvitesStudio({ couple, venueName, eventId, invitation, guests, saveInv
 
   /* ── Browse mode — pick a template ───────────────────────────────────── */
   if (mode === 'browse') {
+    const shown = category === 'Alle' ? PRESETS : PRESETS.filter((p) => p.category === category);
     return (
       <div className="min-h-full px-6 py-8 sm:px-9 lg:px-12 lg:py-8">
         <div className="max-w-2xl">
@@ -203,15 +206,27 @@ function InvitesStudio({ couple, venueName, eventId, invitation, guests, saveInv
           </p>
         </div>
 
-        <div className="mt-12 grid grid-cols-2 gap-x-6 gap-y-12 sm:grid-cols-3 lg:grid-cols-4 lg:gap-x-8">
-          {PRESETS.map((p, i) => (
+        {/* Style filter — like Zola's category chips */}
+        <div className="mt-8 flex flex-wrap gap-2">
+          {CATEGORIES.map((c) => (
+            <button key={c} onClick={() => setCategory(c)}
+              className={cn('rounded-full px-4 py-1.5 text-[0.78rem] font-medium transition-colors cursor-pointer',
+                category===c ? 'bg-ink text-canvas' : 'rule text-ink-soft hover:text-ink')}>
+              {c}
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-10 grid grid-cols-2 gap-x-6 gap-y-12 sm:grid-cols-3 lg:grid-cols-4 lg:gap-x-8">
+          {shown.map((p, i) => (
             <motion.button key={p.id}
               initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.55, delay: i * 0.07, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ duration: 0.5, delay: i * 0.06, ease: [0.22, 1, 0.36, 1] }}
               onClick={() => { applyPreset(p); setMode('edit'); }}
               className="group text-left cursor-pointer">
               <div className="transition-transform duration-300 group-hover:-translate-y-2">
                 <InviteCard paletteId={p.pal} fontId={p.font} alignment={p.align} composition={p.comp}
+                  shape={p.shape} frame={p.frame} photoUrl={photoUrl} photoOnCard={Boolean(p.photo)}
                   eyebrow={cfg.eyebrow} names={cfg.names} date={cfg.dateLabel} venue={cfg.venue} closing={cfg.closing} />
               </div>
               <p className="mt-4 font-serif text-[1.1rem] text-ink">{p.name}</p>
@@ -358,6 +373,35 @@ function InvitesStudio({ couple, venueName, eventId, invitation, guests, saveInv
                 </div>
               </div>
 
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <PanelLabel>Form</PanelLabel>
+                  <div className="flex gap-1.5">
+                    {([['rectangle','Kant'],['rounded','Rund'],['arched','Bue']] as [Shape,string][]).map(([v,label]) => (
+                      <button key={v} onClick={() => update({ shape: v })}
+                        className={cn('flex-1 rounded-xl border px-2 py-2 text-[0.72rem] cursor-pointer transition-all',
+                          cfg.shape===v ? 'border-ink bg-ink text-canvas' : 'text-ink-soft hover:text-ink')}
+                        style={{ borderColor: cfg.shape===v ? undefined : '#e6ded0', background: cfg.shape===v ? undefined : '#fff' }}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <PanelLabel>Ramme</PanelLabel>
+                  <div className="flex gap-1.5">
+                    {([['none','Ingen'],['line','Linje'],['botanical','Botanisk']] as [Frame,string][]).map(([v,label]) => (
+                      <button key={v} onClick={() => update({ frame: v })}
+                        className={cn('flex-1 rounded-xl border px-2 py-2 text-[0.72rem] cursor-pointer transition-all',
+                          cfg.frame===v ? 'border-ink bg-ink text-canvas' : 'text-ink-soft hover:text-ink')}
+                        style={{ borderColor: cfg.frame===v ? undefined : '#e6ded0', background: cfg.frame===v ? undefined : '#fff' }}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
               {/* Envelope */}
               <div className="rule rounded-2xl bg-card p-4">
                 <div className="flex items-center justify-between">
@@ -459,6 +503,12 @@ function InvitesStudio({ couple, venueName, eventId, invitation, guests, saveInv
                     <ImageIcon size={15} /> {uploading ? 'Uploader…' : 'Upload et par-foto'}
                     <input type="file" accept="image/*" className="hidden"
                       onChange={(e) => { const f = e.target.files?.[0]; if (f) void uploadPhoto(f); }} />
+                  </label>
+                )}
+                {photoUrl && (
+                  <label className="mt-3 flex items-center gap-2 text-[0.86rem] text-ink cursor-pointer">
+                    <input type="checkbox" checked={cfg.photoOnCard} onChange={e => update({ photoOnCard: e.target.checked })} />
+                    Vis fotoet på selve kortet
                   </label>
                 )}
               </div>

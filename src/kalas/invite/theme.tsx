@@ -11,6 +11,7 @@ import { motion } from 'motion/react';
 import {
   paletteById, fontById, DEFAULT_PROGRAM,
   type PaletteId, type FontId, type Alignment, type Composition, type ProgramRow,
+  type Shape, type Frame,
 } from './theme-data';
 
 export * from './theme-data';
@@ -33,14 +34,38 @@ export interface CardContent {
 export interface CardLook {
   paletteId: PaletteId; fontId: FontId;
   alignment: Alignment; composition: Composition;
+  shape?: Shape; frame?: Frame;
+  /** Signed URL of the couple photo shown on the card face (when photoOnCard). */
+  photoUrl?: string | null;
+  photoOnCard?: boolean;
+}
+
+/** Small botanical sprig used for the `botanical` frame corners. */
+function BotanicalCorner({ color, style }: { color: string; style: React.CSSProperties }) {
+  return (
+    <svg viewBox="0 0 60 60" width="46" height="46" style={{ position:'absolute', color, opacity:0.5, ...style }} fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round">
+      <path d="M6 54 C 18 42, 22 26, 20 8" />
+      <path d="M20 20 C 12 16, 8 18, 6 24" /><path d="M20 20 C 26 14, 30 14, 33 18" />
+      <path d="M19 32 C 11 29, 8 31, 6 37" /><path d="M19 32 C 25 27, 29 27, 32 31" />
+      <path d="M11 44 C 6 42, 4 44, 3 48" /><path d="M11 44 C 16 40, 20 40, 22 44" />
+    </svg>
+  );
+}
+
+function shapeRadius(shape: Shape): React.CSSProperties {
+  if (shape === 'arched') return { borderRadius: '999px 999px 4px 4px' };
+  if (shape === 'rounded') return { borderRadius: 18 };
+  return { borderRadius: 3 };
 }
 
 /* ─── Card (front) ─────────────────────────────────────────────────────── */
-export function InviteCard({ paletteId, fontId, alignment, composition, eyebrow, names, date, venue, closing }: CardLook & CardContent) {
+export function InviteCard({ paletteId, fontId, alignment, composition, shape = 'rectangle', frame = 'none', photoUrl, photoOnCard, eyebrow, names, date, venue, closing }: CardLook & CardContent) {
   const pal  = paletteById(paletteId);
   const font = fontById(fontId);
+  const showPhoto = Boolean(photoOnCard && photoUrl);
 
-  const topP    = composition === 'top' ? 48 : 60;
+  const topBase = composition === 'top' ? 48 : 60;
+  const topP    = (shape === 'arched' ? topBase + 26 : topBase) - (showPhoto ? 10 : 0);
   const bottomP = composition === 'top' ? 44 : 60;
   const jc = composition === 'centered' ? 'center' : composition === 'top' ? 'flex-start' : 'space-between';
   const ta = alignment === 'center' ? 'center' : 'left';
@@ -48,13 +73,32 @@ export function InviteCard({ paletteId, fontId, alignment, composition, eyebrow,
 
   return (
     <div style={{
-      position:'relative', overflow:'hidden', aspectRatio:'5/8', background: pal.bg, borderRadius: 3,
+      position:'relative', overflow:'hidden', aspectRatio:'5/8', background: pal.bg, ...shapeRadius(shape),
       boxShadow: '0 32px 80px -8px rgba(0,0,0,0.20), 0 8px 28px -4px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06)',
     }}>
+      {/* Decorative frame */}
+      {frame === 'line' && (
+        <div style={{ position:'absolute', inset:14, border:`0.75px solid ${pal.accent}`, opacity:0.4, pointerEvents:'none', ...(shape==='arched' ? { borderRadius:'999px 999px 2px 2px' } : shape==='rounded' ? { borderRadius:10 } : undefined) }} />
+      )}
+      {frame === 'botanical' && (
+        <>
+          <BotanicalCorner color={pal.accent} style={{ top:10, left:10 }} />
+          <BotanicalCorner color={pal.accent} style={{ top:10, right:10, transform:'scaleX(-1)' }} />
+          <BotanicalCorner color={pal.accent} style={{ bottom:10, left:10, transform:'scaleY(-1)' }} />
+          <BotanicalCorner color={pal.accent} style={{ bottom:10, right:10, transform:'scale(-1,-1)' }} />
+        </>
+      )}
+
       <div style={{
         position:'relative', zIndex:2, height:'100%', display:'flex', flexDirection:'column',
         alignItems: ai, justifyContent: jc, textAlign: ta, gap: 11, padding: `${topP}px 30px ${bottomP}px`,
       }}>
+        {showPhoto && (
+          <div style={{ width:'100%', aspectRatio:'3/2', borderRadius:3, overflow:'hidden', marginBottom:4, boxShadow:'0 6px 18px -6px rgba(0,0,0,0.3)' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={photoUrl!} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
+          </div>
+        )}
         <p style={{ fontFamily: font.body, fontSize:9.5, fontWeight:500, letterSpacing:'0.38em', textTransform:'uppercase', color:pal.accent, margin:0 }}>
           {eyebrow}
         </p>

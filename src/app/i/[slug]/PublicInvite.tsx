@@ -55,6 +55,10 @@ function Invite({ slug, config, names, dateISO, dateLabel, photoUrl, guestName, 
               fontId={config.fontId}
               alignment={config.alignment}
               composition={config.composition}
+              shape={config.shape}
+              frame={config.frame}
+              photoUrl={photoUrl}
+              photoOnCard={config.photoOnCard}
               eyebrow={config.eyebrow}
               names={names}
               date={dateLabel}
@@ -66,8 +70,8 @@ function Invite({ slug, config, names, dateISO, dateLabel, photoUrl, guestName, 
           {/* Countdown */}
           {config.countdown && dateISO && <Countdown dateISO={dateISO} pal={pal} font={font} />}
 
-          {/* Photo */}
-          {photoUrl && (
+          {/* Photo (below the card only when it isn't on the card face) */}
+          {photoUrl && !config.photoOnCard && (
             <div style={{ width: "100%" }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={photoUrl} alt="" style={{ width: "100%", borderRadius: 4, display: "block", boxShadow: "0 18px 44px -12px rgba(0,0,0,0.28)" }} />
