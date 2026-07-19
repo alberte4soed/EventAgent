@@ -12,6 +12,7 @@ export default function ExplorePanel({
   onVenueViewChange,
   onNavigate,
   onSwitchTab,
+  vendorsLocked = false,
 }: {
   cat: HubCat;
   query: string;
@@ -19,8 +20,10 @@ export default function ExplorePanel({
   onVenueViewChange: (view: VenueHubView) => void;
   onNavigate?: (s: NavigateTarget) => void;
   onSwitchTab: (tab: HubTab, cat?: HubCat) => void;
+  vendorsLocked?: boolean;
 }) {
   const showVenues = cat === 'venue' || cat === 'alle';
+  const goToVenue = () => onSwitchTab('explore', 'venue');
 
   if (showVenues && cat !== 'alle') {
     return (
@@ -57,7 +60,7 @@ export default function ExplorePanel({
         <section className="rule-t pt-8">
           <Suppliers
             onNavigate={onNavigate}
-            hub={{ cat: 'alle', query, showHint: false }}
+            hub={{ cat: 'alle', query, showHint: false, locked: vendorsLocked, onGoToVenue: goToVenue }}
           />
         </section>
       </div>
@@ -67,7 +70,7 @@ export default function ExplorePanel({
   return (
     <Suppliers
       onNavigate={onNavigate}
-      hub={{ cat, query, showHint: false }}
+      hub={{ cat, query, showHint: false, locked: vendorsLocked, onGoToVenue: goToVenue }}
     />
   );
 }

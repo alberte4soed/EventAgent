@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { motion } from 'motion/react';
-import { Heart, MessageCircle } from 'lucide-react';
+import { Heart, MessageCircle, Lock } from 'lucide-react';
 import VenueDiscovery, { type VenueHubView } from '../Venues';
 import { useWedding } from '../../useWedding';
 import { Eyebrow, cn } from '../../ui';
@@ -28,6 +28,7 @@ export default function ShortlistPanel({
   onVenueViewChange,
   onNavigate,
   onSwitchTab,
+  vendorsLocked = false,
 }: {
   cat: HubCat;
   query: string;
@@ -35,6 +36,7 @@ export default function ShortlistPanel({
   onVenueViewChange: (view: VenueHubView) => void;
   onNavigate?: (s: NavigateTarget) => void;
   onSwitchTab: (tab: HubTab, cat?: HubCat) => void;
+  vendorsLocked?: boolean;
 }) {
   const { venues, outbound, refresh } = useWedding();
   const sentIds = useMemo(() => new Set(outbound.map((o) => o.venue_id)), [outbound]);
@@ -67,6 +69,16 @@ export default function ShortlistPanel({
 
   return (
     <div className="space-y-10">
+      {vendorsLocked && showVenueList && likedVenues.length > 0 && (
+        <div className="flex items-start gap-3 rounded-[18px] border border-[#d8d4c7] bg-[#f0ede5] px-5 py-4">
+          <Lock size={14} className="mt-0.5 shrink-0 text-[#6c7561]" />
+          <p className="text-[0.82rem] text-[#314523]">
+            Lås jeres lokation ved at vælge et venue herunder — så åbner vi de øvrige
+            leverandører, og Ava kan begynde at finde og kontakte dem.
+          </p>
+        </div>
+      )}
+
       {showVenueList && likedVenues.length > 0 && (
         <VenueDiscovery
           onNavigate={onNavigate}
@@ -85,6 +97,7 @@ export default function ShortlistPanel({
         <VendorShortlist
           items={likedVendors}
           contacted={sentIds}
+          locked={vendorsLocked}
           onNavigate={onNavigate}
           onExplore={(c) => onSwitchTab('explore', c)}
         />
@@ -111,11 +124,13 @@ export default function ShortlistPanel({
 function VendorShortlist({
   items,
   contacted,
+  locked = false,
   onNavigate,
   onExplore,
 }: {
   items: VenueRow[];
   contacted: Set<string>;
+  locked?: boolean;
   onNavigate?: (s: NavigateTarget) => void;
   onExplore: (cat: HubCat) => void;
 }) {
@@ -172,6 +187,10 @@ function VendorShortlist({
                 {isContacted ? (
                   <span className="rounded-full bg-[#f0ede5] px-3 py-1 text-[0.65rem] font-bold uppercase tracking-[0.1em] text-[#6c7561]">
                     Kontaktet
+                  </span>
+                ) : locked ? (
+                  <span className="flex items-center gap-1.5 rounded-full bg-[#f0ede5] px-3 py-1 text-[0.65rem] font-bold uppercase tracking-[0.1em] text-[#6c7561]">
+                    <Lock size={10} /> Vælg venue først
                   </span>
                 ) : (
                   <button

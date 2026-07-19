@@ -120,6 +120,23 @@ export function hubBadges(
   };
 }
 
+/**
+ * Vendor categories (everything except venue) stay locked until the couple has
+ * locked in a location from the shortlist — i.e. a venue is chosen/booked.
+ * Venue is always first; the venue category itself is never locked. Locked =
+ * browse allowed, but the expensive actions (Ava outreach, research) are gated.
+ */
+export function venueLockedIn(venues: VenueRow[], chosenVenueId: string | null | undefined): boolean {
+  if (chosenVenueId) return true;
+  return venues.some((v) => Boolean(v.booked_at));
+}
+
+export function catLocked(cat: HubCat, venues: VenueRow[], chosenVenueId: string | null | undefined): boolean {
+  // "venue" and "alle" both surface venues, so they are never locked.
+  if (cat === 'venue' || cat === 'alle') return false;
+  return !venueLockedIn(venues, chosenVenueId);
+}
+
 export function matchesHubCat(row: VenueRow, cat: HubCat): boolean {
   if (cat === 'alle') return true;
   if (cat === 'venue') return row.category === 'venue';

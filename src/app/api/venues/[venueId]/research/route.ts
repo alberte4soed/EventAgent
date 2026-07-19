@@ -46,6 +46,27 @@ export async function POST(
     .maybeSingle();
   const event = eventData as EventRow | null;
 
+  // Venue-first: don't spend a grounded-search call researching a non-venue
+  // vendor until the couple has locked in a venue (chosen or booked).
+  if (venue.category !== "venue") {
+    let lockedIn = Boolean(event?.chosen_venue_id);
+    if (!lockedIn) {
+      const { data: bookedRows } = await supabase
+        .from("venues")
+        .select("id")
+        .eq("event_id", venue.event_id)
+        .not("booked_at", "is", null)
+        .limit(1);
+      lockedIn = ((bookedRows as { id: string }[] | null)?.length ?? 0) > 0;
+    }
+    if (!lockedIn) {
+      return Response.json(
+        { error: "venue_first", message: "Vælg jeres lokation, før vi researcher leverandører." },
+        { status: 409 }
+      );
+    }
+  }
+
   const ai = getGemini();
   let groundedText = "";
   let sourceUrls: string[] = [];
