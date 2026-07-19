@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '../ui';
+import { useLang } from '../i18n';
 
 type Props = {
   value: string;
@@ -36,6 +37,7 @@ function sameDay(a: Date, b: Date): boolean {
 
 /** Inline month calendar — shown when the couple already knows their wedding date. */
 export default function WeddingDatePicker({ value, onChange, lang }: Props) {
+  const { t } = useLang();
   const today = useMemo(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
@@ -87,7 +89,7 @@ export default function WeddingDatePicker({ value, onChange, lang }: Props) {
             'flex h-9 w-9 items-center justify-center rounded-full border border-[#d8d5ca] transition-colors cursor-pointer',
             canGoPrev ? 'text-[#23351f] hover:bg-[#f3f1ea]' : 'cursor-not-allowed text-[#b8bdb5] opacity-50',
           )}
-          aria-label={lang === 'en' ? 'Previous month' : 'Forrige måned'}
+          aria-label={t('Forrige måned')}
         >
           <ChevronLeft size={18} />
         </button>
@@ -96,7 +98,7 @@ export default function WeddingDatePicker({ value, onChange, lang }: Props) {
           type="button"
           onClick={() => setViewMonth((m) => addMonths(m, 1))}
           className="flex h-9 w-9 items-center justify-center rounded-full border border-[#d8d5ca] text-[#23351f] transition-colors hover:bg-[#f3f1ea] cursor-pointer"
-          aria-label={lang === 'en' ? 'Next month' : 'Næste måned'}
+          aria-label={t('Næste måned')}
         >
           <ChevronRight size={18} />
         </button>

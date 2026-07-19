@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
 import { cn } from './ui';
+import { useLang } from './i18n';
 
 export type WeddingPalette = {
   id: string;
@@ -169,6 +170,7 @@ export default function PalettePicker({
   customSwatches?: [string, string, string, string, string];
   onCustomSwatchesChange?: (s: [string, string, string, string, string]) => void;
 }) {
+  const { t } = useLang();
   const [cat, setCat] = useState<Category>('alle');
   const [internalCustom, setInternalCustom] = useState<[string, string, string, string, string]>(DEFAULT_CUSTOM_SWATCHES);
 
@@ -205,7 +207,7 @@ export default function PalettePicker({
           <button
             onClick={() => onChange(null)}
             className="rounded-full px-3 py-1 text-[0.7rem] font-medium transition-all cursor-pointer bg-shell text-muted hover:text-ink">
-            Nulstil ×
+            {t('Nulstil ×')}
           </button>
         )}
       </div>
@@ -264,7 +266,7 @@ export default function PalettePicker({
             'text-[0.64rem] font-medium leading-tight pl-0.5 truncate w-full transition-colors',
             value === 'custom' ? 'text-ink' : 'text-muted group-hover:text-ink-soft',
           )}>
-            + Egne farver
+            {t('+ Egne farver')}
           </span>
         </button>
       </motion.div>
@@ -276,7 +278,7 @@ export default function PalettePicker({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.2 }}
           className="mt-4 rounded-2xl bg-card p-5 ring-1 ring-[var(--color-line)]">
-          <p className="text-[0.68rem] uppercase tracking-[0.18em] text-muted mb-4">Tilpas dine 5 farver</p>
+          <p className="text-[0.68rem] uppercase tracking-[0.18em] text-muted mb-4">{t('Tilpas dine 5 farver')}</p>
           <div className="flex gap-4 flex-wrap">
             {customSwatches.map((color, i) => (
               <div key={i} className="flex flex-col items-center gap-2">

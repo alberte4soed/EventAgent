@@ -21,6 +21,7 @@ import { SITE_PRESETS } from '../site/presets';
 import { normalizeImage } from '../site/normalizeImage';
 import { websitePriceDkk } from '@/lib/website/pricing';
 import type { SitePhotoRow, WebsiteDesignRow } from '@/lib/db/types';
+import { useLang } from '../i18n';
 
 type WTab = 'design' | 'indhold' | 'indstillinger';
 
@@ -28,6 +29,7 @@ type WTab = 'design' | 'indhold' | 'indstillinger';
    MAIN EXPORT
 ══════════════════════════════════════════════════════════════════════ */
 export default function Website() {
+  const { t } = useLang();
   const {
     couple, loading, event, weddingSite, saveSite, venues,
     websiteDesign, websiteDesigns, sitePhotos, websitePaid, refresh,
@@ -114,8 +116,8 @@ export default function Website() {
 
   useEffect(() => {
     if (!readyRef.current) return;
-    const t = setTimeout(() => { void saveSite({ config, domain, published }); }, 800);
-    return () => clearTimeout(t);
+    const saveTimer = setTimeout(() => { void saveSite({ config, domain, published }); }, 800);
+    return () => clearTimeout(saveTimer);
   }, [config, domain, published, saveSite]);
 
   const toggleSection = (id: SectionId) =>
@@ -213,7 +215,7 @@ export default function Website() {
   const restartDesign = async () => {
     if (!event || restarting) return;
     const ok = window.confirm(
-      'Start forfra? Jeres designs og Ava-genererede billeder slettes. Jeres egne uploads beholdes.'
+      t('Start forfra? Jeres designs og Ava-genererede billeder slettes. Jeres egne uploads beholdes.')
     );
     if (!ok) return;
     setRestarting(true);
@@ -280,7 +282,13 @@ export default function Website() {
       form.append('eventId', event.id);
       await fetch('/api/website/photos', { method: 'POST', body: form }).catch(() => { failed += 1; });
     }
-    if (failed > 0) setGenError(`${failed} billede${failed === 1 ? '' : 'r'} kunne ikke uploades — prøv et andet format.`);
+    if (failed > 0) {
+      setGenError(
+        failed === 1
+          ? t('{n} billede kunne ikke uploades — prøv et andet format.', { n: failed })
+          : t('{n} billeder kunne ikke uploades — prøv et andet format.', { n: failed }),
+      );
+    }
     await refresh();
   };
 
@@ -362,9 +370,9 @@ export default function Website() {
         <div className="flex items-center justify-between px-6 pt-5 sm:px-9 lg:px-12">
           <div className="flex items-end gap-8 pb-0">
             {([
-              { id: 'design',         label: 'Design'         },
-              { id: 'indhold',        label: 'Indhold'        },
-              { id: 'indstillinger',  label: 'Indstillinger'  },
+              { id: 'design',         label: t('Design')         },
+              { id: 'indhold',        label: t('Indhold')        },
+              { id: 'indstillinger',  label: t('Indstillinger')  },
             ] as const).map(({ id, label }) => {
               const active = tab === id;
               return (
@@ -386,7 +394,7 @@ export default function Website() {
               'mb-3 h-8 rounded-full px-3 text-xs font-semibold uppercase tracking-[0.12em] transition-all cursor-pointer',
               published ? 'bg-sage text-ink' : 'bg-ink text-canvas hover:bg-ink/80',
             )}>
-            {published ? '● Live' : 'Publicér'}
+            {published ? t('● Live') : t('Publicér')}
           </button>
         </div>
       </div>
@@ -403,11 +411,11 @@ export default function Website() {
             <div className="px-6 py-10 sm:px-9 lg:px-12 lg:py-12 lg:rule-r">
               <div className="sticky top-20">
                 <div className="flex items-center justify-between mb-5">
-                  <p className="eyebrow">Live forhåndsvisning</p>
+                  <p className="eyebrow">{t('Live forhåndsvisning')}</p>
                   <button onClick={() => setMobileView((v) => !v)}
                     className={cn('flex items-center gap-1.5 text-[0.72rem] transition-colors cursor-pointer',
                       mobileView ? 'text-ink font-medium' : 'text-muted hover:text-ink')}>
-                    <Smartphone size={12} /> {mobileView ? 'Desktop' : 'Mobil'}
+                    <Smartphone size={12} /> {mobileView ? t('Desktop') : t('Mobil')}
                   </button>
                 </div>
                 <div className={cn('transition-all duration-300', mobileView && 'mx-auto w-full max-w-[390px]')}>
@@ -419,10 +427,10 @@ export default function Website() {
                       onChange={(e) => setDomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
                       className="bg-transparent pl-4 pr-1 py-2 text-[0.82rem] text-ink focus:outline-none w-28"
                     />
-                    <span className="pr-4 text-[0.78rem] text-muted">.kalas.dk</span>
+                    <span className="pr-4 text-[0.78rem] text-muted">{t('.kalas.dk')}</span>
                   </div>
                   {published && (
-                    <p className="text-[0.72rem] text-sage">● Siden er live</p>
+                    <p className="text-[0.72rem] text-sage">{t('● Siden er live')}</p>
                   )}
                 </div>
               </div>
@@ -468,22 +476,22 @@ export default function Website() {
             {/* Left: section editors */}
             <div className="px-6 py-10 sm:px-9 lg:px-12 lg:py-12 space-y-3 lg:rule-r">
               <div className="mb-8">
-                <Eyebrow>Sektioner</Eyebrow>
-                <p className="mt-2 text-[0.88rem] text-muted">Tænd/sluk sektioner og rediger indholdet. Siden opdateres til højre.</p>
+                <Eyebrow>{t('Sektioner')}</Eyebrow>
+                <p className="mt-2 text-[0.88rem] text-muted">{t('Tænd/sluk sektioner og rediger indholdet. Siden opdateres til højre.')}</p>
               </div>
 
               {/* HERO */}
               <SectionCard id="hero" section={sections.find((s) => s.id === 'hero')!} onToggle={toggleSection}
                 icon={<Image size={15} />}>
-                <Label>Navne</Label>
+                <Label>{t('Navne')}</Label>
                 <p className="rule rounded-xl bg-shell px-4 py-3 text-[0.88rem] text-ink">{couple.a} & {couple.b}</p>
-                <p className="mt-1 text-[0.7rem] text-muted">Fra jeres profil · redigér under Indstillinger</p>
+                <p className="mt-1 text-[0.7rem] text-muted">{t('Fra jeres profil · redigér under Indstillinger')}</p>
                 <div className="mt-4">
-                  <Label>Velkomstbesked</Label>
-                  <Textarea value={heroTagline} onChange={setHeroTagline} rows={2} placeholder="Kom og fejr dagen med os" />
+                  <Label>{t('Velkomstbesked')}</Label>
+                  <Textarea value={heroTagline} onChange={setHeroTagline} rows={2} placeholder={t('Kom og fejr dagen med os')} />
                 </div>
                 <div className="mt-4 flex items-center justify-between">
-                  <Label>Nedtælling til brylluppet</Label>
+                  <Label>{t('Nedtælling til brylluppet')}</Label>
                   <Toggle value={countdown} onChange={setCountdown} />
                 </div>
               </SectionCard>
@@ -491,29 +499,29 @@ export default function Website() {
               {/* VORES HISTORIE */}
               <SectionCard id="story" section={sections.find((s) => s.id === 'story')!} onToggle={toggleSection} ai={aiToggle('story')}
                 icon={<BookOpen size={15} />}>
-                <Label>Jeres historie</Label>
+                <Label>{t('Jeres historie')}</Label>
                 <Textarea value={storyText} onChange={setStoryText} rows={5}
-                  placeholder="Fortæl gæsterne jeres historie…" />
-                <p className="mt-2 text-[0.7rem] text-muted">Ava har skrevet et udkast — tilpas det som I ønsker.</p>
+                  placeholder={t('Fortæl gæsterne jeres historie…')} />
+                <p className="mt-2 text-[0.7rem] text-muted">{t('Ava har skrevet et udkast — tilpas det som I ønsker.')}</p>
               </SectionCard>
 
               {/* PROGRAM */}
               <SectionCard id="program" section={sections.find((s) => s.id === 'program')!} onToggle={toggleSection} ai={aiToggle('program')}
                 icon={<Clock size={15} />}>
-                <Label>Programpunkter</Label>
+                <Label>{t('Programpunkter')}</Label>
                 <div className="mt-1 space-y-2">
                   {program.map((ev) => (
                     <div key={ev.id} className="flex gap-2 items-start">
                       <input value={ev.time} onChange={(e) => setProgram((p) => p.map((x) => x.id === ev.id ? { ...x, time: e.target.value } : x))}
                         className="w-16 shrink-0 rounded-lg rule bg-card px-2 py-1.5 text-[0.82rem] text-ink text-center focus:outline-none focus:ring-1 focus:ring-ink/20"
-                        placeholder="00:00" />
+                        placeholder={t('00:00')} />
                       <div className="flex-1 space-y-1.5">
                         <input value={ev.label} onChange={(e) => setProgram((p) => p.map((x) => x.id === ev.id ? { ...x, label: e.target.value } : x))}
                           className="w-full rounded-lg rule bg-card px-3 py-1.5 text-[0.82rem] text-ink focus:outline-none focus:ring-1 focus:ring-ink/20"
-                          placeholder="Programpunkt" />
+                          placeholder={t('Programpunkt')} />
                         <input value={ev.sublabel} onChange={(e) => setProgram((p) => p.map((x) => x.id === ev.id ? { ...x, sublabel: e.target.value } : x))}
                           className="w-full rounded-lg bg-transparent px-3 py-1 text-[0.74rem] text-muted focus:outline-none"
-                          placeholder="Sted / detalje (valgfrit)" />
+                          placeholder={t('Sted / detalje (valgfrit)')} />
                       </div>
                       <button onClick={() => setProgram((p) => p.filter((x) => x.id !== ev.id))}
                         className="mt-1.5 shrink-0 text-muted hover:text-ink transition-colors cursor-pointer">
@@ -524,7 +532,7 @@ export default function Website() {
                   <button
                     onClick={() => setProgram((p) => [...p, { id: `e${Date.now()}`, time: '', label: '', sublabel: '' }])}
                     className="flex items-center gap-2 text-[0.78rem] text-muted hover:text-ink transition-colors cursor-pointer mt-2">
-                    <Plus size={14} /> Tilføj programpunkt
+                    <Plus size={14} /> {t('Tilføj programpunkt')}
                   </button>
                 </div>
               </SectionCard>
@@ -534,21 +542,21 @@ export default function Website() {
                 icon={<Check size={15} />}>
                 <div className="space-y-4">
                   <div>
-                    <Label>RSVP-deadline</Label>
+                    <Label>{t('RSVP-deadline')}</Label>
                     <input type="date" value={rsvpDeadline} onChange={(e) => setRsvpDeadline(e.target.value)}
                       className="mt-1 rounded-lg rule bg-card px-3 py-2 text-[0.85rem] text-ink focus:outline-none w-full" />
                   </div>
-                  <ToggleRow label="+1 tilladet" value={rsvpPlusOne} onChange={setRsvpPlusOne} />
-                  <ToggleRow label="Måltidsvalg (vegetar/standard)" value={rsvpMeal} onChange={setRsvpMeal} />
-                  <ToggleRow label="Allergier & kostbehov" value={rsvpDietary} onChange={setRsvpDietary} />
+                  <ToggleRow label={t('+1 tilladet')} value={rsvpPlusOne} onChange={setRsvpPlusOne} />
+                  <ToggleRow label={t('Måltidsvalg (vegetar/standard)')} value={rsvpMeal} onChange={setRsvpMeal} />
+                  <ToggleRow label={t('Allergier & kostbehov')} value={rsvpDietary} onChange={setRsvpDietary} />
                 </div>
-                <p className="mt-4 text-[0.72rem] text-muted">Svar synkroniseres automatisk med jeres gæsteliste.</p>
+                <p className="mt-4 text-[0.72rem] text-muted">{t('Svar synkroniseres automatisk med jeres gæsteliste.')}</p>
               </SectionCard>
 
               {/* GALLERI */}
               <SectionCard id="gallery" section={sections.find((s) => s.id === 'gallery')!} onToggle={toggleSection}
                 icon={<Camera size={15} />}>
-                <Label>Vælg billeder til galleriet</Label>
+                <Label>{t('Vælg billeder til galleriet')}</Label>
                 <div className="mt-2 grid grid-cols-4 gap-2">
                   {GALLERY_KEYS.map((key) => {
                     const on = galleryKeys.has(key);
@@ -570,22 +578,22 @@ export default function Website() {
                     );
                   })}
                 </div>
-                <p className="mt-2 text-[0.7rem] text-muted">{galleryKeys.size} billeder valgt · Fra jeres moodboard</p>
+                <p className="mt-2 text-[0.7rem] text-muted">{t('{n} billeder valgt · Fra jeres moodboard', { n: galleryKeys.size })}</p>
               </SectionCard>
 
               {/* TRANSPORT */}
               <SectionCard id="transport" section={sections.find((s) => s.id === 'transport')!} onToggle={toggleSection} ai={aiToggle('transport')}
                 icon={<MapPin size={15} />}>
-                <Label>Adresse</Label>
-                <Textarea value={transport} onChange={setTransport} rows={2} placeholder="Venue-navn, adresse, postnummer" />
-                <p className="mt-2 text-[0.7rem] text-muted">Ava tilføjer automatisk et kort-link til gæsterne.</p>
+                <Label>{t('Adresse')}</Label>
+                <Textarea value={transport} onChange={setTransport} rows={2} placeholder={t('Venue-navn, adresse, postnummer')} />
+                <p className="mt-2 text-[0.7rem] text-muted">{t('Ava tilføjer automatisk et kort-link til gæsterne.')}</p>
               </SectionCard>
 
               {/* DRESSCODE */}
               <SectionCard id="dresscode" section={sections.find((s) => s.id === 'dresscode')!} onToggle={toggleSection} ai={aiToggle('dresscode')}
                 icon={<Eye size={15} />}>
-                <Label>Dresscode-tekst</Label>
-                <Textarea value={dresscode} onChange={setDresscode} rows={3} placeholder="Beskriv dresscode og ønsker…" />
+                <Label>{t('Dresscode-tekst')}</Label>
+                <Textarea value={dresscode} onChange={setDresscode} rows={3} placeholder={t('Beskriv dresscode og ønsker…')} />
               </SectionCard>
 
               {/* GAVEØNSKER */}
@@ -593,13 +601,13 @@ export default function Website() {
                 icon={<Gift size={15} />}>
                 <div className="space-y-4">
                   <div>
-                    <Label>Tekst til gæsterne</Label>
-                    <Textarea value={giftsText} onChange={setGiftsText} rows={3} placeholder="Ingen ønskeliste, bryllupsrejse, eller link til registrering…" />
+                    <Label>{t('Tekst til gæsterne')}</Label>
+                    <Textarea value={giftsText} onChange={setGiftsText} rows={3} placeholder={t('Ingen ønskeliste, bryllupsrejse, eller link til registrering…')} />
                   </div>
                   <div>
-                    <Label>Ønskeliste-link (valgfrit)</Label>
+                    <Label>{t('Ønskeliste-link (valgfrit)')}</Label>
                     <input value={giftsUrl} onChange={(e) => setGiftsUrl(e.target.value)}
-                      placeholder="https://..."
+                      placeholder={t('https://...')}
                       className="mt-1 w-full rounded-lg rule bg-card px-3 py-2 text-[0.82rem] text-ink placeholder:text-muted focus:outline-none" />
                   </div>
                 </div>
@@ -608,7 +616,7 @@ export default function Website() {
               {/* OVERNATNING */}
               <SectionCard id="hotel" section={sections.find((s) => s.id === 'hotel')!} onToggle={toggleSection} ai={aiToggle('hotel')}
                 icon={<Bed size={15} />}>
-                <Label>Anbefalede hoteller</Label>
+                <Label>{t('Anbefalede hoteller')}</Label>
                 <div className="mt-1 space-y-2">
                   {hotels.map((h) => (
                     <div key={h.id} className="rule rounded-xl bg-card p-3">
@@ -616,12 +624,12 @@ export default function Website() {
                         <div className="flex-1 space-y-1.5">
                           <input value={h.name} onChange={(e) => setHotels((prev) => prev.map((x) => x.id === h.id ? { ...x, name: e.target.value } : x))}
                             className="w-full text-[0.85rem] font-medium text-ink bg-transparent focus:outline-none border-b border-[var(--color-line)] pb-0.5"
-                            placeholder="Hotelnavn" />
+                            placeholder={t('Hotelnavn')} />
                           <div className="flex gap-3">
                             <input value={h.dist} onChange={(e) => setHotels((prev) => prev.map((x) => x.id === h.id ? { ...x, dist: e.target.value } : x))}
-                              className="flex-1 text-[0.75rem] text-muted bg-transparent focus:outline-none" placeholder="Afstand" />
+                              className="flex-1 text-[0.75rem] text-muted bg-transparent focus:outline-none" placeholder={t('Afstand')} />
                             <input value={h.price} onChange={(e) => setHotels((prev) => prev.map((x) => x.id === h.id ? { ...x, price: e.target.value } : x))}
-                              className="flex-1 text-[0.75rem] text-muted bg-transparent focus:outline-none" placeholder="Pris" />
+                              className="flex-1 text-[0.75rem] text-muted bg-transparent focus:outline-none" placeholder={t('Pris')} />
                           </div>
                         </div>
                         <button onClick={() => setHotels((prev) => prev.filter((x) => x.id !== h.id))}
@@ -633,7 +641,7 @@ export default function Website() {
                   ))}
                   <button onClick={() => setHotels((prev) => [...prev, { id: `h${Date.now()}`, name: '', dist: '', price: '' }])}
                     className="flex items-center gap-2 text-[0.78rem] text-muted hover:text-ink transition-colors cursor-pointer">
-                    <Plus size={14} /> Tilføj hotel
+                    <Plus size={14} /> {t('Tilføj hotel')}
                   </button>
                 </div>
               </SectionCard>
@@ -641,7 +649,7 @@ export default function Website() {
               {/* FAQ */}
               <SectionCard id="faq" section={sections.find((s) => s.id === 'faq')!} onToggle={toggleSection} ai={aiToggle('faq')}
                 icon={<HelpCircle size={15} />}>
-                <Label>Spørgsmål & svar</Label>
+                <Label>{t('Spørgsmål & svar')}</Label>
                 <div className="mt-1 space-y-3">
                   {faq.map((item) => (
                     <div key={item.id} className="rule rounded-xl bg-card p-3 space-y-2">
@@ -650,11 +658,11 @@ export default function Website() {
                           <input value={item.q}
                             onChange={(e) => setFaq((f) => f.map((x) => x.id === item.id ? { ...x, q: e.target.value } : x))}
                             className="w-full text-[0.82rem] font-medium text-ink bg-transparent border-b border-[var(--color-line)] pb-0.5 focus:outline-none"
-                            placeholder="Spørgsmål…" />
+                            placeholder={t('Spørgsmål…')} />
                           <textarea value={item.a} rows={2}
                             onChange={(e) => setFaq((f) => f.map((x) => x.id === item.id ? { ...x, a: e.target.value } : x))}
                             className="w-full resize-none text-[0.78rem] text-muted bg-transparent focus:outline-none leading-relaxed"
-                            placeholder="Svar…" />
+                            placeholder={t('Svar…')} />
                         </div>
                         <button onClick={() => setFaq((f) => f.filter((x) => x.id !== item.id))}
                           className="mt-0.5 shrink-0 text-muted hover:text-ink transition-colors cursor-pointer">
@@ -665,7 +673,7 @@ export default function Website() {
                   ))}
                   <button onClick={() => setFaq((f) => [...f, { id: `f${Date.now()}`, q: '', a: '' }])}
                     className="flex items-center gap-2 text-[0.78rem] text-muted hover:text-ink transition-colors cursor-pointer">
-                    <Plus size={14} /> Tilføj spørgsmål
+                    <Plus size={14} /> {t('Tilføj spørgsmål')}
                   </button>
                 </div>
               </SectionCard>
@@ -674,10 +682,10 @@ export default function Website() {
               <SectionCard id="photos" section={sections.find((s) => s.id === 'photos')!} onToggle={toggleSection}
                 icon={<Camera size={15} />}>
                 <p className="text-[0.84rem] text-muted leading-relaxed">
-                  Gæsterne får en knap til at uploade egne billeder. Alle billeder samles i jeres private galleri.
+                  {t('Gæsterne får en knap til at uploade egne billeder. Alle billeder samles i jeres private galleri.')}
                 </p>
                 <div className="mt-3 rule rounded-xl bg-shell px-4 py-3 text-[0.78rem] text-muted">
-                  Upload-link: <span className="font-mono text-ink">{domain}.kalas.dk/del</span>
+                  {t('Upload-link:')} <span className="font-mono text-ink">{domain}.kalas.dk/del</span>
                 </div>
               </SectionCard>
             </div>
@@ -685,7 +693,7 @@ export default function Website() {
             {/* Right: mini preview (desktop only) */}
             <div className="hidden lg:block px-8 py-12 rule-t lg:rule-t-0">
               <div className="sticky top-20">
-                <p className="eyebrow mb-5">Live forhåndsvisning</p>
+                <p className="eyebrow mb-5">{t('Live forhåndsvisning')}</p>
                 {preview}
               </div>
             </div>
@@ -698,37 +706,37 @@ export default function Website() {
             transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
             className="px-6 py-10 sm:px-9 lg:px-12 max-w-2xl">
 
-            <Eyebrow className="mb-8">Publicering & indstillinger</Eyebrow>
+            <Eyebrow className="mb-8">{t('Publicering & indstillinger')}</Eyebrow>
 
             <div className="space-y-8">
 
               {/* Domæne */}
               <section className="rule rounded-2xl bg-card p-6">
-                <p className="font-serif text-[1.15rem] text-ink mb-1">Domæne</p>
-                <p className="text-[0.8rem] text-muted mb-4">Jeres side er tilgængelig på denne adresse.</p>
+                <p className="font-serif text-[1.15rem] text-ink mb-1">{t('Domæne')}</p>
+                <p className="text-[0.8rem] text-muted mb-4">{t('Jeres side er tilgængelig på denne adresse.')}</p>
                 <div className="flex items-center gap-2 rule rounded-xl bg-shell overflow-hidden">
                   <input value={domain}
                     onChange={(e) => setDomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
                     className="flex-1 bg-transparent pl-4 py-2.5 text-[0.88rem] text-ink focus:outline-none"
                   />
-                  <span className="pr-4 text-[0.82rem] text-muted">.kalas.dk</span>
+                  <span className="pr-4 text-[0.82rem] text-muted">{t('.kalas.dk')}</span>
                 </div>
-                <p className="mt-2 text-[0.7rem] text-muted">Kun bogstaver, tal og bindestreger.</p>
+                <p className="mt-2 text-[0.7rem] text-muted">{t('Kun bogstaver, tal og bindestreger.')}</p>
               </section>
 
               {/* Publicer */}
               <section className="rule rounded-2xl bg-card p-6">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="font-serif text-[1.15rem] text-ink">Publicering</p>
+                    <p className="font-serif text-[1.15rem] text-ink">{t('Publicering')}</p>
                     <p className="mt-1 text-[0.8rem] text-muted">
-                      {published ? 'Jeres side er live og tilgængelig for gæster.' : 'Siden er ikke offentlig endnu.'}
+                      {published ? t('Jeres side er live og tilgængelig for gæster.') : t('Siden er ikke offentlig endnu.')}
                     </p>
                   </div>
                   <button onClick={() => setPublished((v) => !v)}
                     className={cn('shrink-0 rounded-full px-5 py-2 text-[0.7rem] font-bold uppercase tracking-[0.16em] transition-all cursor-pointer',
                       published ? 'bg-sage text-ink' : 'bg-ink text-canvas hover:bg-ink/80')}>
-                    {published ? '● Live' : 'Publicér'}
+                    {published ? t('● Live') : t('Publicér')}
                   </button>
                 </div>
                 {published && (
@@ -738,11 +746,11 @@ export default function Website() {
                     <a href={publicPath} target="_blank" rel="noopener noreferrer"
                       className="flex-1 truncate py-2.5 text-[0.82rem] text-ink font-mono hover:underline">{publicUrl.replace(/^https?:\/\//, '')}</a>
                     <a href={publicPath} target="_blank" rel="noopener noreferrer"
-                      className="mr-1 shrink-0 text-[0.72rem] text-muted hover:text-ink transition-colors">Se live ↗</a>
+                      className="mr-1 shrink-0 text-[0.72rem] text-muted hover:text-ink transition-colors">{t('Se live ↗')}</a>
                     <button onClick={copyLink}
                       className="flex items-center gap-1.5 mr-3 text-[0.72rem] text-muted hover:text-ink transition-colors cursor-pointer">
                       {copied ? <Check size={13} /> : <Copy size={13} />}
-                      {copied ? 'Kopieret' : 'Kopiér'}
+                      {copied ? t('Kopieret') : t('Kopiér')}
                     </button>
                   </motion.div>
                 )}
@@ -753,11 +761,11 @@ export default function Website() {
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <Lock size={15} className="text-muted" />
-                    <p className="font-serif text-[1.15rem] text-ink">Adgangskode</p>
+                    <p className="font-serif text-[1.15rem] text-ink">{t('Adgangskode')}</p>
                   </div>
                   <Toggle value={pwProtected} onChange={setPwProtected} />
                 </div>
-                <p className="text-[0.8rem] text-muted mb-4">Gæsterne skal indtaste en kode for at se siden.</p>
+                <p className="text-[0.8rem] text-muted mb-4">{t('Gæsterne skal indtaste en kode for at se siden.')}</p>
                 <AnimatePresence>
                   {pwProtected && (
                     <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
@@ -765,7 +773,7 @@ export default function Website() {
                       className="overflow-hidden">
                       <input type="text" value={sitePassword}
                         onChange={(e) => setSitePassword(e.target.value)}
-                        placeholder="Vælg en kode til gæsterne"
+                        placeholder={t('Vælg en kode til gæsterne')}
                         className="w-full rule rounded-xl bg-shell px-4 py-2.5 text-[0.85rem] text-ink placeholder:text-muted focus:outline-none" />
                     </motion.div>
                   )}
@@ -774,8 +782,8 @@ export default function Website() {
 
               {/* Del link */}
               <section className="rule rounded-2xl bg-card p-6">
-                <p className="font-serif text-[1.15rem] text-ink mb-1">Del med gæsterne</p>
-                <p className="text-[0.8rem] text-muted mb-4">Send linket i invitationen eller print QR-koden.</p>
+                <p className="font-serif text-[1.15rem] text-ink mb-1">{t('Del med gæsterne')}</p>
+                <p className="text-[0.8rem] text-muted mb-4">{t('Send linket i invitationen eller print QR-koden.')}</p>
                 <div className="flex items-start gap-4">
                   <div className="flex-1 space-y-2">
                     <div className="rule rounded-xl bg-shell px-4 py-2.5 text-[0.82rem] font-mono text-ink truncate">
@@ -784,12 +792,12 @@ export default function Website() {
                     <button onClick={copyLink}
                       className="flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-[0.7rem] font-bold uppercase tracking-[0.14em] text-canvas hover:bg-ink/80 transition-colors cursor-pointer">
                       {copied ? <Check size={12} /> : <Copy size={12} />}
-                      {copied ? 'Kopieret!' : 'Kopiér link'}
+                      {copied ? t('Kopieret!') : t('Kopiér link')}
                     </button>
                   </div>
                   <div className="shrink-0 rule rounded-xl bg-shell p-3 flex flex-col items-center gap-1.5">
                     <QrCode size={40} className="text-ink" />
-                    <span className="text-[0.6rem] uppercase tracking-[0.12em] text-muted">QR-kode</span>
+                    <span className="text-[0.6rem] uppercase tracking-[0.12em] text-muted">{t('QR-kode')}</span>
                   </div>
                 </div>
               </section>
@@ -798,23 +806,23 @@ export default function Website() {
               <section className="rule rounded-2xl bg-card p-6">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="font-serif text-[1.15rem] text-ink">Kalas-branding</p>
+                    <p className="font-serif text-[1.15rem] text-ink">{t('Kalas-branding')}</p>
                     <p className="mt-1 text-[0.8rem] text-muted">
-                      Et diskret &quot;Lavet med Kalas&quot; vises i bunden af jeres side — og hjælper andre par finde Kalas.
+                      {t('Et diskret "Lavet med Kalas" vises i bunden af jeres side — og hjælper andre par finde Kalas.')}
                     </p>
                   </div>
                   {websitePaid
                     ? <Toggle value={!hideBranding} onChange={(v) => setHideBranding(!v)} />
-                    : <span className="shrink-0 rounded-full bg-sage-tint px-3 py-1 text-[0.65rem] font-bold uppercase tracking-[0.14em] text-ink">Inkluderet i køb</span>
+                    : <span className="shrink-0 rounded-full bg-sage-tint px-3 py-1 text-[0.65rem] font-bold uppercase tracking-[0.14em] text-ink">{t('Inkluderet i køb')}</span>
                   }
                 </div>
                 {!websitePaid && (
                   <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
                     className="mt-4 rule rounded-xl bg-shell px-4 py-3 flex items-center justify-between gap-4">
-                    <p className="text-[0.78rem] text-muted">Branding fjernes når I låser Ava-designeren op</p>
+                    <p className="text-[0.78rem] text-muted">{t('Branding fjernes når I låser Ava-designeren op')}</p>
                     <button onClick={() => void startCheckout()}
                       className="shrink-0 rounded-full bg-ink px-4 py-1.5 text-[0.65rem] font-bold uppercase tracking-[0.14em] text-canvas hover:bg-ink/80 transition-colors cursor-pointer">
-                      Lås op · {websitePriceDkk()} kr
+                      {t('Lås op · {price} kr', { price: websitePriceDkk() })}
                     </button>
                   </motion.div>
                 )}
@@ -822,12 +830,12 @@ export default function Website() {
 
               {/* Statistik */}
               <section className="rule rounded-2xl bg-card p-6">
-                <p className="font-serif text-[1.15rem] text-ink mb-4">Statistik</p>
+                <p className="font-serif text-[1.15rem] text-ink mb-4">{t('Statistik')}</p>
                 <div className="grid grid-cols-3 gap-px overflow-hidden rounded-xl rule bg-[var(--color-line)]">
                   {[
-                    { label: 'Sidevisninger',   value: published ? '34' : '—' },
-                    { label: 'RSVP modtaget',   value: published ? String(guests.filter((g) => g.rsvp !== 'afventer').length) : '—' },
-                    { label: 'Billeder delt',   value: published ? '7'  : '—' },
+                    { label: t('Sidevisninger'),   value: published ? '34' : '—' },
+                    { label: t('RSVP modtaget'),   value: published ? String(guests.filter((g) => g.rsvp !== 'afventer').length) : '—' },
+                    { label: t('Billeder delt'),   value: published ? '7'  : '—' },
                   ].map(({ label, value }) => (
                     <div key={label} className="bg-card px-4 py-5 text-center">
                       <div className="font-serif text-[1.6rem] text-ink">{value}</div>
@@ -835,7 +843,7 @@ export default function Website() {
                     </div>
                   ))}
                 </div>
-                {!published && <p className="mt-3 text-[0.72rem] text-muted text-center">Publicér siden for at se statistik</p>}
+                {!published && <p className="mt-3 text-[0.72rem] text-muted text-center">{t('Publicér siden for at se statistik')}</p>}
               </section>
             </div>
           </motion.div>
@@ -863,30 +871,30 @@ export default function Website() {
                 <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-sage-tint mb-5">
                   <Check size={24} className="text-ink" />
                 </div>
-                <p className="font-serif text-[1.7rem] text-ink leading-tight">Tak for dit svar!</p>
-                <p className="mt-2 text-[0.88rem] text-muted">{couple.a} & {couple.b} glæder sig til at se dig den {couple.dateLabel}.</p>
+                <p className="font-serif text-[1.7rem] text-ink leading-tight">{t('Tak for dit svar!')}</p>
+                <p className="mt-2 text-[0.88rem] text-muted">{t('{a} & {b} glæder sig til at se dig den {date}.', { a: couple.a, b: couple.b, date: couple.dateLabel })}</p>
               </div>
 
               {/* Viral CTA */}
               <div className="rule-t px-8 py-7 bg-shell/60">
                 <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-muted mb-2">
-                  {couple.a} & {couple.b} bruger
+                  {t('{a} & {b} bruger', { a: couple.a, b: couple.b })}
                 </p>
                 <p className="font-serif text-[1.2rem] text-ink leading-snug">
-                  Planlægger I selv bryllup?<br />
-                  <span className="italic">Ava gør arbejdet for jer.</span>
+                  {t('Planlægger I selv bryllup?')}<br />
+                  <span className="italic">{t('Ava gør arbejdet for jer.')}</span>
                 </p>
-                <p className="mt-2 text-[0.8rem] text-muted">Tidslinje, venues, budget og bryllupsside på én platform.</p>
+                <p className="mt-2 text-[0.8rem] text-muted">{t('Tidslinje, venues, budget og bryllupsside på én platform.')}</p>
                 <button
                   onClick={() => { setShowRsvp(false); setShowLanding(true); }}
                   className="mt-5 w-full rounded-2xl py-3.5 text-[0.75rem] font-bold uppercase tracking-[0.16em] text-canvas hover:opacity-90 transition-opacity cursor-pointer"
                   style={{ background: 'var(--color-ink)' }}
                 >
-                  Prøv Kalas gratis →
+                  {t('Prøv Kalas gratis →')}
                 </button>
                 <button onClick={() => setShowRsvp(false)}
                   className="mt-3 w-full text-center text-[0.72rem] text-muted hover:text-ink transition-colors cursor-pointer">
-                  Nej tak
+                  {t('Nej tak')}
                 </button>
               </div>
             </motion.div>
@@ -911,17 +919,17 @@ export default function Website() {
               className="w-full max-w-md rule rounded-3xl bg-canvas px-8 py-10 shadow-[0_32px_80px_-16px_rgba(0,0,0,0.28)]"
             >
               <p className="font-serif text-[2rem] leading-tight text-ink">
-                Planlæg jeres bryllup.<br /><span className="italic">Ava gør arbejdet.</span>
+                {t('Planlæg jeres bryllup.')}<br /><span className="italic">{t('Ava gør arbejdet.')}</span>
               </p>
               <p className="mt-3 text-[0.88rem] text-muted leading-relaxed">
-                {couple.a} & {couple.b} bruger Kalas til at planlægge deres store dag. Kom i gang på 2 minutter.
+                {t('{a} & {b} bruger Kalas til at planlægge deres store dag. Kom i gang på 2 minutter.', { a: couple.a, b: couple.b })}
               </p>
 
               <div className="mt-7 space-y-3">
                 {[
-                  { n: 'Tidslinje på 2 minutter', d: '14 milepæle planlagt baglæns fra bryllupsdagen' },
-                  { n: '3 venues fundet',          d: 'Ava matchede til budget og stil — ingen Google' },
-                  { n: 'Invitationer klar',         d: 'Udkast skrevet og klar til godkendelse på dag 1' },
+                  { n: t('Tidslinje på 2 minutter'), d: t('14 milepæle planlagt baglæns fra bryllupsdagen') },
+                  { n: t('3 venues fundet'),          d: t('Ava matchede til budget og stil — ingen Google') },
+                  { n: t('Invitationer klar'),         d: t('Udkast skrevet og klar til godkendelse på dag 1') },
                 ].map(({ n, d }) => (
                   <div key={n} className="flex items-start gap-3">
                     <div className="mt-0.5 h-5 w-5 shrink-0 rounded-full bg-sage-tint flex items-center justify-center">
@@ -940,10 +948,10 @@ export default function Website() {
                 style={{ background: 'var(--color-ink)' }}
                 onClick={() => setShowLanding(false)}
               >
-                Start gratis — ingen kreditkort
+                {t('Start gratis — ingen kreditkort')}
               </button>
               <p className="mt-3 text-center text-[0.7rem] text-muted">
-                Én gang · 499 kr ved launch · normalt 799 kr
+                {t('Én gang · 499 kr ved launch · normalt 799 kr')}
               </p>
             </motion.div>
           </motion.div>
@@ -967,6 +975,7 @@ function SectionCard({
   /** AI-illustration toggle for this section (step 2 of the build). */
   ai?: { on: boolean; onChange: (v: boolean) => void; thumb?: string | null };
 }) {
+  const { t } = useLang();
   const [open, setOpen] = useState(section.enabled && !section.locked);
   const fieldId = useId();
 
@@ -979,14 +988,14 @@ function SectionCard({
           {icon}
         </span>
         <div className="flex-1 min-w-0">
-          <p className="font-serif text-[1rem] text-ink leading-tight">{section.label}</p>
-          <p className="text-[0.7rem] text-muted mt-0.5">{section.desc}</p>
+          <p className="font-serif text-[1rem] text-ink leading-tight">{t(section.label)}</p>
+          <p className="text-[0.7rem] text-muted mt-0.5">{t(section.desc)}</p>
         </div>
         <div className="flex items-center gap-3 shrink-0">
           {section.locked ? (
-            <span className="text-[0.6rem] uppercase tracking-[0.1em] text-muted">Altid</span>
+            <span className="text-[0.6rem] uppercase tracking-[0.1em] text-muted">{t('Altid')}</span>
           ) : (
-            <button onClick={() => onToggle(id)} aria-label={section.enabled ? 'Sluk' : 'Tænd'}
+            <button onClick={() => onToggle(id)} aria-label={section.enabled ? t('Sluk') : t('Tænd')}
               aria-checked={section.enabled} role="switch" id={fieldId}
               className={cn('relative h-5 w-9 rounded-full transition-colors duration-200 cursor-pointer shrink-0',
                 section.enabled ? 'bg-ink' : 'bg-shell')}>
@@ -996,7 +1005,7 @@ function SectionCard({
           )}
           <button onClick={() => setOpen((v) => !v)}
             className="text-muted hover:text-ink transition-colors cursor-pointer"
-            aria-label={open ? 'Luk' : 'Åbn'}>
+            aria-label={open ? t('Luk') : t('Åbn')}>
             <motion.span animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }} className="block">
               <ChevronDown size={16} />
             </motion.span>
@@ -1027,9 +1036,9 @@ function SectionCard({
                         </span>
                       )}
                       <div className="min-w-0">
-                        <p className="text-[0.82rem] text-ink">AI-billede</p>
+                        <p className="text-[0.82rem] text-ink">{t('AI-billede')}</p>
                         <p className="text-[0.68rem] text-muted truncate">
-                          {ai.thumb ? 'Genereret — genbruges i næste byg' : 'Ava genererer en illustration til sektionen'}
+                          {ai.thumb ? t('Genereret — genbruges i næste byg') : t('Ava genererer en illustration til sektionen')}
                         </p>
                       </div>
                     </div>
@@ -1095,6 +1104,7 @@ function ScaledPreview({ domain, couple, config, design, photoUrls, html, htmlFo
   mobile?: boolean;
   onRsvp: () => void;
 }) {
+  const { t } = useLang();
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const [scale, setScale] = useState(0.35);
   // Iframe/div width = the CSS viewport the site sees. Mobile must be ~390
@@ -1138,7 +1148,7 @@ function ScaledPreview({ domain, couple, config, design, photoUrls, html, htmlFo
         {html ? (
           /* Sandboxed (no scripts can ever run) — the model-built site. */
           <iframe
-            title="Forhåndsvisning af jeres side"
+            title={t('Forhåndsvisning af jeres side')}
             sandbox=""
             srcDoc={`<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1">${htmlFontsHref ? `<link rel="stylesheet" href="${htmlFontsHref}">` : ''}<style>html,body{margin:0;padding:0}</style></head><body><div id="kalas-site">${html}</div></body></html>`}
             className="absolute left-0 top-0 origin-top-left border-0"
@@ -1194,6 +1204,7 @@ function DesignStudio({
   onDeletePhoto: (id: string) => void;
   onSetHero: (id: string) => void;
 }) {
+  const { t } = useLang();
   const [styleDirection, setStyleDirection] = useState('');
   const [instruction, setInstruction] = useState('');
   const [showVersions, setShowVersions] = useState(false);
@@ -1211,7 +1222,7 @@ function DesignStudio({
     return (
       <div className="rule rounded-2xl bg-card p-8 text-center">
         <Loader2 size={26} className="mx-auto animate-spin text-ink" />
-        <p className="mt-4 font-serif text-[1.25rem] text-ink">Starter forfra…</p>
+        <p className="mt-4 font-serif text-[1.25rem] text-ink">{t('Starter forfra…')}</p>
       </div>
     );
   }
@@ -1220,7 +1231,7 @@ function DesignStudio({
   return (
     <div className="space-y-8">
       {genError && (
-        <p className="rule rounded-xl bg-[#f2e3dd] px-4 py-3 text-[0.82rem] text-[var(--color-terracotta)]">{genError}</p>
+        <p className="rule rounded-xl bg-[#f2e3dd] px-4 py-3 text-[0.82rem] text-[var(--color-terracotta)]">{t(genError)}</p>
       )}
 
       {/* Paywall notice — templates stay usable; Ava's edits unlock on purchase. */}
@@ -1229,13 +1240,13 @@ function DesignStudio({
           <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-ink">
             <Sparkles size={18} className="text-canvas" />
           </div>
-          <p className="font-serif text-[1.25rem] text-ink leading-tight">Lås Ava-designeren op</p>
+          <p className="font-serif text-[1.25rem] text-ink leading-tight">{t('Lås Ava-designeren op')}</p>
           <p className="mx-auto mt-2 max-w-xs text-[0.82rem] text-muted leading-relaxed">
-            Skabelonerne er jeres — men Avas personalisering og ændringer via chat er en betalt funktion. Inkl. fjernelse af Kalas-branding.
+            {t('Skabelonerne er jeres — men Avas personalisering og ændringer via chat er en betalt funktion. Inkl. fjernelse af Kalas-branding.')}
           </p>
           <button onClick={onCheckout}
             className="mt-5 rounded-full bg-ink px-6 py-2.5 text-[0.72rem] font-bold uppercase tracking-[0.16em] text-canvas hover:bg-ink/80 transition-colors cursor-pointer">
-            Lås op · {websitePriceDkk()} kr
+            {t('Lås op · {price} kr', { price: websitePriceDkk() })}
           </button>
         </div>
       )}
@@ -1243,10 +1254,10 @@ function DesignStudio({
       {!hasDesign ? (
         /* ── First visit: pick a template ─────────────────────────────── */
         <section>
-          <Eyebrow className="mb-2">Trin 1 · Vælg jeres stil</Eyebrow>
-          <p className="font-serif text-[1.4rem] leading-tight text-ink">Otte gennemarbejdede skabeloner</p>
+          <Eyebrow className="mb-2">{t('Trin 1 · Vælg jeres stil')}</Eyebrow>
+          <p className="font-serif text-[1.4rem] leading-tight text-ink">{t('Otte gennemarbejdede skabeloner')}</p>
           <p className="mt-2 text-[0.85rem] leading-relaxed text-muted">
-            Vælg den der ligner jer — siden skifter med det samme i forhåndsvisningen. Bagefter gør Ava den personlig med jeres billeder, og I kan bede hende om ændringer.
+            {t('Vælg den der ligner jer — siden skifter med det samme i forhåndsvisningen. Bagefter gør Ava den personlig med jeres billeder, og I kan bede hende om ændringer.')}
           </p>
           <div className="mt-4">
             <TemplateGallery activePresetId={activePresetId} applyingPreset={applyingPreset} onPick={onApplyPreset} />
@@ -1257,7 +1268,7 @@ function DesignStudio({
         <section className="rule rounded-2xl bg-card p-6">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <Eyebrow className="mb-2">Jeres design</Eyebrow>
+              <Eyebrow className="mb-2">{t('Jeres design')}</Eyebrow>
               <p className="font-serif text-[1.5rem] leading-tight text-ink">{design.concept.name}</p>
             </div>
             <span className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sage-tint">
@@ -1274,47 +1285,47 @@ function DesignStudio({
 
           {/* Refine via chat */}
           <div className="mt-5 rule-t pt-5">
-            <Label>Fortæl Ava hvad der skal ændres</Label>
+            <Label>{t('Fortæl Ava hvad der skal ændres')}</Label>
             <div className="mt-2 flex gap-2">
               <input
                 value={instruction}
                 onChange={(e) => setInstruction(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') submitRefine(); }}
-                placeholder="f.eks. mere romantisk, mørkere, større billeder…"
+                placeholder={t('f.eks. mere romantisk, mørkere, større billeder…')}
                 className="min-w-0 flex-1 rule rounded-xl bg-shell px-4 py-2.5 text-[0.85rem] text-ink placeholder:text-muted focus:outline-none"
               />
               <button onClick={submitRefine} disabled={!instruction.trim()}
                 className="shrink-0 rounded-full bg-ink px-4 py-2 text-[0.7rem] font-bold uppercase tracking-[0.14em] text-canvas hover:bg-ink/80 disabled:opacity-40 transition-colors cursor-pointer">
-                Justér
+                {t('Justér')}
               </button>
             </div>
 
             {/* Build: images per section → venue + photos + template → full site */}
             <button onClick={() => onGenerate(styleDirection)}
               className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-ink py-3 text-[0.72rem] font-bold uppercase tracking-[0.16em] text-canvas hover:bg-ink/80 transition-colors cursor-pointer">
-              <Sparkles size={13} /> {hasHtml ? 'Byg siden igen' : 'Byg jeres side med Ava'}
+              <Sparkles size={13} /> {hasHtml ? t('Byg siden igen') : t('Byg jeres side med Ava')}
             </button>
             {!hasHtml && (
               <p className="mt-2 text-center text-[0.7rem] text-muted">
-                Ava genererer billeder til sektionerne, henter jeres venue-fotos og bygger hele siden ud fra skabelonen.
+                {t('Ava genererer billeder til sektionerne, henter jeres venue-fotos og bygger hele siden ud fra skabelonen.')}
               </p>
             )}
 
             <div className="mt-3 flex items-center justify-between gap-3">
               <button onClick={() => setShowTemplates((v) => !v)}
                 className="flex items-center gap-1.5 text-[0.75rem] text-muted hover:text-ink transition-colors cursor-pointer">
-                <Image size={12} /> Skift skabelon
+                <Image size={12} /> {t('Skift skabelon')}
               </button>
               <div className="flex items-center gap-3">
                 {designs.length > 1 && (
                   <button onClick={() => setShowVersions((v) => !v)}
                     className="flex items-center gap-1.5 text-[0.75rem] text-muted hover:text-ink transition-colors cursor-pointer">
-                    <History size={12} /> Versioner ({designs.length})
+                    <History size={12} /> {t('Versioner ({n})', { n: designs.length })}
                   </button>
                 )}
                 <button onClick={onRestart}
                   className="flex items-center gap-1.5 text-[0.75rem] text-muted hover:text-[var(--color-terracotta)] transition-colors cursor-pointer">
-                  <RotateCcw size={12} /> Start forfra
+                  <RotateCcw size={12} /> {t('Start forfra')}
                 </button>
               </div>
             </div>
@@ -1369,7 +1380,7 @@ function DesignStudio({
       <PhotoManager
         photos={photos.filter((p) => p.role !== 'section')}
         photoUrls={photoUrls}
-        step={hasDesign ? null : 'Trin 2 · Jeres billeder'}
+        step={hasDesign ? null : t('Trin 2 · Jeres billeder')}
         onUpload={onUpload}
         onDelete={onDeletePhoto}
         onSetHero={onSetHero}
@@ -1377,21 +1388,21 @@ function DesignStudio({
 
       {/* Free-text brief feeds the next personalization run. */}
       <section className="rule rounded-2xl bg-card p-6">
-        <Eyebrow className="mb-2">{hasDesign ? 'Jeres stil med egne ord' : 'Trin 3 · Med jeres egne ord'}</Eyebrow>
+        <Eyebrow className="mb-2">{hasDesign ? t('Jeres stil med egne ord') : t('Trin 3 · Med jeres egne ord')}</Eyebrow>
         <textarea
           value={styleDirection}
           onChange={(e) => setStyleDirection(e.target.value)}
           rows={3}
-          placeholder="f.eks. Vi drømmer om noget let og botanisk med varme toner — ikke for stift…"
+          placeholder={t('f.eks. Vi drømmer om noget let og botanisk med varme toner — ikke for stift…')}
           className="w-full resize-none rule rounded-xl bg-shell px-4 py-3 text-[0.85rem] text-ink placeholder:text-muted focus:outline-none"
         />
         <p className="mt-2 text-[0.7rem] text-muted">
-          Ava læser dette når hun personaliserer eller designer forfra.
+          {t('Ava læser dette når hun personaliserer eller designer forfra.')}
         </p>
         {hasDesign && (
           <button onClick={() => onGenerate(styleDirection, true)}
             className="mt-3 flex items-center gap-1.5 text-[0.75rem] text-muted hover:text-ink transition-colors cursor-pointer">
-            <Sparkles size={12} /> Lad Ava designe helt forfra
+            <Sparkles size={12} /> {t('Lad Ava designe helt forfra')}
           </button>
         )}
       </section>
@@ -1405,9 +1416,10 @@ const BUILD_STEPS = [
   'Henter billeder fra jeres venue…',
   'Ava komponerer layout og typografi…',
   'Bygger jeres side…',
-];
+] as const;
 
 function BuildProgress({ refine }: { refine: boolean }) {
+  const { t } = useLang();
   const [step, setStep] = useState(0);
   useEffect(() => {
     if (refine) return;
@@ -1419,12 +1431,12 @@ function BuildProgress({ refine }: { refine: boolean }) {
     <div className="rule rounded-2xl bg-card p-8 text-center">
       <Loader2 size={26} className="mx-auto animate-spin text-ink" />
       <p className="mt-4 font-serif text-[1.25rem] text-ink">
-        {refine ? 'Ava bygger siden om…' : BUILD_STEPS[step]}
+        {refine ? t('Ava bygger siden om…') : t(BUILD_STEPS[step])}
       </p>
       <p className="mx-auto mt-2 max-w-xs text-[0.82rem] text-muted leading-relaxed">
         {refine
-          ? 'Hun anvender jeres ændring på hele siden. Det tager typisk under et minut.'
-          : 'Venue-fotos, jeres billeder og skabelonen bliver til én samlet side. Det tager et par minutter første gang.'}
+          ? t('Hun anvender jeres ændring på hele siden. Det tager typisk under et minut.')
+          : t('Venue-fotos, jeres billeder og skabelonen bliver til én samlet side. Det tager et par minutter første gang.')}
       </p>
       {!refine && (
         <div className="mx-auto mt-5 flex max-w-[200px] gap-1.5">
@@ -1444,6 +1456,7 @@ function TemplateGallery({ activePresetId, applyingPreset, onPick, compact = fal
   onPick: (presetId: string) => void;
   compact?: boolean;
 }) {
+  const { t } = useLang();
   const fontIds = useMemo(
     () => SITE_PRESETS.flatMap((p) => [p.design.typography.displayFont, p.design.typography.bodyFont]),
     []
@@ -1482,14 +1495,14 @@ function TemplateGallery({ activePresetId, applyingPreset, onPick, compact = fal
                   color: d.palette.text,
                 }}
               >
-                Anna & Emil
+                {t('Anna & Emil')}
               </p>
               <p className="mt-0.5 text-[0.62rem] font-bold uppercase tracking-[0.14em]" style={{ color: d.palette.accent }}>
-                {p.label}
+                {t(p.label)}
               </p>
               {!compact && (
                 <p className="mt-1 text-[0.68rem] leading-snug" style={{ color: d.palette.muted }}>
-                  {p.tagline}
+                  {t(p.tagline)}
                 </p>
               )}
             </div>
@@ -1516,6 +1529,7 @@ function PhotoManager({ photos, photoUrls, step, onUpload, onDelete, onSetHero }
   onDelete: (id: string) => void;
   onSetHero: (id: string) => void;
 }) {
+  const { t } = useLang();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [busy, setBusy] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -1542,11 +1556,11 @@ function PhotoManager({ photos, photoUrls, step, onUpload, onDelete, onSetHero }
       }}
     >
       <div className="flex items-center justify-between">
-        <Eyebrow>{step ?? 'Jeres billeder'}</Eyebrow>
+        <Eyebrow>{step ?? t('Jeres billeder')}</Eyebrow>
         <span className="text-[0.7rem] text-muted">{photos.length} / 24</span>
       </div>
       <p className="mt-2 text-[0.8rem] leading-relaxed text-muted">
-        Træk billeder herind eller tryk upload — forlovelsesbilleder, stedet, jer to. Ava designer ud fra dem. Markér ét som forsidebillede.
+        {t('Træk billeder herind eller tryk upload — forlovelsesbilleder, stedet, jer to. Ava designer ud fra dem. Markér ét som forsidebillede.')}
       </p>
 
       <div className="mt-4 grid grid-cols-3 gap-2">
@@ -1559,7 +1573,7 @@ function PhotoManager({ photos, photoUrls, step, onUpload, onDelete, onSetHero }
                 : <span className="flex h-full items-center justify-center"><Image size={16} className="text-muted" /></span>}
               {p.role === 'hero' && (
                 <span className="absolute left-1.5 top-1.5 flex items-center gap-1 rounded-full bg-ink/80 px-2 py-0.5 text-[0.55rem] font-bold uppercase tracking-[0.1em] text-canvas">
-                  <Star size={8} /> Forside
+                  <Star size={8} /> {t('Forsidebillede')}
                 </span>
               )}
               {p.kind === 'generated' && (
@@ -1569,12 +1583,12 @@ function PhotoManager({ photos, photoUrls, step, onUpload, onDelete, onSetHero }
               )}
               <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-gradient-to-t from-black/60 to-transparent p-1.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
                 {p.role !== 'hero' ? (
-                  <button onClick={() => onSetHero(p.id)} title="Brug som forsidebillede"
+                  <button onClick={() => onSetHero(p.id)} title={t('Brug som forsidebillede')}
                     className="flex h-6 w-6 items-center justify-center rounded-full bg-canvas/90 text-ink hover:bg-canvas cursor-pointer">
                     <Star size={11} />
                   </button>
                 ) : <span />}
-                <button onClick={() => onDelete(p.id)} title="Slet billede"
+                <button onClick={() => onDelete(p.id)} title={t('Slet billede')}
                   className="flex h-6 w-6 items-center justify-center rounded-full bg-canvas/90 text-ink hover:bg-canvas cursor-pointer">
                   <Trash2 size={11} />
                 </button>
@@ -1592,7 +1606,7 @@ function PhotoManager({ photos, photoUrls, step, onUpload, onDelete, onSetHero }
           )}
         >
           {busy ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
-          <span className="text-[0.62rem] font-semibold uppercase tracking-[0.1em]">Upload</span>
+          <span className="text-[0.62rem] font-semibold uppercase tracking-[0.1em]">{t('Upload')}</span>
         </button>
       </div>
 
@@ -1606,7 +1620,7 @@ function PhotoManager({ photos, photoUrls, step, onUpload, onDelete, onSetHero }
         className="hidden"
         onChange={(e) => { void handleFiles(e.target.files); e.target.value = ''; }}
       />
-      <p className="mt-3 text-[0.68rem] text-muted">Alle almindelige billedformater — også direkte fra iPhone</p>
+      <p className="mt-3 text-[0.68rem] text-muted">{t('Alle almindelige billedformater — også direkte fra iPhone')}</p>
     </section>
   );
 }

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useLang } from '../i18n';
 
 /**
  * Fullscreen image viewer. Renders through a portal so it sits above the
@@ -21,6 +22,7 @@ export function Lightbox({
   onIndex: (next: number) => void;
   alt?: string;
 }) {
+  const { t } = useLang();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
@@ -68,7 +70,7 @@ export function Lightbox({
         <button
           type="button"
           onClick={onClose}
-          aria-label="Luk"
+          aria-label={t('Luk')}
           className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 cursor-pointer"
         >
           <X size={20} />
@@ -79,7 +81,7 @@ export function Lightbox({
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); go(-1); }}
-              aria-label="Forrige"
+              aria-label={t('Forrige')}
               className="absolute left-3 flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 cursor-pointer sm:left-6"
             >
               <ChevronLeft size={22} />
@@ -87,7 +89,7 @@ export function Lightbox({
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); go(1); }}
-              aria-label="Næste"
+              aria-label={t('Næste')}
               className="absolute right-3 flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 cursor-pointer sm:right-6"
             >
               <ChevronRight size={22} />

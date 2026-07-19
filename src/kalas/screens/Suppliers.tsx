@@ -6,6 +6,7 @@ import { Search, Heart, MessageCircle, ChevronDown, X, Lock } from 'lucide-react
 import { dnaTraits } from '../data';
 import { useWedding } from '../useWedding';
 import { Eyebrow, Pill, cn } from '../ui';
+import { useLang } from '../i18n';
 import type { NavigateTarget } from '../lib/hub-nav';
 import type { VendorCategory, VenueRow } from '@/lib/db/types';
 
@@ -93,6 +94,7 @@ export default function Suppliers({
     onGoToVenue?: () => void;
   };
 }) {
+  const { t } = useLang();
   const { couple, venues, refresh } = useWedding();
   const locked = hub?.locked ?? false;
   const [query, setQuery] = useState(hub?.query ?? '');
@@ -155,7 +157,7 @@ export default function Suppliers({
   }, [vendors, query, cat]);
 
   const savedCount = vendors.filter((v) => v.liked).length;
-  const catLabel = CATS.find((c) => c.id === cat)?.label ?? 'Alle';
+  const catLabel = t(CATS.find((c) => c.id === cat)?.label ?? 'Alle');
 
   const embedded = Boolean(hub);
 
@@ -172,7 +174,7 @@ export default function Suppliers({
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Søg leverandører, stil eller kategori…"
+              placeholder={t('Søg leverandører, stil eller kategori…')}
               className="flex-1 bg-transparent text-[0.92rem] text-ink placeholder:text-muted focus:outline-none"
             />
             {query && (
@@ -191,7 +193,7 @@ export default function Suppliers({
                     ? 'bg-ink text-canvas'
                     : 'rule bg-card text-ink-soft hover:text-ink hover:bg-shell',
                 )}>
-                {c.label}
+                {t(c.label)}
               </button>
             ))}
           </div>
@@ -209,16 +211,16 @@ export default function Suppliers({
                 <Lock size={13} className="text-[#6c7561]" />
               </span>
               <div>
-                <p className="text-[0.88rem] font-medium text-[#314523]">Vælg jeres lokation først</p>
+                <p className="text-[0.88rem] font-medium text-[#314523]">{t('Vælg jeres lokation først')}</p>
                 <p className="mt-0.5 text-[0.76rem] text-[#6c7561]">
-                  Når I har låst jeres venue, åbner vi leverandørerne — så kan Ava finde og kontakte dem for jer.
+                  {t('Når I har låst jeres venue, åbner vi leverandørerne — så kan Ava finde og kontakte dem for jer.')}
                 </p>
               </div>
             </div>
             {hub?.onGoToVenue && (
               <button onClick={hub.onGoToVenue}
                 className="shrink-0 h-8 rounded-full bg-[#314523] px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#f7f5ef] hover:opacity-90 transition-colors cursor-pointer">
-                Til venues
+                {t('Til venues')}
               </button>
             )}
           </div>
@@ -227,7 +229,9 @@ export default function Suppliers({
         {/* ── DNA context banner ──────────────────────────────────────── */}
         <div className="rounded-[18px] border border-[#d8d4c7] bg-[#ece9df] px-6 py-5">
           <p className="mb-3 text-[0.62rem] font-medium uppercase tracking-[0.28em] text-[#8a9079]">
-            Moodboard-DNA · {couple.a || 'I'}{couple.b ? ` & ${couple.b}` : ''}
+            {t('Moodboard-DNA · {names}', {
+              names: `${couple.a || 'I'}${couple.b ? ` & ${couple.b}` : ''}`,
+            })}
           </p>
           <div className="flex flex-wrap gap-2">
             {dnaTraits.slice(0, 4).map((t) => (
@@ -246,7 +250,9 @@ export default function Suppliers({
           <button onClick={() => onNavigate?.('ava')}
             className="mt-4 flex w-full items-center justify-between rounded-[18px] border border-[#d8d4c7] bg-[#fcfbf7] px-5 py-3.5 text-left transition-colors hover:bg-[#f7f5ef] cursor-pointer">
             <span className="text-sm text-[#314523]">
-              {savedCount} leverandør{savedCount === 1 ? '' : 'er'} gemt — bed Ava sende henvendelser
+              {savedCount === 1
+                ? t('{n} leverandør gemt — bed Ava sende henvendelser', { n: savedCount })
+                : t('{n} leverandører gemt — bed Ava sende henvendelser', { n: savedCount })}
             </span>
             <MessageCircle size={16} className="text-[#6c7561]" />
           </button>
@@ -255,12 +261,12 @@ export default function Suppliers({
         {/* ── Results header ───────────────────────────────────────────── */}
         <div className="mt-10 flex items-baseline justify-between">
           <Eyebrow className="!text-[#8a9079]">
-            {cat === 'alle' ? 'Jeres leverandører' : catLabel} · {results.length} resultater
+            {cat === 'alle' ? t('Jeres leverandører') : catLabel} · {t('{n} resultater', { n: results.length })}
           </Eyebrow>
           {savedCount > 0 && (
             <span className="flex items-center gap-1.5 text-[0.7rem] text-[#6c7561]">
               <Heart size={11} fill="currentColor" className="text-[#314523]" />
-              {savedCount} gemt
+              {t('{n} gemt', { n: savedCount })}
             </span>
           )}
         </div>
@@ -272,23 +278,25 @@ export default function Suppliers({
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="mt-16 text-center">
               <p className="font-serif text-[1.3rem] italic text-[#6c7561]">
-                {vendors.length === 0 ? 'Ingen leverandører fundet endnu' : `Ingen resultater for "${query}"`}
+                {vendors.length === 0
+                  ? t('Ingen leverandører fundet endnu')
+                  : t('Ingen resultater for "{query}"', { query })}
               </p>
               {vendors.length === 0 ? (
                 locked ? (
                   <p className="mt-3 text-[0.78rem] text-[#6c7561]">
-                    Vælg jeres lokation, så finder Ava leverandører der matcher.
+                    {t('Vælg jeres lokation, så finder Ava leverandører der matcher.')}
                   </p>
                 ) : (
                   <button onClick={() => onNavigate?.('ava')}
                     className="mt-4 inline-flex h-8 items-center gap-1.5 rounded-full bg-[#314523] px-3 text-xs font-semibold text-[#f7f5ef] hover:opacity-90 transition-colors cursor-pointer">
-                    <MessageCircle size={13} /> Bed Ava finde leverandører
+                    <MessageCircle size={13} /> {t('Bed Ava finde leverandører')}
                   </button>
                 )
               ) : (
                 <button onClick={() => { setQuery(''); setCat('alle'); }}
                   className="mt-4 text-[0.78rem] text-muted hover:text-ink transition-colors cursor-pointer underline underline-offset-2">
-                  Ryd filter
+                  {t('Ryd filter')}
                 </button>
               )}
             </motion.div>
@@ -306,9 +314,9 @@ export default function Suppliers({
 
         {/* ── FAQ ──────────────────────────────────────────────────────── */}
         <section className="mt-20 rule-t pt-12">
-          <Eyebrow>Ofte stillede spørgsmål</Eyebrow>
+          <Eyebrow>{t('Ofte stillede spørgsmål')}</Eyebrow>
           <h2 className="display mt-3 text-[clamp(2rem,4vw,3rem)] text-ink">
-            Hvad vil I <span className="italic">gerne vide?</span>
+            {t('Hvad vil I')} <span className="italic">{t('gerne vide?')}</span>
           </h2>
           <div className="mt-8 divide-y divide-[var(--color-line)]">
             {FAQ.map((item, i) => <FaqRow key={i} q={item.q} a={item.a} />)}
@@ -324,16 +332,16 @@ export default function Suppliers({
             <div className="mx-auto mb-5 flex h-11 w-11 items-center justify-center rounded-full bg-ink">
               <span className="font-serif text-[1.3rem] leading-none text-canvas">K</span>
             </div>
-            <Eyebrow className="text-center">Spørg Ava om leverandørerne</Eyebrow>
+            <Eyebrow className="text-center">{t('Spørg Ava om leverandørerne')}</Eyebrow>
             <p className="display mt-4 text-[1.8rem] text-ink italic">
-              &ldquo;Hvad skal vi booke og hvornår?&rdquo;
+              &ldquo;{t('Hvad skal vi booke og hvornår?')}&rdquo;
             </p>
             <p className="mt-3 max-w-xs mx-auto text-[0.85rem] text-muted leading-relaxed">
-              Ava kender jeres dato, region, budget og stil og giver et personligt svar.
+              {t('Ava kender jeres dato, region, budget og stil og giver et personligt svar.')}
             </p>
             <div className="mt-6 flex justify-center">
               <Pill arrow onClick={() => onNavigate?.('ava')}>
-                <MessageCircle size={14} /> Tal med Ava
+                <MessageCircle size={14} /> {t('Tal med Ava')}
               </Pill>
             </div>
           </motion.div>
@@ -349,7 +357,8 @@ export default function Suppliers({
 function SupplierCard({ s, i, onToggleSave }: {
   s: VendorCard; i: number; onToggleSave: (id: string) => void;
 }) {
-  const catLabel = CATS.find((c) => c.id === s.cat)?.label ?? 'Leverandør';
+  const { t } = useLang();
+  const catLabel = t(CATS.find((c) => c.id === s.cat)?.label ?? 'Leverandør');
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
@@ -366,10 +375,10 @@ function SupplierCard({ s, i, onToggleSave }: {
         <div className="absolute inset-0 bg-gradient-to-t from-[#1a221550] to-transparent" />
         {s.matchPct != null && (
           <div className="absolute left-3 top-3 rounded-full bg-[#eef1e6] px-2.5 py-1 text-[0.6rem] font-bold uppercase tracking-[0.16em] text-[#314523]">
-            {s.matchPct}% match
+            {t('{n}% match', { n: s.matchPct })}
           </div>
         )}
-        <button onClick={() => onToggleSave(s.id)} aria-label={s.liked ? 'Fjern fra listen' : 'Tilføj til liste'}
+        <button onClick={() => onToggleSave(s.id)} aria-label={s.liked ? t('Fjern fra listen') : t('Tilføj til liste')}
           className={cn(
             'absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full backdrop-blur-sm transition-all cursor-pointer',
             s.liked ? 'bg-[#eef1e6] text-[#314523]' : 'bg-[#f7f5ef]/80 text-[#314523] hover:bg-[#f7f5ef]',
@@ -385,11 +394,15 @@ function SupplierCard({ s, i, onToggleSave }: {
 
         {s.tags.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-1.5">
-            {s.tags.map((t) => (
-              <span key={t} className="rounded-full bg-[#f0ede5] px-2.5 py-0.5 text-[0.58rem] font-medium uppercase tracking-[0.1em] text-[#6c7561]">
-                {t}
+            {s.tags.map((tag) => {
+              const reviews = /^(\d+) anmeldelser$/.exec(tag);
+              const label = reviews ? t('{n} anmeldelser', { n: reviews[1] }) : t(tag);
+              return (
+              <span key={tag} className="rounded-full bg-[#f0ede5] px-2.5 py-0.5 text-[0.58rem] font-medium uppercase tracking-[0.1em] text-[#6c7561]">
+                {label}
               </span>
-            ))}
+              );
+            })}
           </div>
         )}
 
@@ -403,7 +416,7 @@ function SupplierCard({ s, i, onToggleSave }: {
           <span className="font-serif text-[1rem] text-[#314523]">{s.price || '—'}</span>
           <button onClick={() => onToggleSave(s.id)}
             className="h-8 rounded-full bg-[#314523] px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#f7f5ef] hover:opacity-85 transition-colors cursor-pointer">
-            {s.liked ? 'På listen ✓' : 'Tilføj til liste'}
+            {s.liked ? t('På listen ✓') : t('Tilføj til liste')}
           </button>
         </div>
       </div>
@@ -413,12 +426,13 @@ function SupplierCard({ s, i, onToggleSave }: {
 
 /* ── FAQ row (accordion) ─────────────────────────────────────────────── */
 function FaqRow({ q, a }: { q: string; a: string }) {
+  const { t } = useLang();
   const [open, setOpen] = useState(false);
   return (
     <div className="py-1">
       <button onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center justify-between gap-4 py-4 text-left cursor-pointer group">
-        <span className="font-serif text-[1.05rem] text-ink group-hover:text-ink-soft transition-colors">{q}</span>
+        <span className="font-serif text-[1.05rem] text-ink group-hover:text-ink-soft transition-colors">{t(q)}</span>
         <span className="shrink-0 text-muted transition-transform duration-200" style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}>
           <ChevronDown size={17} />
         </span>
@@ -431,7 +445,7 @@ function FaqRow({ q, a }: { q: string; a: string }) {
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden">
-            <p className="pb-5 text-[0.92rem] leading-relaxed text-ink-soft">{a}</p>
+            <p className="pb-5 text-[0.92rem] leading-relaxed text-ink-soft">{t(a)}</p>
           </motion.div>
         )}
       </AnimatePresence>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X } from 'lucide-react';
+import { useLang } from './i18n';
 
 export type HintId =
   | 'home' | 'ava' | 'team'
@@ -94,6 +95,7 @@ function Rings() {
 }
 
 export default function OnboardingHint({ id }: { id: HintId }) {
+  const { t } = useLang();
   const [visible, setVisible] = useState(false);
   const hint = HINTS[id];
 
@@ -122,7 +124,7 @@ export default function OnboardingHint({ id }: { id: HintId }) {
         >
           <div className="relative overflow-hidden rounded-2xl bg-ink px-6 py-5 text-canvas shadow-[0_24px_60px_-12px_rgba(59,67,42,0.45)]">
             <Rings />
-            <button onClick={dismiss} aria-label="Luk guide"
+            <button onClick={dismiss} aria-label={t('Luk guide')}
               className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full text-canvas/60 hover:text-canvas hover:bg-canvas/10 transition-colors cursor-pointer">
               <X size={14} />
             </button>

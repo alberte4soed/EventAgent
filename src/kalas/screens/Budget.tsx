@@ -6,6 +6,7 @@ import { Eyebrow, Chip, cn } from '../ui';
 import AnimateNumber from '../AnimateNumber';
 import OnboardingHint from '../OnboardingHint';
 import { useWedding } from '../useWedding';
+import { useLang } from '../i18n';
 
 /* ── Benchmark fordeling (dansk gennemsnit) ──────────────────────────── */
 const BENCHMARK_DIST = [
@@ -34,6 +35,7 @@ const PAYMENTS: { label: string; when: string; amount: number | null; paid: bool
 ];
 
 export default function Budget() {
+  const { t } = useLang();
   const { couple, budgetItems, saveBudgetItem, deleteBudgetItem, updateEvent } = useWedding();
   const [estimatorDone, setEstimatorDone] = useState(false);
   const [estimatorOpen, setEstimatorOpen] = useState(false);
@@ -166,11 +168,11 @@ export default function Budget() {
           className="w-full flex items-center justify-between px-6 py-4 bg-card hover:bg-shell transition-colors cursor-pointer">
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-2 font-serif text-[1.05rem] text-ink">
-              {estimatorDone ? <>Budget estimeret <Check size={15} className="text-success" /></> : 'Estimér jeres budget'}
+              {estimatorDone ? <>{t('Budget estimeret')} <Check size={15} className="text-success" /></> : t('Estimér jeres budget')}
             </span>
             {!estimatorDone && (
               <span className="rounded-full bg-sage-tint px-2.5 py-0.5 text-[0.6rem] font-bold uppercase tracking-[0.14em] text-ink">
-                Ava anbefaler
+                {t('Ava anbefaler')}
               </span>
             )}
           </div>
@@ -190,7 +192,7 @@ export default function Budget() {
                 {/* Inputs */}
                 <div className="grid sm:grid-cols-2 gap-6">
                   <div>
-                    <label className="eyebrow block mb-3">Antal gæster</label>
+                    <label className="eyebrow block mb-3">{t('Antal gæster')}</label>
                     <div className="flex items-baseline gap-3">
                       <span className="font-serif text-[2rem] text-ink tabular-nums w-14">{estGuests}</span>
                       <input type="range" min={20} max={300} step={5} value={estGuests}
@@ -199,7 +201,7 @@ export default function Budget() {
                     </div>
                   </div>
                   <div>
-                    <label className="eyebrow block mb-3">Samlet budget</label>
+                    <label className="eyebrow block mb-3">{t('Samlet budget')}</label>
                     <div className="flex items-center gap-2 rule rounded-xl bg-shell px-4 py-2.5">
                       <input type="number" value={estTotal} step={5000} min={0}
                         onChange={e => setEstTotal(Math.max(0, Number(e.target.value)))}
@@ -214,19 +216,19 @@ export default function Budget() {
                 <div className={cn('rounded-xl px-4 py-3 text-[0.82rem] leading-relaxed',
                   diff > 20000 ? 'bg-sage-tint text-ink' : diff < -20000 ? 'bg-[#f9edea] text-red-800' : 'bg-shell text-ink')}>
                   {diff > 20000
-                    ? `Dansk gennemsnit for ${estGuests} gæster er ${kr(dkSuggested)} kr — I er ${kr(diff)} over. God buffer til uforudsete udgifter.`
+                    ? t('Dansk gennemsnit for {guests} gæster er {avg} kr — I er {diff} over. God buffer til uforudsete udgifter.', { guests: estGuests, avg: kr(dkSuggested), diff: kr(diff) })
                     : diff < -20000
-                    ? `Dansk gennemsnit for ${estGuests} gæster er ${kr(dkSuggested)} kr — I er ${kr(Math.abs(diff))} under. Ava vil prioritere hårdt.`
-                    : `Dansk gennemsnit for ${estGuests} gæster er ${kr(dkSuggested)} kr — I er tæt på gennemsnittet. God balance.`
+                    ? t('Dansk gennemsnit for {guests} gæster er {avg} kr — I er {diff} under. Ava vil prioritere hårdt.', { guests: estGuests, avg: kr(dkSuggested), diff: kr(Math.abs(diff)) })
+                    : t('Dansk gennemsnit for {guests} gæster er {avg} kr — I er tæt på gennemsnittet. God balance.', { guests: estGuests, avg: kr(dkSuggested) })
                   }
                 </div>
 
                 <button onClick={applyEstimate}
                   className="flex h-8 items-center gap-1.5 rounded-full bg-ink px-3 text-xs font-semibold uppercase tracking-[0.12em] text-canvas hover:bg-ink/80 transition-colors cursor-pointer">
-                  Fordel budgettet automatisk <ArrowRight size={13} />
+                  {t('Fordel budgettet automatisk')} <ArrowRight size={13} />
                 </button>
                 <p className="text-[0.72rem] text-muted -mt-2">
-                  Fordelingen lander i kategorierne nedenfor — I kan justere alt bagefter.
+                  {t('Fordelingen lander i kategorierne nedenfor — I kan justere alt bagefter.')}
                 </p>
               </div>
             </motion.div>
@@ -242,7 +244,7 @@ export default function Budget() {
       </div>
 
       <p className="mt-4 text-[0.82rem] text-muted">
-        Betalt indtil videre: <span className="text-ink">{kr(spent)} kr</span> · Ava advarer, hvis I rammer loftet.
+        {t('Betalt indtil videre:')} <span className="text-ink">{kr(spent)} kr</span> · {t('Ava advarer, hvis I rammer loftet.')}
       </p>
 
       {/* Stacked allocation bar */}
@@ -252,7 +254,7 @@ export default function Budget() {
             initial={{ width: 0 }} animate={{ width: `${((amounts[b.id] ?? 0) / total) * 100}%` }}
             transition={{ duration: 0.5 }}
             style={{ background: `hsl(${74 + i * 8} ${22 - i}% ${42 + i * 4}%)` }}
-            title={b.label}
+            title={t(b.label)}
           />
         ))}
       </div>
@@ -262,7 +264,7 @@ export default function Budget() {
           <span key={b.id} className="flex items-center gap-1.5 text-[0.72rem] text-muted">
             <span className="h-2 w-2 rounded-full shrink-0"
               style={{ background: `hsl(${74 + i * 8} ${22 - i}% ${42 + i * 4}%)` }} />
-            {b.label} · {Math.round(((amounts[b.id] ?? 0) / total) * 100)}%
+            {t(b.label)} · {Math.round(((amounts[b.id] ?? 0) / total) * 100)}%
           </span>
         ))}
       </div>
@@ -286,23 +288,23 @@ export default function Budget() {
                       if (e.key === 'Enter') commitEditLabel();
                       if (e.key === 'Escape') setEditingId(null);
                     }}
-                    aria-label={`Omdøb ${b.label}`}
+                    aria-label={t('Omdøb {label}', { label: t(b.label) })}
                     className="min-w-0 flex-1 bg-transparent font-serif text-[1.2rem] text-ink focus:outline-none border-b border-[var(--color-line-strong)] pb-0.5"
                   />
                 ) : (
                   <button onClick={() => startEditLabel(b.id, b.label)}
-                    className="group flex items-center gap-1.5 text-left cursor-pointer" title="Omdøb kategori">
-                    <span className="font-serif text-[1.2rem] text-ink">{b.label}</span>
+                    className="group flex items-center gap-1.5 text-left cursor-pointer" title={t('Omdøb kategori')}>
+                    <span className="font-serif text-[1.2rem] text-ink">{t(b.label)}</span>
                     <Pencil size={12} className="text-muted/0 group-hover:text-muted transition-colors" />
                   </button>
                 )}
-                {b.spent > 0 && <Chip tone="success">{kr(b.spent)} kr betalt</Chip>}
+                {b.spent > 0 && <Chip tone="success">{t('{amount} kr betalt', { amount: kr(b.spent) })}</Chip>}
               </div>
               <div className="flex items-baseline gap-3 shrink-0">
                 <div className="font-serif text-[1.3rem] text-ink tabular-nums">
                   <AnimateNumber value={amounts[b.id] ?? 0} suffix=" kr" />
                 </div>
-                <button onClick={() => removeLine(b.id)} aria-label={`Fjern ${b.label}`}
+                <button onClick={() => removeLine(b.id)} aria-label={t('Fjern {label}', { label: t(b.label) })}
                   className="text-muted hover:text-[var(--color-terracotta)] transition-colors cursor-pointer">
                   <X size={14} />
                 </button>
@@ -315,7 +317,7 @@ export default function Budget() {
                 onPointerUp={(e) => persist(b.id, Number((e.target as HTMLInputElement).value))}
                 onBlur={(e) => persist(b.id, Number(e.target.value))}
                 className="kalas-range flex-1"
-                aria-label={`Justér ${b.label}`}
+                aria-label={t('Justér {label}', { label: t(b.label) })}
               />
               <span className="w-12 shrink-0 text-right text-[0.78rem] text-muted tabular-nums">
                 {Math.round(((amounts[b.id] ?? 0) / total) * 100)}%
@@ -332,7 +334,7 @@ export default function Budget() {
               <input
                 ref={inputRef}
                 type="text"
-                placeholder="Kategorinavn, fx. Transport"
+                placeholder={t('Kategorinavn, fx. Transport')}
                 value={newLabel}
                 onChange={(e) => setNewLabel(e.target.value)}
                 onKeyDown={(e) => {
@@ -343,7 +345,7 @@ export default function Budget() {
               />
               <button onClick={addLine}
                 className="h-8 rounded-full bg-ink px-3 text-xs font-semibold uppercase tracking-[0.12em] text-canvas hover:bg-ink/80 transition-colors cursor-pointer">
-                Tilføj
+                {t('Tilføj')}
               </button>
               <button onClick={() => { setAddingNew(false); setNewLabel(''); }}
                 className="text-muted hover:text-ink transition-colors cursor-pointer">
@@ -355,7 +357,7 @@ export default function Budget() {
           <div className="py-5">
             <button onClick={startAdding}
               className="flex items-center gap-2 text-[0.82rem] font-medium text-muted hover:text-ink transition-colors cursor-pointer">
-              <Plus size={15} /> Tilføj kategori
+              <Plus size={15} /> {t('Tilføj kategori')}
             </button>
           </div>
         )}
@@ -363,9 +365,9 @@ export default function Budget() {
 
       {/* Payment timeline */}
       <div className="mt-14 rule-t pt-10">
-        <Eyebrow>Betalingstidslinje</Eyebrow>
+        <Eyebrow>{t('Betalingstidslinje')}</Eyebrow>
         <h2 className="display mt-3 text-[clamp(1.8rem,3.5vw,2.6rem)] text-ink">
-          Hvornår skal <span className="italic">pengene bruges?</span>
+          {t('Hvornår skal')} <span className="italic">{t('pengene bruges?')}</span>
         </h2>
         <div className="mt-8 space-y-0 divide-y divide-[var(--color-line)] rule rounded-2xl overflow-hidden">
           {PAYMENTS.map((p, i) => {
@@ -382,10 +384,10 @@ export default function Budget() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className={`text-[0.88rem] ${p.paid ? 'text-muted line-through' : 'text-ink'}`}>
-                  {p.label}
+                  {t(p.label)}
                   {isNext && (
                     <span className="ml-2 rounded-full bg-ink px-2 py-0.5 text-[0.58rem] font-bold uppercase tracking-[0.12em] text-canvas align-middle">
-                      Næste
+                      {t('Næste')}
                     </span>
                   )}
                 </p>
@@ -403,11 +405,11 @@ export default function Budget() {
           })}
         </div>
         <p className="mt-3 text-[0.78rem] text-muted">
-          Kendte betalinger tilbage:{' '}
+          {t('Kendte betalinger tilbage:')}{' '}
           <span className="text-ink font-medium">
             {kr(PAYMENTS.filter((p) => !p.paid && p.amount != null).reduce((a, p) => a + (p.amount ?? 0), 0))} kr
           </span>
-          {' '}· beløb uden tal afhænger af jeres valg
+          {' '}{t('· beløb uden tal afhænger af jeres valg')}
         </p>
       </div>
 
@@ -429,10 +431,11 @@ const STAT_STYLES = {
 } as const;
 
 function Stat({ label, value, tone }: { label: string; value: number; tone: keyof typeof STAT_STYLES }) {
+  const { t } = useLang();
   const s = STAT_STYLES[tone];
   return (
     <div className={cn('px-6 py-7', s.bg)}>
-      <Eyebrow className={s.label}>{label}</Eyebrow>
+      <Eyebrow className={s.label}>{t(label)}</Eyebrow>
       <div className={cn('mt-2 font-serif text-[2rem]', s.value)}>
         <AnimateNumber value={value} suffix=" kr" />
       </div>

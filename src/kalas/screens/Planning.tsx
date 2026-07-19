@@ -9,6 +9,7 @@ import { TODAY, timeline as MOCK_TIMELINE } from '../data';
 import { useWedding } from '../useWedding';
 import { cn } from '../ui';
 import OnboardingHint from '../OnboardingHint';
+import { useLang } from '../i18n';
 
 const AVA_CELEBRATION = 'Godt klaret. Ava har opdateret jeres fremdrift.';
 
@@ -52,20 +53,27 @@ function statusOf(t: DisplayTask): Status {
   return 'planned';
 }
 
-function statusLabel(t: DisplayTask): string {
-  const status = statusOf(t);
-  if (status === 'done') return 'Færdig';
-  if (status === 'wedding') return 'Dagen';
-  if (status === 'overdue') return 'Forsinket';
-  const diff = daysDiff(t.dateISO);
-  if (diff === 0) return 'I dag';
-  if (diff > 0 && diff <= 14) return 'Snart';
-  return 'Planlagt';
+function statusLabel(task: DisplayTask, t: (s: string, params?: Record<string, string | number>) => string): string {
+  const status = statusOf(task);
+  if (status === 'done') return t('Færdig');
+  if (status === 'wedding') return t('Dagen');
+  if (status === 'overdue') return t('Forsinket');
+  const diff = daysDiff(task.dateISO);
+  if (diff === 0) return t('I dag');
+  if (diff > 0 && diff <= 14) return t('Snart');
+  return t('Planlagt');
 }
 
 type Filter = 'alle' | 'kommende' | 'færdige';
 
+const FILTER_LABELS: Record<Filter, string> = {
+  alle: 'Alle',
+  kommende: 'Kommende',
+  færdige: 'Færdige',
+};
+
 export default function Planning() {
+  const { t } = useLang();
   const { loading, couple, timelineTasks, addTask, updateTask, deleteTask, seedTasks } = useWedding();
   const daysUntil = couple.dateISO
     ? Math.max(0, Math.round((new Date(couple.dateISO).getTime() - TODAY.getTime()) / 86400000))
@@ -123,11 +131,11 @@ export default function Planning() {
     return true;
   });
 
-  function handleToggle(t: DisplayTask) {
-    const nowDone = !t.done;
-    void updateTask(t.id, { done: nowDone });
+  function handleToggle(task: DisplayTask) {
+    const nowDone = !task.done;
+    void updateTask(task.id, { done: nowDone });
     if (nowDone) {
-      setCelebration({ title: t.title, msg: AVA_CELEBRATION });
+      setCelebration({ title: task.title, msg: t(AVA_CELEBRATION) });
       setTimeout(() => setCelebration(null), 3200);
     }
   }
@@ -167,13 +175,13 @@ export default function Planning() {
           <div className="flex flex-col gap-1">
             <p className="text-sm text-[#6c7561]">
               {couple.dateISO
-                ? `${daysUntil} dage til dagen · milepælene frem til brylluppet.`
-                : 'Milepælene frem til brylluppet.'}
+                ? t('{days} dage til dagen · milepælene frem til brylluppet.', { days: daysUntil })
+                : t('Milepælene frem til brylluppet.')}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2.5">
             <p className="shrink-0 text-sm font-bold text-[#8a9079]">
-              {done} af {tasks.length} klaret
+              {t('{done} af {total} klaret', { done, total: tasks.length })}
             </p>
             <button
               type="button"
@@ -186,7 +194,7 @@ export default function Planning() {
               )}
             >
               <RotateCcw size={13} />
-              {confirmReset ? 'Sikker?' : 'Nulstil'}
+              {confirmReset ? t('Sikker?') : t('Nulstil')}
             </button>
             <button
               type="button"
@@ -194,7 +202,7 @@ export default function Planning() {
               className="flex h-8 items-center gap-1.5 rounded-full bg-[#173c32] px-3 text-xs font-semibold text-white cursor-pointer"
             >
               <Plus size={13} />
-              Tilføj milepæl
+              {t('Tilføj milepæl')}
             </button>
           </div>
         </div>
@@ -206,12 +214,12 @@ export default function Planning() {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Søg i milepæle"
-              aria-label="Søg i milepæle"
+              placeholder={t('Søg i milepæle')}
+              aria-label={t('Søg i milepæle')}
               className="min-w-0 flex-1 bg-transparent text-sm text-[#314523] placeholder:text-[#9a9686] focus:outline-none"
             />
             {query && (
-              <button type="button" onClick={() => setQuery('')} aria-label="Ryd søgning"
+              <button type="button" onClick={() => setQuery('')} aria-label={t('Ryd søgning')}
                 className="text-[#9a9686] hover:text-[#314523] cursor-pointer">
                 <X size={14} />
               </button>
@@ -219,7 +227,7 @@ export default function Planning() {
           </div>
           {(['alle', 'kommende', 'færdige'] as Filter[]).map((f) => {
             const active = filter === f;
-            const label = f === 'alle' ? 'Alle' : f.charAt(0).toUpperCase() + f.slice(1);
+            const label = t(FILTER_LABELS[f]);
             return (
               <button
                 key={f}
@@ -245,28 +253,28 @@ export default function Planning() {
             <div className="rounded-[18px] border border-[#e4e0d4] bg-[#f7f5ef] px-5 py-10 text-center">
               <p className="font-serif text-lg text-[#314523]">
                 {tasks.length === 0
-                  ? 'Ingen milepæle endnu — tilføj jeres første.'
-                  : filter === 'færdige' ? 'Ingen færdige milepæle endnu.'
-                  : filter === 'kommende' ? 'Alt er klaret. I er foran planen.'
-                  : 'Ingen milepæle matcher din søgning.'}
+                  ? t('Ingen milepæle endnu — tilføj jeres første.')
+                  : filter === 'færdige' ? t('Ingen færdige milepæle endnu.')
+                  : filter === 'kommende' ? t('Alt er klaret. I er foran planen.')
+                  : t('Ingen milepæle matcher din søgning.')}
               </p>
             </div>
           )}
 
-          {visible.map((t) => (
-            <React.Fragment key={t.id}>
+          {visible.map((task) => (
+            <React.Fragment key={task.id}>
               <MilestoneRow
-                t={t}
-                menuOpen={menuId === t.id}
-                onMenu={() => setMenuId((m) => (m === t.id ? null : t.id))}
+                task={task}
+                menuOpen={menuId === task.id}
+                onMenu={() => setMenuId((m) => (m === task.id ? null : task.id))}
                 onCloseMenu={() => setMenuId(null)}
-                onToggle={() => handleToggle(t)}
-                onDelete={() => handleDelete(t.id)}
-                onInsertAfter={() => openAdd(t.id)}
-                onDateChange={(d) => handleDateChange(t.id, d)}
+                onToggle={() => handleToggle(task)}
+                onDelete={() => handleDelete(task.id)}
+                onInsertAfter={() => openAdd(task.id)}
+                onDateChange={(d) => handleDateChange(task.id, d)}
               />
               <AnimatePresence>
-                {addingAfter === t.id && (
+                {addingAfter === task.id && (
                   <AddRow inputRef={newInputRef} title={newTitle} date={newDate}
                     onTitleChange={setNewTitle} onDateChange={setNewDate}
                     onSave={commitAdd} onCancel={() => setAddingAfter(null)} />
@@ -291,7 +299,7 @@ export default function Planning() {
             <span className="flex size-7 shrink-0 items-center justify-center rounded-full border-2 border-[#c4bfae]">
               <Plus size={14} />
             </span>
-            Tilføj milepæl
+            {t('Tilføj milepæl')}
           </button>
         </div>
       </motion.section>
@@ -321,15 +329,19 @@ export default function Planning() {
 }
 
 /* ── Checklist-style milestone row ────────────────────────────────────── */
-function MilestoneRow({ t, menuOpen, onMenu, onCloseMenu, onToggle, onDelete, onInsertAfter, onDateChange }: {
-  t: DisplayTask; menuOpen: boolean; onMenu: () => void; onCloseMenu: () => void;
+function MilestoneRow({ task, menuOpen, onMenu, onCloseMenu, onToggle, onDelete, onInsertAfter, onDateChange }: {
+  task: DisplayTask; menuOpen: boolean; onMenu: () => void; onCloseMenu: () => void;
   onToggle: () => void; onDelete: () => void; onInsertAfter: () => void; onDateChange: (dateISO: string) => void;
 }) {
+  const { t } = useLang();
   const dateInputRef = useRef<HTMLInputElement>(null);
-  const status = statusOf(t);
+  const status = statusOf(task);
   const done = status === 'done';
   const overdue = status === 'overdue';
-  const label = statusLabel(t);
+  const diff = daysDiff(task.dateISO);
+  const isSoon = status === 'planned' && diff > 0 && diff <= 14;
+  const isToday = status === 'planned' && diff === 0;
+  const label = statusLabel(task, t);
 
   return (
     <div
@@ -346,8 +358,8 @@ function MilestoneRow({ t, menuOpen, onMenu, onCloseMenu, onToggle, onDelete, on
         type="button"
         onClick={onToggle}
         role="checkbox"
-        aria-checked={t.done}
-        aria-label={t.done ? `Markér '${t.title}' som ikke færdig` : `Markér '${t.title}' som færdig`}
+        aria-checked={task.done}
+        aria-label={task.done ? t("Markér '{title}' som ikke færdig", { title: task.title }) : t("Markér '{title}' som færdig", { title: task.title })}
         className={cn(
           'flex size-7 shrink-0 items-center justify-center rounded-full transition-transform hover:scale-105 cursor-pointer',
           done ? 'bg-[#314523] text-[#f7f5ef]' : 'border-2 border-[#c4bfae] bg-transparent',
@@ -365,20 +377,20 @@ function MilestoneRow({ t, menuOpen, onMenu, onCloseMenu, onToggle, onDelete, on
               : 'text-[#314523]',
           )}
         >
-          {t.title}
+          {task.title}
         </span>
         <button
           type="button"
           onClick={() => dateInputRef.current?.showPicker?.()}
-          aria-label={`Ændr dato for '${t.title}'`}
+          aria-label={t("Ændr dato for '{title}'", { title: task.title })}
           className="relative flex w-fit items-center gap-1.5 text-[13px] text-[#6c7561] hover:text-[#314523] cursor-pointer"
         >
           <CalendarDays size={12} />
-          {formatDate(t.dateISO)}
+          {formatDate(task.dateISO)}
           <input
             ref={dateInputRef}
             type="date"
-            value={t.dateISO}
+            value={task.dateISO}
             onChange={(e) => e.target.value && onDateChange(e.target.value)}
             className="absolute inset-0 w-full cursor-pointer opacity-0"
             tabIndex={-1}
@@ -392,7 +404,7 @@ function MilestoneRow({ t, menuOpen, onMenu, onCloseMenu, onToggle, onDelete, on
           done ? 'text-[#7a9068]'
             : overdue ? 'text-[#b34e37]'
             : status === 'wedding' ? 'text-[#314523]'
-            : label === 'Snart' || label === 'I dag' ? 'text-[#8a7d5c]'
+            : isSoon || isToday ? 'text-[#8a7d5c]'
             : 'text-[#9a9686]',
         )}
       >
@@ -403,7 +415,7 @@ function MilestoneRow({ t, menuOpen, onMenu, onCloseMenu, onToggle, onDelete, on
         <button
           type="button"
           onClick={onMenu}
-          aria-label={`Handlinger for '${t.title}'`}
+          aria-label={t("Handlinger for '{title}'", { title: task.title })}
           className="flex size-8 items-center justify-center rounded-full text-[#9a9686] transition-colors hover:bg-white/70 hover:text-[#314523] cursor-pointer"
         >
           <MoreHorizontal size={18} />
@@ -421,11 +433,11 @@ function MilestoneRow({ t, menuOpen, onMenu, onCloseMenu, onToggle, onDelete, on
               >
                 <button type="button" onClick={onInsertAfter}
                   className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm text-[#314523] transition-colors hover:bg-[#f0ede5] cursor-pointer">
-                  <CornerDownRight size={14} className="text-[#6c7561]" /> Indsæt under
+                  <CornerDownRight size={14} className="text-[#6c7561]" /> {t('Indsæt under')}
                 </button>
                 <button type="button" onClick={onDelete}
                   className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm text-[#b34e37] transition-colors hover:bg-[#faf4ef] cursor-pointer">
-                  <Trash2 size={14} /> Slet milepæl
+                  <Trash2 size={14} /> {t('Slet milepæl')}
                 </button>
               </motion.div>
             </>
@@ -443,6 +455,7 @@ function AddRow({ inputRef, title, date, onTitleChange, onDateChange, onSave, on
   onTitleChange: (v: string) => void; onDateChange: (v: string) => void;
   onSave: () => void; onCancel: () => void;
 }) {
+  const { t } = useLang();
   return (
     <motion.div
       initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
@@ -456,22 +469,22 @@ function AddRow({ inputRef, title, date, onTitleChange, onDateChange, onSave, on
         <input
           ref={inputRef} value={title} onChange={(e) => onTitleChange(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') onSave(); if (e.key === 'Escape') onCancel(); }}
-          placeholder="Milepælens navn…"
-          aria-label="Navn på ny milepæl"
+          placeholder={t('Milepælens navn…')}
+          aria-label={t('Navn på ny milepæl')}
           className="min-w-0 flex-1 bg-transparent text-base font-semibold text-[#314523] placeholder:text-[#9a9686] focus:outline-none"
         />
         <input
           type="date" value={date} onChange={(e) => onDateChange(e.target.value)}
-          aria-label="Dato for ny milepæl"
+          aria-label={t('Dato for ny milepæl')}
           className="rounded-full border border-[#d8d4c7] bg-[#fcfbf7] px-3.5 py-2 text-[13px] text-[#314523] focus:outline-none cursor-pointer"
         />
-        <button type="button" onClick={onSave} aria-label="Gem milepæl"
+        <button type="button" onClick={onSave} aria-label={t('Gem milepæl')}
           className="flex h-8 items-center gap-1.5 rounded-full bg-[#314523] px-3 text-xs font-semibold text-[#f7f5ef] cursor-pointer">
-          <Check size={13} /> Gem
+          <Check size={13} /> {t('Gem')}
         </button>
         <button type="button" onClick={onCancel}
           className="text-sm font-medium text-[#6c7561] hover:text-[#314523] cursor-pointer">
-          Annuller
+          {t('Annuller')}
         </button>
       </div>
     </motion.div>

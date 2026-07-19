@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Plus, X, Minus, Check, Download, Share2, ChevronDown, Trash2 } from 'lucide-react';
 import { Eyebrow, Pill, cn } from '../ui';
 import OnboardingHint from '../OnboardingHint';
+import { useLang } from '../i18n';
 import { useWedding } from '../useWedding';
 
 /* ── Types ─────────────────────────────────────────────────────────── */
@@ -114,6 +115,7 @@ function tablePositions(tables: TableDef[]) {
    MAIN EXPORT
 ══════════════════════════════════════════════════════════════════════ */
 export default function Seating() {
+  const { t } = useLang();
   const { loading, guests, seatingPlan, saveSeating } = useWedding();
   const [tables, setTables]     = useState<TableDef[]>(INIT_TABLES);
   const [positions, setPositions] = useState<Record<string, { x: number; y: number }>>({});
@@ -236,22 +238,21 @@ export default function Seating() {
       {/* ── Header ──────────────────────────────────────────────────── */}
       <div className="px-6 py-8 sm:px-9 lg:px-12 lg:py-8">
         <p className="max-w-lg text-ink-soft leading-relaxed">
-          Vælg bordform og kapacitet — tilføj borde efter behov, og placer jeres gæster
-          ved at vælge et bord og klikke på gæsterne nedenfor.
+          {t('Vælg bordform og kapacitet — tilføj borde efter behov, og placer jeres gæster ved at vælge et bord og klikke på gæsterne nedenfor.')}
         </p>
 
         {/* Stats */}
         <div className="mt-6 flex flex-wrap items-center gap-3">
           <div className="rule rounded-2xl bg-card px-5 py-3">
-            <p className="eyebrow">Placeret</p>
+            <p className="eyebrow">{t('Placeret')}</p>
             <p className="mt-0.5 font-serif text-[1.5rem] leading-none text-ink">{totalSeated} / {pool.length}</p>
           </div>
           <div className="rule rounded-2xl bg-card px-5 py-3">
-            <p className="eyebrow">Borde</p>
+            <p className="eyebrow">{t('Borde')}</p>
             <p className="mt-0.5 font-serif text-[1.5rem] leading-none text-ink">{tables.length}</p>
           </div>
           <div className="rule rounded-2xl bg-card px-5 py-3">
-            <p className="eyebrow">Total kapacitet</p>
+            <p className="eyebrow">{t('Total kapacitet')}</p>
             <p className="mt-0.5 font-serif text-[1.5rem] leading-none text-ink">{tables.reduce((a, t) => a + t.capacity, 0)}</p>
           </div>
           <div className="ml-auto flex items-center gap-2 self-start">
@@ -259,15 +260,15 @@ export default function Seating() {
               <button onClick={autoSeat}
                 className="flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-semibold uppercase tracking-[0.12em] text-canvas hover:opacity-90 transition-opacity cursor-pointer"
                 style={{ background: 'var(--color-ink)' }}>
-                Lad Ava placere resten ({unassigned.length})
+                {t('Lad Ava placere resten ({n})', { n: unassigned.length })}
               </button>
             )}
             <button onClick={() => setExported(true)}
               className="flex h-8 items-center gap-1.5 rounded-full rule px-3 text-xs font-semibold text-ink-soft hover:text-ink hover:bg-card transition-all cursor-pointer">
-              <Download size={13} /> {exported ? 'Eksporteret' : 'Eksportér PDF'}
+              <Download size={13} /> {exported ? t('Eksporteret') : t('Eksportér PDF')}
             </button>
             <button className="flex h-8 items-center gap-1.5 rounded-full rule px-3 text-xs font-semibold text-ink-soft hover:text-ink hover:bg-card transition-all cursor-pointer">
-              <Share2 size={13} /> Del med venue
+              <Share2 size={13} /> {t('Del med venue')}
             </button>
           </div>
         </div>
@@ -275,7 +276,7 @@ export default function Seating() {
         {/* Progress */}
         <div className="mt-5 max-w-md">
           <div className="flex justify-between items-center mb-1.5">
-            <span className="eyebrow text-[0.62rem]">Placeret</span>
+            <span className="eyebrow text-[0.62rem]">{t('Placeret')}</span>
             <span className="text-[0.74rem] text-muted">{Math.round((totalSeated / pool.length) * 100)}%</span>
           </div>
           <div className="h-1 rounded-full bg-shell overflow-hidden">
@@ -288,13 +289,13 @@ export default function Seating() {
       {/* ── Add table bar ────────────────────────────────────────────── */}
       <div className="px-6 sm:px-9 lg:px-12 mb-8">
         <div className="flex flex-wrap items-center gap-3">
-          <Eyebrow className="mr-1">Tilføj bord</Eyebrow>
+          <Eyebrow className="mr-1">{t('Tilføj bord')}</Eyebrow>
           {(Object.entries(SHAPE_META) as [Shape, typeof SHAPE_META[Shape]][]).map(([shape, meta]) => (
             <button key={shape} onClick={() => addTable(shape)}
               className="flex items-center gap-2 rounded-full rule bg-card px-4 py-2 text-[0.82rem] font-medium text-ink-soft hover:text-ink hover:bg-shell transition-all cursor-pointer">
               <Plus size={13} />
               <ShapeIcon shape={shape} size={14} />
-              {meta.label}
+              {t(meta.label)}
             </button>
           ))}
         </div>
@@ -309,16 +310,16 @@ export default function Seating() {
           {(Object.entries(SHAPE_META) as [Shape, typeof SHAPE_META[Shape]][]).map(([shape, meta]) => (
             <div key={shape} className="flex items-center gap-1.5">
               <ShapeIcon shape={shape} size={13} className="text-muted" />
-              <span className="text-[0.72rem] text-muted">{meta.label}</span>
+              <span className="text-[0.72rem] text-muted">{t(meta.label)}</span>
             </div>
           ))}
-          <div className="ml-auto text-[0.72rem] text-muted">Klik for at vælge · træk for at flytte bordet</div>
+          <div className="ml-auto text-[0.72rem] text-muted">{t('Klik for at vælge · træk for at flytte bordet')}</div>
         </div>
       </div>
 
       {/* ── Table cards ─────────────────────────────────────────────── */}
       <div className="px-6 sm:px-9 lg:px-12 mb-12">
-        <Eyebrow className="mb-5">Borde · {tables.length} i alt</Eyebrow>
+        <Eyebrow className="mb-5">{t('Borde · {n} i alt', { n: tables.length })}</Eyebrow>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {tables.map((t) => (
             <TableCard
@@ -344,26 +345,26 @@ export default function Seating() {
           {/* Pool header */}
           <div className="flex items-center justify-between bg-card px-6 py-4 rule-b">
             <div>
-              <Eyebrow>Gæsteliste</Eyebrow>
+              <Eyebrow>{t('Gæsteliste')}</Eyebrow>
               {activeTable && activeTable.guestIds.length >= activeTable.capacity ? (
                 <p className="mt-1 font-serif text-[1.05rem] text-ink">
-                  <span className="italic">{activeTable.name}</span> er fuldt —
-                  vælg et andet bord ovenfor
+                  <span className="italic">{t(activeTable.name)}</span>{' '}
+                  {t('er fuldt — vælg et andet bord ovenfor')}
                 </p>
               ) : (
                 <p className="mt-1 font-serif text-[1.05rem] text-ink">
-                  Klik på en gæst for at placere dem ved{' '}
-                  <span className="italic">{activeTable?.name ?? 'det valgte bord'}</span>
+                  {t('Klik på en gæst for at placere dem ved')}{' '}
+                  <span className="italic">{t(activeTable?.name ?? 'det valgte bord')}</span>
                   {activeTable && (
                     <span className="ml-2 inline-block rounded-full bg-sage-tint px-2.5 py-0.5 text-[0.68rem] font-sans font-semibold not-italic align-middle text-ink">
-                      {activeTable.capacity - activeTable.guestIds.length} ledige pladser
+                      {t('{n} ledige pladser', { n: activeTable.capacity - activeTable.guestIds.length })}
                     </span>
                   )}
                 </p>
               )}
             </div>
             <div className="shrink-0 text-right">
-              <p className="eyebrow">Uplacerede</p>
+              <p className="eyebrow">{t('Uplacerede')}</p>
               <p className="mt-0.5 font-serif text-[1.5rem] leading-none text-ink">{unassigned.length}</p>
             </div>
           </div>
@@ -395,6 +396,7 @@ function FloorPlan({
   positions: Record<string, { x: number; y: number }>;
   onMove: (id: string, x: number, y: number) => void;
 }) {
+  const { t } = useLang();
   const svgRef = useRef<SVGSVGElement>(null);
   const dragRef = useRef<{ id: string; dx: number; dy: number } | null>(null);
 
@@ -446,13 +448,13 @@ function FloorPlan({
         <rect x="252" y="172" width="136" height="96" rx="12"
           fill="#edeae0" stroke="#d4d0c6" strokeWidth="1" strokeDasharray="6 4" />
         <text x="320" y="225" fill="#b4af9e" fontSize="8" textAnchor="middle"
-          fontFamily="Hanken Grotesk, sans-serif" letterSpacing="2">DANSEGULV</text>
+          fontFamily="Hanken Grotesk, sans-serif" letterSpacing="2">{t('DANSEGULV')}</text>
 
         {/* Entrance line */}
         <line x1="270" y1={VIEW_H - 13} x2="370" y2={VIEW_H - 13}
           stroke="#d0ccc0" strokeWidth="2.5" strokeLinecap="round" />
         <text x="320" y={VIEW_H - 2} fill="#c4c0b4" fontSize="7.5" textAnchor="middle"
-          fontFamily="Hanken Grotesk, sans-serif" letterSpacing="2">INDGANG</text>
+          fontFamily="Hanken Grotesk, sans-serif" letterSpacing="2">{t('INDGANG')}</text>
 
         {/* Head table */}
         {(() => {
@@ -473,50 +475,50 @@ function FloorPlan({
               {/* Seat count indicator */}
               <text x={cx} y={cy - 5} fill={isActive ? '#f7f5efcc' : '#31452399'}
                 fontSize="8" textAnchor="middle"
-                fontFamily="Hanken Grotesk, sans-serif" letterSpacing="2">BRUDEBORDET</text>
+                fontFamily="Hanken Grotesk, sans-serif" letterSpacing="2">{t('BRUDEBORDET')}</text>
               <text x={cx} y={cy + 11} fill={isActive ? '#f7f5ef80' : '#31452360'}
                 fontSize="8" textAnchor="middle" fontFamily="Hanken Grotesk, sans-serif">
-                {filled}/{cap} gæster
+                {t('{filled}/{cap} gæster', { filled, cap })}
               </text>
             </g>
           );
         })()}
 
         {/* Regular tables */}
-        {tables.filter((t) => t.id !== 'head').map((t) => {
-          const pos = posMap[t.id];
+        {tables.filter((tbl) => tbl.id !== 'head').map((tbl) => {
+          const pos = posMap[tbl.id];
           if (!pos) return null;
           const { cx, cy } = pos;
-          const isActive   = activeId === t.id;
-          const fillPct    = t.guestIds.length / t.capacity;
+          const isActive   = activeId === tbl.id;
+          const fillPct    = tbl.guestIds.length / tbl.capacity;
           const col        = '#314523';
           const bgAlpha    = isActive ? 'cc' : '22';
           const strokeAlpha = isActive ? '' : '66';
 
           return (
-            <g key={t.id} className="cursor-grab active:cursor-grabbing"
-              onPointerDown={startDrag(t.id, cx, cy)}>
+            <g key={tbl.id} className="cursor-grab active:cursor-grabbing"
+              onPointerDown={startDrag(tbl.id, cx, cy)}>
               {/* Active glow ring */}
-              {isActive && <TableShape shape={t.shape} cx={cx} cy={cy} r={32} fill="none"
+              {isActive && <TableShape shape={tbl.shape} cx={cx} cy={cy} r={32} fill="none"
                 stroke={col} strokeWidth={2} opacity={0.3} />}
 
               {/* Table body */}
-              <TableShape shape={t.shape} cx={cx} cy={cy} r={22}
+              <TableShape shape={tbl.shape} cx={cx} cy={cy} r={22}
                 fill={`${col}${bgAlpha}`}
                 stroke={`${col}${strokeAlpha}`} strokeWidth={1.5} />
 
               {/* Fill overlay */}
               {fillPct > 0 && (
-                <TableShape shape={t.shape} cx={cx} cy={cy} r={22}
+                <TableShape shape={tbl.shape} cx={cx} cy={cy} r={22}
                   fill={col} opacity={fillPct * 0.35} />
               )}
 
               {/* Seat dots */}
-              {Array.from({ length: Math.min(t.capacity, 12) }).map((_, i) => {
-                const n     = Math.min(t.capacity, 12);
+              {Array.from({ length: Math.min(tbl.capacity, 12) }).map((_, i) => {
+                const n     = Math.min(tbl.capacity, 12);
                 const angle = (i / n) * Math.PI * 2 - Math.PI / 2;
-                const dR    = t.shape === 'round' ? 30 : t.shape === 'rect' ? 28 : 26;
-                const filled = i < (t.guestIds.length / t.capacity) * n;
+                const dR    = tbl.shape === 'round' ? 30 : tbl.shape === 'rect' ? 28 : 26;
+                const filled = i < (tbl.guestIds.length / tbl.capacity) * n;
                 return (
                   <circle key={i}
                     cx={cx + Math.cos(angle) * dR}
@@ -533,7 +535,7 @@ function FloorPlan({
                 fill={isActive ? '#f7f5efdd' : '#31452399'}
                 fontSize="9.5" textAnchor="middle" fontWeight="600"
                 fontFamily="Hanken Grotesk, sans-serif">
-                {t.name.replace('Bord ', '')}
+                {tbl.name.replace('Bord ', '')}
               </text>
             </g>
           );
@@ -587,6 +589,7 @@ function TableCard({
   onRemoveGuest: (id: string) => void;
   onDelete?: () => void;
 }) {
+  const { t } = useLang();
   const filled   = table.guestIds.length;
   const cap      = table.capacity;
   const isFull   = filled >= cap;
@@ -616,10 +619,10 @@ function TableCard({
 
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline gap-2">
-            <span className="font-serif text-[1.05rem] text-ink truncate">{table.name}</span>
-            {isFull && <span className="text-[0.65rem] font-medium uppercase tracking-[0.1em] text-sage">Fuld</span>}
+            <span className="font-serif text-[1.05rem] text-ink truncate">{t(table.name)}</span>
+            {isFull && <span className="text-[0.65rem] font-medium uppercase tracking-[0.1em] text-sage">{t('Fuld')}</span>}
           </div>
-          <div className="mt-1 text-[0.72rem] text-muted">{SHAPE_META[table.shape].label}</div>
+          <div className="mt-1 text-[0.72rem] text-muted">{t(SHAPE_META[table.shape].label)}</div>
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
@@ -649,13 +652,13 @@ function TableCard({
               {/* Shape selector */}
               {!isHead && (
                 <div className="flex items-center gap-2 px-4 py-3 rule-b">
-                  <span className="eyebrow mr-2">Form</span>
+                  <span className="eyebrow mr-2">{t('Form')}</span>
                   {(['round', 'rect', 'horseshoe'] as Shape[]).map((s) => (
                     <button key={s} onClick={() => onShapeChange(s)}
                       className={cn('flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[0.76rem] transition-all cursor-pointer rule',
                         table.shape === s ? 'bg-ink text-canvas' : 'bg-card text-ink-soft hover:text-ink')}>
                       <ShapeIcon shape={s} size={12} />
-                      {SHAPE_META[s].label}
+                      {t(SHAPE_META[s].label)}
                     </button>
                   ))}
                 </div>
@@ -663,7 +666,7 @@ function TableCard({
 
               {/* Capacity stepper */}
               <div className="flex items-center gap-3 px-4 py-3 rule-b">
-                <span className="eyebrow flex-1">Sæder</span>
+                <span className="eyebrow flex-1">{t('Sæder')}</span>
                 <div className="flex items-center gap-2">
                   <button onClick={() => onCapacityChange(-1)}
                     className="flex h-7 w-7 items-center justify-center rounded-full rule hover:bg-card transition-colors cursor-pointer">
@@ -675,7 +678,7 @@ function TableCard({
                     <Plus size={13} />
                   </button>
                 </div>
-                <span className="text-[0.72rem] text-muted">{SHAPE_META[table.shape].desc}</span>
+                <span className="text-[0.72rem] text-muted">{t(SHAPE_META[table.shape].desc)}</span>
               </div>
 
               {/* Guest list */}
@@ -696,7 +699,7 @@ function TableCard({
                 )) : (
                   <div className="px-4 py-5 text-center">
                     <p className="text-[0.82rem] text-muted italic">
-                      {isActive ? 'Klik på gæster nedenfor for at placere dem her' : 'Vælg bordet for at tilføje gæster'}
+                      {isActive ? t('Klik på gæster nedenfor for at placere dem her') : t('Vælg bordet for at tilføje gæster')}
                     </p>
                   </div>
                 )}
@@ -708,7 +711,11 @@ function TableCard({
                   {Array.from({ length: cap - filled }).map((_, i) => (
                     <span key={i} className="h-2 w-2 rounded-full bg-shell" />
                   ))}
-                  <span className="ml-1 text-[0.7rem] text-muted">{cap - filled} ledig {cap - filled === 1 ? 'plads' : 'pladser'}</span>
+                  <span className="ml-1 text-[0.7rem] text-muted">
+                    {cap - filled === 1
+                      ? t('{n} ledig plads', { n: cap - filled })
+                      : t('{n} ledige pladser', { n: cap - filled })}
+                  </span>
                 </div>
               )}
 
@@ -716,7 +723,7 @@ function TableCard({
               {onDelete && (
                 <button onClick={onDelete}
                   className="flex w-full items-center gap-2 px-4 py-3 rule-t text-[0.78rem] text-muted hover:text-clay hover:bg-[#fff5f5] transition-colors cursor-pointer">
-                  <Trash2 size={13} /> Fjern bord
+                  <Trash2 size={13} /> {t('Fjern bord')}
                 </button>
               )}
             </div>
@@ -736,6 +743,7 @@ function GuestGroup({
   activeTable: TableDef | undefined;
   onAssign: (id: string) => void;
 }) {
+  const { t } = useLang();
   const [collapsed, setCollapsed] = useState(false);
   const canAssign = activeTable && activeTable.guestIds.length < activeTable.capacity;
 
@@ -747,7 +755,10 @@ function GuestGroup({
         <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: group.color }} />
         <span className="flex-1 text-left font-serif text-[0.98rem] text-ink">{group.name}</span>
         <span className="text-[0.72rem] text-muted">
-          {group.guests.filter((g) => assignedIds.has(g.id)).length}/{group.guests.length} placeret
+          {t('{placed}/{total} placeret', {
+            placed: group.guests.filter((g) => assignedIds.has(g.id)).length,
+            total: group.guests.length,
+          })}
         </span>
         <span className={cn('text-muted transition-transform duration-200', collapsed && 'rotate-180')}>
           <ChevronDown size={14} />

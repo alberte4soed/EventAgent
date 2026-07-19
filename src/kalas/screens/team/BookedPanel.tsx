@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { Camera, Flower2, Home, Music, UtensilsCrossed, Plus } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useWedding } from '../../useWedding';
+import { useLang } from '../../i18n';
 import { cn } from '../../ui';
 import type { HubCat, HubTab } from './shared';
 import type { VendorCategory } from '@/lib/db/types';
@@ -30,6 +31,7 @@ export default function BookedPanel({
   onSwitchTab: (tab: HubTab, cat?: HubCat) => void;
 }) {
   const { event, venues } = useWedding();
+  const { t } = useLang();
   const chosenVenueId = event?.chosen_venue_id ?? null;
 
   const bookedBySlot = useMemo(() => {
@@ -47,10 +49,10 @@ export default function BookedPanel({
   return (
     <div>
       <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#8a9079]">
-        Jeres team · {bookedCount} booket
+        {t('Jeres team · {n} booket', { n: bookedCount })}
       </p>
       <p className="mt-2 max-w-xl text-sm text-[#6c7561]">
-        Hold styr på hele holdet ét sted — fra venue til fotograf og blomster.
+        {t('Hold styr på hele holdet ét sted — fra venue til fotograf og blomster.')}
       </p>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -78,8 +80,8 @@ export default function BookedPanel({
                   <Icon size={20} strokeWidth={1.6} />
                 </span>
                 <div>
-                  <h3 className="font-serif text-[1.15rem] text-[#314523]">{slot.label}</h3>
-                  {booked && <p className="text-[0.72rem] font-medium text-[#7a9068]">Booket ✓</p>}
+                  <h3 className="font-serif text-[1.15rem] text-[#314523]">{t(slot.label)}</h3>
+                  {booked && <p className="text-[0.72rem] font-medium text-[#7a9068]">{t('Booket ✓')}</p>}
                 </div>
               </div>
 
@@ -97,19 +99,19 @@ export default function BookedPanel({
                     onClick={() => onSwitchTab('shortlist', slot.id)}
                     className="mt-4 text-[0.78rem] font-medium text-[#314523] underline-offset-2 hover:underline cursor-pointer"
                   >
-                    Se detaljer
+                    {t('Se detaljer')}
                   </button>
                 </div>
               ) : (
                 <div className="mt-4 flex flex-1 flex-col">
-                  <p className="text-[0.82rem] leading-relaxed text-[#6c7561]">{slot.leadTime}</p>
+                  <p className="text-[0.82rem] leading-relaxed text-[#6c7561]">{t(slot.leadTime)}</p>
                   <button
                     type="button"
                     onClick={() => onSwitchTab('explore', slot.id)}
                     className="mt-auto inline-flex h-8 items-center gap-1.5 self-start rounded-full border border-[#314523] px-3 text-xs font-semibold uppercase tracking-[0.1em] text-[#314523] hover:bg-[#f7f5ef] transition-colors cursor-pointer"
                   >
                     <Plus size={13} />
-                    Booket? Tilføj her
+                    {t('Booket? Tilføj her')}
                   </button>
                 </div>
               )}
@@ -124,7 +126,7 @@ export default function BookedPanel({
           onClick={() => onSwitchTab('explore', 'fotografi')}
           className="mt-8 inline-flex h-8 items-center gap-1.5 rounded-full bg-[#314523] px-3 text-xs font-semibold text-[#f7f5ef] hover:opacity-90 transition-colors cursor-pointer"
         >
-          Find fotograf →
+          {t('Find fotograf →')}
         </button>
       )}
     </div>

@@ -85,10 +85,11 @@ const STAGE_META: Record<VenueStage, { label: string; cls: string; Icon: typeof 
 };
 
 function StageChip({ stage, className }: { stage: VenueStage; className?: string }) {
+  const { t } = useLang();
   const { label, cls, Icon } = STAGE_META[stage];
   return (
     <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.62rem] font-bold uppercase tracking-[0.1em]', cls, className)}>
-      <Icon size={11} /> {label}
+      <Icon size={11} /> {t(label)}
     </span>
   );
 }
@@ -128,6 +129,7 @@ export default function VenueDiscovery({
   hub?: VenueHubConfig;
 }) {
   type VView = 'home' | 'discover' | 'list' | 'review';
+  const { t } = useLang();
   const { couple, event, venues: allVenues, outbound, replies, refresh } = useWedding();
 
   useEffect(() => {
@@ -315,9 +317,9 @@ export default function VenueDiscovery({
               </span>
               <div className="min-w-0">
                 <p className="truncate font-serif text-[0.98rem] leading-snug text-[#f7f5ef]">
-                  {chosenToast ? `${chosenToast} er nu jeres venue` : 'Venue valgt'}
+                  {chosenToast ? t('{name} er nu jeres venue', { name: chosenToast }) : t('Venue valgt')}
                 </p>
-                <p className="text-[0.72rem] text-[#a6b0aa]">Alt om stedet samles nu på jeres oversigt.</p>
+                <p className="text-[0.72rem] text-[#a6b0aa]">{t('Alt om stedet samles nu på jeres oversigt.')}</p>
               </div>
             </div>
           </motion.div>
@@ -343,6 +345,7 @@ function ChosenOverview({ chosen, couple, onOpenDetail, onDiscover }: {
   chosen: DisplayVenue | null; couple: Couple;
   onOpenDetail?: () => void; onDiscover: () => void;
 }) {
+  const { t } = useLang();
   return (
     <div className="flex min-h-[210px] flex-col overflow-hidden rounded-[18px] bg-[#314523] sm:flex-row">
       <div className="relative flex min-h-[150px] w-full shrink-0 flex-col justify-end overflow-hidden sm:min-h-0 sm:w-[42%]">
@@ -372,22 +375,22 @@ function ChosenOverview({ chosen, couple, onOpenDetail, onDiscover }: {
       <div className="flex flex-1 flex-col justify-between gap-4 p-6">
         <div className="flex flex-col gap-2">
           {chosen ? (
-            <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-[#f7f5ef] px-[10px] py-1 text-[9px] font-bold uppercase tracking-wide text-[#314523]"><Check size={11} /> Valgt venue</span>
+            <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-[#f7f5ef] px-[10px] py-1 text-[9px] font-bold uppercase tracking-wide text-[#314523]"><Check size={11} /> {t('Valgt venue')}</span>
           ) : (
-            <span className="inline-flex w-fit rounded-full bg-white/15 px-[10px] py-1 text-[9px] font-bold uppercase tracking-wide text-white/80">Ingen venue valgt endnu</span>
+            <span className="inline-flex w-fit rounded-full bg-white/15 px-[10px] py-1 text-[9px] font-bold uppercase tracking-wide text-white/80">{t('Ingen venue valgt endnu')}</span>
           )}
-          <h2 className="font-serif text-[1.6rem] leading-snug text-white">{chosen ? chosen.name : 'I har ikke valgt et sted endnu'}</h2>
+          <h2 className="font-serif text-[1.6rem] leading-snug text-white">{chosen ? chosen.name : t('I har ikke valgt et sted endnu')}</h2>
           <p className="max-w-[420px] text-xs leading-[1.6] text-[#a6b0aa]">
             {chosen
-              ? (chosen.quote || chosen.why[0] || chosen.location || 'Jeres valgte sted.')
-              : 'Byg jeres liste nedenfor, lad Ava kontakte dem, og vælg til sidst det sted der føles rigtigt.'}
+              ? (chosen.quote || chosen.why[0] || chosen.location || t('Jeres valgte sted.'))
+              : t('Byg jeres liste nedenfor, lad Ava kontakte dem, og vælg til sidst det sted der føles rigtigt.')}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           {chosen && onOpenDetail && (
-            <button type="button" onClick={onOpenDetail} className="inline-flex items-center gap-2 rounded-full bg-[#f7f5ef] px-5 py-2.5 text-[13px] font-bold text-[#314523] transition-opacity hover:opacity-90 cursor-pointer">Se detaljer</button>
+            <button type="button" onClick={onOpenDetail} className="inline-flex items-center gap-2 rounded-full bg-[#f7f5ef] px-5 py-2.5 text-[13px] font-bold text-[#314523] transition-opacity hover:opacity-90 cursor-pointer">{t('Se detaljer')}</button>
           )}
-          <button type="button" onClick={onDiscover} className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2.5 text-[13px] font-bold text-white transition-colors hover:bg-white/20 cursor-pointer"><GlobeIcon size={15} /> Udforsk venues</button>
+          <button type="button" onClick={onDiscover} className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2.5 text-[13px] font-bold text-white transition-colors hover:bg-white/20 cursor-pointer"><GlobeIcon size={15} /> {t('Udforsk venues')}</button>
         </div>
       </div>
     </div>
@@ -407,6 +410,7 @@ function VenuesHome({
   onDiscover: () => void; onList: () => void; onReview: () => void;
   onOpenVenue: (id: string) => void; onOpenDetail?: () => void; onInbox: () => void;
 }) {
+  const { t } = useLang();
   const metrics = [
     { label: 'På listen', value: String(counts.listed) },
     { label: 'Kontaktet', value: String(counts.contacted) },
@@ -422,22 +426,24 @@ function VenuesHome({
     {
       n: 1, title: 'Opdag',
       desc: 'Find rigtige venues på kloden og tilføj dem I kan lide til listen.',
-      stat: counts.listed > 0 ? `${counts.listed} tilføjet` : 'Ikke startet',
-      cta: counts.listed > 0 ? 'Opdag flere' : 'Start søgning',
+      stat: counts.listed > 0 ? t('{n} tilføjet', { n: counts.listed }) : t('Ikke startet'),
+      cta: counts.listed > 0 ? t('Opdag flere') : t('Start søgning'),
       Icon: GlobeIcon, onClick: onDiscover, state: counts.listed > 0 ? 'done' : 'active',
     },
     {
       n: 2, title: 'Byg jeres liste',
       desc: 'Sammenlign, research og forfin listen — fjern dem der ikke passer.',
-      stat: counts.listed > 0 ? `${counts.listed} på listen` : 'Tom endnu',
-      cta: 'Rediger liste', Icon: Heart, onClick: onList,
+      stat: counts.listed > 0 ? t('{n} på listen', { n: counts.listed }) : t('Tom endnu'),
+      cta: t('Rediger liste'), Icon: Heart, onClick: onList,
       disabled: counts.listed === 0, state: counts.listed > 0 ? 'active' : 'todo',
     },
     {
       n: 3, title: 'Lad Ava kontakte',
       desc: 'Godkend Avas henvendelse og følg samtalerne under Henvendelser.',
-      stat: counts.contacted > 0 ? `${counts.contacted} kontaktet · ${counts.replied} svar` : 'Klar til at sende',
-      cta: counts.contacted > 0 ? 'Følg svarene' : 'Gennemgå & send',
+      stat: counts.contacted > 0
+        ? t('{contacted} kontaktet · {replied} svar', { contacted: counts.contacted, replied: counts.replied })
+        : t('Klar til at sende'),
+      cta: counts.contacted > 0 ? t('Følg svarene') : t('Gennemgå & send'),
       Icon: Send, onClick: counts.contacted > 0 ? onInbox : onReview,
       disabled: counts.listed === 0,
       state: counts.contacted > 0 ? 'done' : counts.listed > 0 ? 'active' : 'todo',
@@ -452,10 +458,10 @@ function VenuesHome({
     >
       {/* Header */}
       <div>
-        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#8a9079]">Planlægning</p>
-        <h1 className="mt-1 font-serif text-[clamp(2rem,4vw,2.4rem)] leading-[1.1] tracking-[-0.02em] text-[#314523]">Venues</h1>
+        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#8a9079]">{t('Planlægning')}</p>
+        <h1 className="mt-1 font-serif text-[clamp(2rem,4vw,2.4rem)] leading-[1.1] tracking-[-0.02em] text-[#314523]">{t('Venues')}</h1>
         <p className="mt-1 max-w-xl text-[13px] text-[#6c7561]">
-          Fra opdagelse til det endelige ja — her er jeres overblik og de næste skridt.
+          {t('Fra opdagelse til det endelige ja — her er jeres overblik og de næste skridt.')}
         </p>
       </div>
 
@@ -466,7 +472,7 @@ function VenuesHome({
       <div className="grid grid-cols-2 overflow-hidden rounded-2xl border border-[var(--color-line)] bg-card sm:grid-cols-4">
         {metrics.map((m, i) => (
           <div key={m.label} className={cn('px-5 py-4', i < 3 && 'sm:border-r border-[var(--color-line)]', i % 2 === 0 && 'border-r sm:border-r')}>
-            <p className="text-[0.62rem] font-bold uppercase tracking-[0.14em] text-muted">{m.label}</p>
+            <p className="text-[0.62rem] font-bold uppercase tracking-[0.14em] text-muted">{t(m.label)}</p>
             <p className={cn('mt-1 font-serif text-[1.6rem] leading-none', m.accent ? 'text-[#8a9079]' : 'text-ink')}>{m.value}</p>
           </div>
         ))}
@@ -476,12 +482,12 @@ function VenuesHome({
       <div>
         <div className="mb-3 flex items-center justify-between">
           <p className="text-[0.62rem] font-bold uppercase tracking-[0.18em] text-muted">
-            {list.length > 0 ? `Jeres liste indtil videre · ${list.length}` : 'Jeres liste indtil videre'}
+            {list.length > 0 ? t('Jeres liste indtil videre · {n}', { n: list.length }) : t('Jeres liste indtil videre')}
           </p>
           {list.length > 0 && (
             <button type="button" onClick={onList}
               className="text-[0.72rem] font-bold uppercase tracking-[0.1em] text-[#314523] hover:underline cursor-pointer">
-              Rediger liste →
+              {t('Rediger liste →')}
             </button>
           )}
         </div>
@@ -495,8 +501,8 @@ function VenuesHome({
               <GlobeIcon size={18} className="text-white" />
             </span>
             <div>
-              <p className="font-serif text-[1.1rem] text-ink">Ingen venues endnu</p>
-              <p className="mt-0.5 text-[0.8rem] text-ink-soft">Start i Opdag og tilføj de steder I bliver forelsket i.</p>
+              <p className="font-serif text-[1.1rem] text-ink">{t('Ingen venues endnu')}</p>
+              <p className="mt-0.5 text-[0.8rem] text-ink-soft">{t('Start i Opdag og tilføj de steder I bliver forelsket i.')}</p>
             </div>
           </button>
         ) : (
@@ -514,7 +520,7 @@ function VenuesHome({
                   <div className="absolute inset-0 bg-gradient-to-t from-[#1a221566] to-transparent" />
                   {chosen && v.id === chosen.id ? (
                     <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-ink px-2 py-0.5 text-[0.55rem] font-bold uppercase tracking-[0.1em] text-canvas">
-                      <Check size={9} /> Valgt
+                      <Check size={9} /> {t('Valgt')}
                     </span>
                   ) : stageOf(v.id) !== 'idle' ? (
                     <div className="absolute left-2 top-2"><StageChip stage={stageOf(v.id)} /></div>
@@ -535,7 +541,7 @@ function VenuesHome({
                 className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-[var(--color-line-strong)] bg-card p-4 text-center transition-colors hover:border-[#314523]/40 cursor-pointer"
               >
                 <span className="font-serif text-[1.4rem] text-ink">+{list.length - 8}</span>
-                <span className="text-[0.7rem] font-semibold text-muted">flere på listen</span>
+                <span className="text-[0.7rem] font-semibold text-muted">{t('flere på listen')}</span>
               </button>
             )}
           </div>
@@ -544,7 +550,7 @@ function VenuesHome({
 
       {/* Steps tree */}
       <div>
-        <p className="mb-3 text-[0.62rem] font-bold uppercase tracking-[0.18em] text-muted">Sådan gør I</p>
+        <p className="mb-3 text-[0.62rem] font-bold uppercase tracking-[0.18em] text-muted">{t('Sådan gør I')}</p>
         <div className="relative">
           {steps.map((s, i) => {
             const badge = s.state === 'done'
@@ -576,8 +582,8 @@ function VenuesHome({
                       <s.Icon size={17} />
                     </span>
                     <div className="min-w-0">
-                      <p className="font-serif text-[1.15rem] leading-tight text-ink">{s.title}</p>
-                      <p className="mt-0.5 text-[0.8rem] leading-snug text-ink-soft">{s.desc}</p>
+                      <p className="font-serif text-[1.15rem] leading-tight text-ink">{t(s.title)}</p>
+                      <p className="mt-0.5 text-[0.8rem] leading-snug text-ink-soft">{t(s.desc)}</p>
                       <span className="mt-1.5 inline-block rounded-full bg-shell px-2.5 py-1 text-[0.66rem] font-bold uppercase tracking-[0.08em] text-[#6c7561]">{s.stat}</span>
                     </div>
                   </div>
@@ -611,7 +617,7 @@ function DiscoverView({
   onViewList?: () => void;
   embedded?: boolean;
 }) {
-  const { lang } = useLang();
+  const { lang, t } = useLang();
   const venueArea = venueAreaLabel(couple.region);
 
   const [country, setCountry] = useState<string | null>(null);
@@ -784,7 +790,7 @@ function DiscoverView({
   const activeDest = destTab === 'city' ? cities : weddings;
 
   const visibleResults = results.filter((v) => !dismissed.has(v.id));
-  const destTitle = destination === SIMILAR_KEY ? 'Ligner jeres liste' : destination;
+  const destTitle = destination === SIMILAR_KEY ? t('Ligner jeres liste') : destination;
 
   return (
     <motion.div
@@ -800,15 +806,15 @@ function DiscoverView({
           {onBack && (
             <button type="button" onClick={onBack}
               className="mb-3 flex items-center gap-2 text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted hover:text-ink transition-colors cursor-pointer">
-              <ArrowLeft size={13} /> Venues
+              <ArrowLeft size={13} /> {t('Venues')}
             </button>
           )}
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#8a9079]">Trin 1 · Opdag</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#8a9079]">{t('Trin 1 · Opdag')}</p>
           <h1 className="mt-1 font-serif text-[clamp(2rem,4vw,2.25rem)] leading-[1.1] tracking-[-0.02em] text-[#314523]">
-            Byg jeres liste af venues
+            {t('Byg jeres liste af venues')}
           </h1>
           <p className="mt-1 max-w-xl text-[13px] text-[#6c7561]">
-            Drej på kloden og vælg et land, eller skriv selv et sted — Ava researcher rigtige venues, som I kan gå på opdagelse i nedenfor.
+            {t('Drej på kloden og vælg et land, eller skriv selv et sted — Ava researcher rigtige venues, som I kan gå på opdagelse i nedenfor.')}
           </p>
         </div>
         {onViewList && listCount > 0 && (
@@ -817,7 +823,7 @@ function DiscoverView({
             onClick={onViewList}
             className="flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-[#314523] px-3 text-xs font-semibold text-[#f7f5ef] transition-opacity hover:opacity-90 cursor-pointer"
           >
-            Se din liste ({listCount}) <ArrowUpRight size={13} />
+            {t('Se din liste ({n})', { n: listCount })} <ArrowUpRight size={13} />
           </button>
         )}
       </div>
@@ -832,8 +838,8 @@ function DiscoverView({
         <div className="flex min-h-[320px] max-h-[min(62vh,560px)] flex-col overflow-hidden rounded-[28px] border border-[#d8d4c7] bg-[#fcfbf7]">
           <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[#e4e0d4] px-5 py-4">
             <div className="min-w-0">
-              <p className="text-[0.62rem] font-semibold uppercase tracking-[0.2em] text-muted">Destination</p>
-              <h3 className="truncate font-serif text-[1.2rem] leading-tight text-ink">{country ?? 'Vælg et sted'}</h3>
+              <p className="text-[0.62rem] font-semibold uppercase tracking-[0.2em] text-muted">{t('Destination')}</p>
+              <h3 className="truncate font-serif text-[1.2rem] leading-tight text-ink">{country ?? t('Vælg et sted')}</h3>
             </div>
             <button
               type="button"
@@ -846,7 +852,7 @@ function DiscoverView({
                   : 'border-[#d8d4c7] text-[#6c7561] hover:border-[#314523] hover:text-[#314523]',
               )}
             >
-              <PenLine size={13} /> Skriv selv
+              <PenLine size={13} /> {t('Skriv selv')}
             </button>
           </div>
 
@@ -863,7 +869,7 @@ function DiscoverView({
                     value={customValue}
                     onChange={(e) => setCustomValue(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') submitCustom(); }}
-                    placeholder="f.eks. Sydfyn · Toscana · jeres sommerhusby"
+                    placeholder={t('f.eks. Sydfyn · Toscana · jeres sommerhusby')}
                     className="h-9 min-w-0 flex-1 rounded-full border border-[#d8d4c7] bg-[#fcfbf7] px-4 text-[0.82rem] text-ink placeholder:text-[#9a9686] focus:border-[#314523] focus:outline-none"
                     autoFocus
                   />
@@ -873,7 +879,7 @@ function DiscoverView({
                     disabled={!customValue.trim()}
                     className="flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-[#314523] px-3.5 text-[0.72rem] font-semibold text-[#f7f5ef] transition-opacity hover:opacity-90 disabled:opacity-40 cursor-pointer"
                   >
-                    <Search size={13} /> Søg
+                    <Search size={13} /> {t('Søg')}
                   </button>
                 </div>
               </motion.div>
@@ -884,8 +890,8 @@ function DiscoverView({
           {!destLoading && !destFailed && country && (cities.length > 0 || weddings.length > 0) && (
             <div className="flex shrink-0 gap-0.5 border-b border-[#e4e0d4] px-3">
               {[
-                { id: 'city' as const, label: 'Største byer', count: cities.length },
-                { id: 'wedding' as const, label: 'Bryllupsdestinationer', count: weddings.length },
+                { id: 'city' as const, label: t('Største byer'), count: cities.length },
+                { id: 'wedding' as const, label: t('Bryllupsdestinationer'), count: weddings.length },
               ].map(({ id, label, count }) => (
                 <button
                   key={id}
@@ -911,7 +917,7 @@ function DiscoverView({
                   <GlobeIcon size={19} className="text-white" />
                 </div>
                 <p className="text-[0.88rem] leading-relaxed text-ink-soft">
-                  Tryk på et land på kloden — eller skriv selv et sted — for at se byer og bryllupsdestinationer.
+                  {t('Tryk på et land på kloden — eller skriv selv et sted — for at se byer og bryllupsdestinationer.')}
                 </p>
                 {venueArea && (
                   <button
@@ -920,14 +926,14 @@ function DiscoverView({
                     className="inline-flex items-center gap-2 rounded-full bg-[#314523] px-4 py-2.5 text-[0.78rem] font-bold text-white transition-opacity hover:opacity-90 cursor-pointer"
                   >
                     <MapPin size={13} />
-                    Søg venues nær {venueArea}
+                    {t('Søg venues nær {area}', { area: venueArea })}
                   </button>
                 )}
               </div>
             ) : destLoading ? (
-              <PanelSpinner label={`Finder byer og destinationer i ${country}…`} />
+              <PanelSpinner label={t('Finder byer og destinationer i {country}…', { country: country! })} />
             ) : destFailed ? (
-              <PanelError label="Kunne ikke hente destinationer." onRetry={() => void loadDestinations(country)} />
+              <PanelError label={t('Kunne ikke hente destinationer.')} onRetry={() => void loadDestinations(country)} />
             ) : (
               <div className="flex flex-col gap-3">
                 {activeDest.map((s) => (
@@ -940,7 +946,7 @@ function DiscoverView({
                   />
                 ))}
                 {activeDest.length === 0 && (
-                  <p className="px-1 py-6 text-center text-[0.85rem] text-ink-soft">Ingen forslag i denne kategori.</p>
+                  <p className="px-1 py-6 text-center text-[0.85rem] text-ink-soft">{t('Ingen forslag i denne kategori.')}</p>
                 )}
               </div>
             )}
@@ -954,12 +960,12 @@ function DiscoverView({
           <div className="flex flex-col gap-5">
             <div className="flex flex-wrap items-end justify-between gap-3 border-b border-[#e0ddd2] pb-3">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#8a9079]">Venues</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#8a9079]">{t('Venues')}</p>
                 <h2 className="mt-1 font-serif text-[clamp(1.5rem,3vw,2rem)] leading-tight text-[#314523]">
                   {destTitle}
                 </h2>
                 <p className="mt-1 text-[13px] text-[#6c7561]">
-                  Klik på et venue for at se billederne, eller tilføj det til jeres liste.
+                  {t('Klik på et venue for at se billederne, eller tilføj det til jeres liste.')}
                 </p>
               </div>
               {onViewList && listCount > 0 && (
@@ -968,7 +974,7 @@ function DiscoverView({
                   onClick={onViewList}
                   className="flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-[#d8d4c7] px-3 text-xs font-semibold text-[#314523] transition-colors hover:bg-[#eef1e6] cursor-pointer"
                 >
-                  Se din liste ({listCount}) <ArrowUpRight size={13} />
+                  {t('Se din liste ({n})', { n: listCount })} <ArrowUpRight size={13} />
                 </button>
               )}
             </div>
@@ -988,18 +994,18 @@ function DiscoverView({
               </div>
             ) : resultsFailed ? (
               <div className="rounded-2xl border border-[#e4e0d4] bg-[#fcfbf7] p-8 text-center">
-                <p className="text-[0.9rem] text-ink-soft">Kunne ikke finde venues her.</p>
+                <p className="text-[0.9rem] text-ink-soft">{t('Kunne ikke finde venues her.')}</p>
                 <button
                   type="button"
                   onClick={() => void searchVenues(destination)}
                   className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-[#314523] px-4 py-2 text-[0.78rem] font-bold text-white transition-opacity hover:opacity-90 cursor-pointer"
                 >
-                  Prøv igen
+                  {t('Prøv igen')}
                 </button>
               </div>
             ) : visibleResults.length === 0 ? (
               <div className="rounded-2xl border border-[#e4e0d4] bg-[#fcfbf7] p-8 text-center">
-                <p className="text-[0.9rem] text-ink-soft">Ingen venues tilbage her — prøv et andet sted.</p>
+                <p className="text-[0.9rem] text-ink-soft">{t('Ingen venues tilbage her — prøv et andet sted.')}</p>
               </div>
             ) : (
               <>
@@ -1027,7 +1033,7 @@ function DiscoverView({
                       onClick={onViewList}
                       className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[#314523] px-5 text-xs font-semibold text-[#f7f5ef] transition-opacity hover:opacity-90 cursor-pointer"
                     >
-                      Se jeres liste ({justSaved.size}) <ArrowRight size={14} />
+                      {t('Se jeres liste ({n})', { n: justSaved.size })} <ArrowRight size={14} />
                     </button>
                   </div>
                 )}
@@ -1054,6 +1060,7 @@ function DiscoverView({
 function DiscoverDestCard({ s, active, onChoose, onExpand }: {
   s: DestinationSuggestion; active: boolean; onChoose: () => void; onExpand?: () => void;
 }) {
+  const { t } = useLang();
   return (
     <div className={cn(
       'group relative overflow-hidden rounded-2xl border transition-colors',
@@ -1075,7 +1082,7 @@ function DiscoverDestCard({ s, active, onChoose, onExpand }: {
           <div className="flex items-center gap-2">
             <p className="truncate font-serif text-[0.98rem] text-[#314523]">{s.name}</p>
             <span className="shrink-0 rounded-full bg-[#f0ede5] px-2 py-0.5 text-[0.56rem] font-bold uppercase tracking-[0.1em] text-[#314523]">
-              {s.kind === 'city' ? 'By' : 'Bryllup'}
+              {s.kind === 'city' ? t('By') : t('Bryllup')}
             </span>
             {s.rating != null && (
               <span className="ml-auto inline-flex shrink-0 items-center gap-1 text-[0.7rem] text-ink-soft">
@@ -1085,7 +1092,7 @@ function DiscoverDestCard({ s, active, onChoose, onExpand }: {
           </div>
           {s.blurb && <p className="mt-1 line-clamp-2 text-[0.74rem] leading-snug text-[#6c7561]">{s.blurb}</p>}
           <p className="mt-2 inline-flex items-center gap-1.5 text-[0.7rem] font-bold uppercase tracking-[0.08em] text-[#314523]">
-            {active ? <><Check size={12} /> Viser venues</> : <>Se venues <ArrowRight size={12} /></>}
+            {active ? <><Check size={12} /> {t('Viser venues')}</> : <>{t('Se venues')} <ArrowRight size={12} /></>}
           </p>
         </div>
       </button>
@@ -1093,7 +1100,7 @@ function DiscoverDestCard({ s, active, onChoose, onExpand }: {
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); onExpand(); }}
-          aria-label="Forstør billede"
+          aria-label={t('Forstør billede')}
           className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-[#fcfbf7]/90 text-ink-soft shadow-sm transition-colors hover:text-ink cursor-pointer"
         >
           <Expand size={14} />
@@ -1109,13 +1116,14 @@ function DiscoverVenueCard({ v, saved, saving, onSave, onDismiss, onExpand }: {
   v: OnboardingVenueSuggestion; saved: boolean; saving: boolean;
   onSave: () => void; onDismiss: () => void; onExpand?: () => void;
 }) {
+  const { t } = useLang();
   return (
     <div className="group flex flex-col overflow-hidden rounded-2xl border border-[#e4e0d4] bg-[#fcfbf7] transition-shadow hover:shadow-[0_10px_28px_rgba(23,60,50,0.10)]">
       <button
         type="button"
         onClick={onExpand}
         disabled={!onExpand}
-        aria-label={onExpand ? `Se billeder af ${v.name}` : undefined}
+        aria-label={onExpand ? t('Se billeder af {name}', { name: v.name }) : undefined}
         className={cn('relative h-44 w-full overflow-hidden bg-[#eef1e6]', onExpand && 'cursor-pointer')}
       >
         {v.photo ? (
@@ -1141,7 +1149,7 @@ function DiscoverVenueCard({ v, saved, saving, onSave, onDismiss, onExpand }: {
         )}
         {v.photos.length > 1 && (
           <span className="absolute bottom-2.5 right-2.5 rounded-full bg-black/45 px-2 py-0.5 text-[0.6rem] font-semibold text-white backdrop-blur-sm">
-            {v.photos.length} billeder
+            {t('{n} billeder', { n: v.photos.length })}
           </span>
         )}
       </button>
@@ -1169,12 +1177,12 @@ function DiscoverVenueCard({ v, saved, saving, onSave, onDismiss, onExpand }: {
             )}
           >
             {saving ? <Loader2 size={13} className="animate-spin" /> : saved ? <Check size={13} /> : <Plus size={13} />}
-            {saved ? 'På listen' : 'Tilføj til liste'}
+            {saved ? t('På listen') : t('Tilføj til liste')}
           </button>
           <button
             type="button"
             onClick={onDismiss}
-            aria-label={`Afvis ${v.name}`}
+            aria-label={t('Afvis {name}', { name: v.name })}
             className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[#6c7561] transition-colors hover:bg-[#f0ede5] hover:text-[#314523] cursor-pointer"
           >
             <X size={15} />
@@ -1195,6 +1203,7 @@ function PanelSpinner({ label }: { label: string }) {
 }
 
 function PanelError({ label, onRetry }: { label: string; onRetry: () => void }) {
+  const { t } = useLang();
   return (
     <div className="flex h-full min-h-[200px] flex-col items-center justify-center gap-3 px-4 text-center">
       <p className="text-[0.85rem] text-ink-soft">{label}</p>
@@ -1203,7 +1212,7 @@ function PanelError({ label, onRetry }: { label: string; onRetry: () => void }) 
         onClick={onRetry}
         className="rounded-full border border-[#314523]/20 px-4 py-2 text-[0.75rem] font-bold text-[#314523] hover:bg-[#f7f5ef] transition-colors cursor-pointer"
       >
-        Prøv igen
+        {t('Prøv igen')}
       </button>
     </div>
   );
@@ -1229,6 +1238,7 @@ function PicksView({
   onRefresh: () => Promise<void>;
   embedded?: boolean;
 }) {
+  const { t } = useLang();
   const [selectedId, setSelectedId] = useState<string | null>(initialSelectedId ?? null);
   const [comparing, setComparing] = useState(false);
   const venueCity = venueAreaLabel(couple.region);
@@ -1284,13 +1294,15 @@ function PicksView({
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#314523]">
           <MapPin size={22} className="text-white" />
         </div>
-        <h2 className="display mt-5 text-[1.8rem] text-ink">Ingen venues på listen endnu</h2>
+        <h2 className="display mt-5 text-[1.8rem] text-ink">{t('Ingen venues på listen endnu')}</h2>
         <p className="mt-2 max-w-sm text-[0.9rem] text-ink-soft">
-          Udforsk verdenskortet eller fortæl Ava mere om jeres drøm{venueCity ? ` nær ${venueCity}` : ''} — så researcher hun rigtige venues.
+          {venueCity
+            ? t('Udforsk verdenskortet eller fortæl Ava mere om jeres drøm nær {area} — så researcher hun rigtige venues.', { area: venueCity })
+            : t('Udforsk verdenskortet eller fortæl Ava mere om jeres drøm — så researcher hun rigtige venues.')}
         </p>
         <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-          <Pill arrow onClick={onDiscover}><GlobeIcon size={14} /> Udforsk venues</Pill>
-          <Pill arrow onClick={onAva}><MessageCircle size={14} /> Tal med Ava</Pill>
+          <Pill arrow onClick={onDiscover}><GlobeIcon size={14} /> {t('Udforsk venues')}</Pill>
+          <Pill arrow onClick={onAva}><MessageCircle size={14} /> {t('Tal med Ava')}</Pill>
         </div>
       </motion.div>
     );
@@ -1313,14 +1325,14 @@ function PicksView({
               <Check size={18} />
             </div>
             <div className="min-w-0">
-              <p className="font-serif text-[1.15rem] leading-snug">{bookedVenue.name} er jeres venue</p>
-              <p className="mt-0.5 text-[0.78rem] text-canvas/70">Alt om stedet samles her. Næste skridt: fotograf og catering.</p>
+              <p className="font-serif text-[1.15rem] leading-snug">{t('{name} er jeres venue', { name: bookedVenue.name })}</p>
+              <p className="mt-0.5 text-[0.78rem] text-canvas/70">{t('Alt om stedet samles her. Næste skridt: fotograf og catering.')}</p>
             </div>
           </div>
           {onNextStep && (
             <button onClick={onNextStep}
               className="shrink-0 rounded-full bg-canvas px-5 py-2.5 text-[0.7rem] font-bold uppercase tracking-[0.16em] text-ink hover:opacity-90 transition-opacity cursor-pointer">
-              Find fotograf →
+              {t('Find fotograf →')}
             </button>
           )}
         </motion.div>
@@ -1332,7 +1344,7 @@ function PicksView({
         {onBack && (
           <button type="button" onClick={onBack}
             className="mb-5 flex items-center gap-2 text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted hover:text-ink transition-colors cursor-pointer">
-            <ArrowLeft size={13} /> Venues
+            <ArrowLeft size={13} /> {t('Venues')}
           </button>
         )}
         {booked && (
@@ -1350,30 +1362,30 @@ function PicksView({
       <div className={cn(padX, 'pt-8')}>
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#8a9079]">Trin 2 · Jeres liste</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#8a9079]">{t('Trin 2 · Jeres liste')}</p>
             <h2 className="display mt-2 text-[clamp(2rem,5vw,3rem)] text-ink">
-              Venues I <span className="italic">overvejer.</span>
+              {t('Venues I')} <span className="italic">{t('overvejer.')}</span>
             </h2>
             <p className="mt-2 max-w-md text-ink-soft">
-              {venues.length} {venues.length === 1 ? 'venue' : 'venues'} på listen
-              {venueCity ? ` · nær ${venueCity}` : ''}
+              {t(venues.length === 1 ? '{n} venue på listen' : '{n} venues på listen', { n: venues.length })}
+              {venueCity ? t(' · nær {area}', { area: venueCity }) : ''}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2.5">
             <button onClick={onDiscover}
               className="flex items-center gap-2 rounded-full border border-[var(--color-line-strong)] px-4 py-2.5 text-[0.72rem] font-bold uppercase tracking-[0.12em] text-ink hover:bg-shell transition-colors cursor-pointer">
-              <GlobeIcon size={14} /> Udforsk kloden
+              <GlobeIcon size={14} /> {t('Udforsk kloden')}
             </button>
             {onFindMore && (
               <button onClick={onFindMore}
                 className="flex items-center gap-2 rounded-full border border-[var(--color-line-strong)] px-4 py-2.5 text-[0.72rem] font-bold uppercase tracking-[0.12em] text-ink hover:bg-shell transition-colors cursor-pointer">
-                <Sparkles size={14} /> Find flere som disse
+                <Sparkles size={14} /> {t('Find flere som disse')}
               </button>
             )}
             {savedVenues.length >= 2 && (
               <button onClick={() => setComparing(true)}
                 className="rounded-full bg-ink px-4 py-2.5 text-[0.72rem] font-bold uppercase tracking-[0.12em] text-canvas hover:opacity-85 transition-opacity cursor-pointer">
-                Sammenlign ({savedVenues.length})
+                {t('Sammenlign ({n})', { n: savedVenues.length })}
               </button>
             )}
           </div>
@@ -1414,9 +1426,9 @@ function PicksView({
               <GlobeIcon size={18} className="text-white" />
             </div>
             <div>
-              <p className="font-serif text-[1.15rem] text-ink">Udforsk flere venues</p>
+              <p className="font-serif text-[1.15rem] text-ink">{t('Udforsk flere venues')}</p>
               <p className="mt-1 text-[0.8rem] text-muted">
-                Vælg land og by på kloden — Ava researcher rigtige venues.
+                {t('Vælg land og by på kloden — Ava researcher rigtige venues.')}
               </p>
             </div>
           </button>
@@ -1429,12 +1441,12 @@ function PicksView({
           initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-50px' }}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
           className="rule rounded-2xl bg-card p-8 text-center">
-          <Eyebrow className="text-center">Spørg Ava</Eyebrow>
+          <Eyebrow className="text-center">{t('Spørg Ava')}</Eyebrow>
           <p className="mt-3 text-[0.95rem] text-ink-soft max-w-md mx-auto">
-            Ava kender jeres profil og kan sammenligne venues, tjekke datoer og skrive henvendelser for jer.
+            {t('Ava kender jeres profil og kan sammenligne venues, tjekke datoer og skrive henvendelser for jer.')}
           </p>
           <div className="mt-6 flex justify-center">
-            <Pill arrow onClick={onAva}><MessageCircle size={14} /> Tal med Ava</Pill>
+            <Pill arrow onClick={onAva}><MessageCircle size={14} /> {t('Tal med Ava')}</Pill>
           </div>
         </motion.div>
       </div>
@@ -1448,6 +1460,7 @@ function OutreachBanner({
 }: {
   notContacted: number; contacted: number; onReview: () => void;
 }) {
+  const { t } = useLang();
   return (
     <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-[#314523] px-6 py-5 text-canvas">
       <div className="flex items-center gap-4">
@@ -1457,12 +1470,12 @@ function OutreachBanner({
         <div>
           <p className="font-serif text-[1.1rem] leading-snug">
             {notContacted > 0
-              ? `${notContacted} på listen mangler kontakt`
-              : 'Ava har kontaktet hele listen'}
+              ? t('{n} på listen mangler kontakt', { n: notContacted })
+              : t('Ava har kontaktet hele listen')}
           </p>
           <p className="mt-0.5 text-[0.78rem] text-canvas/70">
-            {contacted > 0 ? `${contacted} kontaktet · ` : ''}
-            {notContacted > 0 ? 'Se hvad Ava vil sende, og godkend.' : 'Følg svarene under Henvendelser.'}
+            {contacted > 0 ? t('{n} kontaktet · ', { n: contacted }) : ''}
+            {notContacted > 0 ? t('Se hvad Ava vil sende, og godkend.') : t('Følg svarene under Henvendelser.')}
           </p>
         </div>
       </div>
@@ -1471,7 +1484,7 @@ function OutreachBanner({
           onClick={onReview}
           className="flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-[#314523] px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#f7f5ef] hover:opacity-90 transition-opacity cursor-pointer"
         >
-          Lad Ava kontakte ({notContacted}) <ArrowRight size={14} />
+          {t('Lad Ava kontakte ({n})', { n: notContacted })} <ArrowRight size={14} />
         </button>
       )}
     </div>
@@ -1486,6 +1499,7 @@ function VenueGridCard({
   stage: VenueStage;
   onToggleSave: () => void; onChoose: () => void; onContact: () => void; onSelect: () => void;
 }) {
+  const { t } = useLang();
   return (
     <motion.div
       initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }}
@@ -1501,7 +1515,7 @@ function VenueGridCard({
           <RatingBadge rating={venue.rating} count={venue.reviewCount} />
           {isBooked && (
             <span className="inline-flex items-center gap-1 rounded-full bg-ink px-2.5 py-1 text-[0.6rem] font-bold uppercase tracking-[0.12em] text-canvas">
-              <Check size={10} /> Valgt
+              <Check size={10} /> {t('Valgt')}
             </span>
           )}
         </div>
@@ -1518,7 +1532,7 @@ function VenueGridCard({
             <h3 className="font-serif text-[1.15rem] leading-tight text-[#314523]">{venue.name}</h3>
             {venue.location && <p className="mt-0.5 truncate text-[0.72rem] text-[#6c7561]">{venue.location}</p>}
           </div>
-          <motion.button whileTap={{ scale: 0.85 }} onClick={onToggleSave} aria-label={saved ? 'Fjern fra listen' : 'Tilføj til liste'}
+          <motion.button whileTap={{ scale: 0.85 }} onClick={onToggleSave} aria-label={saved ? t('Fjern fra listen') : t('Tilføj til liste')}
             className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#e4e0d4] transition-all cursor-pointer',
               saved ? 'bg-[#eef1e6] text-[#314523]' : 'text-[#6c7561] hover:text-[#314523] hover:bg-[#f7f5ef]')}>
             {saved ? <Check size={14} /> : <Plus size={14} />}
@@ -1531,11 +1545,11 @@ function VenueGridCard({
 
         <div className="mt-auto flex items-end gap-5 pt-4">
           <div>
-            <p className="eyebrow !text-[#8a9079]">Pris</p>
+            <p className="eyebrow !text-[#8a9079]">{t('Pris')}</p>
             <p className="mt-0.5 font-serif text-[0.95rem] leading-none text-[#314523]">{venue.price}</p>
           </div>
           <div>
-            <p className="eyebrow !text-[#8a9079]">Kapacitet</p>
+            <p className="eyebrow !text-[#8a9079]">{t('Kapacitet')}</p>
             <p className="mt-0.5 font-serif text-[0.95rem] leading-none text-[#314523]">{venue.capacity}</p>
           </div>
         </div>
@@ -1543,16 +1557,16 @@ function VenueGridCard({
         <div className="mt-4 flex items-center gap-2">
           <button onClick={onSelect}
             className="flex h-8 flex-1 items-center justify-center rounded-full border border-[#e4e0d4] px-3 text-xs font-semibold text-[#314523] hover:bg-[#f7f5ef] transition-colors cursor-pointer">
-            Se venue
+            {t('Se venue')}
           </button>
           {isBooked ? (
             <span className="flex h-8 items-center gap-1.5 rounded-full bg-[#eef1e6] px-3 text-xs font-semibold text-[#314523]">
-              <Check size={12} /> Jeres venue
+              <Check size={12} /> {t('Jeres venue')}
             </span>
           ) : (
             <button onClick={onChoose}
               className="flex h-8 items-center gap-1.5 rounded-full bg-[#314523] px-3 text-xs font-semibold text-[#f7f5ef] hover:opacity-85 transition-opacity cursor-pointer">
-              <Check size={12} /> Vælg
+              <Check size={12} /> {t('Vælg')}
             </button>
           )}
         </div>
@@ -1560,13 +1574,13 @@ function VenueGridCard({
         {sent ? (
           !isBooked && (
             <p className="mt-2.5 flex items-center gap-1.5 text-[0.7rem] text-muted">
-              <Check size={10} className="text-sage" /> Ava har kontaktet venuet
+              <Check size={10} className="text-sage" /> {t('Ava har kontaktet venuet')}
             </p>
           )
         ) : (
           <button onClick={onContact}
             className="mt-2.5 flex h-8 w-full items-center justify-center gap-1.5 rounded-full border border-[#e4e0d4] bg-[#fcfbf7] px-3 text-xs font-semibold text-[#314523] hover:bg-[#f7f5ef] transition-colors cursor-pointer">
-            <Send size={12} /> Kontakt via Ava
+            <Send size={12} /> {t('Kontakt via Ava')}
           </button>
         )}
       </div>
@@ -1620,20 +1634,21 @@ function ComparisonView({
   venues: DisplayVenue[]; saved: Set<string>; booked: string | null;
   onBack: () => void; onToggleSave: (id: string) => void; onBook: (id: string) => void;
 }) {
+  const { t } = useLang();
   return (
     <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
       transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}>
       <div className="px-6 pt-8 sm:px-9 lg:px-12">
         <button onClick={onBack}
           className="mb-8 flex items-center gap-2 text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted hover:text-ink transition-colors cursor-pointer">
-          <ArrowLeft size={13} /> Tilbage
+          <ArrowLeft size={13} /> {t('Tilbage')}
         </button>
-        <Eyebrow>Sammenligning · {venues.length} venues</Eyebrow>
+        <Eyebrow>{t('Sammenligning · {n} venues', { n: venues.length })}</Eyebrow>
         <h2 className="display mt-3 text-[clamp(2rem,4vw,3rem)] text-ink">
-          Side om <span className="italic">side</span>
+          {t('Side om')} <span className="italic">{t('side')}</span>
         </h2>
         <p className="mt-2 max-w-xl text-[0.9rem] text-ink-soft">
-          Sammenlign det der betyder noget — pris, kapacitet, noter og mere.
+          {t('Sammenlign det der betyder noget — pris, kapacitet, noter og mere.')}
         </p>
       </div>
 
@@ -1666,7 +1681,7 @@ function ComparisonView({
                     <RatingBadge rating={v.rating} count={v.reviewCount} />
                     {isBooked && (
                       <span className="rounded-full bg-ink px-3 py-1 text-[0.62rem] font-bold uppercase tracking-[0.12em] text-canvas">
-                        Booket
+                        {t('Booket')}
                       </span>
                     )}
                   </div>
@@ -1685,7 +1700,7 @@ function ComparisonView({
                       <button
                         type="button"
                         onClick={() => onToggleSave(v.id)}
-                        aria-label={isSaved ? 'Fjern fra listen' : 'Gem venue'}
+                        aria-label={isSaved ? t('Fjern fra listen') : t('Gem venue')}
                         className={cn(
                           'flex h-9 w-9 items-center justify-center rounded-full rule transition-all cursor-pointer',
                           isSaved ? 'bg-ink text-canvas' : 'hover:bg-shell',
@@ -1698,7 +1713,7 @@ function ComparisonView({
                         onClick={() => onBook(v.id)}
                         className="flex items-center justify-center gap-1.5 rounded-full bg-ink px-4 py-2 text-[0.7rem] font-bold uppercase tracking-[0.12em] text-canvas hover:bg-ink/80 transition-colors cursor-pointer"
                       >
-                        {isBooked ? <><Check size={12} /> Booket</> : 'Vælg venue'}
+                        {isBooked ? <><Check size={12} /> {t('Booket')}</> : t('Vælg venue')}
                       </button>
                     </div>
                   </div>
@@ -1713,7 +1728,7 @@ function ComparisonView({
                         )}
                       >
                         <p className="text-[0.62rem] font-bold uppercase tracking-[0.14em] text-muted">
-                          {field.label}
+                          {t(field.label)}
                         </p>
                         <p className={cn(
                           'mt-1.5 text-[0.88rem] leading-relaxed text-ink',
@@ -1754,6 +1769,7 @@ function OutreachReview({
   recipients: DisplayVenue[];
   onBack: () => void; onApproved: () => void; onAva: () => void;
 }) {
+  const { t } = useLang();
   const [draft, setDraft] = useState<EmailDraftRow | null>(null);
   const [preparing, setPreparing] = useState(true);
   const [prepError, setPrepError] = useState<string | null>(null);
@@ -1770,12 +1786,12 @@ function OutreachReview({
         const data = (await res.json().catch(() => ({}))) as { draft?: EmailDraftRow; error?: string; message?: string };
         if (!alive) return;
         if (!res.ok || !data.draft) {
-          setPrepError(data.message ?? 'Kunne ikke forberede henvendelsen lige nu.');
+          setPrepError(data.message ?? t('Kunne ikke forberede henvendelsen lige nu.'));
         } else {
           setDraft(data.draft);
         }
       } catch {
-        if (alive) setPrepError('Kunne ikke forberede henvendelsen lige nu.');
+        if (alive) setPrepError(t('Kunne ikke forberede henvendelsen lige nu.'));
       } finally {
         if (alive) setPreparing(false);
       }
@@ -1790,14 +1806,14 @@ function OutreachReview({
     try {
       const res = await fetch(`/api/drafts/${draft.id}/approve`, { method: 'POST' });
       if (res.status === 503) {
-        setApproveMsg('Forbind Kalas-postkassen (Gmail) i indstillinger for at sende henvendelserne.');
+        setApproveMsg(t('Forbind Kalas-postkassen (Gmail) i indstillinger for at sende henvendelserne.'));
       } else if (!res.ok) {
-        setApproveMsg('Kunne ikke sende lige nu — prøv igen.');
+        setApproveMsg(t('Kunne ikke sende lige nu — prøv igen.'));
       } else {
         onApproved();
       }
     } catch {
-      setApproveMsg('Kunne ikke sende lige nu — prøv igen.');
+      setApproveMsg(t('Kunne ikke sende lige nu — prøv igen.'));
     } finally {
       setApproving(false);
     }
@@ -1811,21 +1827,21 @@ function OutreachReview({
     >
       <button type="button" onClick={onBack}
         className="mb-4 flex items-center gap-2 text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted hover:text-ink transition-colors cursor-pointer">
-        <ArrowLeft size={13} /> Tilbage til listen
+        <ArrowLeft size={13} /> {t('Tilbage til listen')}
       </button>
-      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#8a9079]">Trin 3 · Godkend</p>
+      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#8a9079]">{t('Trin 3 · Godkend')}</p>
       <h1 className="mt-1 font-serif text-[clamp(1.9rem,4vw,2.4rem)] leading-[1.1] tracking-[-0.02em] text-[#314523]">
-        Ava kontakter {recipients.length} {recipients.length === 1 ? 'venue' : 'venues'}
+        {t(recipients.length === 1 ? 'Ava kontakter {n} venue' : 'Ava kontakter {n} venues', { n: recipients.length })}
       </h1>
       <p className="mt-2 text-[13px] text-[#6c7561]">
-        Ava sender en personlig mail til hvert sted fra jeres Kalas-postkasse og samler alle svar under Henvendelser. I godkender her — intet sendes uden.
+        {t('Ava sender en personlig mail til hvert sted fra jeres Kalas-postkasse og samler alle svar under Henvendelser. I godkender her — intet sendes uden.')}
       </p>
 
       {/* Recipients */}
       <div className="mt-6 rounded-2xl border border-[var(--color-line)] bg-card p-5">
-        <p className="text-[0.62rem] font-bold uppercase tracking-[0.18em] text-muted">Modtagere</p>
+        <p className="text-[0.62rem] font-bold uppercase tracking-[0.18em] text-muted">{t('Modtagere')}</p>
         {recipients.length === 0 ? (
-          <p className="mt-3 text-[0.88rem] text-ink-soft">Alle på listen er allerede kontaktet.</p>
+          <p className="mt-3 text-[0.88rem] text-ink-soft">{t('Alle på listen er allerede kontaktet.')}</p>
         ) : (
           <div className="mt-3 flex flex-col divide-y divide-[var(--color-line)]">
             {recipients.map((v) => (
@@ -1845,22 +1861,22 @@ function OutreachReview({
       {/* Draft preview */}
       <div className="mt-4 rounded-2xl border border-[var(--color-line)] bg-card p-5">
         <div className="flex items-center justify-between">
-          <p className="text-[0.62rem] font-bold uppercase tracking-[0.18em] text-muted">Avas udkast</p>
-          <button onClick={onAva} className="text-[0.72rem] font-semibold text-[#8a9079] hover:underline cursor-pointer">Rediger med Ava</button>
+          <p className="text-[0.62rem] font-bold uppercase tracking-[0.18em] text-muted">{t('Avas udkast')}</p>
+          <button onClick={onAva} className="text-[0.72rem] font-semibold text-[#8a9079] hover:underline cursor-pointer">{t('Rediger med Ava')}</button>
         </div>
         {preparing ? (
           <div className="flex items-center gap-2.5 py-6 text-ink-soft">
-            <Loader2 size={16} className="animate-spin" /> Ava skriver udkastet…
+            <Loader2 size={16} className="animate-spin" /> {t('Ava skriver udkastet…')}
           </div>
         ) : prepError ? (
           <p className="mt-3 rounded-xl bg-shell px-4 py-3 text-[0.85rem] text-ink-soft">{prepError}</p>
         ) : draft ? (
           <>
-            <p className="mt-3 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-muted">Emne</p>
+            <p className="mt-3 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-muted">{t('Emne')}</p>
             <p className="mt-1 text-[0.95rem] font-semibold text-ink">{draft.subject}</p>
-            <p className="mt-4 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-muted">Besked</p>
+            <p className="mt-4 text-[0.68rem] font-bold uppercase tracking-[0.14em] text-muted">{t('Besked')}</p>
             <p className="mt-1 whitespace-pre-wrap text-[0.88rem] leading-relaxed text-ink-soft">{draft.body_template}</p>
-            <p className="mt-3 text-[0.72rem] text-muted">Ava tilpasser hver mail til det enkelte venue før afsendelse.</p>
+            <p className="mt-3 text-[0.72rem] text-muted">{t('Ava tilpasser hver mail til det enkelte venue før afsendelse.')}</p>
           </>
         ) : null}
       </div>
@@ -1877,11 +1893,11 @@ function OutreachReview({
           className="flex items-center gap-2 rounded-full bg-[#314523] px-7 py-3.5 text-[0.85rem] font-bold text-canvas transition-opacity hover:opacity-90 cursor-pointer disabled:opacity-50"
         >
           {approving ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}
-          Godkend & lad Ava sende
+          {t('Godkend & lad Ava sende')}
         </button>
         <button onClick={onBack}
           className="rounded-full rule bg-canvas px-5 py-3.5 text-[0.85rem] font-medium text-ink hover:bg-card transition-colors cursor-pointer">
-          Annuller
+          {t('Annuller')}
         </button>
       </div>
     </motion.div>
@@ -1899,6 +1915,7 @@ function VenueDetail({
   onSelectOther: (id: string) => void;
   onRefresh: () => Promise<void>;
 }) {
+  const { t } = useLang();
   const [notes, setNotes]         = useState('');
   const [activePackage, setPkg]   = useState<number | null>(null);
   // Start in the researching state when a shortlisted venue has nothing on file
@@ -1925,7 +1942,7 @@ function VenueDetail({
       }
       await onRefresh();
     } catch (err) {
-      setResearchError(err instanceof Error ? err.message : 'Kunne ikke researche venue');
+      setResearchError(err instanceof Error ? err.message : t('Kunne ikke researche venue'));
     } finally {
       setResearching(false);
     }
@@ -1955,7 +1972,7 @@ function VenueDetail({
       <div className="sticky top-0 z-20 flex items-center justify-between border-b border-[#e0ddd2] bg-[#f5f3ee]/95 px-6 py-3 backdrop-blur-md sm:px-9 lg:px-12">
         <button type="button" onClick={onBack}
           className="flex h-8 cursor-pointer items-center gap-1.5 text-sm text-[#6c7561] transition-colors hover:text-[#314523]">
-          <ArrowLeft size={15} /> Tilbage
+          <ArrowLeft size={15} /> {t('Tilbage')}
         </button>
         <div className="flex items-center gap-2">
           <button
@@ -1969,7 +1986,7 @@ function VenueDetail({
                 : 'border border-[#e4e0d4] bg-[#fcfbf7] text-[#314523] hover:bg-[#f7f5ef]',
             )}>
             {researching ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
-            {researching ? 'Ava researcher…' : research ? 'Opdater research' : 'Research venue'}
+            {researching ? t('Ava researcher…') : research ? t('Opdater research') : t('Research venue')}
           </button>
           <motion.button type="button" whileTap={{ scale: 0.88 }} onClick={onSave}
             className={cn(
@@ -1979,7 +1996,7 @@ function VenueDetail({
                 : 'border border-[#e4e0d4] bg-[#fcfbf7] text-[#314523] hover:bg-[#f7f5ef]',
             )}>
             <Heart size={13} fill={saved ? 'currentColor' : 'none'} />
-            {saved ? 'Gemt' : 'Gem'}
+            {saved ? t('Gemt') : t('Gem')}
           </motion.button>
         </div>
       </div>
@@ -1991,7 +2008,7 @@ function VenueDetail({
             <img src={imgSrc(venue.image)} alt={venue.name}
               className="absolute inset-0 h-full w-full object-cover object-center" />
             <div className="absolute bottom-4 right-4 flex items-center gap-1.5 rounded-full border border-[#d8d4c7] bg-[#fcfbf7]/95 px-3 py-1.5 backdrop-blur-sm">
-              <span className="text-[0.68rem] font-medium text-[#314523]">{realPhotos.length} billeder</span>
+              <span className="text-[0.68rem] font-medium text-[#314523]">{t('{n} billeder', { n: realPhotos.length })}</span>
             </div>
           </div>
           {realPhotos.slice(1, 5).map((url, i) => (
@@ -2012,13 +2029,13 @@ function VenueDetail({
 
         <div className="flex flex-wrap items-center gap-2">
           <span className="inline-flex items-center rounded-full bg-[#eef1e6] px-3 py-1 text-[0.65rem] font-bold uppercase tracking-[0.18em] text-[#314523]">
-            Ava pick
+            {t('Ava pick')}
           </span>
           {venue.rating != null && (
             <span className="inline-flex items-center gap-1.5 rounded-full border border-[#e4e0d4] bg-[#f7f5ef] px-3 py-1 text-[0.72rem] font-medium text-[#314523]">
               <Star size={12} fill="currentColor" className="text-[#8a7d5c]" />
               {venue.rating.toFixed(1)}
-              {venue.reviewCount > 0 && <span className="text-[#6c7561]">· {venue.reviewCount} anmeldelser</span>}
+              {venue.reviewCount > 0 && <span className="text-[#6c7561]">· {t('{n} anmeldelser', { n: venue.reviewCount })}</span>}
             </span>
           )}
         </div>
@@ -2036,7 +2053,7 @@ function VenueDetail({
 
         {research?.briefing?.length ? (
           <div className="mt-6 rounded-[18px] bg-[#314523] p-6 text-[#f7f5ef]">
-            <p className="text-[0.62rem] font-bold uppercase tracking-[0.18em] text-[#a6b0aa]">Avas briefing</p>
+            <p className="text-[0.62rem] font-bold uppercase tracking-[0.18em] text-[#a6b0aa]">{t('Avas briefing')}</p>
             <ul className="mt-4 space-y-2.5">
               {research.briefing.map((line) => (
                 <li key={line} className="flex items-start gap-3 text-[0.92rem] leading-snug">
@@ -2050,13 +2067,15 @@ function VenueDetail({
           <div className="mt-6 flex items-center gap-3 rounded-[18px] border border-[#e4e0d4] bg-[#fcfbf7] px-5 py-4">
             <Loader2 size={16} className="shrink-0 animate-spin text-[#314523]" />
             <p className="text-sm leading-relaxed text-[#6c7561]">
-              Ava researcher venueet — søger på nettet og udfylder kapacitet, priser og praktisk info fra stedets egne sider…
+              {t('Ava researcher venueet — søger på nettet og udfylder kapacitet, priser og praktisk info fra stedets egne sider…')}
             </p>
           </div>
         ) : !research ? (
           <div className="mt-6 rounded-[18px] border border-dashed border-[#d8d4c7] bg-[#fcfbf7] px-5 py-4">
             <p className="text-sm leading-relaxed text-[#6c7561]">
-              Ava kunne ikke hente info automatisk. Tryk <span className="font-medium text-[#314523]">Research venue</span> for at prøve igen.
+              {t('Ava kunne ikke hente info automatisk. Tryk')}{' '}
+              <span className="font-medium text-[#314523]">{t('Research venue')}</span>{' '}
+              {t('for at prøve igen.')}
             </p>
           </div>
         ) : null}
@@ -2068,15 +2087,15 @@ function VenueDetail({
         {/* Stats strip */}
         <div className="mt-8 grid grid-cols-3 items-stretch gap-px overflow-hidden rounded-[18px] border border-[#d8d4c7] bg-[#d8d4c7]">
           <div className="flex min-h-[5.5rem] flex-col bg-[#fcfbf7] px-4 py-4 sm:px-5 sm:py-5">
-            <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[#6c7561]">Kapacitet</p>
+            <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[#6c7561]">{t('Kapacitet')}</p>
             <p className="mt-2 text-[0.9rem] font-semibold leading-snug text-[#314523]">{venue.capacity || '—'}</p>
           </div>
           <div className="flex min-h-[5.5rem] flex-col bg-[#eef1e6] px-4 py-4 sm:px-5 sm:py-5">
-            <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[#6c7561]">Pris fra</p>
+            <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[#6c7561]">{t('Pris fra')}</p>
             <p className="mt-2 text-[0.9rem] font-semibold leading-snug text-[#314523]">{venue.price || '—'}</p>
           </div>
           <div className="flex min-h-[5.5rem] flex-col bg-[#314523] px-4 py-4 sm:px-5 sm:py-5">
-            <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[#c5ccc4]">Bedømmelse</p>
+            <p className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[#c5ccc4]">{t('Bedømmelse')}</p>
             <p className="mt-2 font-serif text-[1.35rem] leading-none text-[#f7f5ef]">
               {venue.rating != null ? `★ ${venue.rating.toFixed(1)}` : '—'}
             </p>
@@ -2085,7 +2104,7 @@ function VenueDetail({
 
         {practical.length > 0 && (
           <div className="mt-10 border-t border-[#e0ddd2] pt-8">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#314523]">Praktisk info</p>
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#314523]">{t('Praktisk info')}</p>
             <dl className="mt-5 grid grid-cols-2 gap-x-8 gap-y-6 sm:grid-cols-3">
               {practical.map(({ key, value }) => (
                 <div key={key}>
@@ -2099,7 +2118,7 @@ function VenueDetail({
 
         {highlights.length > 0 && (
           <div className="mt-10 border-t border-[#e0ddd2] pt-8">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#314523]">Faciliteter & fordele</p>
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#314523]">{t('Faciliteter & fordele')}</p>
             <ul className="mt-5 grid gap-3 sm:grid-cols-2">
               {highlights.map((h) => (
                 <li key={h} className="flex items-start gap-3">
@@ -2113,8 +2132,8 @@ function VenueDetail({
 
         {packages.length > 0 && (
           <div className="mt-10 border-t border-[#e0ddd2] pt-8">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#314523]">Priser & pakker</p>
-            <p className="mt-1.5 text-[0.8rem] text-[#6c7561]">Fra venueets egne sider — bekræft altid pris og dato direkte.</p>
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#314523]">{t('Priser & pakker')}</p>
+            <p className="mt-1.5 text-[0.8rem] text-[#6c7561]">{t('Fra venueets egne sider — bekræft altid pris og dato direkte.')}</p>
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
               {packages.map((pkg, i) => {
                 const active = activePackage === i;
@@ -2129,7 +2148,7 @@ function VenueDetail({
                           : 'border border-[#d8d4c7] bg-[#fcfbf7] hover:bg-[#f7f5ef]',
                     )}>
                     {pkg.featured && (
-                      <span className="mb-2 text-[0.58rem] font-bold uppercase tracking-[0.22em] text-[#dce3d3]">Mest valgt</span>
+                      <span className="mb-2 text-[0.58rem] font-bold uppercase tracking-[0.22em] text-[#dce3d3]">{t('Mest valgt')}</span>
                     )}
                     <span className={cn('font-serif text-[1.15rem]', pkg.featured ? 'text-[#f7f5ef]' : 'text-[#314523]')}>
                       {pkg.name}
@@ -2142,7 +2161,7 @@ function VenueDetail({
                     </span>
                     {active && !pkg.featured && (
                       <span className="mt-3 flex items-center gap-1 text-[0.72rem] text-[#7a9068]">
-                        <Check size={12} /> Valgt
+                        <Check size={12} /> {t('Valgt')}
                       </span>
                     )}
                   </button>
@@ -2154,7 +2173,7 @@ function VenueDetail({
 
         {(venue.quote || venue.why.length > 0) && (
           <div className="mt-10 border-t border-[#e0ddd2] pt-8">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#314523]">Derfor matcher det jer</p>
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#314523]">{t('Derfor matcher det jer')}</p>
             <div className="mt-5 rounded-[18px] border border-[#d8d4c7] bg-[#fcfbf7] p-6">
               {venue.quote && (
                 <blockquote className="font-serif text-[1.2rem] italic leading-relaxed text-[#314523]">
@@ -2177,7 +2196,7 @@ function VenueDetail({
 
         {allVenues.length > 1 && (
           <div className="mt-10 border-t border-[#e0ddd2] pt-8">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#314523]">Flere fra jeres liste</p>
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#314523]">{t('Flere fra jeres liste')}</p>
             <div className="mt-5 flex gap-3 overflow-x-auto hide-scrollbar pb-2">
               {allVenues.filter((v) => v.id !== venue.id).slice(0, 4).map((v) => (
                 <button key={v.id} type="button" onClick={() => onSelectOther(v.id)}
@@ -2199,10 +2218,10 @@ function VenueDetail({
         )}
 
         <div className="mt-10 border-t border-[#e0ddd2] pt-8">
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#314523]">Jeres noter</p>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#314523]">{t('Jeres noter')}</p>
           <textarea
             value={notes} onChange={(e) => setNotes(e.target.value)}
-            placeholder="Skriv noter om dette venue — spørgsmål, mavefornemmelser, hvad I vil spørge om til visning…"
+            placeholder={t('Skriv noter om dette venue — spørgsmål, mavefornemmelser, hvad I vil spørge om til visning…')}
             rows={4}
             className="mt-3 w-full resize-none rounded-[18px] border border-[#d8d4c7] bg-[#fcfbf7] px-5 py-4 text-[0.9rem] leading-relaxed text-[#314523] placeholder:text-[#9a9686] focus:outline-none"
           />
@@ -2210,22 +2229,22 @@ function VenueDetail({
 
         <div className="mt-8 border-t border-[#e0ddd2] pt-8">
           <p className="mb-4 text-[0.8rem] text-[#6c7561]">
-            Ava forbereder en personlig henvendelse og sender den på jeres vegne.
+            {t('Ava forbereder en personlig henvendelse og sender den på jeres vegne.')}
           </p>
           <div className="flex flex-wrap items-center gap-2">
             {isBooked ? (
               <div className="flex h-8 items-center gap-1.5 rounded-full bg-[#eef1e6] px-3 text-xs font-semibold text-[#314523]">
-                <Check size={13} /> Jeres venue
+                <Check size={13} /> {t('Jeres venue')}
               </div>
             ) : (
               <>
                 <button type="button" onClick={onBook}
                   className="flex h-8 cursor-pointer items-center gap-1.5 rounded-full bg-[#314523] px-3 text-xs font-semibold text-[#f7f5ef] hover:opacity-85 transition-opacity">
-                  <Check size={13} /> Vælg som jeres venue
+                  <Check size={13} /> {t('Vælg som jeres venue')}
                 </button>
                 <button type="button" onClick={onContact} disabled={sent}
                   className="flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-[#e4e0d4] bg-[#fcfbf7] px-3 text-xs font-semibold text-[#314523] hover:bg-[#f7f5ef] transition-colors disabled:cursor-default disabled:opacity-60 disabled:hover:bg-[#fcfbf7]">
-                  {sent ? <><Check size={13} /> Ava har kontaktet stedet</> : <><Send size={12} /> Kontakt via Ava</>}
+                  {sent ? <><Check size={13} /> {t('Ava har kontaktet stedet')}</> : <><Send size={12} /> {t('Kontakt via Ava')}</>}
                 </button>
               </>
             )}
@@ -2237,7 +2256,7 @@ function VenueDetail({
                   : 'border border-[#e4e0d4] bg-[#fcfbf7] text-[#314523] hover:bg-[#f7f5ef]',
               )}>
               <Heart size={13} fill={saved ? 'currentColor' : 'none'} />
-              {saved ? 'Gemt' : 'Gem venue'}
+              {saved ? t('Gemt') : t('Gem venue')}
             </button>
           </div>
         </div>

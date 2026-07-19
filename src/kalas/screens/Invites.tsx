@@ -4,6 +4,7 @@ import { useState, useEffect, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Check, Sparkles, Send, Shuffle, Download, Share2, Mail } from 'lucide-react';
 import { useWedding } from '../useWedding';
+import { useLang } from '../i18n';
 import { Eyebrow, Pill, cn } from '../ui';
 import OnboardingHint from '../OnboardingHint';
 import { suggestedQuantity } from '@/lib/invites';
@@ -153,6 +154,7 @@ function InviteCard({
 
 /* ─── Card back — program + RSVP, same palette & type ───────────────── */
 function InviteBack({ paletteId, fontId, domain }: { paletteId: PaletteId; fontId: FontId; domain: string }) {
+  const { t } = useLang();
   const pal  = PALETTES.find(p => p.id === paletteId) ?? PALETTES[0];
   const font = FONTS.find(f => f.id === fontId) ?? FONTS[0];
 
@@ -175,27 +177,27 @@ function InviteBack({ paletteId, fontId, domain }: { paletteId: PaletteId; fontI
       <div style={{ position:'absolute', inset:14, border:`0.75px solid ${pal.accent}`, opacity:0.35, pointerEvents:'none' }} />
 
       <p style={{ fontFamily:font.body, fontSize:9, fontWeight:500, letterSpacing:'0.38em', textTransform:'uppercase', color:pal.accent, margin:0 }}>
-        Program for dagen
+        {t('Program for dagen')}
       </p>
 
       <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-        {row('14:00', 'Vielse')}
-        {row('15:30', 'Velkomst')}
-        {row('18:00', 'Middag')}
-        {row('22:00', 'Fest & dans')}
+        {row('14:00', t('Vielse'))}
+        {row('15:30', t('Velkomst'))}
+        {row('18:00', t('Middag'))}
+        {row('22:00', t('Fest & dans'))}
       </div>
 
       <div style={{ width:26, height:'0.5px', background:pal.accent, opacity:0.5 }} />
 
       <div>
         <p style={{ fontFamily:font.body, fontSize:8.5, fontWeight:500, letterSpacing:'0.3em', textTransform:'uppercase', color:pal.accent, margin:0 }}>
-          RSVP senest 1. august
+          {t('RSVP senest 1. august')}
         </p>
         <p style={{ fontFamily:font.head, fontSize:14, color:pal.ink, margin:'8px 0 0' }}>
           {domain}
         </p>
         <p style={{ fontFamily:font.head, fontStyle:'italic', fontSize:12.5, color:pal.ink, opacity:0.6, margin:'6px 0 0' }}>
-          — svar, menu og overnatning
+          {t('— svar, menu og overnatning')}
         </p>
       </div>
 
@@ -247,9 +249,10 @@ const rand = <T,>(arr: readonly T[]) => arr[Math.floor(Math.random() * arr.lengt
    MAIN
 ══════════════════════════════════════════════════════════════════════ */
 export default function Invites() {
+  const { t } = useLang();
   const { loading, couple, venues, event } = useWedding();
   if (loading) {
-    return <div className="flex min-h-screen items-center justify-center text-[0.85rem] text-muted">Indlæser…</div>;
+    return <div className="flex min-h-screen items-center justify-center text-[0.85rem] text-muted">{t('Indlæser…')}</div>;
   }
   const chosen =
     venues.find((v) => v.id === event?.chosen_venue_id) ??
@@ -265,6 +268,7 @@ export default function Invites() {
 
 function InvitesStudio({ couple, venueName, eventId }: { couple: InviteCouple; venueName: string; eventId: string | null }) {
   useInviteFonts();
+  const { t } = useLang();
 
   const [mode,      setMode]   = useState<'browse' | 'edit'>('browse');
   const [tab,       setTab]    = useState<Tab>('design');
@@ -279,11 +283,11 @@ function InvitesStudio({ couple, venueName, eventId }: { couple: InviteCouple; v
   const [side,      setSide]   = useState<'front' | 'back'>('front');
   const [presetId,  setPreset] = useState<string | null>(null);
 
-  const [eyebrow, setEyebrow] = useState('Vi skal giftes');
-  const [names,   setNames]   = useState(couple.b ? `${couple.a} & ${couple.b}` : couple.a || 'Vores navne');
-  const [date,    setDate]    = useState(couple.dateLabel || 'Vores dato');
-  const [venue,   setVenue]   = useState(venueName || 'Vores venue');
-  const [closing, setClosing] = useState('og vi ville elske at fejre dagen med jer');
+  const [eyebrow, setEyebrow] = useState(() => t('Vi skal giftes'));
+  const [names,   setNames]   = useState(couple.b ? `${couple.a} & ${couple.b}` : couple.a || t('Vores navne'));
+  const [date,    setDate]    = useState(couple.dateLabel || t('Vores dato'));
+  const [venue,   setVenue]   = useState(venueName || t('Vores venue'));
+  const [closing, setClosing] = useState(() => t('og vi ville elske at fejre dagen med jer'));
 
   const domain = `${(couple.a || 'os').toLowerCase()}${couple.b ? `-${couple.b.toLowerCase()}` : ''}.kalas.dk`;
 
@@ -332,15 +336,15 @@ function InvitesStudio({ couple, venueName, eventId }: { couple: InviteCouple; v
   const handleAva = () => {
     setAva(true);
     setTimeout(() => {
-      setEyebrow('Vi skal giftes');
-      setClosing('og det ville betyde alt for os at have jer med. Svar via linket på bagsiden.');
+      setEyebrow(t('Vi skal giftes'));
+      setClosing(t('og det ville betyde alt for os at have jer med. Svar via linket på bagsiden.'));
     }, 900);
   };
 
   const tabs: { id: Tab; label: string }[] = [
-    { id:'design', label:'Design'  },
-    { id:'tekst',  label:'Tekst'   },
-    { id:'afsend', label:'Afsend'  },
+    { id:'design', label: t('Design')  },
+    { id:'tekst',  label: t('Tekst')   },
+    { id:'afsend', label: t('Afsend')  },
   ];
 
   /* ── Browse mode — pick a design like flipping through paper samples ── */
@@ -349,8 +353,7 @@ function InvitesStudio({ couple, venueName, eventId }: { couple: InviteCouple; v
       <div className="min-h-full px-6 py-8 sm:px-9 lg:px-12 lg:py-8">
         <div className="max-w-2xl">
           <p className="max-w-md text-[0.95rem] leading-relaxed text-ink-soft">
-            Fem designs sat med jeres navne og dato. Vælg det der føles rigtigt —
-            alt kan tilpasses bagefter.
+            {t('Fem designs sat med jeres navne og dato. Vælg det der føles rigtigt — alt kan tilpasses bagefter.')}
           </p>
         </div>
 
@@ -368,10 +371,10 @@ function InvitesStudio({ couple, venueName, eventId }: { couple: InviteCouple; v
                   eyebrow={eyebrow} names={names} date={date} venue={venue} closing={closing}
                 />
               </div>
-              <p className="mt-4 font-serif text-[1.1rem] text-ink">{p.name}</p>
-              <p className="mt-0.5 text-[0.76rem] text-muted leading-snug">{p.desc}</p>
+              <p className="mt-4 font-serif text-[1.1rem] text-ink">{t(p.name)}</p>
+              <p className="mt-0.5 text-[0.76rem] text-muted leading-snug">{t(p.desc)}</p>
               <p className="mt-2 text-[0.66rem] font-semibold uppercase tracking-[0.16em] text-ink-soft opacity-0 group-hover:opacity-100 transition-opacity">
-                Tilpas dette design →
+                {t('Tilpas dette design →')}
               </p>
             </motion.button>
           ))}
@@ -381,11 +384,11 @@ function InvitesStudio({ couple, venueName, eventId }: { couple: InviteCouple; v
           <button onClick={() => { setPreset(null); setMode('edit'); }}
             className="h-8 rounded-full px-3 text-xs font-semibold uppercase tracking-[0.12em] text-canvas hover:opacity-90 transition-opacity cursor-pointer"
             style={{ background: 'var(--color-ink)' }}>
-            Byg fra bunden
+            {t('Byg fra bunden')}
           </button>
           <button onClick={() => { setPreset(null); shuffle(); setMode('edit'); }}
             className="flex h-8 items-center gap-1.5 rounded-full rule px-3 text-xs font-semibold uppercase tracking-[0.12em] text-ink hover:bg-card transition-colors cursor-pointer">
-            <Shuffle size={12} /> Overrask mig
+            <Shuffle size={12} /> {t('Overrask mig')}
           </button>
         </div>
         <OnboardingHint id="invites" />
@@ -402,19 +405,19 @@ function InvitesStudio({ couple, venueName, eventId }: { couple: InviteCouple; v
         {/* Header */}
         <button onClick={() => setMode('browse')}
           className="mb-5 flex items-center gap-2 text-[0.72rem] font-medium uppercase tracking-[0.16em] text-muted hover:text-ink transition-colors cursor-pointer">
-          ← Alle designs
+          ← {t('Alle designs')}
         </button>
         <h1 className="display text-[clamp(1.8rem,3.5vw,2.6rem)] text-ink leading-tight">
-          {presetId ? PRESETS.find(p => p.id === presetId)?.name : 'Jeres design'}<span className="italic">.</span>
+          {presetId ? t(PRESETS.find(p => p.id === presetId)?.name ?? '') : t('Jeres design')}<span className="italic">.</span>
         </h1>
         <p className="mt-2 max-w-sm text-[0.85rem] leading-relaxed text-muted">
-          Tilpas palette, typografi og motiv — kortet opdateres live til højre.
+          {t('Tilpas palette, typografi og motiv — kortet opdateres live til højre.')}
         </p>
 
         {/* Shuffle */}
         <button onClick={() => { setPreset(null); shuffle(); }}
           className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-ink px-4 py-3 text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-canvas transition-opacity hover:opacity-85 cursor-pointer">
-          <Shuffle size={12} /> Overrask mig
+          <Shuffle size={12} /> {t('Overrask mig')}
         </button>
 
         {/* Tabs */}
@@ -446,7 +449,7 @@ function InvitesStudio({ couple, venueName, eventId }: { couple: InviteCouple; v
 
               {/* Colour palette */}
               <div>
-                <PanelLabel>Farvepalette</PanelLabel>
+                <PanelLabel>{t('Farvepalette')}</PanelLabel>
                 <div className="grid grid-cols-2 gap-2.5">
                   {PALETTES.map(p => (
                     <div key={p.id} className="relative">
@@ -460,7 +463,7 @@ function InvitesStudio({ couple, venueName, eventId }: { couple: InviteCouple; v
                         </div>
                         <div className="px-2.5 py-1.5 text-left"
                           style={{ fontFamily:"'Montserrat',sans-serif", fontSize:11, fontWeight:500, color:'#5e564a', letterSpacing:'0.02em' }}>
-                          {p.name}
+                          {t(p.name)}
                         </div>
                       </button>
                       {paletteId===p.id && (
@@ -473,7 +476,7 @@ function InvitesStudio({ couple, venueName, eventId }: { couple: InviteCouple; v
 
               {/* Typography */}
               <div>
-                <PanelLabel>Typografi</PanelLabel>
+                <PanelLabel>{t('Typografi')}</PanelLabel>
                 <div className="grid grid-cols-2 gap-2.5">
                   {FONTS.map(f => (
                     <div key={f.id} className="relative">
@@ -484,7 +487,7 @@ function InvitesStudio({ couple, venueName, eventId }: { couple: InviteCouple; v
                           {names}
                         </div>
                         <div style={{ fontFamily:"'Montserrat',sans-serif", fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'#a39a89' }}>
-                          {f.name}
+                          {t(f.name)}
                         </div>
                       </button>
                       {fontId===f.id && (
@@ -498,27 +501,27 @@ function InvitesStudio({ couple, venueName, eventId }: { couple: InviteCouple; v
               {/* Alignment + Composition */}
               <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <PanelLabel>Justering</PanelLabel>
+                  <PanelLabel>{t('Justering')}</PanelLabel>
                   <div className="flex gap-2">
                     {(['center','left'] as const).map(a => (
                       <button key={a} onClick={() => setAlign(a)}
                         className={cn('flex-1 rounded-xl border px-3 py-2 text-[0.75rem] cursor-pointer transition-all',
                           alignment===a ? 'border-ink bg-ink text-canvas' : 'text-ink-soft hover:text-ink')}
                         style={{ borderColor: alignment===a ? undefined : '#e6ded0', background: alignment===a ? undefined : '#fff' }}>
-                        {a==='center' ? 'Centreret' : 'Venstre'}
+                        {a==='center' ? t('Centreret') : t('Venstre')}
                       </button>
                     ))}
                   </div>
                 </div>
                 <div>
-                  <PanelLabel>Komposition</PanelLabel>
+                  <PanelLabel>{t('Komposition')}</PanelLabel>
                   <div className="flex gap-1.5">
                     {(['centered','top','spread'] as const).map(v => (
                       <button key={v} onClick={() => setComp(v)}
                         className={cn('flex-1 rounded-xl border px-2 py-2 text-[0.72rem] cursor-pointer transition-all',
                           comp===v ? 'border-ink bg-ink text-canvas' : 'text-ink-soft hover:text-ink')}
                         style={{ borderColor: comp===v ? undefined : '#e6ded0', background: comp===v ? undefined : '#fff' }}>
-                        {v==='centered'?'Midt':v==='top'?'Top':'Spredt'}
+                        {v==='centered' ? t('Midt') : v==='top' ? t('Top') : t('Spredt')}
                       </button>
                     ))}
                   </div>
@@ -540,21 +543,21 @@ function InvitesStudio({ couple, venueName, eventId }: { couple: InviteCouple; v
                 </span>
                 <div>
                   <span className="block text-[0.88rem] font-medium text-ink">
-                    {avaDraft ? 'Ava har skrevet ordlyden' : 'Lad Ava skrive ordlyden'}
+                    {avaDraft ? t('Ava har skrevet ordlyden') : t('Lad Ava skrive ordlyden')}
                   </span>
                   <span className="block text-[0.75rem] text-muted mt-0.5">
-                    {avaDraft ? 'Tilpas frit herunder' : 'Baseret på jeres stil, dato og venue'}
+                    {avaDraft ? t('Tilpas frit herunder') : t('Baseret på jeres stil, dato og venue')}
                   </span>
                 </div>
                 {avaDraft && <Check size={14} className="ml-auto text-sage shrink-0" />}
               </button>
 
               {[
-                { label:'Overlinje',  val:eyebrow, set:setEyebrow, ph:'Vi skal giftes…' },
-                { label:'Navne',      val:names,   set:setNames,   ph:`${couple.a} & ${couple.b}` },
-                { label:'Dato',       val:date,    set:setDate,    ph:'12. september 2026' },
-                { label:'Venue',      val:venue,   set:setVenue,   ph:'Sonnerupgaard Gods' },
-                { label:'Undertekst', val:closing, set:setClosing, ph:'og vi ville elske at fejre dagen med jer…' },
+                { label: t('Overlinje'),  val: eyebrow, set: setEyebrow, ph: t('Vi skal giftes…') },
+                { label: t('Navne'),      val: names,   set: setNames,   ph: `${couple.a} & ${couple.b}` },
+                { label: t('Dato'),       val: date,    set: setDate,    ph: '12. september 2026' },
+                { label: t('Venue'),      val: venue,   set: setVenue,   ph: 'Sonnerupgaard Gods' },
+                { label: t('Undertekst'), val: closing, set: setClosing, ph: t('og vi ville elske at fejre dagen med jer…') },
               ].map(({ label, val, set, ph }) => (
                 <label key={label} className="block">
                   <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-muted mb-2">{label}</p>
@@ -572,18 +575,18 @@ function InvitesStudio({ couple, venueName, eventId }: { couple: InviteCouple; v
               transition={{ duration:0.2 }} className="mt-7 space-y-7">
 
               <div>
-                <PanelLabel>Format</PanelLabel>
+                <PanelLabel>{t('Format')}</PanelLabel>
                 <div className="space-y-2">
                   {PAPERS.map(p => (
                     <button key={p.id} onClick={() => setPaper(p.id)}
                       className={cn('flex w-full items-center justify-between rounded-xl px-4 py-3.5 text-left cursor-pointer rule transition-all',
                         paperId===p.id ? 'bg-card ring-1 ring-ink/20' : 'bg-transparent hover:bg-card/50')}>
                       <div>
-                        <span className="block text-[0.88rem] text-ink">{p.name}</span>
-                        <span className="block text-[0.72rem] text-muted mt-0.5">{p.desc}</span>
+                        <span className="block text-[0.88rem] text-ink">{t(p.name)}</span>
+                        <span className="block text-[0.72rem] text-muted mt-0.5">{t(p.desc)}</span>
                       </div>
                       <div className="shrink-0 ml-4 text-right">
-                        <span className="block text-[0.76rem] text-ink-soft">{p.price}</span>
+                        <span className="block text-[0.76rem] text-ink-soft">{t(p.price)}</span>
                         {paperId===p.id && <Check size={12} className="ml-auto mt-1 text-sage" />}
                       </div>
                     </button>
@@ -594,24 +597,24 @@ function InvitesStudio({ couple, venueName, eventId }: { couple: InviteCouple; v
               {paperId!=='digital' && (
                 <motion.div initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }}
                   className="rule rounded-2xl bg-card px-5 py-4">
-                  <Eyebrow>Om {paper.name}</Eyebrow>
-                  <p className="mt-2 text-[0.84rem] leading-relaxed text-ink-soft">{paper.desc} · Levering 10–14 dage</p>
+                  <Eyebrow>{t('Om {name}', { name: t(paper.name) })}</Eyebrow>
+                  <p className="mt-2 text-[0.84rem] leading-relaxed text-ink-soft">{t(paper.desc)} · {t('Levering 10–14 dage')}</p>
                   <p className="mt-2 font-serif text-[1.05rem] text-ink">
-                    {paper.price} · {couple.guests} stk ≈ {paperId==='cotton' ? couple.guests*8 : couple.guests*25}.– kr
+                    {t(paper.price)} · {couple.guests} {t('stk')} ≈ {paperId==='cotton' ? couple.guests*8 : couple.guests*25}.– kr
                   </p>
                 </motion.div>
               )}
 
               <div>
-                <PanelLabel>Del invitationen</PanelLabel>
+                <PanelLabel>{t('Del invitationen')}</PanelLabel>
                 <div className="grid grid-cols-2 gap-2">
-                  {([[Mail,'Via email'],[Share2,'Del link']] as const).map(([Icon,label]) => (
+                  {([[Mail, t('Via email')], [Share2, t('Del link')]] as const).map(([Icon, label]) => (
                     <button key={label} className="flex items-center gap-2 rounded-xl rule bg-card px-4 py-3 text-[0.8rem] text-ink hover:bg-shell transition-colors cursor-pointer">
                       <Icon size={13} className="text-muted" />{label}
                     </button>
                   ))}
                   <button className="col-span-2 flex items-center gap-2 rounded-xl rule bg-card px-4 py-3 text-[0.8rem] text-ink hover:bg-shell transition-colors cursor-pointer">
-                    <Download size={13} className="text-muted" /> Download som PDF
+                    <Download size={13} className="text-muted" /> {t('Download som PDF')}
                   </button>
                 </div>
               </div>
@@ -619,15 +622,15 @@ function InvitesStudio({ couple, venueName, eventId }: { couple: InviteCouple; v
               <div className="rule-t pt-6">
                 <Pill arrow onClick={() => { if (!busy && !sent) void submitOrder(); }} className="w-full">
                   {sent
-                    ? <><Check size={15}/> {paperId==='digital' ? `Klar til ${couple.guests} gæster` : 'Bestilling registreret'}</>
+                    ? <><Check size={15}/> {paperId==='digital' ? t('Klar til {n} gæster', { n: couple.guests }) : t('Bestilling registreret')}</>
                     : busy
-                      ? <>Behandler…</>
-                      : <><Send size={15}/> {paperId==='digital' ? 'Godkend' : 'Godkend & bestil tryk'}</>}
+                      ? <>{t('Behandler…')}</>
+                      : <><Send size={15}/> {paperId==='digital' ? t('Godkend') : t('Godkend & bestil tryk')}</>}
                 </Pill>
                 <p className="mt-3 text-center text-[0.74rem] text-muted">
                   {paperId==='digital'
-                    ? 'Digital deling — RSVP kommer snart'
-                    : `${paper.name} trykkes og afsendes af Kalas Atelier`}
+                    ? t('Digital deling — RSVP kommer snart')
+                    : t('{paper} trykkes og afsendes af Kalas Atelier', { paper: t(paper.name) })}
                 </p>
               </div>
             </motion.div>
@@ -637,7 +640,7 @@ function InvitesStudio({ couple, venueName, eventId }: { couple: InviteCouple; v
 
         {/* Mobile card preview */}
         <div className="lg:hidden mt-12 pb-8">
-          <p className="eyebrow mb-5 text-center">Forhåndsvisning</p>
+          <p className="eyebrow mb-5 text-center">{t('Forhåndsvisning')}</p>
           <AnimatePresence mode="wait">
             <motion.div key={cardKey}
               initial={{ opacity:0, scale:0.97 }} animate={{ opacity:1, scale:1 }}
@@ -653,7 +656,7 @@ function InvitesStudio({ couple, venueName, eventId }: { couple: InviteCouple; v
           <div className="mt-5 text-center">
             <button onClick={() => setSide(s => s === 'front' ? 'back' : 'front')}
               className="rounded-full rule bg-card px-5 py-2 text-[0.74rem] text-ink-soft hover:text-ink transition-colors cursor-pointer">
-              {side === 'front' ? 'Vend kortet — se bagsiden' : 'Vend tilbage til forsiden'}
+              {side === 'front' ? t('Vend kortet — se bagsiden') : t('Vend tilbage til forsiden')}
             </button>
           </div>
         </div>
@@ -671,7 +674,7 @@ function InvitesStudio({ couple, venueName, eventId }: { couple: InviteCouple; v
           fontSize:11, letterSpacing:'0.32em', textTransform:'uppercase',
           color:'#9a9082', fontFamily:"'Montserrat',sans-serif",
         }}>
-          Invitation Studio
+          {t('Invitation Studio')}
         </p>
 
         {/* Card — front/back flip */}
@@ -694,22 +697,22 @@ function InvitesStudio({ couple, venueName, eventId }: { couple: InviteCouple; v
           fontSize:11, letterSpacing:'0.04em', color:'#a79e90',
           fontStyle:'italic', fontFamily:"'EB Garamond',serif",
         }}>
-          {pal.name} · {font.name}
+          {t(pal.name)} · {t(font.name)}
         </p>
 
         {/* Quick-action chips */}
         <div className="absolute bottom-12 flex items-center gap-2.5">
           <button onClick={() => setSide(s => s === 'front' ? 'back' : 'front')}
             className="rounded-full bg-ink px-4 py-1.5 text-[0.7rem] text-canvas hover:opacity-85 transition-opacity cursor-pointer">
-            {side === 'front' ? 'Vend kortet' : 'Se forsiden'}
+            {side === 'front' ? t('Vend kortet') : t('Se forsiden')}
           </button>
           <button onClick={() => setTab('tekst')}
             className="rounded-full rule bg-card/80 px-4 py-1.5 text-[0.7rem] text-ink-soft hover:text-ink transition-colors cursor-pointer backdrop-blur-sm">
-            Rediger tekst
+            {t('Rediger tekst')}
           </button>
           <button onClick={() => setTab('afsend')}
             className="rounded-full rule bg-card/80 px-4 py-1.5 text-[0.7rem] text-ink-soft hover:text-ink transition-colors cursor-pointer backdrop-blur-sm">
-            Send
+            {t('Send')}
           </button>
         </div>
       </div>
