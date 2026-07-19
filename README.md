@@ -46,7 +46,7 @@ Every thread is tagged back to the owning user via a per-event plus address
 
 1. Create a project at [supabase.com](https://supabase.com).
 2. Run the SQL migrations in `supabase/migrations/` in order
-   (`0001_init.sql` … `0012_ai_website.sql`) in the SQL editor.
+   (`0001_init.sql` … `0013_html_sites.sql`) in the SQL editor.
 3. Note the project URL, anon key and service-role key (Settings → API).
 4. Enable the **Google** auth provider (Authentication → Providers) using the
    OAuth client from step 2 below, and add your site URL(s) under

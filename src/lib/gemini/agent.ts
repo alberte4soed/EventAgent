@@ -624,7 +624,8 @@ async function execUpdateWebsiteDesign(
   if (!instruction) return { error: "instruction is required" };
   const regenerate = args.regenerate === true;
 
-  const { generateSiteDesign, hasWebsiteAccess } = await import("@/lib/website/generate");
+  const { hasWebsiteAccess } = await import("@/lib/website/generate");
+  const { buildSiteHtml } = await import("@/lib/website/buildSite");
   if (!(await hasWebsiteAccess(supabase, event.id))) {
     return {
       error: "payment_required",
@@ -633,27 +634,16 @@ async function execUpdateWebsiteDesign(
     };
   }
 
-  const { data: activeRow } = await supabase
-    .from("website_designs")
-    .select("id")
-    .eq("event_id", event.id)
-    .eq("active", true)
-    .maybeSingle();
-
-  const { design } = await generateSiteDesign({
+  await buildSiteHtml({
     supabase,
     event,
     userId: event.user_id,
-    // No existing design, or an explicit fresh start → treat the wish as the brief.
-    ...(regenerate || !activeRow
-      ? { styleDirection: instruction }
-      : { instruction }),
+    // Explicit fresh start → the wish becomes the brief for a full rebuild.
+    ...(regenerate ? { styleDirection: instruction } : { instruction }),
   });
   return {
     ok: true,
-    concept: design.concept.name,
-    rationale: design.concept.rationale,
-    note: "The couple can see the new design under Hjemmeside in the app.",
+    note: "The site was rebuilt. The couple can see it under Hjemmeside in the app.",
   };
 }
 

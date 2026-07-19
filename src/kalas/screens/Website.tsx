@@ -15,7 +15,8 @@ import {
   type SiteConfig, type ProgramEvent, type FAQItem, type HotelItem, type SectionId, type SectionMeta,
 } from '../site/config';
 import { parseSiteDesign, DEFAULT_DESIGN, type SiteDesign } from '../site/design';
-import { googleFontsHref, fontStack } from '../site/fonts';
+import { googleFontsHref, fontStack, SITE_FONTS } from '../site/fonts';
+import { resolveHtml, familiesInHtml } from '@/lib/website/resolveHtml';
 import { SITE_PRESETS } from '../site/presets';
 import { normalizeImage } from '../site/normalizeImage';
 import { websitePriceDkk } from '@/lib/website/pricing';
@@ -28,13 +29,15 @@ type WTab = 'design' | 'indhold' | 'indstillinger';
 ══════════════════════════════════════════════════════════════════════ */
 export default function Website() {
   const {
-    couple, loading, event, weddingSite, saveSite,
+    couple, loading, event, weddingSite, saveSite, venues,
     websiteDesign, websiteDesigns, sitePhotos, websitePaid, refresh,
   } = useWedding();
   const [tab,      setTab]      = useState<WTab>('design');
 
   /* Sections */
   const [sections, setSections] = useState<SectionMeta[]>(INIT_SECTIONS);
+  /* Sections that get an Ava-generated illustration in the build. */
+  const [aiImages, setAiImages] = useState<SectionId[]>(['dresscode', 'transport', 'gifts']);
 
   /* Content */
   const [heroTagline,  setHeroTagline]  = useState(`Kom og fejr dagen med os`);
@@ -74,6 +77,7 @@ export default function Website() {
     const c = (weddingSite?.config ?? {}) as Record<string, unknown>;
     if (weddingSite && Object.keys(c).length > 0) {
       if (Array.isArray(c.sections)) setSections(c.sections as SectionMeta[]);
+      if (Array.isArray(c.aiImages)) setAiImages(c.aiImages as SectionId[]);
       if (typeof c.heroTagline === 'string') setHeroTagline(c.heroTagline);
       if (typeof c.storyText === 'string') setStoryText(c.storyText);
       if (typeof c.countdown === 'boolean') setCountdown(c.countdown);
@@ -99,11 +103,11 @@ export default function Website() {
 
   const config = useMemo(
     () => ({
-      sections, heroTagline, storyText, countdown,
+      sections, aiImages, heroTagline, storyText, countdown,
       program, rsvpDeadline, rsvpPlusOne, rsvpMeal, rsvpDietary, galleryKeys: [...galleryKeys],
       transport, dresscode, giftsText, giftsUrl, faq, hotels, pwProtected, sitePassword, hideBranding,
     }),
-    [sections, heroTagline, storyText, countdown, program,
+    [sections, aiImages, heroTagline, storyText, countdown, program,
      rsvpDeadline, rsvpPlusOne, rsvpMeal, rsvpDietary, galleryKeys, transport, dresscode,
      giftsText, giftsUrl, faq, hotels, pwProtected, sitePassword, hideBranding]
   );
@@ -268,6 +272,47 @@ export default function Website() {
 
   const previewConfig = useMemo(() => parseConfig(config), [config]);
 
+  // Model-built HTML (aliases → preview URLs, fonts detected from markup).
+  const activeHtml = websiteDesign?.html ?? null;
+  const previewHtml = useMemo(() => {
+    if (!activeHtml) return null;
+    const aliases = ((websiteDesign?.brief as { imageAliases?: Record<string, string> })?.imageAliases) ?? {};
+    const venue = venues.find((v) => v.id === event?.chosen_venue_id) ?? null;
+    const venueUrls = venue
+      ? [venue.image_url, ...(venue.photo_urls ?? [])].filter((u): u is string => Boolean(u))
+      : [];
+    const map: Record<string, string> = {};
+    for (const [alias, source] of Object.entries(aliases)) {
+      if (source.startsWith('photo:')) {
+        const u = photoUrls[source.slice(6)];
+        if (u) map[alias] = u;
+      } else if (source.startsWith('venue:')) {
+        const u = venueUrls[Number(source.slice(6))];
+        if (u) map[alias] = u;
+      }
+    }
+    return resolveHtml(activeHtml, map);
+  }, [activeHtml, websiteDesign, venues, event?.chosen_venue_id, photoUrls]);
+
+  const htmlFontsHref = useMemo(() => {
+    if (!activeHtml) return null;
+    const fams = familiesInHtml(activeHtml, SITE_FONTS.map((f) => f.family));
+    const ids = SITE_FONTS.filter((f) => fams.includes(f.family)).map((f) => f.id);
+    return ids.length > 0 ? googleFontsHref(ids) : null;
+  }, [activeHtml]);
+
+  // Per-section generated image thumbnails for the content-tab toggles.
+  const sectionThumb = (id: SectionId): string | null => {
+    const p = sitePhotos.find((x) => x.role === 'section' && x.section === id);
+    return p ? photoUrls[p.id] ?? null : null;
+  };
+  const aiToggle = (id: SectionId) => ({
+    on: aiImages.includes(id),
+    onChange: (v: boolean) =>
+      setAiImages((prev) => (v ? [...new Set([...prev, id])] : prev.filter((x) => x !== id))),
+    thumb: sectionThumb(id),
+  });
+
   const preview = (
     <ScaledPreview
       domain={domain}
@@ -275,6 +320,8 @@ export default function Website() {
       config={previewConfig}
       design={design}
       photoUrls={photoUrls}
+      html={previewHtml}
+      htmlFontsHref={htmlFontsHref}
       onRsvp={() => setShowRsvp(true)}
     />
   );
@@ -357,6 +404,7 @@ export default function Website() {
             <div className="rule-t lg:rule-t-0 px-6 py-10 sm:px-9 lg:py-12 overflow-y-auto">
               <DesignStudio
                 hasDesign={Boolean(websiteDesign)}
+                hasHtml={Boolean(websiteDesign?.html)}
                 design={design}
                 designs={websiteDesigns}
                 activeId={websiteDesign?.id ?? null}
@@ -411,7 +459,7 @@ export default function Website() {
               </SectionCard>
 
               {/* VORES HISTORIE */}
-              <SectionCard id="story" section={sections.find((s) => s.id === 'story')!} onToggle={toggleSection}
+              <SectionCard id="story" section={sections.find((s) => s.id === 'story')!} onToggle={toggleSection} ai={aiToggle('story')}
                 icon={<BookOpen size={15} />}>
                 <Label>Jeres historie</Label>
                 <Textarea value={storyText} onChange={setStoryText} rows={5}
@@ -420,7 +468,7 @@ export default function Website() {
               </SectionCard>
 
               {/* PROGRAM */}
-              <SectionCard id="program" section={sections.find((s) => s.id === 'program')!} onToggle={toggleSection}
+              <SectionCard id="program" section={sections.find((s) => s.id === 'program')!} onToggle={toggleSection} ai={aiToggle('program')}
                 icon={<Clock size={15} />}>
                 <Label>Programpunkter</Label>
                 <div className="mt-1 space-y-2">
@@ -452,7 +500,7 @@ export default function Website() {
               </SectionCard>
 
               {/* RSVP */}
-              <SectionCard id="rsvp" section={sections.find((s) => s.id === 'rsvp')!} onToggle={toggleSection}
+              <SectionCard id="rsvp" section={sections.find((s) => s.id === 'rsvp')!} onToggle={toggleSection} ai={aiToggle('rsvp')}
                 icon={<Check size={15} />}>
                 <div className="space-y-4">
                   <div>
@@ -496,7 +544,7 @@ export default function Website() {
               </SectionCard>
 
               {/* TRANSPORT */}
-              <SectionCard id="transport" section={sections.find((s) => s.id === 'transport')!} onToggle={toggleSection}
+              <SectionCard id="transport" section={sections.find((s) => s.id === 'transport')!} onToggle={toggleSection} ai={aiToggle('transport')}
                 icon={<MapPin size={15} />}>
                 <Label>Adresse</Label>
                 <Textarea value={transport} onChange={setTransport} rows={2} placeholder="Venue-navn, adresse, postnummer" />
@@ -504,14 +552,14 @@ export default function Website() {
               </SectionCard>
 
               {/* DRESSCODE */}
-              <SectionCard id="dresscode" section={sections.find((s) => s.id === 'dresscode')!} onToggle={toggleSection}
+              <SectionCard id="dresscode" section={sections.find((s) => s.id === 'dresscode')!} onToggle={toggleSection} ai={aiToggle('dresscode')}
                 icon={<Eye size={15} />}>
                 <Label>Dresscode-tekst</Label>
                 <Textarea value={dresscode} onChange={setDresscode} rows={3} placeholder="Beskriv dresscode og ønsker…" />
               </SectionCard>
 
               {/* GAVEØNSKER */}
-              <SectionCard id="gifts" section={sections.find((s) => s.id === 'gifts')!} onToggle={toggleSection}
+              <SectionCard id="gifts" section={sections.find((s) => s.id === 'gifts')!} onToggle={toggleSection} ai={aiToggle('gifts')}
                 icon={<Gift size={15} />}>
                 <div className="space-y-4">
                   <div>
@@ -528,7 +576,7 @@ export default function Website() {
               </SectionCard>
 
               {/* OVERNATNING */}
-              <SectionCard id="hotel" section={sections.find((s) => s.id === 'hotel')!} onToggle={toggleSection}
+              <SectionCard id="hotel" section={sections.find((s) => s.id === 'hotel')!} onToggle={toggleSection} ai={aiToggle('hotel')}
                 icon={<Bed size={15} />}>
                 <Label>Anbefalede hoteller</Label>
                 <div className="mt-1 space-y-2">
@@ -561,7 +609,7 @@ export default function Website() {
               </SectionCard>
 
               {/* FAQ */}
-              <SectionCard id="faq" section={sections.find((s) => s.id === 'faq')!} onToggle={toggleSection}
+              <SectionCard id="faq" section={sections.find((s) => s.id === 'faq')!} onToggle={toggleSection} ai={aiToggle('faq')}
                 icon={<HelpCircle size={15} />}>
                 <Label>Spørgsmål & svar</Label>
                 <div className="mt-1 space-y-3">
@@ -879,13 +927,15 @@ export default function Website() {
 
 /* ── Section card (collapsible) ──────────────────────────────────────── */
 function SectionCard({
-  id, section, onToggle, icon, children,
+  id, section, onToggle, icon, children, ai,
 }: {
   id: SectionId;
   section: SectionMeta;
   onToggle: (id: SectionId) => void;
   icon: React.ReactNode;
   children: React.ReactNode;
+  /** AI-illustration toggle for this section (step 2 of the build). */
+  ai?: { on: boolean; onChange: (v: boolean) => void; thumb?: string | null };
 }) {
   const [open, setOpen] = useState(section.enabled && !section.locked);
   const fieldId = useId();
@@ -935,6 +985,28 @@ function SectionCard({
             className="overflow-hidden">
             <div className="rule-t px-5 pb-5 pt-4">
               {children}
+              {ai && (
+                <div className="mt-4 rule-t pt-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      {ai.thumb ? (
+                        <img src={ai.thumb} alt="" className="h-10 w-14 shrink-0 rounded-lg object-cover" />
+                      ) : (
+                        <span className="flex h-10 w-14 shrink-0 items-center justify-center rounded-lg bg-shell">
+                          <Sparkles size={13} className="text-muted" />
+                        </span>
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-[0.82rem] text-ink">AI-billede</p>
+                        <p className="text-[0.68rem] text-muted truncate">
+                          {ai.thumb ? 'Genereret — genbruges i næste byg' : 'Ava genererer en illustration til sektionen'}
+                        </p>
+                      </div>
+                    </div>
+                    <Toggle value={ai.on} onChange={ai.onChange} />
+                  </div>
+                </div>
+              )}
             </div>
           </motion.div>
         )}
@@ -980,12 +1052,15 @@ function ToggleRow({ label, value, onChange }: { label: string; value: boolean; 
 }
 
 /* ── Live preview — the real public renderer, scaled down ─────────────── */
-function ScaledPreview({ domain, couple, config, design, photoUrls, onRsvp }: {
+function ScaledPreview({ domain, couple, config, design, photoUrls, html, htmlFontsHref, onRsvp }: {
   domain: string;
   couple: Couple;
   config: SiteConfig;
   design: SiteDesign;
   photoUrls: Record<string, string>;
+  /** Model-built markup (already alias-resolved) — shown in a sandboxed iframe. */
+  html?: string | null;
+  htmlFontsHref?: string | null;
   onRsvp: () => void;
 }) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
@@ -1017,18 +1092,29 @@ function ScaledPreview({ domain, couple, config, design, photoUrls, onRsvp }: {
       </div>
       {/* Scaled real site */}
       <div ref={wrapRef} className="relative h-[520px] overflow-hidden">
-        <div
-          className="absolute left-0 top-0 origin-top-left overflow-y-auto"
-          style={{ width: FULL_W, height: 520 / scale, transform: `scale(${scale})` }}
-        >
-          <SiteRenderer
-            couple={{ a: couple.a, b: couple.b, dateLabel: couple.dateLabel, dateISO: couple.dateISO }}
-            config={config}
-            design={design}
-            photoUrls={photoUrls}
-            onRsvp={onRsvp}
+        {html ? (
+          /* Sandboxed (no scripts can ever run) — the model-built site. */
+          <iframe
+            title="Forhåndsvisning af jeres side"
+            sandbox=""
+            srcDoc={`<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1">${htmlFontsHref ? `<link rel="stylesheet" href="${htmlFontsHref}">` : ''}<style>html,body{margin:0;padding:0}</style></head><body><div id="kalas-site">${html}</div></body></html>`}
+            className="absolute left-0 top-0 origin-top-left border-0"
+            style={{ width: FULL_W, height: 520 / scale, transform: `scale(${scale})` }}
           />
-        </div>
+        ) : (
+          <div
+            className="absolute left-0 top-0 origin-top-left overflow-y-auto"
+            style={{ width: FULL_W, height: 520 / scale, transform: `scale(${scale})` }}
+          >
+            <SiteRenderer
+              couple={{ a: couple.a, b: couple.b, dateLabel: couple.dateLabel, dateISO: couple.dateISO }}
+              config={config}
+              design={design}
+              photoUrls={photoUrls}
+              onRsvp={onRsvp}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1036,12 +1122,13 @@ function ScaledPreview({ domain, couple, config, design, photoUrls, onRsvp }: {
 
 /* ── Ava design studio — templates, personalization, refinement ───────── */
 function DesignStudio({
-  hasDesign, design, designs, activeId, activePresetId, photos, photoUrls,
+  hasDesign, hasHtml, design, designs, activeId, activePresetId, photos, photoUrls,
   working, applyingPreset, genError, needsPayment, websitePaid,
   onApplyPreset, onGenerate, onRefine, onActivate, onCheckout,
   onUpload, onDeletePhoto, onSetHero,
 }: {
   hasDesign: boolean;
+  hasHtml: boolean;
   design: SiteDesign;
   designs: WebsiteDesignRow[];
   activeId: string | null;
@@ -1075,19 +1162,7 @@ function DesignStudio({
   };
 
   /* Working state takes over the panel. */
-  if (working) {
-    return (
-      <div className="rule rounded-2xl bg-card p-8 text-center">
-        <Loader2 size={26} className="mx-auto animate-spin text-ink" />
-        <p className="mt-4 font-serif text-[1.25rem] text-ink">
-          {working === 'generate' ? 'Ava personaliserer jeres side…' : 'Ava justerer designet…'}
-        </p>
-        <p className="mx-auto mt-2 max-w-xs text-[0.82rem] text-muted leading-relaxed">
-          Hun kigger på jeres billeder og skabelon, og tilpasser farver, typografi og opsætning. Det tager typisk under et minut.
-        </p>
-      </div>
-    );
-  }
+  if (working) return <BuildProgress refine={working === 'refine'} />;
 
   return (
     <div className="space-y-8">
@@ -1161,11 +1236,16 @@ function DesignStudio({
               </button>
             </div>
 
-            {/* Personalize with photos */}
+            {/* Build: images per section → venue + photos + template → full site */}
             <button onClick={() => onGenerate(styleDirection)}
               className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-ink py-3 text-[0.72rem] font-bold uppercase tracking-[0.16em] text-canvas hover:bg-ink/80 transition-colors cursor-pointer">
-              <Sparkles size={13} /> Personalisér med jeres billeder
+              <Sparkles size={13} /> {hasHtml ? 'Byg siden igen' : 'Byg jeres side med Ava'}
             </button>
+            {!hasHtml && (
+              <p className="mt-2 text-center text-[0.7rem] text-muted">
+                Ava genererer billeder til sektionerne, henter jeres venue-fotos og bygger hele siden ud fra skabelonen.
+              </p>
+            )}
 
             <div className="mt-3 flex items-center justify-between">
               <button onClick={() => setShowTemplates((v) => !v)}
@@ -1228,7 +1308,7 @@ function DesignStudio({
 
       {/* Photos */}
       <PhotoManager
-        photos={photos}
+        photos={photos.filter((p) => p.role !== 'section')}
         photoUrls={photoUrls}
         step={hasDesign ? null : 'Trin 2 · Jeres billeder'}
         onUpload={onUpload}
@@ -1256,6 +1336,44 @@ function DesignStudio({
           </button>
         )}
       </section>
+    </div>
+  );
+}
+
+/* ── Build progress — the visible step sequence ───────────────────────── */
+const BUILD_STEPS = [
+  'Genererer billeder til sektionerne…',
+  'Henter billeder fra jeres venue…',
+  'Ava komponerer layout og typografi…',
+  'Bygger jeres side…',
+];
+
+function BuildProgress({ refine }: { refine: boolean }) {
+  const [step, setStep] = useState(0);
+  useEffect(() => {
+    if (refine) return;
+    const t = setInterval(() => setStep((v) => Math.min(v + 1, BUILD_STEPS.length - 1)), 9000);
+    return () => clearInterval(t);
+  }, [refine]);
+
+  return (
+    <div className="rule rounded-2xl bg-card p-8 text-center">
+      <Loader2 size={26} className="mx-auto animate-spin text-ink" />
+      <p className="mt-4 font-serif text-[1.25rem] text-ink">
+        {refine ? 'Ava bygger siden om…' : BUILD_STEPS[step]}
+      </p>
+      <p className="mx-auto mt-2 max-w-xs text-[0.82rem] text-muted leading-relaxed">
+        {refine
+          ? 'Hun anvender jeres ændring på hele siden. Det tager typisk under et minut.'
+          : 'Venue-fotos, jeres billeder og skabelonen bliver til én samlet side. Det tager et par minutter første gang.'}
+      </p>
+      {!refine && (
+        <div className="mx-auto mt-5 flex max-w-[200px] gap-1.5">
+          {BUILD_STEPS.map((_, i) => (
+            <span key={i} className={cn('h-1 flex-1 rounded-full transition-colors', i <= step ? 'bg-ink' : 'bg-shell')} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

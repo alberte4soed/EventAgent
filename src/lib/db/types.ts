@@ -342,12 +342,14 @@ export interface WebsiteDesignRow {
   user_id: string;
   brief: Record<string, unknown>;
   design: Record<string, unknown>;
+  /** Sanitized model-built site markup; null → token-renderer fallback. */
+  html: string | null;
   active: boolean;
   created_at: string;
 }
 
 export type SitePhotoKind = "upload" | "generated";
-export type SitePhotoRole = "hero" | "gallery";
+export type SitePhotoRole = "hero" | "gallery" | "section";
 
 export interface SitePhotoRow {
   id: string;
@@ -356,6 +358,8 @@ export interface SitePhotoRow {
   storage_path: string;
   kind: SitePhotoKind;
   role: SitePhotoRole;
+  /** For role='section': which site section this generated image belongs to. */
+  section: string | null;
   sort: number;
   created_at: string;
 }

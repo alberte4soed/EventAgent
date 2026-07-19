@@ -5,7 +5,8 @@
    guest-facing RSVP form, gift-claim form, and password gate. All guest writes
    go to service-role API routes under /api/w/[slug]/*. */
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { LanguageProvider, useLang } from "@/kalas/i18n";
 import { SiteRenderer } from "@/kalas/site/SiteRenderer";
 import type { SiteConfig } from "@/kalas/site/config";
@@ -19,6 +20,8 @@ interface Props {
   couple: Couple;
   config: SiteConfig;
   design: SiteDesign;
+  /** Model-built (sanitized, URL-resolved) site markup; null → token renderer. */
+  siteHtml?: string | null;
   photoUrls: Record<string, string>;
   registryItems: RegistryItemRow[];
   claimedByItem?: Record<string, number>;
@@ -37,25 +40,124 @@ export function PublicSite(props: Props) {
   );
 }
 
-function Site({ slug, couple, config, design, photoUrls, registryItems, claimedByItem = {}, rsvpToken }: Props) {
+function Site({ slug, couple, config, design, siteHtml, photoUrls, registryItems, claimedByItem = {}, rsvpToken }: Props) {
   const [rsvpOpen, setRsvpOpen] = useState(false);
   const [claimItem, setClaimItem] = useState<RegistryItemRow | null>(null);
 
   return (
     <>
-      <SiteRenderer
-        couple={couple}
-        config={config}
-        design={design}
-        photoUrls={photoUrls}
-        registryItems={registryItems}
-        claimedByItem={claimedByItem}
-        onRsvp={() => setRsvpOpen(true)}
-        onClaim={(it) => setClaimItem(it)}
-      />
+      {siteHtml ? (
+        <HtmlSite
+          html={siteHtml}
+          couple={couple}
+          hideBranding={config.hideBranding}
+          registryItems={registryItems}
+          claimedByItem={claimedByItem}
+          onRsvp={() => setRsvpOpen(true)}
+          onClaim={(it) => setClaimItem(it)}
+        />
+      ) : (
+        <SiteRenderer
+          couple={couple}
+          config={config}
+          design={design}
+          photoUrls={photoUrls}
+          registryItems={registryItems}
+          claimedByItem={claimedByItem}
+          onRsvp={() => setRsvpOpen(true)}
+          onClaim={(it) => setClaimItem(it)}
+        />
+      )}
       {rsvpOpen && <RsvpModal slug={slug} config={config} token={rsvpToken ?? null} onClose={() => setRsvpOpen(false)} />}
       {claimItem && <ClaimModal slug={slug} item={claimItem} onClose={() => setClaimItem(null)} />}
     </>
+  );
+}
+
+/* ── Model-built site: sanitized markup + our interactive slots ────────── */
+function HtmlSite({ html, couple, hideBranding, registryItems, claimedByItem, onRsvp, onClaim }: {
+  html: string;
+  couple: Couple;
+  hideBranding: boolean;
+  registryItems: RegistryItemRow[];
+  claimedByItem: Record<string, number>;
+  onRsvp: () => void;
+  onClaim: (item: RegistryItemRow) => void;
+}) {
+  const { t } = useLang();
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const [registryEl, setRegistryEl] = useState<HTMLElement | null>(null);
+
+  // Hydrate the declared slots: RSVP buttons, live countdown, registry mount.
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+
+    const rsvpEls = root.querySelectorAll<HTMLElement>('[data-kalas="rsvp"]');
+    const open = (e: Event) => { e.preventDefault(); onRsvp(); };
+    rsvpEls.forEach((el) => el.addEventListener("click", open));
+
+    if (couple.dateISO) {
+      const days = Math.ceil((new Date(`${couple.dateISO}T00:00:00`).getTime() - Date.now()) / 86400000);
+      root.querySelectorAll<HTMLElement>('[data-kalas="countdown"]').forEach((el) => {
+        el.textContent = days > 0 ? String(days) : "0";
+      });
+    }
+
+    setRegistryEl(root.querySelector<HTMLElement>('[data-kalas="registry"]'));
+    return () => rsvpEls.forEach((el) => el.removeEventListener("click", open));
+  }, [html, couple.dateISO, onRsvp]);
+
+  return (
+    <div className="min-h-screen">
+      {/* Sanitized model output: allowlisted tags/attrs only, image srcs are
+          platform-substituted URLs — see src/lib/website/sanitize.ts. */}
+      <div id="kalas-site" ref={rootRef} dangerouslySetInnerHTML={{ __html: html }} />
+
+      {registryEl && registryItems.length > 0 && createPortal(
+        <div style={{ display: "grid", gap: "1rem", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))" }}>
+          {registryItems.map((it) => {
+            const left = Math.max(0, it.quantity - (claimedByItem[it.id] ?? 0));
+            return (
+              <div key={it.id} style={{ border: "1px solid rgba(0,0,0,0.12)", borderRadius: "0.75rem", overflow: "hidden", background: "rgba(255,255,255,0.6)" }}>
+                {it.image_url && <img src={it.image_url} alt="" style={{ width: "100%", height: "9rem", objectFit: "cover" }} />}
+                <div style={{ padding: "0.9rem" }}>
+                  <p style={{ fontWeight: 600 }}>{it.title}</p>
+                  <p style={{ fontSize: "0.85rem", opacity: 0.7 }}>
+                    {it.price_cents != null ? `${(it.price_cents / 100).toLocaleString("da-DK")} ${it.currency}` : ""}
+                    {it.store_name ? ` · ${it.store_name}` : ""}
+                  </p>
+                  <div style={{ marginTop: "0.6rem", display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                    {it.product_url && (
+                      <a href={it.product_url} target="_blank" rel="noopener noreferrer"
+                        style={{ fontSize: "0.75rem", border: "1px solid rgba(0,0,0,0.25)", borderRadius: "999px", padding: "0.3rem 0.8rem" }}>
+                        {t("Se hos {store}", { store: it.store_name || t("butik") })}
+                      </a>
+                    )}
+                    {left > 0 ? (
+                      <button onClick={() => onClaim(it)}
+                        style={{ fontSize: "0.75rem", fontWeight: 600, borderRadius: "999px", padding: "0.3rem 0.8rem", background: "rgba(0,0,0,0.85)", color: "#fff", cursor: "pointer" }}>
+                        {t("Reservér gave")}
+                      </button>
+                    ) : (
+                      <span style={{ fontSize: "0.75rem", opacity: 0.6 }}>{t("Reserveret")}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>,
+        registryEl
+      )}
+
+      {!hideBranding && (
+        <footer style={{ padding: "2.5rem 0", textAlign: "center", borderTop: "1px solid rgba(0,0,0,0.08)" }}>
+          <span style={{ fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "0.2em", opacity: 0.4 }}>{t("Lavet med")} </span>
+          <span style={{ fontFamily: "serif", fontSize: "0.9rem", letterSpacing: "0.12em", opacity: 0.6 }}>Kalas</span>
+        </footer>
+      )}
+    </div>
   );
 }
 

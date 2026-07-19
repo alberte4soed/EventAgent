@@ -3,11 +3,13 @@ import { cookies } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { parseConfig } from "@/kalas/site/config";
 import { parseSiteDesign, DEFAULT_DESIGN, type SiteDesign } from "@/kalas/site/design";
-import { googleFontsHref } from "@/kalas/site/fonts";
+import { googleFontsHref, SITE_FONTS } from "@/kalas/site/fonts";
+import { urlMapForDesign } from "@/lib/website/buildSite";
+import { resolveHtml, familiesInHtml } from "@/lib/website/resolveHtml";
 import { siteCookieName, siteCookieValue } from "@/lib/site-auth";
 import type {
   EventRow, ProfileRow, RegistryItemRow, RegistryClaimRow, WeddingSiteRow,
-  WebsiteDesignRow, SitePhotoRow, AppLanguage,
+  WebsiteDesignRow, SitePhotoRow, VenueRow, AppLanguage,
 } from "@/lib/db/types";
 import { PublicSite } from "./PublicSite";
 
@@ -63,22 +65,39 @@ export default async function PublicWeddingSite({
     claimedByItem[c.item_id] = (claimedByItem[c.item_id] ?? 0) + (c.quantity ?? 1);
   }
 
-  // Ava's design (validated server-side) + per-request signed URLs for the
-  // photos it references. The page is force-dynamic, so 1-hour URLs are
-  // always fresh for guests while the bucket stays private.
+  // Ava's design + per-request signed URLs. The page is force-dynamic, so
+  // 1-hour URLs are always fresh for guests while the bucket stays private.
   const activeDesign = designRow as WebsiteDesignRow | null;
   const design: SiteDesign = activeDesign ? parseSiteDesign(activeDesign.design) : DEFAULT_DESIGN;
   const photos = (photoRows as SitePhotoRow[] | null) ?? [];
+
+  // Model-built HTML path: substitute image aliases with fresh URLs.
+  let siteHtml: string | null = null;
+  let htmlFamilies: string[] = [];
+  if (activeDesign?.html) {
+    let venue: VenueRow | null = null;
+    if (event.chosen_venue_id) {
+      const { data: v } = await admin.from("venues").select("*").eq("id", event.chosen_venue_id).maybeSingle();
+      venue = v as VenueRow | null;
+    }
+    const urlMap = await urlMapForDesign(activeDesign, photos, venue);
+    siteHtml = resolveHtml(activeDesign.html, urlMap);
+    htmlFamilies = familiesInHtml(activeDesign.html, SITE_FONTS.map((f) => f.family));
+  }
+
+  // Token-renderer fallback: signed URLs for photos the design references.
   const referenced = new Set([design.images.heroPhotoId, ...design.images.galleryPhotoIds].filter(Boolean));
   const photoUrls: Record<string, string> = {};
-  await Promise.all(
-    photos
-      .filter((p) => referenced.has(p.id))
-      .map(async (p) => {
-        const { data } = await admin.storage.from("site-photos").createSignedUrl(p.storage_path, 3600);
-        if (data?.signedUrl) photoUrls[p.id] = data.signedUrl;
-      })
-  );
+  if (!siteHtml) {
+    await Promise.all(
+      photos
+        .filter((p) => referenced.has(p.id))
+        .map(async (p) => {
+          const { data } = await admin.storage.from("site-photos").createSignedUrl(p.storage_path, 3600);
+          if (data?.signedUrl) photoUrls[p.id] = data.signedUrl;
+        })
+    );
+  }
 
   // Password gate: the raw password never leaves the server; we compare the
   // signed cookie against the expected value.
@@ -89,15 +108,20 @@ export default async function PublicWeddingSite({
     locked = jar.get(siteCookieName(slug))?.value !== siteCookieValue(slug, rawPassword);
   }
 
+  // Fonts vary per site, so they resolve at request time — next/font can't.
+  const fontIds = siteHtml
+    ? SITE_FONTS.filter((f) => htmlFamilies.includes(f.family)).map((f) => f.id)
+    : [design.typography.displayFont, design.typography.bodyFont];
+
   return (
     <>
-      {/* Fonts vary per site design, so they resolve at request time — next/font can't. */}
-      <link rel="stylesheet" href={googleFontsHref([design.typography.displayFont, design.typography.bodyFont])} />
+      {fontIds.length > 0 && <link rel="stylesheet" href={googleFontsHref(fontIds)} />}
       <PublicSite
         slug={slug}
         couple={couple}
         config={config}
         design={design}
+        siteHtml={siteHtml}
         photoUrls={photoUrls}
         registryItems={registryItems}
         claimedByItem={claimedByItem}

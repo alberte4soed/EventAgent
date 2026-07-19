@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { generateSiteDesign, hasWebsiteAccess } from "@/lib/website/generate";
+import { hasWebsiteAccess } from "@/lib/website/generate";
+import { buildSiteHtml } from "@/lib/website/buildSite";
 import { logAgentError } from "@/lib/gemini/log";
 import type { EventRow } from "@/lib/db/types";
 
@@ -43,13 +44,13 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { row, design } = await generateSiteDesign({
+    const { row } = await buildSiteHtml({
       supabase,
       event,
       userId: user.id,
       instruction: instruction.slice(0, 1000),
     });
-    return Response.json({ designId: row.id, design });
+    return Response.json({ designId: row.id });
   } catch (err) {
     logAgentError("api/website/design/refine", err, { eventId });
     return Response.json({ error: "Ava kunne ikke justere designet lige nu — prøv igen." }, { status: 502 });

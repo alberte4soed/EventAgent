@@ -418,3 +418,154 @@ with these colors.
 Think editorial wedding photography or fine art: soft natural light,
 botanical or landscape motifs, generous negative space. Flat image only —
 no mockups, frames or borders.`;
+
+/* ── Per-section illustration (Nano Banana) ────────────────────────────── */
+
+const SECTION_ART: Record<string, string> = {
+  dresscode:
+    "A refined flat-lay of wedding-guest attire on a clean, softly lit surface: an elegant dress or gown laid flat beside a suit jacket, tie and dress shoes, arranged with intention. Editorial fashion-catalog feel.",
+  transport:
+    "A minimal, elegant illustration of a scenic route to a wedding: a winding country road, trees, perhaps a vintage car small in the frame. Calm, map-like, decorative.",
+  gifts:
+    "A still life of beautifully wrapped gifts and a handwritten-style envelope, ribbon and dried flowers, on a clean surface. Warm and generous.",
+  hotel:
+    "A cozy boutique-hotel still life: a room key on a tray, folded linen, a small lamp glowing. Quiet hospitality.",
+  program:
+    "An elegant tablescape detail for a wedding day: candles, glassware, a folded menu card (blank, no text), soft depth of field.",
+  story:
+    "A soft romantic still life: two rings on handwritten letters (illegible, decorative writing only), dried flowers, warm window light.",
+  faq:
+    "A calm abstract botanical composition — pressed leaves and flowers arranged sparsely on a plain background.",
+  gallery:
+    "A delicate abstract texture with organic shapes and soft gradients, suitable as a quiet backdrop.",
+  rsvp:
+    "A still life of an elegant reply card and pen on a clean desk (card is blank — no text), soft natural light.",
+};
+
+export const SECTION_IMAGE_PROMPT = (args: {
+  sectionId: string;
+  styleDirection: string;
+  vibes: string[];
+  paletteHexes: string[];
+  region: string;
+}) => `${SECTION_ART[args.sectionId] ?? "A calm, elegant abstract composition with organic shapes."}
+
+Overall wedding mood: ${args.styleDirection || args.vibes.join(", ") || "romantic, elegant, nordic"}.
+Region/setting inspiration: ${args.region || "Scandinavia"}.
+Color world to harmonize with: ${args.paletteHexes.join(", ")}.
+
+HARD RULES: no people, no faces, no hands, no body parts. No text, letters,
+numbers or logos anywhere in the image. Flat photographic or illustrated
+artwork only — no mockups, borders, frames or 3D scenes. Generous negative
+space so text can sit near or over the image.`;
+
+/* ── Full-site HTML build ──────────────────────────────────────────────── */
+
+export const WEBSITE_HTML_PROMPT = (args: {
+  names: string;
+  dateLabel: string;
+  daysUntil: number | null;
+  region: string;
+  venueName: string | null;
+  venueAddress: string | null;
+  guestCount: number | null;
+  language: string;
+  styleDirection: string;
+  vibes: string[];
+  templateName: string;
+  templateSpec: string;
+  content: string;             // serialized SiteConfig content (sections, texts, program, faq…)
+  imageManifest: { alias: string; kind: string; note: string }[];
+  fontCatalog: { family: string; category: string }[];
+  hasRegistry: boolean;
+  currentHtml?: string;
+  instruction?: string;
+}) => {
+  const lang = args.language === "en" ? "English" : "Danish";
+  const images = args.imageManifest.length
+    ? args.imageManifest.map((i) => `- {{img:${i.alias}}} — ${i.kind}: ${i.note}`).join("\n")
+    : "(no images available — design typographically)";
+  const fonts = args.fontCatalog.map((f) => `${f.family} (${f.category})`).join(", ");
+
+  const base = `You are Ava, an award-winning wedding web designer and front-end
+craftsperson. Build a COMPLETE, beautiful one-page wedding website as a
+single HTML fragment. It will be sanitized, wrapped and served by our
+platform — follow the contract exactly.
+
+THE COUPLE
+- Names: ${args.names}
+- Date: ${args.dateLabel || "not set"}${args.daysUntil != null && args.daysUntil > 0 ? ` (${args.daysUntil} days away)` : ""}
+- Venue: ${args.venueName ?? "not chosen yet"}${args.venueAddress ? `, ${args.venueAddress}` : ""}
+- Region: ${args.region || "Denmark"} · Guests: ${args.guestCount ?? "unknown"}
+- Style direction (their own words): ${args.styleDirection || "infer from photos and template"}
+- Vibes: ${args.vibes.join(", ") || "none given"}
+
+CHOSEN TEMPLATE — your typographic & mood starting point (evolve it, don't copy it):
+"${args.templateName}"
+${args.templateSpec}
+
+CONTENT (render every enabled section; keep their texts verbatim where given):
+${args.content}
+
+IMAGES — attached for you to look at; reference ONLY by alias token:
+${images}
+Venue photos (V*) show their actual wedding venue — use them prominently
+(hero, backgrounds, transport/venue sections). Section images (S-*) were
+generated for specific sections — use each in its section (as a background
+band, a side image, or a banner). Couple photos (P*) are their own.
+
+THE CONTRACT (hard requirements)
+1. Output ONLY the HTML fragment: one <style> block followed by the markup.
+   No <html>, <head>, <body>, no markdown fences, no commentary.
+2. Every selector in <style> MUST be scoped under #kalas-site (the wrapper
+   id our platform adds). Never style bare body/html/universal selectors.
+3. Images: use ONLY the alias tokens above, in <img src="{{img:P1}}"> or
+   CSS url({{img:V1}}). NEVER a real URL, path or data URI. Every <img>
+   needs alt="".
+4. No <script>, <iframe>, <svg>, <form>, <input>, no event handlers, no
+   external resources of any kind. Fonts: font-family only, chosen from:
+   ${fonts} — our platform loads the families you use.
+5. Interactive slots (our code powers them — you only place and style them):
+   - RSVP buttons: <button data-kalas="rsvp">…</button> — style freely,
+     place in nav/hero/RSVP section.
+   - Registry/gifts grid: ${args.hasRegistry ? 'include an empty <div data-kalas="registry"></div> inside the gifts section — our platform renders the gift cards into it (style its section, not its contents).' : "the couple has no registry items; render their gifts text only."}
+   - Countdown number: <span data-kalas="countdown"></span> where the
+     days-left number should appear (we fill it live).
+6. Language: all copy in ${lang}. Warm, personal, concise — never lorem.
+7. Fully responsive (mobile-first; test your grid/flex mentally at 375px
+   and 1280px). Use fluid type (clamp), max-width containers, and
+   overflow-safe layouts.
+
+ART DIRECTION — make it feel designed, not assembled
+- Compose with RHYTHM: alternate full-bleed image bands, split (text|image)
+  sections, and paired half-width cards (e.g. transport + dresscode side by
+  side on desktop). NEVER a monotonous vertical stack of centered text.
+- Use the venue and section images structurally: at least one full-width
+  background image band with overlaid text (with a color overlay for
+  contrast), not only <img> tags in boxes.
+- A confident hero: their names set large in the display face, date, and a
+  clear RSVP button.
+- Deliberate palette derived from the template and the photos; check text
+  contrast everywhere (WCAG AA). Subtle details welcome: hairlines,
+  generous whitespace, tasteful hover states via CSS only.
+- End with the RSVP section as a strong closing invitation.`;
+
+  if (args.currentHtml && args.instruction) {
+    return `${base}
+
+REFINEMENT MODE
+Their current site HTML:
+"""
+${args.currentHtml}
+"""
+
+The couple asked for this change:
+"""${args.instruction}"""
+
+Rebuild the fragment applying the change decisively — it may affect layout,
+imagery, typography or structure, not just colors; the couple must clearly
+SEE the difference. Keep everything they did not mention recognizably the
+same. Output the complete updated fragment under the same contract.`;
+  }
+  return base;
+};

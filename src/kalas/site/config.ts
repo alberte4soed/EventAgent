@@ -61,6 +61,8 @@ export const GALLERY_KEYS: ImageKey[] = ['florals', 'olive', 'candles', 'arch', 
 /** Public-safe, fully-defaulted view of wedding_sites.config (no password). */
 export interface SiteConfig {
   sections: SectionMeta[];
+  /** Sections that get an Ava-generated illustration in the build. */
+  aiImages: SectionId[];
   heroTagline: string; storyText: string; countdown: boolean;
   program: ProgramEvent[];
   rsvpDeadline: string; rsvpPlusOne: boolean; rsvpMeal: boolean; rsvpDietary: boolean;
@@ -79,6 +81,7 @@ export function parseConfig(raw: Record<string, unknown> | null | undefined): Si
   const c = raw ?? {};
   return {
     sections: arr<SectionMeta>(c.sections, INIT_SECTIONS),
+    aiImages: arr<SectionId>(c.aiImages, ['dresscode', 'transport', 'gifts']),
     heroTagline: str(c.heroTagline, 'Kom og fejr dagen med os'),
     storyText: str(c.storyText, ''),
     countdown: bool(c.countdown, true),
