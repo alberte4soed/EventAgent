@@ -1,6 +1,6 @@
 import { useState, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Upload, Utensils, Send, Users, Clock, CheckCheck, ChevronRight, Trash2, Search, X, Check, Link2 } from 'lucide-react';
+import { Plus, Upload, Utensils, Send, Users, Clock, CheckCheck, ChevronRight, Trash2, Search, X, Check, Link2, Mail, Phone, Pencil } from 'lucide-react';
 import { Pill, Chip, cn } from '../ui';
 import AnimateNumber from '../AnimateNumber';
 import OnboardingHint from '../OnboardingHint';
@@ -44,6 +44,8 @@ export default function Guests() {
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState('');
   const [newSide, setNewSide] = useState('Fælles');
+  const [newEmail, setNewEmail] = useState('');
+  const [newPhone, setNewPhone] = useState('');
   const addInputRef = useRef<HTMLInputElement>(null);
 
   const rsvpStats = useMemo(() => ({
@@ -63,8 +65,15 @@ export default function Guests() {
   const addGuest = () => {
     const name = newName.trim();
     if (!name) { setAdding(false); return; }
-    void addGuestRow({ name, side: newSide });
+    void addGuestRow({
+      name,
+      side: newSide,
+      email: newEmail.trim() || null,
+      phone: newPhone.trim() || null,
+    });
     setNewName('');
+    setNewEmail('');
+    setNewPhone('');
     setAdding(false);
   };
 
@@ -141,29 +150,47 @@ export default function Guests() {
                   initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.22 }}
                   className="overflow-hidden">
-                  <div className="mt-6 flex flex-wrap items-center gap-3 rounded-2xl rule bg-card px-5 py-4">
-                    <input ref={addInputRef} value={newName} onChange={(e) => setNewName(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === 'Enter') addGuest(); if (e.key === 'Escape') setAdding(false); }}
-                      placeholder="Gæstens navn…" aria-label="Gæstens navn"
-                      className="flex-1 min-w-[160px] bg-transparent font-serif text-[1.05rem] text-ink placeholder:text-muted border-b border-[var(--color-line)] pb-1 focus:outline-none focus:border-ink" />
-                    <div className="flex gap-1.5">
-                      {sides.map((s) => (
-                        <button key={s} onClick={() => setNewSide(s)}
-                          className={cn('rounded-full px-3 py-1.5 text-[0.72rem] transition-colors cursor-pointer',
-                            newSide === s ? 'bg-ink text-canvas' : 'rule text-ink-soft hover:bg-shell')}>
-                          {s}
-                        </button>
-                      ))}
+                  <div className="mt-6 rounded-2xl rule bg-card px-5 py-4">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <input ref={addInputRef} value={newName} onChange={(e) => setNewName(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') addGuest(); if (e.key === 'Escape') setAdding(false); }}
+                        placeholder="Gæstens navn…" aria-label="Gæstens navn"
+                        className="flex-1 min-w-[160px] bg-transparent font-serif text-[1.05rem] text-ink placeholder:text-muted border-b border-[var(--color-line)] pb-1 focus:outline-none focus:border-ink" />
+                      <div className="flex gap-1.5">
+                        {sides.map((s) => (
+                          <button key={s} onClick={() => setNewSide(s)}
+                            className={cn('rounded-full px-3 py-1.5 text-[0.72rem] transition-colors cursor-pointer',
+                              newSide === s ? 'bg-ink text-canvas' : 'rule text-ink-soft hover:bg-shell')}>
+                            {s}
+                          </button>
+                        ))}
+                      </div>
+                      <button onClick={addGuest} aria-label="Gem gæst"
+                        className="flex h-8 w-8 items-center justify-center rounded-full text-canvas hover:opacity-90 transition-opacity cursor-pointer"
+                        style={{ background: 'var(--color-ink)' }}>
+                        <Check size={14} />
+                      </button>
+                      <button onClick={() => setAdding(false)} aria-label="Annuller"
+                        className="text-muted hover:text-ink transition-colors cursor-pointer">
+                        <X size={15} />
+                      </button>
                     </div>
-                    <button onClick={addGuest} aria-label="Gem gæst"
-                      className="flex h-8 w-8 items-center justify-center rounded-full text-canvas hover:opacity-90 transition-opacity cursor-pointer"
-                      style={{ background: 'var(--color-ink)' }}>
-                      <Check size={14} />
-                    </button>
-                    <button onClick={() => setAdding(false)} aria-label="Annuller"
-                      className="text-muted hover:text-ink transition-colors cursor-pointer">
-                      <X size={15} />
-                    </button>
+                    <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2">
+                      <label className="flex flex-1 min-w-[150px] items-center gap-2 border-b border-[var(--color-line)] pb-1">
+                        <Mail size={13} className="shrink-0 text-muted" />
+                        <input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Enter') addGuest(); if (e.key === 'Escape') setAdding(false); }}
+                          placeholder="Email (valgfri)" aria-label="Gæstens email"
+                          className="w-full bg-transparent text-[0.85rem] text-ink placeholder:text-muted focus:outline-none" />
+                      </label>
+                      <label className="flex flex-1 min-w-[150px] items-center gap-2 border-b border-[var(--color-line)] pb-1">
+                        <Phone size={13} className="shrink-0 text-muted" />
+                        <input type="tel" value={newPhone} onChange={(e) => setNewPhone(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Enter') addGuest(); if (e.key === 'Escape') setAdding(false); }}
+                          placeholder="Telefon (valgfri)" aria-label="Gæstens telefon"
+                          className="w-full bg-transparent text-[0.85rem] text-ink placeholder:text-muted focus:outline-none" />
+                      </label>
+                    </div>
                   </div>
                 </motion.div>
               )}
@@ -212,7 +239,7 @@ export default function Guests() {
               <span className="text-[0.62rem] font-semibold tracking-[0.2em] uppercase text-muted">—</span>
             </div>
             <div className="divide-y divide-[var(--color-line)]">
-              {list.map((g, i) => <GuestRow key={g.id} g={g} i={i} link={guestLink(g.rsvp_token)} onRemove={() => removeGuest(g.id)} onCycle={() => cycleRsvp(g)} />)}
+              {list.map((g, i) => <GuestRow key={g.id} g={g} i={i} link={guestLink(g.rsvp_token)} onRemove={() => removeGuest(g.id)} onCycle={() => cycleRsvp(g)} onSave={(patch) => updateGuest(g.id, patch)} />)}
             </div>
             {list.length === 0 && (
               <p className="py-10 text-center font-serif text-[1.1rem] italic text-muted">
@@ -232,11 +259,14 @@ export default function Guests() {
   );
 }
 
-function GuestRow({ g, i, link, onRemove, onCycle }: { g: GuestRecord; i: number; link: string | null; onRemove: () => void; onCycle: () => void }) {
+function GuestRow({ g, i, link, onRemove, onCycle, onSave }: { g: GuestRecord; i: number; link: string | null; onRemove: () => void; onCycle: () => void; onSave: (patch: Partial<GuestRecord>) => void }) {
   const isAfbud = g.rsvp === 'nej';
   const rsvpLabel = isAfbud ? 'afbud' : g.rsvp;
   const tone = g.rsvp === 'ja' ? 'success' : g.rsvp === 'afventer' ? 'clay' : 'neutral';
   const [copied, setCopied] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editEmail, setEditEmail] = useState(g.email ?? '');
+  const [editPhone, setEditPhone] = useState(g.phone ?? '');
   const detail = [g.plus_one_name && `+ ${g.plus_one_name}`, g.dietary && g.dietary].filter(Boolean).join(' · ');
 
   const copyLink = () => {
@@ -246,50 +276,102 @@ function GuestRow({ g, i, link, onRemove, onCycle }: { g: GuestRecord; i: number
     setTimeout(() => setCopied(false), 1600);
   };
 
+  const openEdit = () => {
+    setEditEmail(g.email ?? '');
+    setEditPhone(g.phone ?? '');
+    setEditing(true);
+  };
+  const saveEdit = () => {
+    onSave({ email: editEmail.trim() || null, phone: editPhone.trim() || null });
+    setEditing(false);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
       transition={{ delay: Math.min(i * 0.03, 0.25) }}
-      className="grid items-center gap-4 py-4"
-      style={{ gridTemplateColumns: '1fr 90px 90px 44px' }}
+      className="py-4"
     >
-      <div className="min-w-0">
-        <div className={cn('flex items-center gap-1.5 font-serif text-[1.05rem] text-ink', isAfbud && 'opacity-40')}>
-          <span className="truncate">{g.name}</span>
-          {g.responded_at && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-success" title="Har svaret" />}
+      <div className="grid items-center gap-4" style={{ gridTemplateColumns: '1fr 90px 90px 66px' }}>
+        <div className="min-w-0">
+          <div className={cn('flex items-center gap-1.5 font-serif text-[1.05rem] text-ink', isAfbud && 'opacity-40')}>
+            <span className="truncate">{g.name}</span>
+            {g.responded_at && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-success" title="Har svaret" />}
+          </div>
+          <div className="text-[0.76rem] text-muted truncate">{g.side}{detail && ` · ${detail}`}</div>
+          {(g.email || g.phone) && (
+            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[0.72rem] text-muted">
+              {g.email && <span className="flex items-center gap-1 truncate"><Mail size={11} className="shrink-0" />{g.email}</span>}
+              {g.phone && <span className="flex items-center gap-1 truncate"><Phone size={11} className="shrink-0" />{g.phone}</span>}
+            </div>
+          )}
         </div>
-        <div className="text-[0.76rem] text-muted truncate">{g.side}{detail && ` · ${detail}`}</div>
-      </div>
 
-      <button onClick={onCycle} aria-label={`Skift RSVP for ${g.name}`}
-        className="text-left cursor-pointer" title="Klik for at skifte svar">
-        {isAfbud ? (
-          <span className="text-[0.82rem] text-muted line-through">{rsvpLabel}</span>
-        ) : (
-          <Chip tone={tone}>{rsvpLabel}</Chip>
-        )}
-      </button>
-
-      <div>
-        {g.meal ? (
-          <span className="text-[0.82rem] text-ink-soft capitalize">{g.meal}</span>
-        ) : (
-          <span className="text-[0.82rem] text-muted">—</span>
-        )}
-      </div>
-
-      <div className="flex items-center justify-end gap-2">
-        {link && (
-          <button onClick={copyLink} aria-label={`Kopiér svar-link til ${g.name}`} title="Kopiér personligt svar-link"
-            className="text-muted/50 hover:text-ink transition-colors cursor-pointer">
-            {copied ? <Check size={13} className="text-success" /> : <Link2 size={13} />}
-          </button>
-        )}
-        <button onClick={onRemove} aria-label={`Fjern ${g.name}`}
-          className="text-muted/50 hover:text-[var(--color-terracotta)] transition-colors cursor-pointer">
-          <Trash2 size={14} />
+        <button onClick={onCycle} aria-label={`Skift RSVP for ${g.name}`}
+          className="text-left cursor-pointer" title="Klik for at skifte svar">
+          {isAfbud ? (
+            <span className="text-[0.82rem] text-muted line-through">{rsvpLabel}</span>
+          ) : (
+            <Chip tone={tone}>{rsvpLabel}</Chip>
+          )}
         </button>
+
+        <div>
+          {g.meal ? (
+            <span className="text-[0.82rem] text-ink-soft capitalize">{g.meal}</span>
+          ) : (
+            <span className="text-[0.82rem] text-muted">—</span>
+          )}
+        </div>
+
+        <div className="flex items-center justify-end gap-2">
+          <button onClick={editing ? () => setEditing(false) : openEdit} aria-label={`Rediger kontakt for ${g.name}`} title="Rediger email & telefon"
+            className={cn('transition-colors cursor-pointer', editing ? 'text-ink' : 'text-muted/50 hover:text-ink')}>
+            <Pencil size={13} />
+          </button>
+          {link && (
+            <button onClick={copyLink} aria-label={`Kopiér svar-link til ${g.name}`} title="Kopiér personligt svar-link"
+              className="text-muted/50 hover:text-ink transition-colors cursor-pointer">
+              {copied ? <Check size={13} className="text-success" /> : <Link2 size={13} />}
+            </button>
+          )}
+          <button onClick={onRemove} aria-label={`Fjern ${g.name}`}
+            className="text-muted/50 hover:text-[var(--color-terracotta)] transition-colors cursor-pointer">
+            <Trash2 size={14} />
+          </button>
+        </div>
       </div>
+
+      <AnimatePresence>
+        {editing && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.2 }}
+            className="overflow-hidden">
+            <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-2xl rule bg-card px-4 py-3">
+              <label className="flex flex-1 min-w-[150px] items-center gap-2 border-b border-[var(--color-line)] pb-1">
+                <Mail size={13} className="shrink-0 text-muted" />
+                <input type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') setEditing(false); }}
+                  placeholder="Email" aria-label={`Email for ${g.name}`}
+                  className="w-full bg-transparent text-[0.85rem] text-ink placeholder:text-muted focus:outline-none" />
+              </label>
+              <label className="flex flex-1 min-w-[150px] items-center gap-2 border-b border-[var(--color-line)] pb-1">
+                <Phone size={13} className="shrink-0 text-muted" />
+                <input type="tel" value={editPhone} onChange={(e) => setEditPhone(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') setEditing(false); }}
+                  placeholder="Telefon" aria-label={`Telefon for ${g.name}`}
+                  className="w-full bg-transparent text-[0.85rem] text-ink placeholder:text-muted focus:outline-none" />
+              </label>
+              <button onClick={saveEdit} aria-label="Gem kontakt"
+                className="flex h-8 w-8 items-center justify-center rounded-full text-canvas hover:opacity-90 transition-opacity cursor-pointer"
+                style={{ background: 'var(--color-ink)' }}>
+                <Check size={14} />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
