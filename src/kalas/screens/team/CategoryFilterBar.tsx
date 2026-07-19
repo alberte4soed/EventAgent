@@ -25,7 +25,7 @@ export default function CategoryFilterBar({
             key={c.id}
             type="button"
             onClick={() => onCatChange(c.id)}
-            title={locked ? 'Vælg jeres lokation først' : undefined}
+            title={locked ? t('Vælg jeres lokation først') : undefined}
             className={cn(
               'flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs font-semibold transition-all cursor-pointer',
               cat === c.id

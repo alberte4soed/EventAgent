@@ -166,7 +166,7 @@ export default function Guests() {
                           <button key={s} onClick={() => setNewSide(s)}
                             className={cn('rounded-full px-3 py-1.5 text-[0.72rem] transition-colors cursor-pointer',
                               newSide === s ? 'bg-ink text-canvas' : 'rule text-ink-soft hover:bg-shell')}>
-                            {s}
+                            {t(s)}
                           </button>
                         ))}
                       </div>
@@ -304,7 +304,7 @@ function GuestRow({ g, i, link, onRemove, onCycle, onSave }: { g: GuestRecord; i
             <span className="truncate">{g.name}</span>
             {g.responded_at && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-success" title={t('Har svaret')} />}
           </div>
-          <div className="text-[0.76rem] text-muted truncate">{g.side}{detail && ` · ${detail}`}</div>
+          <div className="text-[0.76rem] text-muted truncate">{t(g.side)}{detail && ` · ${detail}`}</div>
           {(g.email || g.phone) && (
             <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[0.72rem] text-muted">
               {g.email && <span className="flex items-center gap-1 truncate"><Mail size={11} className="shrink-0" />{g.email}</span>}

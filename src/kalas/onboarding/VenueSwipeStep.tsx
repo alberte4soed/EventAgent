@@ -268,11 +268,12 @@ function GalleryImage({
   onOpen: () => void;
   className?: string;
 }) {
+  const { t } = useLang();
   return (
     <button
       type="button"
       onClick={onOpen}
-      aria-label="Forstør billede"
+      aria-label={t('Forstør billede')}
       className={cn(
         'group relative block overflow-hidden rounded-2xl border border-[var(--color-line)] bg-shell shadow-[0_2px_10px_rgba(23,60,50,0.06)] transition-shadow hover:shadow-[0_10px_28px_rgba(23,60,50,0.16)] cursor-pointer',
         className,

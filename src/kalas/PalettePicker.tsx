@@ -200,7 +200,7 @@ export default function PalettePicker({
                 ? 'bg-ink text-canvas'
                 : 'bg-shell text-muted hover:bg-sage-tint hover:text-ink',
             )}>
-            {c.label}
+            {t(c.label)}
           </button>
         ))}
         {nullable && value !== null && (
@@ -242,7 +242,7 @@ export default function PalettePicker({
                 'text-[0.64rem] font-medium leading-tight pl-0.5 truncate w-full transition-colors',
                 active ? 'text-ink' : 'text-muted group-hover:text-ink-soft',
               )}>
-                {p.name}
+                {t(p.name)}
               </span>
             </button>
           );

@@ -24,12 +24,12 @@ export function Hero() {
       <div className="absolute inset-0 z-0">
         <motion.div style={{ scale: bgScale }} className="absolute inset-0">
           <Image
-            src="/hero-reception.jpg"
-            alt="Outdoor wedding reception at sunset — guests toasting on a waterfront patio with sailboats"
+            src="/landing/hero.jpg"
+            alt="Long-table wedding dinner on a coastal terrace at dusk, string lights overhead"
             fill
             priority
             unoptimized
-            className="object-cover object-[center_35%]"
+            className="object-cover object-[center_62%]"
             sizes="100vw"
           />
         </motion.div>
@@ -70,9 +70,10 @@ export function Hero() {
 
         <BlurFade delay={0.65} duration={0.5} className="mx-auto mt-7 max-w-xl">
           <p className="text-lg leading-relaxed text-on-velvet/90 drop-shadow-[0_1px_12px_rgba(0,0,0,0.3)]">
-            Tell Kalas about your wedding. It finds the venues, contacts them
-            for you, compares the quotes, designs the invites and tracks every RSVP —
-            so you can focus on each other.
+            Ava researches real venues anywhere in the world, writes to them in
+            their own language, and turns the replies into quotes you can compare —
+            then runs budget, guests, invites and your wedding website.
+            You approve; she does.
           </p>
         </BlurFade>
 
@@ -84,7 +85,7 @@ export function Hero() {
             Plan my wedding — free
           </Link>
           <Link
-            href="#how-it-works"
+            href="#features"
             className="rounded-full border border-white/35 bg-white/15 px-8 py-4 text-sm font-medium text-surface shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] backdrop-blur-xl transition hover:bg-white/25"
           >
             See how it works

@@ -17,12 +17,17 @@ const VenueSwipeStep = dynamic(() => import('../onboarding/VenueSwipeStep'), { s
 
 const DestinationGlobe = dynamic(() => import('../onboarding/DestinationGlobe'), {
   ssr: false,
-  loading: () => (
-    <div className="flex h-full w-full items-center justify-center">
-      <span className="font-serif text-[0.95rem] italic text-muted">Indlæser kloden…</span>
-    </div>
-  ),
+  loading: () => <GlobeLoading />,
 });
+
+function GlobeLoading() {
+  const { t } = useLang();
+  return (
+    <div className="flex h-full w-full items-center justify-center">
+      <span className="font-serif text-[0.95rem] italic text-muted">{t('Indlæser kloden…')}</span>
+    </div>
+  );
+}
 
 /* Structured onboarding state — chips + bands instead of loose text, so the
    journey logic and Ava's briefs get clean, bounded inputs. */
@@ -298,7 +303,7 @@ const CONTEXT_PANEL_COPY: Record<number, { eyebrow: string; title: string; sub: 
   5: {
     eyebrow: 'Sammen om det',
     title: 'Giv partneren adgang',
-    sub: 'I deler samme plan — ingen duplikerede lister. Valgfrit.',
+    sub: 'I deler samme plan — ingen duplikerede lister eller beskedkopiering. Valgfrit.',
   },
 };
 

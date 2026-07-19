@@ -1,0 +1,166 @@
+"use client";
+
+/* The core loop, broken out: brief → outreach in the venue's language →
+   replies as comparable quotes. Alternating panels on a numbered spine —
+   plain scrolling, no jacking; the mockups are live code miniatures. */
+
+import { motion } from "framer-motion";
+import { BlurFade } from "@/components/ui/blur-fade";
+import { CapabilityMockup } from "./CapabilityMockups";
+
+type Step = {
+  id: string;
+  n: string;
+  eyebrow: string;
+  title: React.ReactNode;
+  body: string;
+  extra?: React.ReactNode;
+  tilt: number;
+};
+
+const steps: Step[] = [
+  {
+    id: "meet",
+    n: "01",
+    eyebrow: "Tell her once",
+    title: (
+      <>
+        Brief her like <span className="text-accent">a friend.</span>
+      </>
+    ),
+    body: "“35 guests, by the sea, autumn 2027” is all Ava needs. She researches real venues that fit — verified contacts, ratings, capacity — and puts them on your board to swipe.",
+    tilt: -1.2,
+  },
+  {
+    id: "outreach",
+    n: "02",
+    eyebrow: "She reaches out",
+    title: (
+      <>
+        She writes to each venue —{" "}
+        <span className="text-accent">in its own language.</span>
+      </>
+    ),
+    body: "One approved brief becomes a personal email to every venue you shortlist: Danish to the badehotel, Italian to the villa — sent from Ava's own mailbox. You read and approve each one before it goes.",
+    extra: (
+      <div className="mt-5 flex flex-wrap items-center gap-2 text-[12px] text-[#7A8066]">
+        {["🇩🇰 Dansk", "🇮🇹 Italiano", "🇫🇷 Français", "🇬🇧 English"].map((l) => (
+          <span
+            key={l}
+            className="rounded-full border border-[#D4D6C0] bg-white/70 px-2.5 py-1 font-medium"
+          >
+            {l}
+          </span>
+        ))}
+        <span className="pl-1">25 languages, detected from the venue&apos;s address</span>
+      </div>
+    ),
+    tilt: 1.4,
+  },
+  {
+    id: "quotes",
+    n: "03",
+    eyebrow: "You choose",
+    title: (
+      <>
+        Replies come back as{" "}
+        <span className="text-accent">quotes you can compare.</span>
+      </>
+    ),
+    body: "As venues answer, Ava pulls out prices, available dates and what's included, lays them side by side, and drafts every follow-up for your approval — until one of them is yours.",
+    tilt: -1.4,
+  },
+];
+
+export function VenueLoop() {
+  return (
+    <section id="features" className="relative scroll-mt-24 border-t border-[#D4D6C0] bg-[#F6F0E8]">
+      <div className="mx-auto max-w-6xl px-6 py-24 sm:py-28">
+        <BlurFade inView className="mx-auto max-w-2xl text-center">
+          <p className="text-[11px] font-medium uppercase tracking-[1.5px] text-accent">
+            The venue hunt, handled
+          </p>
+          <h2 className="mt-4 font-[family-name:var(--font-fraunces)] text-4xl font-semibold tracking-[-0.8px] text-[#4A4E3C] sm:text-5xl">
+            From brief to <span className="text-accent">booked venue.</span>
+          </h2>
+        </BlurFade>
+
+        <div className="relative mt-16 sm:mt-20">
+          {/* spine */}
+          <div
+            aria-hidden
+            className="absolute inset-y-2 left-1/2 hidden w-px -translate-x-1/2 lg:block"
+            style={{
+              background:
+                "repeating-linear-gradient(to bottom, #C9CDB4 0 6px, transparent 6px 14px)",
+            }}
+          />
+
+          <div className="space-y-16 lg:space-y-24">
+            {steps.map((step, i) => {
+              const mockupFirst = i % 2 === 1;
+              return (
+                <div
+                  key={step.id}
+                  className="relative grid items-center gap-8 lg:grid-cols-2 lg:gap-16"
+                >
+                  {/* spine node */}
+                  <div
+                    aria-hidden
+                    className="absolute left-1/2 top-1/2 z-10 hidden h-9 w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-[#C9CDB4] bg-[#F6F0E8] font-[family-name:var(--font-fraunces)] text-xs font-semibold text-accent lg:flex"
+                  >
+                    {step.n}
+                  </div>
+
+                  <BlurFade
+                    inView
+                    duration={0.6}
+                    className={mockupFirst ? "lg:order-2 lg:pl-10" : "lg:pr-10"}
+                  >
+                    <p className="text-[11px] font-medium uppercase tracking-[1.5px] text-accent">
+                      {step.n} · {step.eyebrow}
+                    </p>
+                    <h3 className="mt-3 max-w-md font-[family-name:var(--font-fraunces)] text-3xl font-semibold leading-[1.12] tracking-[-0.5px] text-[#4A4E3C] sm:text-4xl">
+                      {step.title}
+                    </h3>
+                    <p className="mt-4 max-w-md text-base leading-relaxed text-[#7A8066]">
+                      {step.body}
+                    </p>
+                    {step.extra}
+                  </BlurFade>
+
+                  <BlurFade
+                    inView
+                    delay={0.12}
+                    duration={0.6}
+                    className={mockupFirst ? "lg:order-1 lg:pr-10" : "lg:pl-10"}
+                  >
+                    <motion.div
+                      initial={false}
+                      style={{ rotate: step.tilt }}
+                      whileHover={{ rotate: 0, y: -4 }}
+                      transition={{ type: "spring", stiffness: 260, damping: 22 }}
+                      className="relative"
+                    >
+                      <div
+                        aria-hidden
+                        className="absolute -inset-6 -z-10 rounded-[2rem] opacity-70"
+                        style={{
+                          background:
+                            "radial-gradient(60% 60% at 50% 45%, rgba(194,178,128,0.20), transparent 75%)",
+                        }}
+                      />
+                      <div className="shadow-[0_28px_64px_-24px_rgba(74,78,60,0.35)]">
+                        <CapabilityMockup id={step.id} />
+                      </div>
+                    </motion.div>
+                  </BlurFade>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
