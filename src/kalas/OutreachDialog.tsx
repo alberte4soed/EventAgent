@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { Check, Languages, Mail, X } from 'lucide-react';
 import { cn } from './ui';
+import { kalasSignatureHtml } from '@/lib/gmail/signature';
 
 interface Prepared {
   toEmail: string;
@@ -184,6 +185,17 @@ export default function OutreachDialog({
                   className="mt-1.5 w-full resize-y rounded-[12px] border border-[#e4e0d4] bg-white px-3 py-2.5 text-[0.88rem] leading-relaxed text-[#314523] outline-none focus:border-[#314523] disabled:opacity-60"
                 />
               </label>
+              {/* Appended at send time, so it can't be edited away by accident.
+                  Rendered from the same constant the mail is built from. */}
+              <div>
+                <span className="text-[0.6rem] font-semibold uppercase tracking-[0.18em] text-[#8a9079]">
+                  Signatur · tilføjes automatisk
+                </span>
+                <div
+                  className="mt-1.5 rounded-[12px] border border-dashed border-[#e4e0d4] bg-white px-3 py-3"
+                  dangerouslySetInnerHTML={{ __html: kalasSignatureHtml() }}
+                />
+              </div>
               {error && (
                 <p className="rounded-[14px] bg-[#faf4ef] px-4 py-3 text-[0.85rem] text-[#b34e37]">{error}</p>
               )}

@@ -853,6 +853,19 @@ export interface ComposedOutreach {
 }
 
 /**
+ * Tidy a composed body for text/plain delivery: real newlines only, no
+ * runs of blank lines, no trailing whitespace on a line. Structure comes
+ * from the prompt — this only cleans up what the model returned.
+ */
+function normalizeEmailBody(body: string): string {
+  return body
+    .replace(/\r\n?/g, "\n")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+/**
  * Compose a genuinely individual outreach email for one vendor, in that
  * vendor's own language, using the master draft as the brief. Falls back to
  * the draft with plain substitution.
@@ -895,7 +908,7 @@ export async function composeOutreachEmail(args: {
       subject?: string;
       body?: string;
     };
-    const body = (parsed.body ?? "").trim();
+    const body = normalizeEmailBody(parsed.body ?? "");
     if (body) {
       return {
         subject: (parsed.subject ?? "").trim() || args.subject,

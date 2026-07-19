@@ -224,8 +224,24 @@ Sign off as Ava writing on behalf of the couple, phrased naturally in
 ${args.languageName}. NEVER emit a placeholder or bracketed stand-in — no
 "[Name]", "[Navn]", "{{venue_name}}", no square brackets at all — and never
 invent the couple's names, a phone number or an address.
+FORMATTING — the body is sent as text/plain, so the line breaks you emit are
+literally what the recipient sees. Use real newline characters: the greeting
+alone on the first line, a blank line between every paragraph (2-3 short
+paragraphs), then a blank line before the sign-off, which sits on its own
+lines. Never return the email as one unbroken block of text.
+
 subject: a short, clear subject line (the master subject is only a guide).
 body: the email body, starting with the greeting — no subject line inside it.
+
+Example of the expected body shape (structure only, not wording):
+Kære …,
+
+…opening paragraph…
+
+…what we are asking…
+
+Venlig hilsen
+Ava — …
 
 Master subject: ${args.subject}
 

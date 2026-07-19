@@ -59,7 +59,9 @@ External so anyone with a Google account can sign in. Its client's redirect
 URI: `https://<project-ref>.supabase.co/auth/v1/callback`.
 
 **Mailbox project** (for the shared outreach Gmail): must live in the Google
-Workspace org that hosts the mailbox (e.g. `events@yourdomain.com`).
+Workspace org that hosts the mailbox — for Kalas that is
+`ava@kalas-weddings.com`, which is both the sending address and the account
+that connects it (it is the one listed in `PLATFORM_ADMIN_EMAILS`).
 
 1. Create the project, enable the **Gmail API**.
 2. OAuth consent screen: User type **Internal** — no verification review,
