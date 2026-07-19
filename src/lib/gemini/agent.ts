@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Content, Part } from "@google/genai";
+import { Type, type Content, type Part, type Schema } from "@google/genai";
 import { getGemini, GEMINI_MODEL } from "./client";
+import { detectOutreachLanguage, type OutreachLanguage } from "@/lib/venue/language";
 import {
   logAgentError,
   summarizeContents,
@@ -836,38 +837,81 @@ export async function personalizeEmail(args: {
   return text || args.template.replaceAll("{{venue_name}}", args.venueName);
 }
 
+const outreachEmailSchema: Schema = {
+  type: Type.OBJECT,
+  properties: {
+    subject: { type: Type.STRING },
+    body: { type: Type.STRING },
+  },
+  required: ["subject", "body"],
+};
+
+export interface ComposedOutreach {
+  subject: string;
+  body: string;
+  language: OutreachLanguage;
+}
+
 /**
- * Compose a genuinely individual outreach email for one vendor, using the
- * approved master draft as the brief. Falls back to plain substitution.
+ * Compose a genuinely individual outreach email for one vendor, in that
+ * vendor's own language, using the master draft as the brief. Falls back to
+ * the draft with plain substitution.
  */
 export async function composeOutreachEmail(args: {
   template: string;
+  subject: string;
   event: EventRow;
   venue: Pick<
     VenueRow,
-    "name" | "description" | "why_fit" | "reviews" | "category"
+    "name" | "description" | "why_fit" | "reviews" | "category" | "address" | "website"
   >;
-}): Promise<string> {
+}): Promise<ComposedOutreach> {
+  // Vendors read their own language first — the brief is translated per
+  // recipient rather than mail-merged in the couple's language.
+  const language = detectOutreachLanguage({
+    address: args.venue.address,
+    website: args.venue.website,
+    eventLocation: args.event.location,
+  });
+
   try {
     const ai = getGemini();
     const response = await ai.models.generateContent({
       model: GEMINI_MODEL,
       contents: COMPOSE_OUTREACH_PROMPT({
         template: args.template,
+        subject: args.subject,
         venueName: args.venue.name,
         category: args.venue.category === "venue" ? "venue" : args.venue.category,
+        languageName: language.name,
         venueDescription: args.venue.description,
         whyFit: args.venue.why_fit,
         reviewSnippet: args.venue.reviews?.find((r) => r.text)?.text?.slice(0, 200) ?? null,
         eventFacts: eventFactsLine(args.event),
       }),
+      config: { responseMimeType: "application/json", responseSchema: outreachEmailSchema },
     });
-    const text = (response.text ?? "").trim();
-    if (text) return text;
+    const parsed = JSON.parse(response.text ?? "{}") as {
+      subject?: string;
+      body?: string;
+    };
+    const body = (parsed.body ?? "").trim();
+    if (body) {
+      return {
+        subject: (parsed.subject ?? "").trim() || args.subject,
+        body,
+        language,
+      };
+    }
   } catch (err) {
     logAgentError("gemini/agent:composeOutreach", err, { venue: args.venue.name });
   }
-  return args.template.replaceAll("{{venue_name}}", args.venue.name);
+  // Fallback keeps the couple's own draft rather than sending nothing.
+  return {
+    subject: args.subject,
+    body: args.template.replaceAll("{{venue_name}}", args.venue.name),
+    language,
+  };
 }
 
 /**

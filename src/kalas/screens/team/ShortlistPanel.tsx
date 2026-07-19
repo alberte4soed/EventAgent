@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo, useState } from 'react';
-import { motion } from 'motion/react';
-import { Heart, MessageCircle } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
+import { Check, Heart, MessageCircle, Send } from 'lucide-react';
 import VenueDiscovery, { type VenueHubView } from '../Venues';
+import OutreachDialog from '../../OutreachDialog';
 import { useWedding } from '../../useWedding';
 import { Eyebrow, cn } from '../../ui';
 import type { NavigateTarget } from '../../lib/hub-nav';
@@ -36,7 +37,7 @@ export default function ShortlistPanel({
   onNavigate?: (s: NavigateTarget) => void;
   onSwitchTab: (tab: HubTab, cat?: HubCat) => void;
 }) {
-  const { venues, outbound, refresh } = useWedding();
+  const { venues, outbound } = useWedding();
   const sentIds = useMemo(() => new Set(outbound.map((o) => o.venue_id)), [outbound]);
 
   const liked = useMemo(
@@ -85,7 +86,6 @@ export default function ShortlistPanel({
         <VendorShortlist
           items={likedVendors}
           contacted={sentIds}
-          onNavigate={onNavigate}
           onExplore={(c) => onSwitchTab('explore', c)}
         />
       )}
@@ -111,16 +111,15 @@ export default function ShortlistPanel({
 function VendorShortlist({
   items,
   contacted,
-  onNavigate,
   onExplore,
 }: {
   items: VenueRow[];
   contacted: Set<string>;
-  onNavigate?: (s: NavigateTarget) => void;
   onExplore: (cat: HubCat) => void;
 }) {
   const { refresh } = useWedding();
   const [busy, setBusy] = useState<string | null>(null);
+  const [contacting, setContacting] = useState<VenueRow | null>(null);
 
   const toggle = async (id: string, liked: boolean) => {
     setBusy(id);
@@ -129,6 +128,20 @@ function VendorShortlist({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ decision: liked ? 'rejected' : 'liked' }),
+      });
+      await refresh();
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const book = async (id: string, booked: boolean) => {
+    setBusy(id);
+    try {
+      await fetch(`/api/venues/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ booked: !booked }),
       });
       await refresh();
     } finally {
@@ -168,18 +181,37 @@ function VendorShortlist({
                   <Heart size={14} fill="currentColor" />
                 </button>
               </div>
-              <div className="mt-4 flex flex-wrap gap-2">
+              <div className="mt-4 flex flex-wrap items-center gap-2">
                 {isContacted ? (
-                  <span className="rounded-full bg-[#f0ede5] px-3 py-1 text-[0.65rem] font-bold uppercase tracking-[0.1em] text-[#6c7561]">
+                  <span className="inline-flex h-8 items-center rounded-full bg-[#f0ede5] px-3 text-[0.65rem] font-bold uppercase tracking-[0.1em] text-[#6c7561]">
                     Kontaktet
                   </span>
                 ) : (
                   <button
                     type="button"
-                    onClick={() => onNavigate?.('ava')}
-                    className="h-8 rounded-full bg-[#314523] px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#f7f5ef] cursor-pointer"
+                    onClick={() => setContacting(v)}
+                    className="flex h-8 items-center gap-1.5 rounded-full bg-[#314523] px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#f7f5ef] hover:opacity-85 transition-opacity cursor-pointer"
                   >
-                    Bed Ava kontakte
+                    <Send size={12} /> Kontakt
+                  </button>
+                )}
+                {v.booked_at ? (
+                  <button
+                    type="button"
+                    onClick={() => void book(v.id, true)}
+                    disabled={busy === v.id}
+                    className="flex h-8 items-center gap-1.5 rounded-full bg-[#eef1e6] px-3 text-xs font-semibold text-[#314523] cursor-pointer disabled:opacity-50"
+                  >
+                    <Check size={12} /> Booket
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => void book(v.id, false)}
+                    disabled={busy === v.id}
+                    className="flex h-8 items-center gap-1.5 rounded-full border border-[#e4e0d4] bg-[#fcfbf7] px-3 text-xs font-semibold text-[#314523] hover:bg-[#f7f5ef] transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    <Check size={12} /> Book
                   </button>
                 )}
               </div>
@@ -198,6 +230,17 @@ function VendorShortlist({
         <MessageCircle size={16} className="text-[#6c7561]" />
         Find flere leverandører
       </button>
+
+      <AnimatePresence>
+        {contacting && (
+          <OutreachDialog
+            venueId={contacting.id}
+            venueName={contacting.name}
+            onClose={() => setContacting(null)}
+            onSent={() => void refresh()}
+          />
+        )}
+      </AnimatePresence>
     </section>
   );
 }

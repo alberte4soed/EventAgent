@@ -1,6 +1,5 @@
-import { Type, type Schema } from "@google/genai";
 import { createClient } from "@/lib/supabase/server";
-import { getGemini, GEMINI_MODEL } from "@/lib/gemini/client";
+import { generateBrief } from "@/lib/outreach/brief";
 import type { EventRow, ProfileRow, VenueRow, EmailDraftRow } from "@/lib/db/types";
 
 /**
@@ -12,15 +11,6 @@ import type { EventRow, ProfileRow, VenueRow, EmailDraftRow } from "@/lib/db/typ
  * exists it is returned as-is. Approving is the existing
  * POST /api/drafts/[draftId]/approve flow.
  */
-
-const draftSchema: Schema = {
-  type: Type.OBJECT,
-  properties: {
-    subject: { type: Type.STRING },
-    body_template: { type: Type.STRING },
-  },
-  required: ["subject", "body_template"],
-};
 
 async function resolveEvent(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -44,12 +34,6 @@ async function resolveEvent(
     .limit(1)
     .maybeSingle();
   return (data as EventRow | null) ?? null;
-}
-
-function dateLabel(event: EventRow): string {
-  if (event.event_date) return event.event_date;
-  if (event.date_hint) return event.date_hint;
-  return "endnu ikke fastlagt";
 }
 
 export async function POST() {
@@ -86,58 +70,9 @@ export async function POST() {
     return Response.json({ error: "no_venues", message: "Ingen venues på listen at kontakte endnu." }, { status: 400 });
   }
 
-  const guests = event.guest_count ?? undefined;
-  const brief = `
-You are Ava, a warm, professional wedding planning assistant writing on behalf of a couple.
-Write ONE reusable outreach email (Danish) to a wedding venue asking about availability and pricing.
-
-Couple / event context:
-- Wedding: ${event.title}
-- Location interest: ${event.location ?? "fleksibelt"}
-- Date: ${dateLabel(event)}
-- Guests: ${guests ? `ca. ${guests}` : "ikke fastlagt endnu"}
-- Budget: ${event.budget ?? "ikke oplyst"}
-
-Requirements:
-- The body MUST address the venue with the literal placeholder {{venue_name}} (it is substituted per venue).
-- Warm but concise; introduce the couple briefly, state date + guest count, and ask about availability, capacity, packages and pricing, and next steps for a visit.
-- Sign off as "Ava — på vegne af parret" (do not invent names/emails).
-- subject: a short, clear subject line (may reference the date/guest count).
-- body_template: the full email body in Danish, plain text, including the {{venue_name}} placeholder near the greeting.
-`.trim();
-
-  let subject = "";
-  let body = "";
-  try {
-    const ai = getGemini();
-    const res = await ai.models.generateContent({
-      model: GEMINI_MODEL,
-      contents: brief,
-      config: { responseMimeType: "application/json", responseSchema: draftSchema },
-    });
-    const parsed = JSON.parse(res.text ?? "{}") as { subject?: string; body_template?: string };
-    subject = (parsed.subject ?? "").trim();
-    body = (parsed.body_template ?? "").trim();
-  } catch {
-    // Fall through to the deterministic fallback below.
-  }
-
-  // Robust fallback so the review page always has something to approve.
-  if (!subject) subject = `Forespørgsel: bryllup ${guests ? `for ${guests} gæster ` : ""}${dateLabel(event)}`;
-  if (!body || !body.includes("{{venue_name}}")) {
-    body = `Kære {{venue_name}}
-
-Vi er ved at planlægge vores bryllup${guests ? ` for ca. ${guests} gæster` : ""} og overvejer jeres smukke sted.
-
-Dato: ${dateLabel(event)}${event.location ? `\nOmråde: ${event.location}` : ""}
-
-Har I ledigt på datoen, og kan I fortælle lidt om kapacitet, pakker og priser? Vi vil også meget gerne høre om mulighed for en fremvisning.
-
-Mange tak på forhånd.
-
-Kærlig hilsen
-Ava — på vegne af parret`;
-  }
+  // The brief the couple reviews. Each recipient's actual email is written
+  // from this per vendor, in the vendor's own language, at send time.
+  const { subject, body_template: body } = await generateBrief(event, "venue");
 
   const { data: latest } = await supabase
     .from("email_drafts")

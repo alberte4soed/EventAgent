@@ -137,7 +137,6 @@ export const EN: Record<string, string> = {
   'Spørg Ava': 'Ask Ava',
   'Se venues der matcher': 'See matching venues',
   'kommer snart': 'coming soon',
-  'Sprog': 'Language',
   'Dansk': 'Danish',
   'Engelsk': 'English',
 

@@ -9,6 +9,7 @@ import {
   Expand, Search, PenLine,
 } from 'lucide-react';
 import { Lightbox } from '../onboarding/Lightbox';
+import OutreachDialog from '../OutreachDialog';
 import { IMAGES } from '../data';
 import { useWedding, type Couple } from '../useWedding';
 import { Eyebrow, Pill, cn } from '../ui';
@@ -193,12 +194,11 @@ export default function VenueDiscovery({
     });
     await refresh();
   };
-  const reqOutreach = async (id: string) => {
-    await fetch(`/api/venues/${id}/swipe`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ decision: 'liked' }),
-    });
-    await refresh();
+  // Contacting one venue: Ava composes, the couple approves in the dialog.
+  const [contacting, setContacting] = useState<{ id: string; name: string } | null>(null);
+  const openOutreach = (id: string) => {
+    const name = displayVenues.find((v) => v.id === id)?.name ?? 'venue';
+    setContacting({ id, name });
   };
   // Confirmation toast shown the moment a venue becomes "jeres venue".
   const [chosenToast, setChosenToast] = useState<string | null>(null);
@@ -276,7 +276,7 @@ export default function VenueDiscovery({
             saved={saved} sent={sent} booked={booked}
             stageOf={stageOf}
             initialSelectedId={pendingSelect}
-            onToggleSave={toggleSave} onOutreach={reqOutreach}
+            onToggleSave={toggleSave} onOutreach={openOutreach}
             onBook={bookVenue}
             onBack={hub ? undefined : () => setView('home')}
             onDiscover={() => goDiscover(false)}
@@ -321,6 +321,17 @@ export default function VenueDiscovery({
               </div>
             </div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {contacting && (
+          <OutreachDialog
+            venueId={contacting.id}
+            venueName={contacting.name}
+            onClose={() => setContacting(null)}
+            onSent={() => void refresh()}
+          />
         )}
       </AnimatePresence>
     </div>
@@ -1389,6 +1400,7 @@ function PicksView({
               stage={stageOf(venue.id)}
               onToggleSave={() => onToggleSave(venue.id)}
               onChoose={() => onBook(venue.id)}
+              onContact={() => onOutreach(venue.id)}
               onSelect={() => setSelectedId(venue.id)} />
           ))}
 
@@ -1468,11 +1480,11 @@ function OutreachBanner({
 
 /* ── Venue management grid card ───────────────────────────────────────── */
 function VenueGridCard({
-  venue, index, saved, sent, isBooked, stage, onToggleSave, onChoose, onSelect,
+  venue, index, saved, sent, isBooked, stage, onToggleSave, onChoose, onContact, onSelect,
 }: {
   venue: DisplayVenue; index: number; saved: boolean; sent: boolean; isBooked: boolean;
   stage: VenueStage;
-  onToggleSave: () => void; onChoose: () => void; onSelect: () => void;
+  onToggleSave: () => void; onChoose: () => void; onContact: () => void; onSelect: () => void;
 }) {
   return (
     <motion.div
@@ -1545,10 +1557,17 @@ function VenueGridCard({
           )}
         </div>
 
-        {sent && !isBooked && (
-          <p className="mt-2.5 flex items-center gap-1.5 text-[0.7rem] text-muted">
-            <Check size={10} className="text-sage" /> Ava har kontaktet venuet
-          </p>
+        {sent ? (
+          !isBooked && (
+            <p className="mt-2.5 flex items-center gap-1.5 text-[0.7rem] text-muted">
+              <Check size={10} className="text-sage" /> Ava har kontaktet venuet
+            </p>
+          )
+        ) : (
+          <button onClick={onContact}
+            className="mt-2.5 flex h-8 w-full items-center justify-center gap-1.5 rounded-full border border-[#e4e0d4] bg-[#fcfbf7] px-3 text-xs font-semibold text-[#314523] hover:bg-[#f7f5ef] transition-colors cursor-pointer">
+            <Send size={12} /> Kontakt via Ava
+          </button>
         )}
       </div>
     </motion.div>
@@ -2204,9 +2223,9 @@ function VenueDetail({
                   className="flex h-8 cursor-pointer items-center gap-1.5 rounded-full bg-[#314523] px-3 text-xs font-semibold text-[#f7f5ef] hover:opacity-85 transition-opacity">
                   <Check size={13} /> Vælg som jeres venue
                 </button>
-                <button type="button" onClick={onContact}
-                  className="flex h-8 cursor-pointer items-center rounded-full border border-[#e4e0d4] bg-[#fcfbf7] px-3 text-xs font-semibold text-[#314523] hover:bg-[#f7f5ef] transition-colors">
-                  {sent ? 'Ava har kontaktet stedet' : 'Book visning via Ava →'}
+                <button type="button" onClick={onContact} disabled={sent}
+                  className="flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-[#e4e0d4] bg-[#fcfbf7] px-3 text-xs font-semibold text-[#314523] hover:bg-[#f7f5ef] transition-colors disabled:cursor-default disabled:opacity-60 disabled:hover:bg-[#fcfbf7]">
+                  {sent ? <><Check size={13} /> Ava har kontaktet stedet</> : <><Send size={12} /> Kontakt via Ava</>}
                 </button>
               </>
             )}

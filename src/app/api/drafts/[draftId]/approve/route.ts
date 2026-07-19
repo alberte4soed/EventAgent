@@ -132,8 +132,11 @@ export async function POST(
       continue;
     }
 
-    const body = await composeOutreachEmail({
+    // Composed per vendor, in the vendor's own language — subject included,
+    // so a German venue doesn't get a Danish subject line.
+    const { subject, body } = await composeOutreachEmail({
       template: draft.body_template,
+      subject: draft.subject,
       event,
       venue,
     });
@@ -146,7 +149,7 @@ export async function POST(
         draft_id: draft.id,
         user_id: user.id,
         to_email: toEmail,
-        subject: draft.subject,
+        subject,
         body,
         kind: "outreach",
       })
@@ -156,7 +159,7 @@ export async function POST(
     try {
       const sent = await sendEmail(accessToken, {
         to: toEmail,
-        subject: draft.subject,
+        subject,
         body,
         fromName: "Ava at Kalas",
         fromEmail: platformEmail ?? undefined,

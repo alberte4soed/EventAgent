@@ -197,8 +197,10 @@ email address for this exact venue, reply with exactly: NOT_FOUND`;
 
 export const COMPOSE_OUTREACH_PROMPT = (args: {
   template: string;
+  subject: string;
   venueName: string;
   category: string;
+  languageName: string;
   venueDescription?: string | null;
   whyFit?: string | null;
   reviewSnippet?: string | null;
@@ -211,9 +213,21 @@ ${args.whyFit ? `Why the couple is interested: ${args.whyFit}` : ""}
 ${args.reviewSnippet ? `A reviewer said: "${args.reviewSnippet}" — you may reference this naturally (at most once).` : ""}
 Wedding facts you may use: ${args.eventFacts}
 
-Rules: plain text only, no subject line, no placeholders, 90-160 words,
-warm and professional, one specific reference to this recipient maximum
-(no flattery pile-up). Reply with ONLY the email body.
+LANGUAGE: write BOTH the subject and the body in ${args.languageName}, in the
+natural business register a local wedding supplier would expect — this is a
+real email to this recipient, so translate the brief rather than copying its
+wording. Do not mix languages and do not add a translation.
+
+Rules: plain text body, 90-160 words, warm and professional, one specific
+reference to this recipient maximum (no flattery pile-up).
+Sign off as Ava writing on behalf of the couple, phrased naturally in
+${args.languageName}. NEVER emit a placeholder or bracketed stand-in — no
+"[Name]", "[Navn]", "{{venue_name}}", no square brackets at all — and never
+invent the couple's names, a phone number or an address.
+subject: a short, clear subject line (the master subject is only a guide).
+body: the email body, starting with the greeting — no subject line inside it.
+
+Master subject: ${args.subject}
 
 Master draft:
 ${args.template}`;
