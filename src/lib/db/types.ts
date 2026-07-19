@@ -256,6 +256,19 @@ export interface InviteOrderRow {
   created_at: string;
 }
 
+/** A shareable online invitation (migration 0014). One per event. The look +
+ *  content live in `config` (see src/kalas/invite/config.ts). */
+export interface InvitationRow {
+  id: string;
+  event_id: string;
+  user_id: string;
+  slug: string | null;
+  config: Record<string, unknown>;
+  published: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface GoogleTokensRow {
   user_id: string;
   google_email: string | null;

@@ -18,6 +18,7 @@ import type {
   EmailReplyRow,
   EventRow,
   GuestRow,
+  InvitationRow,
   InviteDesignRow,
   InviteOrderRow,
   MoodboardItemRow,
@@ -63,6 +64,7 @@ interface WeddingData {
   proposals: ReplyProposalRow[];
   inviteOrders: InviteOrderRow[];
   inviteDesigns: InviteDesignRow[];
+  invitation: InvitationRow | null;
   journey: JourneyStage[];
 
   // Planning tables (migration 0007) — the couple's own editable data.
@@ -100,6 +102,7 @@ interface WeddingData {
   removeMoodboardItem: (id: string) => Promise<void>;
 
   saveSite: (patch: { config?: Record<string, unknown>; domain?: string | null; published?: boolean }) => Promise<void>;
+  saveInvite: (patch: { config?: Record<string, unknown>; slug?: string | null; published?: boolean }) => Promise<void>;
   saveSeating: (data: Record<string, unknown>) => Promise<void>;
 
   addRegistryItem: (item: Partial<RegistryItemRow> & { title: string }) => Promise<RegistryItemRow | null>;
@@ -188,6 +191,7 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
   const [proposals, setProposals] = useState<ReplyProposalRow[]>([]);
   const [inviteOrders, setInviteOrders] = useState<InviteOrderRow[]>([]);
   const [inviteDesigns, setInviteDesigns] = useState<InviteDesignRow[]>([]);
+  const [invitation, setInvitation] = useState<InvitationRow | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [budgetItems, setBudgetItems] = useState<BudgetItemRow[]>([]);
   const [guests, setGuests] = useState<GuestRow[]>([]);
@@ -238,7 +242,7 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
     setEvent(ev);
 
     if (ev) {
-      const [v, d, o, r, at, p, io, idz, bi, g, tt, mb, ws, sp, ri, rc, wd, sph, wo] = await Promise.all([
+      const [v, d, o, r, at, p, io, idz, bi, g, tt, mb, ws, sp, ri, rc, wd, sph, wo, inv] = await Promise.all([
         supabase.from("venues").select("*").eq("event_id", ev.id).order("created_at"),
         supabase.from("email_drafts").select("*").eq("event_id", ev.id),
         supabase.from("outbound_emails").select("*").eq("event_id", ev.id).order("created_at"),
@@ -258,6 +262,7 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
         supabase.from("website_designs").select("*").eq("event_id", ev.id).order("created_at", { ascending: false }),
         supabase.from("site_photos").select("*").eq("event_id", ev.id).order("sort").order("created_at"),
         supabase.from("website_orders").select("*").eq("event_id", ev.id).order("created_at", { ascending: false }),
+        supabase.from("invitations").select("*").eq("event_id", ev.id).maybeSingle(),
       ]);
       setVenues((v.data ?? []) as VenueRow[]);
       setDrafts((d.data ?? []) as EmailDraftRow[]);
@@ -278,6 +283,7 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
       setWebsiteDesigns((wd.data ?? []) as WebsiteDesignRow[]);
       setSitePhotos((sph.data ?? []) as SitePhotoRow[]);
       setWebsiteOrders((wo.data ?? []) as WebsiteOrderRow[]);
+      setInvitation((inv.data as InvitationRow | null) ?? null);
     }
     setLoading(false);
   }, [supabase]);
@@ -500,6 +506,32 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
     [supabase, eventId, userId]
   );
 
+  // Same ref pattern as saveSite: the debounced autosave in the Invites screen
+  // must not re-fire when `invitation` changes, so read the latest via a ref.
+  const invitationRef = React.useRef(invitation);
+  invitationRef.current = invitation;
+  const saveInvite = useCallback(
+    async (patch: { config?: Record<string, unknown>; slug?: string | null; published?: boolean }) => {
+      if (!eventId || !userId) return;
+      const current = invitationRef.current;
+      const row = {
+        event_id: eventId,
+        user_id: userId,
+        config: patch.config ?? current?.config ?? {},
+        slug: patch.slug !== undefined ? patch.slug : current?.slug ?? null,
+        published: patch.published !== undefined ? patch.published : current?.published ?? false,
+        updated_at: new Date().toISOString(),
+      };
+      const { data } = await supabase
+        .from("invitations")
+        .upsert(row, { onConflict: "event_id" })
+        .select()
+        .single();
+      if (data) setInvitation(data as InvitationRow);
+    },
+    [supabase, eventId, userId]
+  );
+
   const saveSeating = useCallback(
     async (data: Record<string, unknown>) => {
       if (!eventId || !userId) return;
@@ -649,6 +681,11 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
       )
       .on(
         "postgres_changes",
+        { event: "*", schema: "public", table: "invitations", filter: `event_id=eq.${eventId}` },
+        (p) => p.eventType !== "DELETE" && setInvitation(p.new as InvitationRow)
+      )
+      .on(
+        "postgres_changes",
         { event: "*", schema: "public", table: "registry_items", filter: `event_id=eq.${eventId}` },
         (p) =>
           p.eventType === "DELETE"
@@ -705,6 +742,7 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
       proposals,
       inviteOrders,
       inviteDesigns,
+      invitation,
       journey,
       budgetItems,
       guests,
@@ -733,6 +771,7 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
       addMoodboardItem,
       removeMoodboardItem,
       saveSite,
+      saveInvite,
       saveSeating,
       addRegistryItem,
       updateRegistryItem,
@@ -740,11 +779,11 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
     }),
     [
       loading, event, profile, email, venues, drafts, outbound, replies, attachments, proposals,
-      inviteOrders, inviteDesigns, journey, budgetItems, guests, timelineTasks,
+      inviteOrders, inviteDesigns, invitation, journey, budgetItems, guests, timelineTasks,
       moodboardItems, weddingSite, seatingPlan, registryItems, registryClaims,
       websiteDesigns, sitePhotos, websiteOrders, load, updateEvent, saveBudgetItem,
       deleteBudgetItem, addGuest, updateGuest, deleteGuest, addTask, updateTask, deleteTask, seedTasks,
-      addMoodboardItem, removeMoodboardItem, saveSite, saveSeating,
+      addMoodboardItem, removeMoodboardItem, saveSite, saveInvite, saveSeating,
       addRegistryItem, updateRegistryItem, deleteRegistryItem,
     ]
   );
