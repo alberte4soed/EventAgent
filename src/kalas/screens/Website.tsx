@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   Check, Globe, Smartphone, Plus, Trash2, Sparkles, Loader2, Upload,
   Lock, Copy, Eye, MapPin, Gift, HelpCircle, Bed, History, Star,
-  Camera, Clock, BookOpen, Image, QrCode, ChevronDown,
+  Camera, Clock, BookOpen, Image, QrCode, ChevronDown, RotateCcw,
 } from 'lucide-react';
 import { IMAGES as IMG, guests } from '../data';
 import { Eyebrow, cn } from '../ui';
@@ -207,6 +207,33 @@ export default function Website() {
       body: JSON.stringify({ designId }),
     }).catch(() => {});
     await refresh();
+  };
+
+  const [restarting, setRestarting] = useState(false);
+  const restartDesign = async () => {
+    if (!event || restarting) return;
+    const ok = window.confirm(
+      'Start forfra? Jeres designs og Ava-genererede billeder slettes. Jeres egne uploads beholdes.'
+    );
+    if (!ok) return;
+    setRestarting(true);
+    setGenError(null);
+    try {
+      const res = await fetch('/api/website/design/reset', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventId: event.id }),
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        setGenError(data.error ?? 'Kunne ikke starte forfra — prøv igen.');
+        return;
+      }
+      await refresh();
+    } catch {
+      setGenError('Kunne ikke starte forfra — prøv igen.');
+    } finally {
+      setRestarting(false);
+    }
   };
 
   const startCheckout = async () => {
@@ -413,6 +440,7 @@ export default function Website() {
                 photoUrls={photoUrls}
                 working={working}
                 applyingPreset={applyingPreset}
+                restarting={restarting}
                 genError={genError}
                 needsPayment={needsPayment}
                 websitePaid={websitePaid}
@@ -420,6 +448,7 @@ export default function Website() {
                 onGenerate={generateDesign}
                 onRefine={refineDesign}
                 onActivate={activateDesign}
+                onRestart={restartDesign}
                 onCheckout={startCheckout}
                 onUpload={uploadPhotos}
                 onDeletePhoto={deletePhoto}
@@ -1123,8 +1152,8 @@ function ScaledPreview({ domain, couple, config, design, photoUrls, html, htmlFo
 /* ── Ava design studio — templates, personalization, refinement ───────── */
 function DesignStudio({
   hasDesign, hasHtml, design, designs, activeId, activePresetId, photos, photoUrls,
-  working, applyingPreset, genError, needsPayment, websitePaid,
-  onApplyPreset, onGenerate, onRefine, onActivate, onCheckout,
+  working, applyingPreset, restarting, genError, needsPayment, websitePaid,
+  onApplyPreset, onGenerate, onRefine, onActivate, onRestart, onCheckout,
   onUpload, onDeletePhoto, onSetHero,
 }: {
   hasDesign: boolean;
@@ -1137,6 +1166,7 @@ function DesignStudio({
   photoUrls: Record<string, string>;
   working: null | 'generate' | 'refine';
   applyingPreset: string | null;
+  restarting: boolean;
   genError: string | null;
   needsPayment: boolean;
   websitePaid: boolean;
@@ -1144,6 +1174,7 @@ function DesignStudio({
   onGenerate: (styleDirection: string, fresh?: boolean) => void;
   onRefine: (instruction: string) => void;
   onActivate: (designId: string) => void;
+  onRestart: () => void;
   onCheckout: () => void;
   onUpload: (files: FileList | File[]) => Promise<void> | void;
   onDeletePhoto: (id: string) => void;
@@ -1161,7 +1192,15 @@ function DesignStudio({
     onRefine(text);
   };
 
-  /* Working state takes over the panel. */
+  /* Working / restart takes over the panel. */
+  if (restarting) {
+    return (
+      <div className="rule rounded-2xl bg-card p-8 text-center">
+        <Loader2 size={26} className="mx-auto animate-spin text-ink" />
+        <p className="mt-4 font-serif text-[1.25rem] text-ink">Starter forfra…</p>
+      </div>
+    );
+  }
   if (working) return <BuildProgress refine={working === 'refine'} />;
 
   return (
@@ -1247,17 +1286,23 @@ function DesignStudio({
               </p>
             )}
 
-            <div className="mt-3 flex items-center justify-between">
+            <div className="mt-3 flex items-center justify-between gap-3">
               <button onClick={() => setShowTemplates((v) => !v)}
                 className="flex items-center gap-1.5 text-[0.75rem] text-muted hover:text-ink transition-colors cursor-pointer">
                 <Image size={12} /> Skift skabelon
               </button>
-              {designs.length > 1 && (
-                <button onClick={() => setShowVersions((v) => !v)}
-                  className="flex items-center gap-1.5 text-[0.75rem] text-muted hover:text-ink transition-colors cursor-pointer">
-                  <History size={12} /> Versioner ({designs.length})
+              <div className="flex items-center gap-3">
+                {designs.length > 1 && (
+                  <button onClick={() => setShowVersions((v) => !v)}
+                    className="flex items-center gap-1.5 text-[0.75rem] text-muted hover:text-ink transition-colors cursor-pointer">
+                    <History size={12} /> Versioner ({designs.length})
+                  </button>
+                )}
+                <button onClick={onRestart}
+                  className="flex items-center gap-1.5 text-[0.75rem] text-muted hover:text-[var(--color-terracotta)] transition-colors cursor-pointer">
+                  <RotateCcw size={12} /> Start forfra
                 </button>
-              )}
+              </div>
             </div>
           </div>
 
