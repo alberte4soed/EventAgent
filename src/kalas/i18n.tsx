@@ -8,15 +8,34 @@
 import * as React from 'react';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { EN } from './strings';
-import type { AppLanguage } from '@/lib/db/types';
+import { isAppLanguage, type AppLanguage } from '@/lib/db/types';
 
 export type Lang = AppLanguage;
+
+/**
+ * The language registry. Danish is the source language, so it has no
+ * dictionary — its "translations" are the source strings themselves. To add
+ * a language: add its code to APP_LANGUAGES (db/types.ts), then add one row
+ * here with a `dict` mapping the Danish source strings. translate(), both
+ * language switches, and the stored-preference guard all read from here, so
+ * nothing else needs touching.
+ */
+export interface LanguageDef { code: Lang; label: string; dict?: Record<string, string>; }
+export const LANGUAGES: LanguageDef[] = [
+  { code: 'da', label: 'Dansk' },
+  { code: 'en', label: 'English', dict: EN },
+];
+
+const DICTIONARIES = new Map<Lang, Record<string, string>>(
+  LANGUAGES.flatMap((l) => (l.dict ? [[l.code, l.dict] as const] : [])),
+);
 
 type Translate = (s: string, params?: Record<string, string | number>) => string;
 interface LangCtx { lang: Lang; setLang: (l: Lang) => void; t: Translate }
 
-function translate(lang: Lang, s: string, params?: Record<string, string | number>): string {
-  let out = lang === 'en' ? (EN[s] ?? s) : s;
+export function translate(lang: Lang, s: string, params?: Record<string, string | number>): string {
+  const dict = DICTIONARIES.get(lang); // undefined for the source language (da)
+  let out = dict ? (dict[s] ?? s) : s;
   if (params) for (const k of Object.keys(params)) out = out.split(`{${k}}`).join(String(params[k]));
   return out;
 }
@@ -39,7 +58,7 @@ export function LanguageProvider({ initialLang = 'da', lock = false, children }:
     if (lock) return;
     try {
       const stored = localStorage.getItem('kalas_lang');
-      if (stored === 'da' || stored === 'en') setLangState(stored);
+      if (isAppLanguage(stored)) setLangState(stored);
     } catch { /* ignore */ }
   }, [lock]);
   useEffect(() => { document.documentElement.lang = lang; }, [lang]);
@@ -61,16 +80,16 @@ export function useLang(): LangCtx {
   return { lang: 'da', setLang: () => {}, t: (s, params) => translate('da', s, params) };
 }
 
-/* ── Presentational two-way switch (DA / EN) ─────────────────────────── */
+/* ── Presentational language switch (one pill per registered language) ─── */
 export function LangSwitch({ lang, onSelect, className }: { lang: Lang; onSelect: (l: Lang) => void; className?: string }) {
   return (
     <div className={`inline-flex items-center rounded-full border border-[var(--color-line-strong)] p-0.5 ${className ?? ''}`}>
-      {(['da', 'en'] as Lang[]).map((l) => (
-        <button key={l} type="button" onClick={() => onSelect(l)}
+      {LANGUAGES.map(({ code, label }) => (
+        <button key={code} type="button" onClick={() => onSelect(code)}
           className={`rounded-full px-3 py-1.5 text-[0.78rem] font-medium transition-colors cursor-pointer ${
-            lang === l ? 'bg-ink text-canvas' : 'text-ink-soft hover:text-ink'
+            lang === code ? 'bg-ink text-canvas' : 'text-ink-soft hover:text-ink'
           }`}>
-          {l === 'da' ? 'Dansk' : 'English'}
+          {label}
         </button>
       ))}
     </div>

@@ -6,6 +6,7 @@ import { Check, Heart, MessageCircle, Send, Lock } from 'lucide-react';
 import VenueDiscovery, { type VenueHubView } from '../Venues';
 import OutreachDialog from '../../OutreachDialog';
 import { useWedding } from '../../useWedding';
+import { useLang } from '../../i18n';
 import { Eyebrow, cn } from '../../ui';
 import type { NavigateTarget } from '../../lib/hub-nav';
 import type { HubCat, HubTab } from './shared';
@@ -40,6 +41,7 @@ export default function ShortlistPanel({
   vendorsLocked?: boolean;
 }) {
   const { venues, outbound } = useWedding();
+  const { t } = useLang();
   const sentIds = useMemo(() => new Set(outbound.map((o) => o.venue_id)), [outbound]);
 
   const liked = useMemo(
@@ -105,13 +107,13 @@ export default function ShortlistPanel({
 
       {liked.length === 0 && (
         <div className="py-16 text-center">
-          <p className="font-serif text-[1.3rem] italic text-ink-soft">Ingen på shortlisten endnu</p>
+          <p className="font-serif text-[1.3rem] italic text-ink-soft">{t('Ingen på shortlisten endnu')}</p>
           <button
             type="button"
             onClick={() => onSwitchTab('explore', cat === 'alle' ? 'venue' : cat)}
             className="mt-4 inline-flex h-8 items-center gap-1.5 rounded-full bg-[#314523] px-3 text-xs font-semibold text-[#f7f5ef] hover:opacity-90 transition-colors cursor-pointer"
           >
-            Udforsk {cat === 'venue' ? 'venues' : 'leverandører'}
+            {cat === 'venue' ? t('Udforsk venues') : t('Udforsk leverandører')}
           </button>
         </div>
       )}
@@ -133,6 +135,7 @@ function VendorShortlist({
   onExplore: (cat: HubCat) => void;
 }) {
   const { refresh } = useWedding();
+  const { t } = useLang();
   const [busy, setBusy] = useState<string | null>(null);
   const [contacting, setContacting] = useState<VenueRow | null>(null);
 
@@ -168,7 +171,7 @@ function VendorShortlist({
 
   return (
     <section>
-      <Eyebrow className="!text-[#8a9079]">Leverandører på shortlisten · {items.length}</Eyebrow>
+      <Eyebrow className="!text-[#8a9079]">{t('Leverandører på shortlisten')} · {items.length}</Eyebrow>
       <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((v) => {
           const isContacted = contacted.has(v.id);
@@ -181,7 +184,7 @@ function VendorShortlist({
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <p className="text-[0.6rem] font-semibold uppercase tracking-[0.18em] text-[#8a9079]">
-                    {CAT_LABEL[v.category] ?? v.category}
+                    {t(CAT_LABEL[v.category] ?? v.category)}
                   </p>
                   <h3 className="mt-1 font-serif text-[1.05rem] text-[#314523]">{v.name}</h3>
                   {v.price_hint && <p className="mt-1 font-serif text-[0.95rem] text-[#314523]">{v.price_hint}</p>}
@@ -191,7 +194,7 @@ function VendorShortlist({
                   onClick={() => void toggle(v.id, true)}
                   disabled={busy === v.id}
                   className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#eef1e6] text-[#314523] cursor-pointer"
-                  aria-label="Fjern fra shortlist"
+                  aria-label={t('Fjern fra shortlist')}
                 >
                   <Heart size={14} fill="currentColor" />
                 </button>
@@ -199,11 +202,11 @@ function VendorShortlist({
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 {isContacted ? (
                   <span className="inline-flex h-8 items-center rounded-full bg-[#f0ede5] px-3 text-[0.65rem] font-bold uppercase tracking-[0.1em] text-[#6c7561]">
-                    Kontaktet
+                    {t('Kontaktet')}
                   </span>
                 ) : locked ? (
                   <span className="flex items-center gap-1.5 rounded-full bg-[#f0ede5] px-3 py-1 text-[0.65rem] font-bold uppercase tracking-[0.1em] text-[#6c7561]">
-                    <Lock size={10} /> Vælg venue først
+                    <Lock size={10} /> {t('Vælg venue først')}
                   </span>
                 ) : (
                   <button
@@ -211,7 +214,7 @@ function VendorShortlist({
                     onClick={() => setContacting(v)}
                     className="flex h-8 items-center gap-1.5 rounded-full bg-[#314523] px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#f7f5ef] hover:opacity-85 transition-opacity cursor-pointer"
                   >
-                    <Send size={12} /> Kontakt
+                    <Send size={12} /> {t('Kontakt')}
                   </button>
                 )}
                 {v.booked_at ? (
@@ -221,7 +224,7 @@ function VendorShortlist({
                     disabled={busy === v.id}
                     className="flex h-8 items-center gap-1.5 rounded-full bg-[#eef1e6] px-3 text-xs font-semibold text-[#314523] cursor-pointer disabled:opacity-50"
                   >
-                    <Check size={12} /> Booket
+                    <Check size={12} /> {t('Booket')}
                   </button>
                 ) : (
                   <button
@@ -230,7 +233,7 @@ function VendorShortlist({
                     disabled={busy === v.id}
                     className="flex h-8 items-center gap-1.5 rounded-full border border-[#e4e0d4] bg-[#fcfbf7] px-3 text-xs font-semibold text-[#314523] hover:bg-[#f7f5ef] transition-colors cursor-pointer disabled:opacity-50"
                   >
-                    <Check size={12} /> Book
+                    <Check size={12} /> {t('Book')}
                   </button>
                 )}
               </div>
@@ -247,7 +250,7 @@ function VendorShortlist({
         )}
       >
         <MessageCircle size={16} className="text-[#6c7561]" />
-        Find flere leverandører
+        {t('Find flere leverandører')}
       </button>
 
       <AnimatePresence>

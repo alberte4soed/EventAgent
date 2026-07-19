@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { isAppLanguage } from "@/lib/db/types";
 
 /** PATCH /api/profile — update the current user's profile (onboarding + edits). */
 export async function PATCH(request: NextRequest) {
@@ -26,7 +27,7 @@ export async function PATCH(request: NextRequest) {
   if (Array.isArray(body.event_interests)) patch.event_interests = body.event_interests.slice(0, 12);
   if (typeof body.accent === "string") patch.accent = body.accent.slice(0, 8);
   if (typeof body.onboarded === "boolean") patch.onboarded = body.onboarded;
-  if (body.language === "da" || body.language === "en") patch.language = body.language;
+  if (isAppLanguage(body.language)) patch.language = body.language;
 
   // Upsert so the row exists even if the signup trigger didn't run.
   const { data, error } = await supabase

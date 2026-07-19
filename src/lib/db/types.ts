@@ -229,7 +229,15 @@ export interface ProfileRow {
   updated_at: string;
 }
 
-export type AppLanguage = "da" | "en";
+// Supported UI languages. Danish is the source language (its dictionary is
+// the source strings themselves). To add a language: add its code here, then
+// register a dictionary + label in src/kalas/i18n.tsx — nothing else changes.
+export const APP_LANGUAGES = ["da", "en"] as const;
+export type AppLanguage = (typeof APP_LANGUAGES)[number];
+
+export function isAppLanguage(value: unknown): value is AppLanguage {
+  return typeof value === "string" && (APP_LANGUAGES as readonly string[]).includes(value);
+}
 
 export type InviteOrderStatus =
   | "draft"

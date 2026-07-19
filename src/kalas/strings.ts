@@ -140,6 +140,36 @@ export const EN: Record<string, string> = {
   'Dansk': 'Danish',
   'Engelsk': 'English',
 
+  // ── Vendor outreach (single-vendor contact dialog + shortlist) ──────
+  'Kontakt': 'Contact',
+  'Kontakt via Ava': 'Contact via Ava',
+  'Kontaktet': 'Contacted',
+  'Book': 'Book',
+  'Booket': 'Booked',
+  'Ava skriver til': 'Ava is writing to',
+  'Skrevet på {sprog}': 'Written in {sprog}',
+  'Besked': 'Message',
+  'Signatur · tilføjes automatisk': 'Signature · added automatically',
+  'Svar lander i jeres henvendelser.': 'Replies land in your inbox.',
+  'Ava skriver henvendelsen…': 'Ava is writing the message…',
+  'Ava har kontaktet venuet': 'Ava has contacted the venue',
+  'Ava har kontaktet stedet': 'Ava has contacted the venue',
+  'Kunne ikke sende — prøv igen.': 'Could not send — please try again.',
+  'Ava kunne ikke skrive henvendelsen.': 'Ava could not write the message.',
+  'Ava kunne ikke finde en mailadresse til leverandøren. Tilføj den manuelt og prøv igen.':
+    'Ava could not find an email address for this vendor. Add one manually and try again.',
+  'Ava har allerede skrevet til denne leverandør.': 'Ava has already written to this vendor.',
+  'Avas postkasse er ved at blive sat op — prøv igen om lidt.':
+    "Ava's mailbox is being set up — please try again shortly.",
+  'Planlægger': 'Planner',
+  'Andet': 'Other',
+  'Vælg venue først': 'Choose a venue first',
+  'Leverandører på shortlisten': 'Shortlisted vendors',
+  'Find flere leverandører': 'Find more vendors',
+  'Ingen på shortlisten endnu': 'Nothing shortlisted yet',
+  'Udforsk leverandører': 'Explore vendors',
+  'Fjern fra shortlist': 'Remove from shortlist',
+
   // ── Onboarding ──────────────────────────────────────────────────────
   'Hej! Jeg er Ava — din personlige bryllupsassistent. Lad os starte med det vigtigste: hvem er I, og hvornår er den store dag?':
     "Hi! I'm Ava — your personal wedding assistant. Let's start with the essentials: who are you, and when is the big day?",

@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { Check, Languages, Mail, X } from 'lucide-react';
 import { cn } from './ui';
+import { useLang } from './i18n';
 import { kalasSignatureHtml } from '@/lib/gmail/signature';
 
 interface Prepared {
@@ -17,7 +18,8 @@ interface Prepared {
   language: { code: string; name: string; source: string };
 }
 
-/** Danish labels for the languages Ava writes in. */
+/** Danish names for the languages Ava writes in; the English name rides along
+ *  on prepared.language.name, so the badge is localized without a second map. */
 const LANG_DA: Record<string, string> = {
   en: 'engelsk', da: 'dansk', sv: 'svensk', nb: 'norsk', fi: 'finsk',
   is: 'islandsk', de: 'tysk', fr: 'fransk', it: 'italiensk', es: 'spansk',
@@ -25,6 +27,15 @@ const LANG_DA: Record<string, string> = {
   el: 'græsk', hu: 'ungarsk', hr: 'kroatisk', ro: 'rumænsk', tr: 'tyrkisk',
   et: 'estisk', lv: 'lettisk', lt: 'litauisk', sl: 'slovensk',
   sk: 'slovakisk', bg: 'bulgarsk',
+};
+
+/** Server error codes → a Danish source string t() can localize. Keeps the
+ *  API language-agnostic: it returns a stable code, the client translates. */
+const ERROR_BY_CODE: Record<string, string> = {
+  no_contact_email:
+    'Ava kunne ikke finde en mailadresse til leverandøren. Tilføj den manuelt og prøv igen.',
+  already_contacted: 'Ava har allerede skrevet til denne leverandør.',
+  outreach_unavailable: 'Avas postkasse er ved at blive sat op — prøv igen om lidt.',
 };
 
 export default function OutreachDialog({
@@ -38,12 +49,21 @@ export default function OutreachDialog({
   onClose: () => void;
   onSent: () => void;
 }) {
+  const { t, lang } = useLang();
   const [prepared, setPrepared] = useState<Prepared | null>(null);
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+
+  // Prefer our own localized copy for known error codes; fall back to the
+  // server's message, then a generic line.
+  const messageForError = (data: { error?: string; message?: string }, fallback: string) => {
+    const known = data.error && ERROR_BY_CODE[data.error];
+    if (known) return t(known);
+    return data.message ?? t(fallback);
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -53,17 +73,18 @@ export default function OutreachDialog({
         const data = await res.json();
         if (cancelled) return;
         if (!res.ok) {
-          setError(data.message ?? data.error ?? 'Ava kunne ikke skrive henvendelsen.');
+          setError(messageForError(data, 'Ava kunne ikke skrive henvendelsen.'));
           return;
         }
         setPrepared(data as Prepared);
         setSubject(data.subject);
         setBody(data.body);
       } catch {
-        if (!cancelled) setError('Noget gik galt — prøv igen.');
+        if (!cancelled) setError(t('Noget gik galt — prøv igen.'));
       }
     })();
     return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [venueId]);
 
   useEffect(() => {
@@ -83,21 +104,25 @@ export default function OutreachDialog({
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.message ?? data.error ?? 'Kunne ikke sende.');
+        setError(messageForError(data, 'Kunne ikke sende — prøv igen.'));
         return;
       }
       setSent(true);
       onSent();
       setTimeout(onClose, 1400);
     } catch {
-      setError('Kunne ikke sende — prøv igen.');
+      setError(t('Kunne ikke sende — prøv igen.'));
     } finally {
       setSending(false);
     }
   };
 
+  // Language the email was written in, named in the app's language: the Danish
+  // map in DA, the canonical English name (already on the payload) in EN.
   const langLabel = prepared
-    ? LANG_DA[prepared.language.code] ?? prepared.language.name.toLowerCase()
+    ? lang === 'da'
+      ? LANG_DA[prepared.language.code] ?? prepared.language.name.toLowerCase()
+      : prepared.language.name
     : null;
 
   // The caller mounts this conditionally inside an <AnimatePresence>, which
@@ -121,7 +146,7 @@ export default function OutreachDialog({
         <div className="flex items-start justify-between gap-4 border-b border-[#e4e0d4] px-6 py-5">
           <div className="min-w-0">
             <p className="text-[0.6rem] font-semibold uppercase tracking-[0.18em] text-[#8a9079]">
-              Ava skriver til
+              {t('Ava skriver til')}
             </p>
             <h2 className="mt-1 truncate font-serif text-[1.3rem] text-[#314523]">{venueName}</h2>
             {prepared && (
@@ -131,7 +156,7 @@ export default function OutreachDialog({
                 </span>
                 {langLabel && (
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-[#eef1e6] px-2 py-0.5 text-[#314523]">
-                    <Languages size={12} /> Skrevet på {langLabel}
+                    <Languages size={12} /> {t('Skrevet på {sprog}', { sprog: langLabel })}
                   </span>
                 )}
               </div>
@@ -141,7 +166,7 @@ export default function OutreachDialog({
             type="button"
             onClick={onClose}
             disabled={sending}
-            aria-label="Luk"
+            aria-label={t('Luk')}
             className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-[#6c7561] transition-colors hover:bg-[#f0ede5] disabled:opacity-40"
           >
             <X size={16} />
@@ -152,7 +177,7 @@ export default function OutreachDialog({
           {!prepared && !error && (
             <div className="space-y-3 py-8 text-center">
               <div className="mx-auto h-1.5 w-24 animate-pulse rounded-full bg-[#e4e0d4]" />
-              <p className="text-[0.85rem] text-[#6c7561]">Ava skriver henvendelsen…</p>
+              <p className="text-[0.85rem] text-[#6c7561]">{t('Ava skriver henvendelsen…')}</p>
             </div>
           )}
 
@@ -164,7 +189,7 @@ export default function OutreachDialog({
             <div className="space-y-4">
               <label className="block">
                 <span className="text-[0.6rem] font-semibold uppercase tracking-[0.18em] text-[#8a9079]">
-                  Emne
+                  {t('Emne')}
                 </span>
                 <input
                   value={subject}
@@ -175,7 +200,7 @@ export default function OutreachDialog({
               </label>
               <label className="block">
                 <span className="text-[0.6rem] font-semibold uppercase tracking-[0.18em] text-[#8a9079]">
-                  Besked
+                  {t('Besked')}
                 </span>
                 <textarea
                   value={body}
@@ -189,7 +214,7 @@ export default function OutreachDialog({
                   Rendered from the same constant the mail is built from. */}
               <div>
                 <span className="text-[0.6rem] font-semibold uppercase tracking-[0.18em] text-[#8a9079]">
-                  Signatur · tilføjes automatisk
+                  {t('Signatur · tilføjes automatisk')}
                 </span>
                 <div
                   className="mt-1.5 rounded-[12px] border border-dashed border-[#e4e0d4] bg-white px-3 py-3"
@@ -205,7 +230,7 @@ export default function OutreachDialog({
 
         <div className="flex items-center justify-between gap-3 border-t border-[#e4e0d4] px-6 py-4">
           <p className="text-[0.72rem] text-[#6c7561]">
-            Svar lander i jeres henvendelser.
+            {t('Svar lander i jeres henvendelser.')}
           </p>
           <div className="flex items-center gap-2">
             <button
@@ -214,7 +239,7 @@ export default function OutreachDialog({
               disabled={sending}
               className="h-9 cursor-pointer rounded-full px-4 text-xs font-semibold text-[#6c7561] transition-colors hover:bg-[#f0ede5] disabled:opacity-40"
             >
-              Annuller
+              {t('Annuller')}
             </button>
             <button
               type="button"
@@ -226,7 +251,7 @@ export default function OutreachDialog({
                 'disabled:cursor-not-allowed disabled:opacity-45',
               )}
             >
-              {sent ? (<><Check size={13} /> Sendt</>) : sending ? 'Sender…' : 'Godkend & send'}
+              {sent ? (<><Check size={13} /> {t('Sendt')}</>) : sending ? t('Sender…') : t('Godkend & send')}
             </button>
           </div>
         </div>
