@@ -349,6 +349,7 @@ export default function Website() {
       photoUrls={photoUrls}
       html={previewHtml}
       htmlFontsHref={htmlFontsHref}
+      mobile={mobileView}
       onRsvp={() => setShowRsvp(true)}
     />
   );
@@ -409,7 +410,7 @@ export default function Website() {
                     <Smartphone size={12} /> {mobileView ? 'Desktop' : 'Mobil'}
                   </button>
                 </div>
-                <div className={cn('transition-all duration-300', mobileView && 'mx-auto max-w-[375px]')}>
+                <div className={cn('transition-all duration-300', mobileView && 'mx-auto w-full max-w-[390px]')}>
                   {preview}
                 </div>
                 <div className="mt-3 flex items-center justify-between">
@@ -1081,7 +1082,7 @@ function ToggleRow({ label, value, onChange }: { label: string; value: boolean; 
 }
 
 /* ── Live preview — the real public renderer, scaled down ─────────────── */
-function ScaledPreview({ domain, couple, config, design, photoUrls, html, htmlFontsHref, onRsvp }: {
+function ScaledPreview({ domain, couple, config, design, photoUrls, html, htmlFontsHref, mobile, onRsvp }: {
   domain: string;
   couple: Couple;
   config: SiteConfig;
@@ -1090,24 +1091,37 @@ function ScaledPreview({ domain, couple, config, design, photoUrls, html, htmlFo
   /** Model-built markup (already alias-resolved) — shown in a sandboxed iframe. */
   html?: string | null;
   htmlFontsHref?: string | null;
+  /** When true, render at a phone viewport so responsive CSS actually reflows. */
+  mobile?: boolean;
   onRsvp: () => void;
 }) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const [scale, setScale] = useState(0.35);
-  const FULL_W = 1180; // desktop viewport the site is designed at
+  // Iframe/div width = the CSS viewport the site sees. Mobile must be ~390
+  // (not a shrunk 1180) or @media / flex layouts never switch.
+  const viewW = mobile ? 390 : 1180;
 
   useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
     const measure = () => {
-      const w = wrapRef.current?.clientWidth ?? 420;
-      setScale(w / FULL_W);
+      const w = el.clientWidth || (mobile ? 390 : 420);
+      setScale(w / viewW);
     };
     measure();
-    window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
-  }, []);
+    // Parent width changes when toggling mobile (max-w kicks in) — observe it.
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [viewW, mobile]);
 
   return (
-    <div className="overflow-hidden rounded-2xl rule bg-card shadow-[0_16px_48px_-20px_rgba(0,0,0,0.25)]">
+    <div
+      className={cn(
+        'overflow-hidden rounded-2xl rule bg-card shadow-[0_16px_48px_-20px_rgba(0,0,0,0.25)]',
+        mobile && 'mx-auto w-[390px] max-w-full',
+      )}
+    >
       {/* Fonts the current design uses — loaded app-side for the preview */}
       <link rel="stylesheet" href={googleFontsHref([design.typography.displayFont, design.typography.bodyFont])} />
       {/* Browser chrome */}
@@ -1115,12 +1129,12 @@ function ScaledPreview({ domain, couple, config, design, photoUrls, html, htmlFo
         <div className="flex gap-1.5">
           {[0, 1, 2].map((i) => <span key={i} className="h-2 w-2 rounded-full bg-[var(--color-line-strong)]" />)}
         </div>
-        <div className="mx-auto flex items-center gap-1.5 rounded-full bg-canvas px-3 py-1 text-[0.68rem] text-muted">
-          <Lock size={9} /> {domain}.kalas.dk
+        <div className="mx-auto flex min-w-0 items-center gap-1.5 rounded-full bg-canvas px-3 py-1 text-[0.68rem] text-muted">
+          <Lock size={9} className="shrink-0" /> <span className="truncate">{domain}.kalas.dk</span>
         </div>
       </div>
-      {/* Scaled real site */}
-      <div ref={wrapRef} className="relative h-[520px] overflow-hidden">
+      {/* Scaled real site — fills the frame (phone-narrow when mobile). */}
+      <div ref={wrapRef} className="relative h-[520px] w-full overflow-hidden">
         {html ? (
           /* Sandboxed (no scripts can ever run) — the model-built site. */
           <iframe
@@ -1128,12 +1142,12 @@ function ScaledPreview({ domain, couple, config, design, photoUrls, html, htmlFo
             sandbox=""
             srcDoc={`<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1">${htmlFontsHref ? `<link rel="stylesheet" href="${htmlFontsHref}">` : ''}<style>html,body{margin:0;padding:0}</style></head><body><div id="kalas-site">${html}</div></body></html>`}
             className="absolute left-0 top-0 origin-top-left border-0"
-            style={{ width: FULL_W, height: 520 / scale, transform: `scale(${scale})` }}
+            style={{ width: viewW, height: 520 / scale, transform: `scale(${scale})` }}
           />
         ) : (
           <div
             className="absolute left-0 top-0 origin-top-left overflow-y-auto"
-            style={{ width: FULL_W, height: 520 / scale, transform: `scale(${scale})` }}
+            style={{ width: viewW, height: 520 / scale, transform: `scale(${scale})` }}
           >
             <SiteRenderer
               couple={{ a: couple.a, b: couple.b, dateLabel: couple.dateLabel, dateISO: couple.dateISO }}
