@@ -11,7 +11,7 @@
 import { IMAGES } from '../data';
 import { useLang } from '../i18n';
 import type { SiteConfig } from './config';
-import type { SiteDesign, DesignSection } from './design';
+import { mergeSections, type SiteDesign, type DesignSection } from './design';
 import { fontStack } from './fonts';
 import type { RegistryItemRow } from '@/lib/db/types';
 
@@ -73,8 +73,8 @@ export function SiteRenderer({
     lineHeight: 1.08,
   };
 
-  const enabled = new Set(config.sections.filter((s) => s.enabled).map((s) => s.id));
-  const sections = design.sections.filter((s) => enabled.has(s.id));
+  const enabled = new Set<string>(config.sections.filter((s) => s.enabled).map((s) => s.id));
+  const sections = mergeSections(design, enabled);
   const on = (id: string) => sections.some((s) => s.id === id);
 
   const hairline = shape.borders === 'none'

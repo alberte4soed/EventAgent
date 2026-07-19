@@ -147,6 +147,8 @@ export interface GenerateArgs {
   vibes?: string[];
   /** Refinement: change request against the current active design. */
   instruction?: string;
+  /** Ignore the active design/template and design from scratch. */
+  fresh?: boolean;
 }
 
 export interface GenerateResult {
@@ -212,7 +214,7 @@ export async function generateSiteDesign(args: GenerateArgs): Promise<GenerateRe
   const dateLabel = event.event_date
     ? new Date(event.event_date).toLocaleDateString("da-DK", { day: "numeric", month: "long", year: "numeric" })
     : event.date_hint ?? "";
-  const priorBrief = (active?.brief ?? {}) as { styleDirection?: string; vibes?: string[] };
+  const priorBrief = (active?.brief ?? {}) as { styleDirection?: string; vibes?: string[]; preset?: string };
   const styleDirection = args.styleDirection ?? priorBrief.styleDirection ?? "";
   const vibes = args.vibes ?? priorBrief.vibes ?? (Array.isArray(event.requirements?.vibes) ? (event.requirements.vibes as string[]) : []);
 
@@ -235,7 +237,9 @@ export async function generateSiteDesign(args: GenerateArgs): Promise<GenerateRe
     photoAliases: aliasMeta,
     fontCatalog: SITE_FONTS.map((f) => ({ id: f.id, family: f.family, category: f.category })),
     language: profile?.language ?? "da",
-    currentDesign: args.instruction && activeDesign ? JSON.stringify(activeDesign) : undefined,
+    // Refinement and personalize modes both build FROM the active design
+    // (usually a chosen template); `fresh` designs from scratch.
+    currentDesign: activeDesign && !args.fresh ? JSON.stringify(activeDesign) : undefined,
     instruction: args.instruction,
   });
 
@@ -292,7 +296,13 @@ export async function generateSiteDesign(args: GenerateArgs): Promise<GenerateRe
     .insert({
       event_id: event.id,
       user_id: userId,
-      brief: { styleDirection, vibes, instruction: args.instruction ?? null },
+      brief: {
+        styleDirection,
+        vibes,
+        instruction: args.instruction ?? null,
+        // The template lineage survives refinements so the builder can show it.
+        preset: args.fresh ? null : priorBrief.preset ?? null,
+      },
       design: design as unknown as Record<string, unknown>,
       active: true,
     })

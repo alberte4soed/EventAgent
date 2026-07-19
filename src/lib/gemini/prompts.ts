@@ -377,8 +377,27 @@ ${args.currentDesign}
 The couple asked for this change:
 """${args.instruction}"""
 
-Apply the requested change faithfully. Keep everything they did NOT mention
-as close to the current design as possible — this is an edit, not a redesign.`;
+Apply the requested change faithfully AND decisively. A change may touch any
+part of the design — hero variant, section layout variants and order,
+typography, spacing/shape, decor — not just colors. Interpret the wish
+generously: "mere romantisk" means softer palette AND rounder shapes,
+italic serif, botanical decor; "mere luft" means airy density, narrower
+width, larger scale. The couple must clearly SEE the difference. Keep only
+what they did not mention consistent with the current design.`;
+  }
+  if (args.currentDesign) {
+    return `${base}
+
+PERSONALIZE MODE
+The couple picked this template as their starting point:
+${args.currentDesign}
+
+Keep the template's character — its mood, typographic voice and overall
+structure — but make it THEIRS: harmonize the palette with their photos,
+assign their photos to hero and gallery, tune copy to their names and
+story, and adjust details (overlay, section backgrounds, decor) where the
+photos or brief call for it. Give the concept a personal name and explain
+in the rationale what you kept and what you tailored.`;
   }
   return base;
 };

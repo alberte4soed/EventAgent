@@ -15,17 +15,13 @@ import {
   type SiteConfig, type ProgramEvent, type FAQItem, type HotelItem, type SectionId, type SectionMeta,
 } from '../site/config';
 import { parseSiteDesign, DEFAULT_DESIGN, type SiteDesign } from '../site/design';
-import { googleFontsHref } from '../site/fonts';
+import { googleFontsHref, fontStack } from '../site/fonts';
+import { SITE_PRESETS } from '../site/presets';
+import { normalizeImage } from '../site/normalizeImage';
 import { websitePriceDkk } from '@/lib/website/pricing';
 import type { SitePhotoRow, WebsiteDesignRow } from '@/lib/db/types';
 
 type WTab = 'design' | 'indhold' | 'indstillinger';
-
-/** Style keywords the couple can hand Ava alongside free text. */
-const VIBE_CHIPS = [
-  'Romantisk', 'Minimalistisk', 'Boheme', 'Klassisk',
-  'Moderne', 'Dramatisk', 'Farverigt', 'Nordisk',
-];
 
 /* ══════════════════════════════════════════════════════════════════════
    MAIN EXPORT
@@ -180,10 +176,26 @@ export default function Website() {
     }
   };
 
-  const generateDesign = (styleDirection: string, vibes: string[]) =>
-    callDesignApi('/api/website/design', { styleDirection, vibes }, 'generate');
+  const generateDesign = (styleDirection: string, fresh = false) =>
+    callDesignApi('/api/website/design', { styleDirection, fresh }, 'generate');
   const refineDesign = (instruction: string) =>
     callDesignApi('/api/website/design/refine', { instruction }, 'refine');
+
+  const [applyingPreset, setApplyingPreset] = useState<string | null>(null);
+  const applyPreset = async (presetId: string) => {
+    if (!event || applyingPreset) return;
+    setApplyingPreset(presetId);
+    setGenError(null);
+    try {
+      await fetch('/api/website/design/preset', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventId: event.id, presetId }),
+      });
+      await refresh();
+    } finally {
+      setApplyingPreset(null);
+    }
+  };
 
   const activateDesign = async (designId: string) => {
     await fetch('/api/website/design/activate', {
@@ -227,12 +239,17 @@ export default function Website() {
 
   const uploadPhotos = async (files: FileList | File[]) => {
     if (!event) return;
-    for (const file of Array.from(files)) {
+    let failed = 0;
+    for (const raw of Array.from(files)) {
+      // HEIC (iPhone) and oversized photos are re-encoded in the browser.
+      const file = await normalizeImage(raw);
+      if (!file) { failed += 1; continue; }
       const form = new FormData();
       form.append('file', file);
       form.append('eventId', event.id);
-      await fetch('/api/website/photos', { method: 'POST', body: form }).catch(() => {});
+      await fetch('/api/website/photos', { method: 'POST', body: form }).catch(() => { failed += 1; });
     }
+    if (failed > 0) setGenError(`${failed} billede${failed === 1 ? '' : 'r'} kunne ikke uploades — prøv et andet format.`);
     await refresh();
   };
 
@@ -343,12 +360,15 @@ export default function Website() {
                 design={design}
                 designs={websiteDesigns}
                 activeId={websiteDesign?.id ?? null}
+                activePresetId={(websiteDesign?.brief as { preset?: string } | null)?.preset ?? null}
                 photos={sitePhotos}
                 photoUrls={photoUrls}
                 working={working}
+                applyingPreset={applyingPreset}
                 genError={genError}
                 needsPayment={needsPayment}
                 websitePaid={websitePaid}
+                onApplyPreset={applyPreset}
                 onGenerate={generateDesign}
                 onRefine={refineDesign}
                 onActivate={activateDesign}
@@ -1014,41 +1034,38 @@ function ScaledPreview({ domain, couple, config, design, photoUrls, onRsvp }: {
   );
 }
 
-/* ── Ava design studio — intake, generation, refinement, versions ─────── */
+/* ── Ava design studio — templates, personalization, refinement ───────── */
 function DesignStudio({
-  hasDesign, design, designs, activeId, photos, photoUrls, working, genError,
-  needsPayment, websitePaid, onGenerate, onRefine, onActivate, onCheckout,
+  hasDesign, design, designs, activeId, activePresetId, photos, photoUrls,
+  working, applyingPreset, genError, needsPayment, websitePaid,
+  onApplyPreset, onGenerate, onRefine, onActivate, onCheckout,
   onUpload, onDeletePhoto, onSetHero,
 }: {
   hasDesign: boolean;
   design: SiteDesign;
   designs: WebsiteDesignRow[];
   activeId: string | null;
+  activePresetId: string | null;
   photos: SitePhotoRow[];
   photoUrls: Record<string, string>;
   working: null | 'generate' | 'refine';
+  applyingPreset: string | null;
   genError: string | null;
   needsPayment: boolean;
   websitePaid: boolean;
-  onGenerate: (styleDirection: string, vibes: string[]) => void;
+  onApplyPreset: (presetId: string) => void;
+  onGenerate: (styleDirection: string, fresh?: boolean) => void;
   onRefine: (instruction: string) => void;
   onActivate: (designId: string) => void;
   onCheckout: () => void;
-  onUpload: (files: FileList) => void;
+  onUpload: (files: FileList | File[]) => Promise<void> | void;
   onDeletePhoto: (id: string) => void;
   onSetHero: (id: string) => void;
 }) {
   const [styleDirection, setStyleDirection] = useState('');
-  const [vibes, setVibes] = useState<Set<string>>(new Set());
   const [instruction, setInstruction] = useState('');
   const [showVersions, setShowVersions] = useState(false);
-
-  const toggleVibe = (v: string) =>
-    setVibes((prev) => {
-      const n = new Set(prev);
-      if (n.has(v)) n.delete(v); else n.add(v);
-      return n;
-    });
+  const [showTemplates, setShowTemplates] = useState(false);
 
   const submitRefine = () => {
     const text = instruction.trim();
@@ -1057,36 +1074,16 @@ function DesignStudio({
     onRefine(text);
   };
 
-  /* Paywall card takes over the studio until unlocked. */
-  if (needsPayment && !websitePaid) {
-    return (
-      <div className="rule rounded-2xl bg-card p-7 text-center">
-        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-ink">
-          <Sparkles size={20} className="text-canvas" />
-        </div>
-        <p className="font-serif text-[1.4rem] text-ink leading-tight">Lås Ava-designeren op</p>
-        <p className="mx-auto mt-2 max-w-xs text-[0.85rem] text-muted leading-relaxed">
-          Ava designer jeres personlige hjemmeside ud fra jeres billeder og stil — og I kan bede hende justere, indtil den er helt rigtig. Engangsbeløb, inkl. fjernelse af Kalas-branding.
-        </p>
-        <button onClick={onCheckout}
-          className="mt-6 rounded-full bg-ink px-7 py-3 text-[0.75rem] font-bold uppercase tracking-[0.16em] text-canvas hover:bg-ink/80 transition-colors cursor-pointer">
-          Lås op · {websitePriceDkk()} kr
-        </button>
-        <p className="mt-3 text-[0.7rem] text-muted">Betaling via Stripe · gælder hele jeres bryllup</p>
-      </div>
-    );
-  }
-
-  /* Working state. */
+  /* Working state takes over the panel. */
   if (working) {
     return (
       <div className="rule rounded-2xl bg-card p-8 text-center">
         <Loader2 size={26} className="mx-auto animate-spin text-ink" />
         <p className="mt-4 font-serif text-[1.25rem] text-ink">
-          {working === 'generate' ? 'Ava designer jeres side…' : 'Ava justerer designet…'}
+          {working === 'generate' ? 'Ava personaliserer jeres side…' : 'Ava justerer designet…'}
         </p>
         <p className="mx-auto mt-2 max-w-xs text-[0.82rem] text-muted leading-relaxed">
-          Hun kigger på jeres billeder, vælger farver og typografi og bygger siden op. Det tager typisk under et minut.
+          Hun kigger på jeres billeder og skabelon, og tilpasser farver, typografi og opsætning. Det tager typisk under et minut.
         </p>
       </div>
     );
@@ -1098,8 +1095,37 @@ function DesignStudio({
         <p className="rule rounded-xl bg-[#f2e3dd] px-4 py-3 text-[0.82rem] text-[var(--color-terracotta)]">{genError}</p>
       )}
 
-      {/* Concept / intake */}
-      {hasDesign ? (
+      {/* Paywall notice — templates stay usable; Ava's edits unlock on purchase. */}
+      {needsPayment && !websitePaid && (
+        <div className="rule rounded-2xl bg-card p-6 text-center">
+          <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-ink">
+            <Sparkles size={18} className="text-canvas" />
+          </div>
+          <p className="font-serif text-[1.25rem] text-ink leading-tight">Lås Ava-designeren op</p>
+          <p className="mx-auto mt-2 max-w-xs text-[0.82rem] text-muted leading-relaxed">
+            Skabelonerne er jeres — men Avas personalisering og ændringer via chat er en betalt funktion. Inkl. fjernelse af Kalas-branding.
+          </p>
+          <button onClick={onCheckout}
+            className="mt-5 rounded-full bg-ink px-6 py-2.5 text-[0.72rem] font-bold uppercase tracking-[0.16em] text-canvas hover:bg-ink/80 transition-colors cursor-pointer">
+            Lås op · {websitePriceDkk()} kr
+          </button>
+        </div>
+      )}
+
+      {!hasDesign ? (
+        /* ── First visit: pick a template ─────────────────────────────── */
+        <section>
+          <Eyebrow className="mb-2">Trin 1 · Vælg jeres stil</Eyebrow>
+          <p className="font-serif text-[1.4rem] leading-tight text-ink">Otte gennemarbejdede skabeloner</p>
+          <p className="mt-2 text-[0.85rem] leading-relaxed text-muted">
+            Vælg den der ligner jer — siden skifter med det samme i forhåndsvisningen. Bagefter gør Ava den personlig med jeres billeder, og I kan bede hende om ændringer.
+          </p>
+          <div className="mt-4">
+            <TemplateGallery activePresetId={activePresetId} applyingPreset={applyingPreset} onPick={onApplyPreset} />
+          </div>
+        </section>
+      ) : (
+        /* ── Has a design: concept + refine + Ava actions ─────────────── */
         <section className="rule rounded-2xl bg-card p-6">
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -1118,7 +1144,7 @@ function DesignStudio({
             <span className="ml-2 text-[0.7rem] text-muted">{design.typography.displayFont} · {design.typography.bodyFont}</span>
           </div>
 
-          {/* Refine */}
+          {/* Refine via chat */}
           <div className="mt-5 rule-t pt-5">
             <Label>Fortæl Ava hvad der skal ændres</Label>
             <div className="mt-2 flex gap-2">
@@ -1126,7 +1152,7 @@ function DesignStudio({
                 value={instruction}
                 onChange={(e) => setInstruction(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') submitRefine(); }}
-                placeholder="f.eks. gør den mørkere, større billeder…"
+                placeholder="f.eks. mere romantisk, mørkere, større billeder…"
                 className="min-w-0 flex-1 rule rounded-xl bg-shell px-4 py-2.5 text-[0.85rem] text-ink placeholder:text-muted focus:outline-none"
               />
               <button onClick={submitRefine} disabled={!instruction.trim()}
@@ -1134,10 +1160,17 @@ function DesignStudio({
                 Justér
               </button>
             </div>
+
+            {/* Personalize with photos */}
+            <button onClick={() => onGenerate(styleDirection)}
+              className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-ink py-3 text-[0.72rem] font-bold uppercase tracking-[0.16em] text-canvas hover:bg-ink/80 transition-colors cursor-pointer">
+              <Sparkles size={13} /> Personalisér med jeres billeder
+            </button>
+
             <div className="mt-3 flex items-center justify-between">
-              <button onClick={() => onGenerate(styleDirection, [...vibes])}
+              <button onClick={() => setShowTemplates((v) => !v)}
                 className="flex items-center gap-1.5 text-[0.75rem] text-muted hover:text-ink transition-colors cursor-pointer">
-                <Sparkles size={12} /> Helt nyt design
+                <Image size={12} /> Skift skabelon
               </button>
               {designs.length > 1 && (
                 <button onClick={() => setShowVersions((v) => !v)}
@@ -1147,6 +1180,18 @@ function DesignStudio({
               )}
             </div>
           </div>
+
+          {/* Template switcher */}
+          <AnimatePresence>
+            {showTemplates && (
+              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                <div className="mt-4">
+                  <TemplateGallery activePresetId={activePresetId} applyingPreset={applyingPreset} onPick={onApplyPreset} compact />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Version history */}
           <AnimatePresence>
@@ -1179,76 +1224,152 @@ function DesignStudio({
             )}
           </AnimatePresence>
         </section>
-      ) : (
-        <section className="rule rounded-2xl bg-card p-6">
-          <Eyebrow className="mb-2">Ava designer jeres side</Eyebrow>
-          <p className="font-serif text-[1.4rem] leading-tight text-ink">Hvordan skal den føles?</p>
-          <p className="mt-2 text-[0.85rem] leading-relaxed text-muted">
-            Vælg stemninger, beskriv jeres stil med egne ord, og upload et par billeder — så designer Ava en side, der er helt jeres.
-          </p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            {VIBE_CHIPS.map((v) => {
-              const on = vibes.has(v);
-              return (
-                <button key={v} onClick={() => toggleVibe(v)}
-                  className={cn('rounded-full px-3.5 py-1.5 text-[0.75rem] font-medium transition-colors cursor-pointer',
-                    on ? 'bg-ink text-canvas' : 'rule bg-shell text-ink-soft hover:text-ink')}>
-                  {v}
-                </button>
-              );
-            })}
-          </div>
-          <textarea
-            value={styleDirection}
-            onChange={(e) => setStyleDirection(e.target.value)}
-            rows={3}
-            placeholder="f.eks. Vi drømmer om noget let og botanisk med varme toner — ikke for stift…"
-            className="mt-3 w-full resize-none rule rounded-xl bg-shell px-4 py-3 text-[0.85rem] text-ink placeholder:text-muted focus:outline-none"
-          />
-          <button onClick={() => onGenerate(styleDirection, [...vibes])}
-            className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-ink py-3.5 text-[0.75rem] font-bold uppercase tracking-[0.16em] text-canvas hover:bg-ink/80 transition-colors cursor-pointer">
-            <Sparkles size={14} /> Lad Ava designe jeres side
-          </button>
-        </section>
       )}
 
       {/* Photos */}
       <PhotoManager
         photos={photos}
         photoUrls={photoUrls}
+        step={hasDesign ? null : 'Trin 2 · Jeres billeder'}
         onUpload={onUpload}
         onDelete={onDeletePhoto}
         onSetHero={onSetHero}
       />
+
+      {/* Free-text brief feeds the next personalization run. */}
+      <section className="rule rounded-2xl bg-card p-6">
+        <Eyebrow className="mb-2">{hasDesign ? 'Jeres stil med egne ord' : 'Trin 3 · Med jeres egne ord'}</Eyebrow>
+        <textarea
+          value={styleDirection}
+          onChange={(e) => setStyleDirection(e.target.value)}
+          rows={3}
+          placeholder="f.eks. Vi drømmer om noget let og botanisk med varme toner — ikke for stift…"
+          className="w-full resize-none rule rounded-xl bg-shell px-4 py-3 text-[0.85rem] text-ink placeholder:text-muted focus:outline-none"
+        />
+        <p className="mt-2 text-[0.7rem] text-muted">
+          Ava læser dette når hun personaliserer eller designer forfra.
+        </p>
+        {hasDesign && (
+          <button onClick={() => onGenerate(styleDirection, true)}
+            className="mt-3 flex items-center gap-1.5 text-[0.75rem] text-muted hover:text-ink transition-colors cursor-pointer">
+            <Sparkles size={12} /> Lad Ava designe helt forfra
+          </button>
+        )}
+      </section>
     </div>
   );
 }
 
-/* ── Photo manager — the couple's own photos feed the design ──────────── */
-function PhotoManager({ photos, photoUrls, onUpload, onDelete, onSetHero }: {
+/* ── Template gallery — live-typography cards for the 8 presets ───────── */
+function TemplateGallery({ activePresetId, applyingPreset, onPick, compact = false }: {
+  activePresetId: string | null;
+  applyingPreset: string | null;
+  onPick: (presetId: string) => void;
+  compact?: boolean;
+}) {
+  const fontIds = useMemo(
+    () => SITE_PRESETS.flatMap((p) => [p.design.typography.displayFont, p.design.typography.bodyFont]),
+    []
+  );
+  return (
+    <div className="grid grid-cols-2 gap-2.5">
+      <link rel="stylesheet" href={googleFontsHref(fontIds)} />
+      {SITE_PRESETS.map((p) => {
+        const d = p.design;
+        const active = p.id === activePresetId;
+        const busy = applyingPreset === p.id;
+        return (
+          <button
+            key={p.id}
+            onClick={() => onPick(p.id)}
+            disabled={busy}
+            className={cn(
+              'relative overflow-hidden rounded-xl text-left transition-all cursor-pointer',
+              active ? 'ring-2 ring-ink ring-offset-2 ring-offset-canvas' : 'rule hover:scale-[1.015]'
+            )}
+            style={{ background: d.palette.bg }}
+          >
+            {/* Palette strip */}
+            <div className="flex h-1.5">
+              {[d.palette.accent, d.palette.text, d.palette.surface, d.palette.muted].map((c, i) => (
+                <span key={i} className="flex-1" style={{ background: c }} />
+              ))}
+            </div>
+            <div className={cn('px-3', compact ? 'py-2.5' : 'py-3.5')}>
+              <p
+                className={cn('leading-tight', compact ? 'text-[1.05rem]' : 'text-[1.3rem]')}
+                style={{
+                  fontFamily: fontStack(d.typography.displayFont),
+                  fontWeight: d.typography.displayWeight,
+                  fontStyle: d.typography.displayItalic ? 'italic' : 'normal',
+                  color: d.palette.text,
+                }}
+              >
+                Anna & Emil
+              </p>
+              <p className="mt-0.5 text-[0.62rem] font-bold uppercase tracking-[0.14em]" style={{ color: d.palette.accent }}>
+                {p.label}
+              </p>
+              {!compact && (
+                <p className="mt-1 text-[0.68rem] leading-snug" style={{ color: d.palette.muted }}>
+                  {p.tagline}
+                </p>
+              )}
+            </div>
+            {(active || busy) && (
+              <span className="absolute right-2 top-3 flex h-5 w-5 items-center justify-center rounded-full" style={{ background: d.palette.text }}>
+                {busy
+                  ? <Loader2 size={11} className="animate-spin" style={{ color: d.palette.bg }} />
+                  : <Check size={11} style={{ color: d.palette.bg }} />}
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ── Photo manager — drag & drop + iPhone-friendly picker ─────────────── */
+function PhotoManager({ photos, photoUrls, step, onUpload, onDelete, onSetHero }: {
   photos: SitePhotoRow[];
   photoUrls: Record<string, string>;
-  onUpload: (files: FileList) => void;
+  step: string | null;
+  onUpload: (files: FileList | File[]) => Promise<void> | void;
   onDelete: (id: string) => void;
   onSetHero: (id: string) => void;
 }) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [busy, setBusy] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const dragDepth = useRef(0);
 
-  const handleFiles = async (files: FileList | null) => {
+  const handleFiles = async (files: FileList | File[] | null) => {
     if (!files || files.length === 0) return;
     setBusy(true);
     try { await onUpload(files); } finally { setBusy(false); }
   };
 
   return (
-    <section className="rule rounded-2xl bg-card p-6">
+    <section
+      className={cn('rule rounded-2xl bg-card p-6 transition-colors', dragging && 'bg-sage-tint')}
+      onDragEnter={(e) => { e.preventDefault(); dragDepth.current += 1; setDragging(true); }}
+      onDragOver={(e) => e.preventDefault()}
+      onDragLeave={(e) => { e.preventDefault(); dragDepth.current -= 1; if (dragDepth.current <= 0) { dragDepth.current = 0; setDragging(false); } }}
+      onDrop={(e) => {
+        e.preventDefault();
+        dragDepth.current = 0;
+        setDragging(false);
+        const files = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith('image/') || /\.(heic|heif)$/i.test(f.name));
+        void handleFiles(files);
+      }}
+    >
       <div className="flex items-center justify-between">
-        <Eyebrow>Jeres billeder</Eyebrow>
+        <Eyebrow>{step ?? 'Jeres billeder'}</Eyebrow>
         <span className="text-[0.7rem] text-muted">{photos.length} / 24</span>
       </div>
       <p className="mt-2 text-[0.8rem] leading-relaxed text-muted">
-        Ava designer ud fra jeres egne billeder — forlovelsesbilleder, stedet, jer to. Markér ét som forsidebillede.
+        Træk billeder herind eller tryk upload — forlovelsesbilleder, stedet, jer to. Ava designer ud fra dem. Markér ét som forsidebillede.
       </p>
 
       <div className="mt-4 grid grid-cols-3 gap-2">
@@ -1269,7 +1390,7 @@ function PhotoManager({ photos, photoUrls, onUpload, onDelete, onSetHero }: {
                   <Sparkles size={10} className="text-ink" />
                 </span>
               )}
-              <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-gradient-to-t from-black/60 to-transparent p-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+              <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-gradient-to-t from-black/60 to-transparent p-1.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
                 {p.role !== 'hero' ? (
                   <button onClick={() => onSetHero(p.id)} title="Brug som forsidebillede"
                     className="flex h-6 w-6 items-center justify-center rounded-full bg-canvas/90 text-ink hover:bg-canvas cursor-pointer">
@@ -1288,22 +1409,27 @@ function PhotoManager({ photos, photoUrls, onUpload, onDelete, onSetHero }: {
         <button
           onClick={() => inputRef.current?.click()}
           disabled={busy || photos.length >= 24}
-          className="flex aspect-square flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-[var(--color-line-strong)] text-muted transition-colors hover:border-ink/40 hover:text-ink disabled:opacity-40 cursor-pointer"
+          className={cn(
+            'flex aspect-square flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed text-muted transition-colors hover:border-ink/40 hover:text-ink disabled:opacity-40 cursor-pointer',
+            dragging ? 'border-ink text-ink' : 'border-[var(--color-line-strong)]'
+          )}
         >
           {busy ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
           <span className="text-[0.62rem] font-semibold uppercase tracking-[0.1em]">Upload</span>
         </button>
       </div>
 
+      {/* accept="image/*" opens the photo library directly on iPhone; HEIC and
+          large originals are re-encoded client-side before upload. */}
       <input
         ref={inputRef}
         type="file"
-        accept="image/jpeg,image/png,image/webp"
+        accept="image/*,.heic,.heif"
         multiple
         className="hidden"
         onChange={(e) => { void handleFiles(e.target.files); e.target.value = ''; }}
       />
-      <p className="mt-3 text-[0.68rem] text-muted">JPEG, PNG eller WebP · max 8 MB pr. billede</p>
+      <p className="mt-3 text-[0.68rem] text-muted">Alle almindelige billedformater — også direkte fra iPhone</p>
     </section>
   );
 }

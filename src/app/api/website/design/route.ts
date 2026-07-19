@@ -24,6 +24,7 @@ export async function POST(request: NextRequest) {
     eventId?: string;
     styleDirection?: string;
     vibes?: string[];
+    fresh?: boolean;
   };
   const eventId = body.eventId ?? "";
   if (!eventId) return Response.json({ error: "eventId is required" }, { status: 400 });
@@ -56,6 +57,7 @@ export async function POST(request: NextRequest) {
       userId: user.id,
       styleDirection: (body.styleDirection ?? "").trim() || undefined,
       vibes: Array.isArray(body.vibes) ? body.vibes.filter((v) => typeof v === "string").slice(0, 10) : undefined,
+      fresh: body.fresh === true,
     });
     return Response.json({ designId: row.id, design });
   } catch (err) {

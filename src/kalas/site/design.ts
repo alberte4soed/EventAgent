@@ -208,6 +208,21 @@ function parseSections(v: unknown): DesignSection[] {
   return out.length > 0 ? out : DEFAULT_SECTIONS;
 }
 
+/** Render list for a design given the couple's enabled content sections.
+    The design dictates order/variants, but a section the couple has turned ON
+    must always render — designs generated before the toggle (or that omit a
+    section) get it appended with defaults, before a trailing RSVP band. */
+export function mergeSections(design: SiteDesign, enabledIds: Set<string>): DesignSection[] {
+  const fromDesign = design.sections.filter((s) => enabledIds.has(s.id));
+  const have = new Set(fromDesign.map((s) => s.id));
+  const missing = DEFAULT_SECTIONS.filter((d) => enabledIds.has(d.id) && !have.has(d.id));
+  if (missing.length === 0) return fromDesign;
+  const tailRsvp = fromDesign.length > 0 && fromDesign[fromDesign.length - 1].id === 'rsvp';
+  return tailRsvp
+    ? [...fromDesign.slice(0, -1), ...missing.filter((m) => m.id !== 'rsvp'), fromDesign[fromDesign.length - 1]]
+    : [...fromDesign, ...missing];
+}
+
 /** Parse an untrusted design blob (model output or stored JSON) into a safe,
     fully-defaulted SiteDesign. Never throws. */
 export function parseSiteDesign(raw: unknown): SiteDesign {
