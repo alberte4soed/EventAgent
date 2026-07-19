@@ -316,7 +316,7 @@ export default function Planning() {
             className="fixed bottom-10 left-1/2 z-50 -translate-x-1/2 w-[min(92vw,420px)]"
           >
             <div className="rounded-[18px] border border-[#d8d4c7] bg-[#fcfbf7] px-6 py-5 shadow-[0_20px_60px_-10px_rgba(49,69,35,0.18)]">
-              <p className="font-serif text-lg text-[#314523]">{celebration.title}</p>
+              <p className="font-serif text-lg text-[#314523]">{t(celebration.title)}</p>
               <p className="mt-1.5 text-sm text-[#6c7561]">{celebration.msg}</p>
             </div>
           </motion.div>
@@ -377,7 +377,7 @@ function MilestoneRow({ task, menuOpen, onMenu, onCloseMenu, onToggle, onDelete,
               : 'text-[#314523]',
           )}
         >
-          {task.title}
+          {t(task.title)}
         </span>
         <button
           type="button"

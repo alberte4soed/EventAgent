@@ -119,7 +119,7 @@ export default function OnboardingHint({ id }: { id: HintId }) {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 16, scale: 0.98 }}
           transition={{ type: 'spring', stiffness: 320, damping: 30 }}
-          role="dialog" aria-label={hint.title}
+          role="dialog" aria-label={t(hint.title)}
           className="fixed bottom-24 left-4 right-4 z-50 sm:left-auto sm:right-6 sm:bottom-6 sm:w-[360px] lg:left-[272px] lg:right-auto"
         >
           <div className="relative overflow-hidden rounded-2xl bg-ink px-6 py-5 text-canvas shadow-[0_24px_60px_-12px_rgba(59,67,42,0.45)]">
@@ -128,12 +128,12 @@ export default function OnboardingHint({ id }: { id: HintId }) {
               className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full text-canvas/60 hover:text-canvas hover:bg-canvas/10 transition-colors cursor-pointer">
               <X size={14} />
             </button>
-            <p className="text-[0.6rem] font-semibold uppercase tracking-[0.22em] text-canvas/60">{hint.eyebrow}</p>
-            <p className="mt-1.5 font-serif text-[1.2rem] leading-snug">{hint.title}</p>
-            <p className="mt-2 text-[0.82rem] leading-relaxed text-canvas/80">{hint.body}</p>
+            <p className="text-[0.6rem] font-semibold uppercase tracking-[0.22em] text-canvas/60">{t(hint.eyebrow)}</p>
+            <p className="mt-1.5 font-serif text-[1.2rem] leading-snug">{t(hint.title)}</p>
+            <p className="mt-2 text-[0.82rem] leading-relaxed text-canvas/80">{t(hint.body)}</p>
             <button onClick={dismiss}
               className="mt-4 rounded-full bg-canvas px-4 py-2 text-[0.7rem] font-bold uppercase tracking-[0.14em] text-ink hover:opacity-90 transition-opacity cursor-pointer">
-              {hint.cta}
+              {t(hint.cta)}
             </button>
           </div>
         </motion.div>
