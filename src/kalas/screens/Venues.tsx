@@ -162,8 +162,7 @@ export default function VenueDiscovery({
   };
 
   const goInbox = () => {
-    if (hub?.onSwitchTab) hub.onSwitchTab('inbox');
-    else onNavigate?.('inbox');
+    onNavigate?.('inbox');
   };
 
   const goVendorsExplore = () => {

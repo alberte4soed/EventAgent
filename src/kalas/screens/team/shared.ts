@@ -1,6 +1,6 @@
 import type { EmailReplyRow, OutboundEmailRow, VenueRow } from '@/lib/db/types';
 
-export type HubTab = 'explore' | 'shortlist' | 'inbox' | 'booked';
+export type HubTab = 'explore' | 'shortlist' | 'booked';
 
 export type HubCat =
   | 'alle'
@@ -20,7 +20,6 @@ export const HUB_CAT_KEY = 'kalas_hub_cat';
 export const HUB_TABS: { id: HubTab; label: string }[] = [
   { id: 'explore', label: 'Explore' },
   { id: 'shortlist', label: 'Shortlist' },
-  { id: 'inbox', label: 'Inbox' },
   { id: 'booked', label: 'Booked' },
 ];
 
@@ -37,18 +36,23 @@ export const HUB_CATS: { id: HubCat; label: string }[] = [
   { id: 'beauty', label: 'Beauty' },
 ];
 
-const LEGACY_SCREENS = new Set(['venues', 'vendors', 'inbox']);
+const LEGACY_SCREENS = new Set(['venues', 'vendors']);
 
-export function isLegacyHubScreen(id: string): id is 'venues' | 'vendors' | 'inbox' {
+export function isLegacyHubScreen(id: string): id is 'venues' | 'vendors' {
   return LEGACY_SCREENS.has(id);
 }
 
 export function readHubDeepLink(): { tab?: HubTab; cat?: HubCat } {
   if (typeof window === 'undefined') return {};
-  const tab = sessionStorage.getItem(HUB_TAB_KEY) as HubTab | null;
+  const rawTab = sessionStorage.getItem(HUB_TAB_KEY);
   const cat = sessionStorage.getItem(HUB_CAT_KEY) as HubCat | null;
-  if (tab) sessionStorage.removeItem(HUB_TAB_KEY);
+  if (rawTab) sessionStorage.removeItem(HUB_TAB_KEY);
   if (cat) sessionStorage.removeItem(HUB_CAT_KEY);
+
+  // Inbox left the hub — ignore stale deep-links.
+  const tab = (rawTab === 'explore' || rawTab === 'shortlist' || rawTab === 'booked')
+    ? rawTab
+    : undefined;
 
   // Legacy keys
   const legacyVenuesView = sessionStorage.getItem('kalas_venues_view');
@@ -62,7 +66,7 @@ export function readHubDeepLink(): { tab?: HubTab; cat?: HubCat } {
     return { tab: tab ?? 'explore', cat: legacyVendorCat };
   }
 
-  return { tab: tab ?? undefined, cat: cat ?? undefined };
+  return { tab, cat: cat ?? undefined };
 }
 
 export function writeHubDeepLink(tab: HubTab, cat?: HubCat) {
@@ -70,26 +74,21 @@ export function writeHubDeepLink(tab: HubTab, cat?: HubCat) {
   if (cat) sessionStorage.setItem(HUB_CAT_KEY, cat);
 }
 
-export function legacyScreenToHub(screen: 'venues' | 'vendors' | 'inbox'): { tab: HubTab; cat?: HubCat } {
+export function legacyScreenToHub(screen: 'venues' | 'vendors'): { tab: HubTab; cat?: HubCat } {
   switch (screen) {
     case 'venues':
       return { tab: 'explore', cat: 'venue' };
     case 'vendors':
       return { tab: 'explore', cat: 'alle' };
-    case 'inbox':
-      return { tab: 'inbox' };
   }
 }
 
 export function resolveDefaultTab(
   venues: VenueRow[],
   outbound: OutboundEmailRow[],
-  replies: EmailReplyRow[],
+  _replies: EmailReplyRow[],
   eventChosenVenueId: string | null | undefined,
 ): HubTab {
-  const unread = replies.filter((r) => !r.read_at).length;
-  if (unread > 0) return 'inbox';
-
   const sentIds = new Set(outbound.map((o) => o.venue_id));
   const likedNotContacted = venues.some((v) => v.swipe_status === 'liked' && !sentIds.has(v.id));
   const contactedUnbooked = venues.some(
@@ -106,16 +105,14 @@ export function resolveDefaultTab(
 export function hubBadges(
   venues: VenueRow[],
   outbound: OutboundEmailRow[],
-  replies: EmailReplyRow[],
+  _replies: EmailReplyRow[],
   eventChosenVenueId: string | null | undefined,
 ): Partial<Record<HubTab, number>> {
   const sentIds = new Set(outbound.map((o) => o.venue_id));
   const shortlist = venues.filter((v) => v.swipe_status === 'liked' && !sentIds.has(v.id)).length;
-  const unread = replies.filter((r) => !r.read_at).length;
   const booked = venues.filter((v) => v.booked_at || v.id === eventChosenVenueId).length;
   return {
     shortlist: shortlist || undefined,
-    inbox: unread || undefined,
     booked: booked || undefined,
   };
 }

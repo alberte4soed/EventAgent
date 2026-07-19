@@ -8,7 +8,7 @@ import { AnimatePresence, MotionConfig } from 'motion/react';
 import Shell, { type ScreenId } from './Shell';
 import GuidedTour from './GuidedTour';
 import { KalasProvider, useKalas } from './store';
-import { WeddingProvider } from './useWedding';
+import { WeddingProvider, useWedding } from './useWedding';
 import { LanguageProvider, type Lang } from './i18n';
 import Home from './screens/Home';
 import Ava from './screens/Ava';
@@ -22,6 +22,7 @@ import Website from './screens/Website';
 import Invites from './screens/Invites';
 import Seating from './screens/Seating';
 import Registry from './screens/Registry';
+import Inbox from './screens/Inbox';
 
 export default function KalasRoot({ initialLang = 'da' }: { initialLang?: Lang }) {
   return (
@@ -41,6 +42,8 @@ export default function KalasRoot({ initialLang = 'da' }: { initialLang?: Lang }
 
 function AppInner() {
   const { pendingCount, avaBadge } = useKalas();
+  const { replies } = useWedding();
+  const inboxBadge = replies.filter((r) => !r.read_at).length;
   const [avaOpen, setAvaOpen] = useState(false);
   const [hubTick, setHubTick] = useState(0);
   const [screen, setScreen] = useState<ScreenId>(() => {
@@ -87,6 +90,7 @@ function AppInner() {
   const screens: Record<AppScreen, React.ReactNode> = {
     home:        <Home onNavigate={navigate} />,
     team:        <VendorHub key={hubTick} onNavigate={navigate} />,
+    inbox:       <Inbox onNavigate={navigate} />,
     planning:    <Planning />,
     budget:      <Budget />,
     guests:      <Guests />,
@@ -104,6 +108,7 @@ function AppInner() {
         current={activeScreen}
         onNavigate={navigate}
         pendingCount={pendingCount}
+        inboxBadge={inboxBadge}
         avaBadge={avaBadge}
         avaOpen={avaOpen}
         onAvaOpen={() => setAvaOpen(true)}

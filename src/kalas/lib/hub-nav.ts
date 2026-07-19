@@ -8,7 +8,7 @@ import {
   type HubTab,
 } from '../screens/team/shared';
 
-export type NavigateTarget = ScreenId | 'venues' | 'vendors' | 'inbox';
+export type NavigateTarget = ScreenId | 'venues' | 'vendors';
 
 export function navigateToHub(tab: HubTab, cat?: HubCat) {
   sessionStorage.setItem(HUB_TAB_KEY, tab);

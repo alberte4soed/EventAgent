@@ -1,10 +1,16 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-export function SignOutButton({ className }: { className?: string }) {
+export function SignOutButton({
+  className,
+  children,
+}: {
+  className?: string;
+  children?: ReactNode;
+}) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
@@ -30,7 +36,7 @@ export function SignOutButton({ className }: { className?: string }) {
         "rounded-full border border-[#D4D6C0] px-4 py-2 text-sm font-medium text-[#656952] transition hover:bg-[#ddd6c0] disabled:opacity-50"
       }
     >
-      {loading ? "Signing out…" : "Log out"}
+      {children ?? (loading ? "Signing out…" : "Log out")}
     </button>
   );
 }

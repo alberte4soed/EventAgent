@@ -9,7 +9,6 @@ import HubTabBar from './HubTabBar';
 import CategoryFilterBar from './CategoryFilterBar';
 import ExplorePanel from './ExplorePanel';
 import ShortlistPanel from './ShortlistPanel';
-import InboxPanel from './InboxPanel';
 import BookedPanel from './BookedPanel';
 import {
   hubBadges,
@@ -63,36 +62,37 @@ export default function VendorHub({ onNavigate }: { onNavigate?: (s: NavigateTar
   }
 
   return (
-    <div className="min-h-full bg-[#f5f3ee] px-6 py-8 sm:px-9 lg:px-12 lg:py-8">
+    <div className="min-h-full">
       <HubTabBar tab={tab} badges={badges} onChange={onTabChange} />
 
-      {(tab === 'explore' || tab === 'shortlist') && (
-        <CategoryFilterBar cat={cat} onCatChange={setCat} />
-      )}
+      <div className="px-6 py-8 sm:px-9 lg:px-12">
+        {(tab === 'explore' || tab === 'shortlist') && (
+          <CategoryFilterBar cat={cat} onCatChange={setCat} />
+        )}
 
-      <div className="mt-6">
-        {tab === 'explore' && (
-          <ExplorePanel
-            cat={cat}
-            query=""
-            venueView={venueView}
-            onVenueViewChange={setVenueView}
-            onNavigate={onNavigate}
-            onSwitchTab={onSwitchTab}
-          />
-        )}
-        {tab === 'shortlist' && (
-          <ShortlistPanel
-            cat={cat}
-            query=""
-            venueView={venueView}
-            onVenueViewChange={setVenueView}
-            onNavigate={onNavigate}
-            onSwitchTab={onSwitchTab}
-          />
-        )}
-        {tab === 'inbox' && <InboxPanel onNavigate={onNavigate} />}
-        {tab === 'booked' && <BookedPanel onSwitchTab={onSwitchTab} />}
+        <div className={(tab === 'explore' || tab === 'shortlist') ? 'mt-6' : undefined}>
+          {tab === 'explore' && (
+            <ExplorePanel
+              cat={cat}
+              query=""
+              venueView={venueView}
+              onVenueViewChange={setVenueView}
+              onNavigate={onNavigate}
+              onSwitchTab={onSwitchTab}
+            />
+          )}
+          {tab === 'shortlist' && (
+            <ShortlistPanel
+              cat={cat}
+              query=""
+              venueView={venueView}
+              onVenueViewChange={setVenueView}
+              onNavigate={onNavigate}
+              onSwitchTab={onSwitchTab}
+            />
+          )}
+          {tab === 'booked' && <BookedPanel onSwitchTab={onSwitchTab} />}
+        </div>
       </div>
 
       <OnboardingHint id="team" />

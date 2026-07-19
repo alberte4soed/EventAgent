@@ -19,36 +19,45 @@ export default function HubTabBar({
   const labels: Record<HubTab, string> = {
     explore: t('Explore'),
     shortlist: t('Shortlist'),
-    inbox: t('Inbox'),
     booked: t('Booked'),
   };
 
   return (
-    <div className="flex gap-1 overflow-x-auto hide-scrollbar border-b border-[#e0ddd2]">
-      {HUB_TABS.map(({ id }) => {
-        const badge = badges[id];
-        const label = labels[id];
-        return (
-          <button
-            key={id}
-            type="button"
-            onClick={() => onChange(id)}
-            className={cn(
-              'relative shrink-0 px-5 py-3 text-sm transition-colors cursor-pointer',
-              tab === id ? 'text-[#314523] font-semibold' : 'text-[#6c7561] hover:text-[#314523]',
-            )}
-          >
-            {label}
-            {badge ? <span className="ml-1 tabular-nums text-[#8a9079]">· {badge}</span> : null}
-            {tab === id && (
-              <motion.span
-                layoutId="hub-tab"
-                className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-[#314523]"
-              />
-            )}
-          </button>
-        );
-      })}
+    <div className="sticky top-0 z-20 bg-canvas/95 backdrop-blur-md rule-b">
+      <div className="flex items-end gap-6 overflow-x-auto hide-scrollbar px-6 pt-5 sm:gap-8 sm:px-9 lg:px-12">
+        {HUB_TABS.map(({ id }) => {
+          const active = tab === id;
+          const badge = badges[id];
+          return (
+            <button
+              key={id}
+              type="button"
+              onClick={() => onChange(id)}
+              className="relative shrink-0 cursor-pointer pb-4 group"
+            >
+              <span
+                className={cn(
+                  'font-serif text-[clamp(1.2rem,2vw,1.6rem)] leading-none transition-colors',
+                  active ? 'text-ink' : 'text-muted/50 group-hover:text-ink/60',
+                )}
+              >
+                {labels[id]}
+                {badge ? (
+                  <span className="ml-1.5 align-middle font-sans text-[0.7rem] tabular-nums text-muted">
+                    · {badge}
+                  </span>
+                ) : null}
+              </span>
+              {active && (
+                <motion.span
+                  layoutId="hub-underline"
+                  className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-ink"
+                />
+              )}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
