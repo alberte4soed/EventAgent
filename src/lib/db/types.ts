@@ -264,6 +264,22 @@ export interface InviteOrderRow {
   created_at: string;
 }
 
+export type InvitationStatus = "draft" | "published";
+
+/** A digital invitation: chosen template + the content (InvitationData) it
+    renders, addressable publicly by slug. RSVPs land in the `guests` table. */
+export interface InvitationRow {
+  id: string;
+  event_id: string;
+  user_id: string;
+  template_id: string;
+  data: Record<string, unknown>;
+  slug: string | null;
+  status: InvitationStatus;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface GoogleTokensRow {
   user_id: string;
   google_email: string | null;
