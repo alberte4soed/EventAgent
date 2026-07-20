@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { runAgentTurn } from "@/lib/gemini/agent";
+import { CHAT_MODE_CONTEXT } from "@/lib/gemini/prompts";
 import { logAgentError } from "@/lib/gemini/log";
 import type {
   ChatMessageRow,
@@ -60,6 +61,7 @@ async function buildReplyContext(
  * Responds with an SSE stream:
  *   event: status  → data: {"status": "Searching the web…"}
  *   event: event   → data: {"eventId": "..."}        (when a new event is created)
+ *   event: ui      → data: <AgentUiAction>           (agent-driven client navigation)
  *   event: message → data: <persisted assistant ChatMessageRow>
  *   event: error   → data: {"error": "..."}
  */
@@ -70,10 +72,11 @@ export async function POST(request: NextRequest) {
   } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { eventId, message, contextReplyId } = (await request.json()) as {
+  const { eventId, message, contextReplyId, uiMode } = (await request.json()) as {
     eventId?: string;
     message?: string;
     contextReplyId?: string;
+    uiMode?: "chat" | "classic";
   };
   if (!message?.trim()) {
     return Response.json({ error: "message is required" }, { status: 400 });
@@ -127,7 +130,13 @@ export async function POST(request: NextRequest) {
     prof?.language === "en"
       ? "Always reply to the couple in English."
       : "Svar altid parret på dansk.";
-  const extraContext = [languageDirective, replyContext].filter(Boolean).join("\n\n");
+  const extraContext = [
+    languageDirective,
+    uiMode === "chat" ? CHAT_MODE_CONTEXT : undefined,
+    replyContext,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 
   const { data: userMsg, error: userMsgError } = await supabase
     .from("chat_messages")
@@ -165,7 +174,8 @@ export async function POST(request: NextRequest) {
           history,
           message,
           (status) => send("status", { status }),
-          extraContext
+          extraContext,
+          (action) => send("ui", action)
         );
 
         const { data: saved, error } = await supabase

@@ -43,6 +43,14 @@ export const EN: Record<string, string> = {
   '{n} dage tilbage': '{n} days remaining',
   'Tal med Ava — {n} nye beskeder': 'Talk to Ava — {n} new messages',
 
+  // ── Chat mode ───────────────────────────────────────────────────────
+  'Chat-tilstand': 'Chat mode',
+  'Klassisk visning': 'Classic view',
+  'Viser: {page}': 'Showing: {page}',
+  'Ava styrer skærmen — sig hvad I vil se.': 'Ava drives the screen — tell her what you want to see.',
+  'Chat': 'Chat',
+  'Skærm': 'Screen',
+
   // ── Home dashboard (palette refresh) ────────────────────────────────
   'Planlægningshjem': 'Planning home',
   'Brylluppet for': 'The wedding of',

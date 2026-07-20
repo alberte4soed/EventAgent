@@ -1,6 +1,33 @@
 import { Type, type FunctionDeclaration } from "@google/genai";
+import { AGENT_PAGES } from "@/lib/db/types";
+import { planningFunctionDeclarations } from "./planningTools";
 
 export const functionDeclarations: FunctionDeclaration[] = [
+  {
+    name: "show_page",
+    description:
+      "Open one of the app's pages on the user's screen so they see what you're talking about or what you just changed. Pages: home (dashboard), vendors (venue & vendor board), inbox (vendor replies & quotes), planning (timeline tasks), budget, guests (guest list & RSVP), website (wedding website builder), registry (gift wishlist), invites (invitations), seating (table plan). For vendors you can deep-link with vendor_category and hub_tab.",
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        page: {
+          type: Type.STRING,
+          enum: [...AGENT_PAGES],
+        },
+        vendor_category: {
+          type: Type.STRING,
+          enum: ["venue", "florist", "photographer", "musician", "caterer", "planner", "other"],
+          description: "Which vendor category to focus when page is vendors",
+        },
+        hub_tab: {
+          type: Type.STRING,
+          enum: ["explore", "shortlist", "booked"],
+          description: "Which vendor-board tab to open when page is vendors",
+        },
+      },
+      required: ["page"],
+    },
+  },
   {
     name: "update_event_details",
     description:
@@ -176,4 +203,5 @@ export const functionDeclarations: FunctionDeclaration[] = [
       required: ["instruction"],
     },
   },
+  ...planningFunctionDeclarations,
 ];
