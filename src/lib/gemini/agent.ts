@@ -8,6 +8,7 @@ import {
   summarizeFunctionCallParts,
 } from "./log";
 import { functionDeclarations } from "./tools";
+import { execPlanningTool } from "./planningTools";
 import { venueListSchema, quoteSchema, type ExtractedVenue } from "./schemas";
 import {
   matchPlace,
@@ -29,19 +30,22 @@ import {
   COMPOSE_OUTREACH_PROMPT,
   REPLY_PROPOSAL_PROMPT,
 } from "./prompts";
-import type {
-  ChatMessageRow,
-  EmailReplyRow,
-  EventRow,
-  MessagePayload,
-  OutboundEmailRow,
-  QuoteExtraction,
-  ReplyProposalRow,
-  VendorCategory,
-  VenueRow,
+import {
+  isAgentPage,
+  type AgentUiAction,
+  type ChatMessageRow,
+  type EmailReplyRow,
+  type EventRow,
+  type MessagePayload,
+  type OutboundEmailRow,
+  type QuoteExtraction,
+  type ReplyProposalRow,
+  type VendorCategory,
+  type VenueRow,
 } from "@/lib/db/types";
 
-const MAX_ITERATIONS = 6;
+// Read → write → navigate chains need more room than the old 6.
+const MAX_ITERATIONS = 8;
 
 export interface AgentTurnResult {
   text: string;
@@ -49,12 +53,14 @@ export interface AgentTurnResult {
 }
 
 type StatusFn = (status: string) => void;
+type UiActionFn = (action: AgentUiAction) => void;
 
 /**
  * Run one agent turn: feed history + the new user message to Gemini with
  * function declarations, execute any tool calls server-side, loop until the
  * model produces plain text. Tool side effects (event updates, venue inserts,
  * draft rows) are written through the caller's RLS-scoped Supabase client.
+ * `onUiAction` streams client-side actions (page navigation) to the app.
  */
 export async function runAgentTurn(
   supabase: SupabaseClient,
@@ -62,7 +68,8 @@ export async function runAgentTurn(
   history: ChatMessageRow[],
   userMessage: string,
   onStatus: StatusFn = () => {},
-  extraContext?: string
+  extraContext?: string,
+  onUiAction: UiActionFn = () => {}
 ): Promise<AgentTurnResult> {
   const ai = getGemini();
 
@@ -254,12 +261,23 @@ export async function runAgentTurn(
             }
             break;
           }
-          default:
-            logAgentError("gemini/agent:unknownTool", new Error(`Unknown tool: ${call.name}`), {
-              eventId: event.id,
-              iteration: i,
-            });
-            result = { error: `Unknown tool: ${call.name}` };
+          case "show_page":
+            result = execShowPage(args, onUiAction);
+            break;
+          default: {
+            // Planning/data tools (budget, guests, tasks, registry, vendor
+            // board) live in their own module; unknown names fall through.
+            const planning = await execPlanningTool(supabase, currentEvent, call.name ?? "", args);
+            if (planning) {
+              result = planning;
+            } else {
+              logAgentError("gemini/agent:unknownTool", new Error(`Unknown tool: ${call.name}`), {
+                eventId: event.id,
+                iteration: i,
+              });
+              result = { error: `Unknown tool: ${call.name}` };
+            }
+          }
         }
       } catch (err) {
         logAgentError("gemini/agent:toolExecution", err, {
@@ -291,6 +309,31 @@ export async function runAgentTurn(
 }
 
 // ── Tool executors ──────────────────────────────────────────────────────
+
+/** Fire a navigate action at the client so the requested page appears. */
+function execShowPage(
+  args: Record<string, unknown>,
+  onUiAction: UiActionFn
+): Record<string, unknown> {
+  const page = args.page;
+  if (!isAgentPage(page)) {
+    return { error: `Unknown page: ${String(page)}` };
+  }
+  const action: AgentUiAction = { kind: "navigate", page };
+  const category = args.vendor_category;
+  if (
+    typeof category === "string" &&
+    ["venue", "florist", "photographer", "musician", "caterer", "planner", "other"].includes(category)
+  ) {
+    action.vendor_category = category as VendorCategory;
+  }
+  const tab = args.hub_tab;
+  if (tab === "explore" || tab === "shortlist" || tab === "booked") {
+    action.hub_tab = tab;
+  }
+  onUiAction(action);
+  return { ok: true, note: `The ${page} page is now on the user's screen.` };
+}
 
 async function execUpdateEventDetails(
   supabase: SupabaseClient,

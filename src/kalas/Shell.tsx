@@ -6,6 +6,7 @@ import {
   Wallet, Users, Globe, Mail, ListChecks, LayoutDashboard,
   LayoutGrid, X, Settings, Gift, PanelLeftClose, PanelLeft,
   Bell, MessageCircle, LogOut, UserPlus, ChevronDown, Inbox,
+  Sparkles,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { couple } from './data';
@@ -17,9 +18,9 @@ export type ScreenId =
   | 'home' | 'ava' | 'team' | 'inbox'
   | 'budget' | 'guests' | 'website' | 'registry' | 'invites' | 'planning' | 'seating';
 
-type NavItem = { id: ScreenId; label: string; icon: LucideIcon; group: 'main' | 'plan' };
+export type NavItem = { id: ScreenId; label: string; icon: LucideIcon; group: 'main' | 'plan' };
 
-const NAV: NavItem[] = [
+export const NAV: NavItem[] = [
   { id: 'home',        label: 'Hjem',          icon: Home,          group: 'main' },
   { id: 'planning',    label: 'Tidslinje',     icon: ListChecks,    group: 'main' },
   { id: 'inbox',       label: 'Inbox',         icon: Inbox,         group: 'main' },
@@ -41,14 +42,14 @@ const DRAWER_W = 448;
 const shellTransition = { type: 'spring' as const, stiffness: 380, damping: 36 };
 
 /** Page cream — main content surface */
-const PAGE_BG = '#f5f3ee';
+export const PAGE_BG = '#f5f3ee';
 /** Soft mint chrome behind sidebar + header (slightly greener than page cream) */
-const CHROME_BG = '#f0f1ec';
+export const CHROME_BG = '#f0f1ec';
 /** Soft green wash from top-left (sits behind sidebar + header as one layer) */
-const CHROME_WASH =
+export const CHROME_WASH =
   'radial-gradient(ellipse 520px 380px at 0% 0%, rgba(31,77,64,0.16) 0%, rgba(31,77,64,0.07) 42%, transparent 72%)';
 
-function Wordmark({ light = false }: { light?: boolean }) {
+export function Wordmark({ light = false }: { light?: boolean }) {
   return (
     <span
       className={cn(
@@ -85,6 +86,7 @@ export default function Shell({
   avaBadge,
   avaOpen,
   onAvaOpen,
+  onChatMode,
   avaDrawer,
   children,
 }: {
@@ -95,6 +97,8 @@ export default function Shell({
   avaBadge: number;
   avaOpen: boolean;
   onAvaOpen: () => void;
+  /** Switch the whole app into the full-screen chat interface. */
+  onChatMode?: () => void;
   avaDrawer: React.ReactNode;
   children: React.ReactNode;
 }) {
@@ -239,6 +243,18 @@ export default function Shell({
               <span className="lg:hidden"><Wordmark /></span>
             </div>
             <div className="flex shrink-0 items-center gap-2">
+              {onChatMode && (
+                <button
+                  type="button"
+                  onClick={onChatMode}
+                  aria-label={t('Chat-tilstand')}
+                  title={t('Chat-tilstand')}
+                  className="flex h-8 items-center gap-1.5 rounded-full border border-[#d8d4c7] px-3 text-xs font-semibold text-[#6c7561] transition-colors hover:bg-[#314523]/6 hover:text-[#314523] cursor-pointer"
+                >
+                  <Sparkles size={13} />
+                  <span className="hidden sm:inline">{t('Chat-tilstand')}</span>
+                </button>
+              )}
               <button
                 type="button"
                 onClick={onAvaOpen}
@@ -425,7 +441,7 @@ const LANG_OPTIONS: { id: Lang; flag: string; label: string }[] = [
   { id: 'en', flag: '🇬🇧', label: 'English' },
 ];
 
-function LangFlagMenu() {
+export function LangFlagMenu() {
   const { lang, setLang, t } = useLang();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);

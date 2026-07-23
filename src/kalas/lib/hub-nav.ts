@@ -1,4 +1,6 @@
 import type { ScreenId } from '../Shell';
+import type { AgentUiAction } from '@/lib/db/types';
+import { batchHubCat, batchHubTab } from '@/lib/vendor-batch';
 import {
   HUB_CAT_KEY,
   HUB_TAB_KEY,
@@ -23,6 +25,21 @@ export function resolveScreenNavigation(target: NavigateTarget): ScreenId {
     return 'team';
   }
   return target;
+}
+
+/**
+ * Resolve an agent navigate action to the screen to show, writing the vendor
+ * hub deep-link (tab/category) to sessionStorage when the action targets the
+ * board. Returns the ScreenId the caller should switch to.
+ */
+export function agentActionToScreen(action: AgentUiAction): ScreenId {
+  if (action.page === 'vendors') {
+    const cat = action.vendor_category;
+    const tab = action.hub_tab ?? (cat ? batchHubTab(cat) : 'explore');
+    navigateToHub(tab, cat ? batchHubCat(cat) : undefined);
+    return 'team';
+  }
+  return action.page;
 }
 
 export function migrateSavedScreen(saved: string | null): ScreenId | null {

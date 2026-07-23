@@ -12,7 +12,7 @@ import { navigateToHub } from '../lib/hub-nav';
 import OnboardingHint from '../OnboardingHint';
 import { createClient } from '@/lib/supabase/client';
 import { useAgentChat } from '@/lib/hooks/useAgentChat';
-import type { ChatMessageRow, ReplyProposalRow, EmailDraftRow, VenueRow, VendorCategory } from '@/lib/db/types';
+import type { AgentUiAction, ChatMessageRow, ReplyProposalRow, EmailDraftRow, VenueRow, VendorCategory } from '@/lib/db/types';
 import {
   batchCategory,
   batchHubCat,
@@ -24,10 +24,15 @@ import {
 export default function Ava({
   onNavigate,
   onClose,
+  onUiAction,
+  uiMode = 'classic',
   variant = 'page',
 }: {
   onNavigate?: (s: NavigateTarget) => void;
   onClose?: () => void;
+  /** Applies agent-driven client actions (page navigation) as they stream in. */
+  onUiAction?: (action: AgentUiAction) => void;
+  uiMode?: 'chat' | 'classic';
   variant?: 'page' | 'drawer';
 }) {
   const { loading, event, couple } = useWedding();
@@ -66,6 +71,8 @@ export default function Ava({
       coupleA={couple.a}
       onNavigate={onNavigate}
       onClose={onClose}
+      onUiAction={onUiAction}
+      uiMode={uiMode}
       variant={variant}
     />
   );
@@ -76,12 +83,16 @@ function AvaChat({
   coupleA,
   onNavigate,
   onClose,
+  onUiAction,
+  uiMode,
   variant,
 }: {
   eventId: string;
   coupleA: string;
   onNavigate?: (s: NavigateTarget) => void;
   onClose?: () => void;
+  onUiAction?: (action: AgentUiAction) => void;
+  uiMode: 'chat' | 'classic';
   variant: 'page' | 'drawer';
 }) {
   const supabase = useMemo(() => createClient(), []);
@@ -90,6 +101,8 @@ function AvaChat({
   const { messages, agentStatus, sendMessage, setMessages } = useAgentChat({
     initialEventId: eventId,
     onTurnComplete: () => void refresh(),
+    onUiAction,
+    uiMode,
   });
   const { t } = useLang();
   const [draft, setDraft] = useState('');
