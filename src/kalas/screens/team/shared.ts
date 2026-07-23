@@ -36,50 +36,6 @@ export const HUB_CATS: { id: HubCat; label: string }[] = [
   { id: 'beauty', label: 'Beauty' },
 ];
 
-/** Explore-tab header copy per category (Danish keys → `t()`). */
-export const EXPLORE_HEADERS: Record<HubCat, { title: string; body: string }> = {
-  venue: {
-    title: 'Byg jeres liste af venues',
-    body: 'Drej på kloden og vælg et land, eller skriv selv et sted — Ava researcher rigtige venues, som I kan gå på opdagelse i nedenfor.',
-  },
-  overnatning: {
-    title: 'Find overnatning til gæsterne',
-    body: 'Ava finder hoteller og overnatningssteder nær jeres lokation, som gæsterne kan booke — gem dem I vil anbefale.',
-  },
-  fotografi: {
-    title: 'Byg jeres liste af fotografer',
-    body: 'Gennemse fotografer Ava har fundet — gem dem I kan lide, så kan hun kontakte dem for jer.',
-  },
-  video: {
-    title: 'Byg jeres liste af videografer',
-    body: 'Gennemse videografer Ava har fundet — gem dem I kan lide, så kan hun kontakte dem for jer.',
-  },
-  blomster: {
-    title: 'Byg jeres liste af florister',
-    body: 'Gennemse florister Ava har fundet — gem dem I kan lide, så kan hun kontakte dem for jer.',
-  },
-  catering: {
-    title: 'Byg jeres liste af catering',
-    body: 'Gennemse catering Ava har fundet — gem dem I kan lide, så kan hun kontakte dem for jer.',
-  },
-  bar: {
-    title: 'Byg jeres liste af bar & drinks',
-    body: 'Gennemse bar- og drinksleverandører Ava har fundet — gem dem I kan lide, så kan hun kontakte dem for jer.',
-  },
-  kage: {
-    title: 'Byg jeres liste af bryllupskager',
-    body: 'Gennemse kagebagerier Ava har fundet — gem dem I kan lide, så kan hun kontakte dem for jer.',
-  },
-  musik: {
-    title: 'Byg jeres liste af musikere',
-    body: 'Gennemse DJ\'s, bands og musikere Ava har fundet — gem dem I kan lide, så kan hun kontakte dem for jer.',
-  },
-  beauty: {
-    title: 'Byg jeres liste af beauty',
-    body: 'Gennemse makeup- og hårstylister Ava har fundet — gem dem I kan lide, så kan hun kontakte dem for jer.',
-  },
-};
-
 const HUB_CAT_IDS = new Set<string>(HUB_CATS.map((c) => c.id));
 
 export function isHubCat(value: string | null | undefined): value is HubCat {

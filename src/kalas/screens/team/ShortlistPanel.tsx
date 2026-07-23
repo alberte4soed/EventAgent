@@ -11,7 +11,6 @@ import { Eyebrow, cn } from '../../ui';
 import type { NavigateTarget } from '../../lib/hub-nav';
 import type { HubCat, HubTab } from './shared';
 import { matchesHubCat, matchesHubSearch } from './shared';
-import CategoryFilterBar from './CategoryFilterBar';
 import type { VenueRow } from '@/lib/db/types';
 
 const CAT_LABEL: Record<string, string> = {
@@ -26,7 +25,6 @@ const CAT_LABEL: Record<string, string> = {
 
 export default function ShortlistPanel({
   cat,
-  onCatChange,
   query,
   venueView,
   onVenueViewChange,
@@ -35,7 +33,6 @@ export default function ShortlistPanel({
   vendorsLocked = false,
 }: {
   cat: HubCat;
-  onCatChange: (cat: HubCat) => void;
   query: string;
   venueView: VenueHubView;
   onVenueViewChange: (view: VenueHubView) => void;
@@ -56,12 +53,6 @@ export default function ShortlistPanel({
   const likedVendors = liked.filter((v) => v.category !== 'venue');
   const showVenueList = cat === 'venue';
   const showVendorList = cat !== 'venue';
-  // The venue list carries its own "Trin 2" header; the category bar drops in
-  // beneath it there. Everywhere else in the shortlist it sits at the top.
-  const venueListShown = showVenueList && likedVenues.length > 0;
-  const categoryBar = (
-    <CategoryFilterBar cat={cat} onCatChange={onCatChange} vendorsLocked={vendorsLocked} />
-  );
 
   if (venueView === 'review' && showVenueList) {
     return (
@@ -81,8 +72,6 @@ export default function ShortlistPanel({
 
   return (
     <div className="space-y-10">
-      {!venueListShown && categoryBar}
-
       {vendorsLocked && showVenueList && likedVenues.length > 0 && (
         <div className="flex items-start gap-3 rounded-[18px] border border-[#d8d4c7] bg-[#f0ede5] px-5 py-4">
           <Lock size={14} className="mt-0.5 shrink-0 text-[#6c7561]" />
@@ -103,7 +92,6 @@ export default function ShortlistPanel({
             searchQuery: query,
             category: cat,
             showHint: false,
-            categoryBar,
           }}
         />
       )}

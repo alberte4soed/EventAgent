@@ -1,9 +1,17 @@
 "use client";
 
 import { motion } from 'motion/react';
+import { Globe as GlobeIcon, Heart, CalendarCheck } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { cn } from '../../ui';
 import { useLang } from '../../i18n';
 import { HUB_TABS, type HubTab } from './shared';
+
+const TAB_ICON: Record<HubTab, LucideIcon> = {
+  explore: GlobeIcon,
+  shortlist: Heart,
+  booked: CalendarCheck,
+};
 
 export default function HubTabBar({
   tab,
@@ -23,41 +31,37 @@ export default function HubTabBar({
   };
 
   return (
-    <div className="sticky top-0 z-20 bg-canvas/95 backdrop-blur-md rule-b">
-      <div className="flex items-end gap-6 overflow-x-auto hide-scrollbar px-6 pt-5 sm:gap-8 sm:px-9 lg:px-12">
-        {HUB_TABS.map(({ id }) => {
-          const active = tab === id;
-          const badge = badges[id];
-          return (
-            <button
-              key={id}
-              type="button"
-              onClick={() => onChange(id)}
-              className="relative shrink-0 cursor-pointer pb-4 group"
-            >
-              <span
-                className={cn(
-                  'font-serif text-[clamp(1.2rem,2vw,1.6rem)] leading-none transition-colors',
-                  active ? 'text-ink' : 'text-muted/50 group-hover:text-ink/60',
-                )}
-              >
-                {labels[id]}
-                {badge ? (
-                  <span className="ml-1.5 align-middle font-sans text-[0.7rem] tabular-nums text-muted">
-                    · {badge}
-                  </span>
-                ) : null}
+    <div className="flex gap-1 overflow-x-auto hide-scrollbar border-b border-[#e0ddd2]">
+      {HUB_TABS.map(({ id }) => {
+        const active = tab === id;
+        const count = badges[id];
+        const Icon = TAB_ICON[id];
+        return (
+          <button
+            key={id}
+            type="button"
+            onClick={() => onChange(id)}
+            className={cn(
+              'relative flex shrink-0 items-center gap-2 px-3 py-2.5 text-[0.82rem] font-semibold transition-colors cursor-pointer',
+              active ? 'text-[#314523]' : 'text-muted hover:text-ink',
+            )}
+          >
+            <Icon size={15} strokeWidth={2} />
+            {labels[id]}
+            {count ? (
+              <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-[#eef1e6] px-1 text-[0.6rem] font-bold text-[#314523]">
+                {count}
               </span>
-              {active && (
-                <motion.span
-                  layoutId="hub-underline"
-                  className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-ink"
-                />
-              )}
-            </button>
-          );
-        })}
-      </div>
+            ) : null}
+            {active && (
+              <motion.span
+                layoutId="hub-underline"
+                className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-[#314523]"
+              />
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 }

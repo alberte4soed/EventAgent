@@ -4,13 +4,12 @@ import { useState, useRef, useEffect, type ReactNode } from 'react';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  Heart, Check, MessageCircle, ArrowLeft, MapPin, ArrowUpRight,
+  Heart, Check, MessageCircle, ArrowLeft, MapPin,
   Star, Loader2, Sparkles, Globe as GlobeIcon, Plus, X, Send, Mail, Clock, ArrowRight,
   Expand, Search, PenLine,
 } from 'lucide-react';
 import { Lightbox } from '../onboarding/Lightbox';
 import OutreachDialog from '../OutreachDialog';
-import LocationChip from './team/LocationChip';
 import { IMAGES } from '../data';
 import { useWedding, type Couple } from '../useWedding';
 import { Eyebrow, Pill, cn } from '../ui';
@@ -262,7 +261,6 @@ export default function VenueDiscovery({
             key="discover"
             couple={couple}
             savedPlaceIds={savedPlaceIds}
-            listCount={saved.size}
             similarNames={similarSeed ? likedNames : null}
             onSaved={refresh}
             onBack={hub ? undefined : () => setView('home')}
@@ -281,7 +279,6 @@ export default function VenueDiscovery({
             onBook={bookVenue}
             onBack={hub ? undefined : () => setView('home')}
             onDiscover={() => goDiscover(false)}
-            onFindMore={likedNames.length > 0 ? () => goDiscover(true) : undefined}
             onReview={() => setView('review')}
             onAva={() => onNavigate?.('ava')}
             onRefresh={refresh}
@@ -605,11 +602,10 @@ function VenuesHome({
    DISCOVER VIEW — globe → country → destination → real venues
 ═══════════════════════════════════════════════════════════════════════ */
 function DiscoverView({
-  couple, savedPlaceIds, listCount, similarNames, onSaved, onBack, onViewList, embedded = false, categoryBar,
+  couple, savedPlaceIds, similarNames, onSaved, onBack, onViewList, embedded = false, categoryBar,
 }: {
   couple: Couple;
   savedPlaceIds: Set<string>;
-  listCount: number;
   similarNames: string[] | null;
   onSaved: () => Promise<void>;
   onBack?: () => void;
@@ -801,34 +797,12 @@ function DiscoverView({
         embedded ? 'px-0 py-0' : 'px-6 py-8 sm:px-9 lg:px-12',
       )}
     >
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          {onBack && (
-            <button type="button" onClick={onBack}
-              className="mb-3 flex items-center gap-2 text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted hover:text-ink transition-colors cursor-pointer">
-              <ArrowLeft size={13} /> {t('Venues')}
-            </button>
-          )}
-          <h1 className="mt-1 font-serif text-[clamp(2rem,4vw,2.25rem)] leading-[1.1] tracking-[-0.02em] text-[#314523]">
-            {t('Byg jeres liste af venues')}
-          </h1>
-          <p className="mt-1 max-w-xl text-[13px] text-[#6c7561]">
-            {t('Drej på kloden og vælg et land, eller skriv selv et sted — Ava researcher rigtige venues, som I kan gå på opdagelse i nedenfor.')}
-          </p>
-        </div>
-        <div className="flex shrink-0 flex-col items-end gap-2">
-          <LocationChip />
-          {onViewList && listCount > 0 && (
-            <button
-              type="button"
-              onClick={onViewList}
-              className="flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-[#314523] px-3 text-xs font-semibold text-[#f7f5ef] transition-opacity hover:opacity-90 cursor-pointer"
-            >
-              {t('Se din liste ({n})', { n: listCount })} <ArrowUpRight size={13} />
-            </button>
-          )}
-        </div>
-      </div>
+      {onBack && (
+        <button type="button" onClick={onBack}
+          className="flex items-center gap-2 text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted hover:text-ink transition-colors cursor-pointer">
+          <ArrowLeft size={13} /> {t('Venues')}
+        </button>
+      )}
 
       {categoryBar}
 
@@ -962,25 +936,14 @@ function DiscoverView({
       <div ref={resultsRef} className="scroll-mt-6">
         {destination && (
           <div className="flex flex-col gap-5">
-            <div className="flex flex-wrap items-end justify-between gap-3 border-b border-[#e0ddd2] pb-3">
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#8a9079]">{t('Venues')}</p>
-                <h2 className="mt-1 font-serif text-[clamp(1.5rem,3vw,2rem)] leading-tight text-[#314523]">
-                  {destTitle}
-                </h2>
-                <p className="mt-1 text-[13px] text-[#6c7561]">
-                  {t('Klik på et venue for at se billederne, eller tilføj det til jeres liste.')}
-                </p>
-              </div>
-              {onViewList && listCount > 0 && (
-                <button
-                  type="button"
-                  onClick={onViewList}
-                  className="flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-[#d8d4c7] px-3 text-xs font-semibold text-[#314523] transition-colors hover:bg-[#eef1e6] cursor-pointer"
-                >
-                  {t('Se din liste ({n})', { n: listCount })} <ArrowUpRight size={13} />
-                </button>
-              )}
+            <div className="border-b border-[#e0ddd2] pb-3">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#8a9079]">{t('Venues')}</p>
+              <h2 className="mt-1 font-serif text-[clamp(1.5rem,3vw,2rem)] leading-tight text-[#314523]">
+                {destTitle}
+              </h2>
+              <p className="mt-1 text-[13px] text-[#6c7561]">
+                {t('Klik på et venue for at se billederne, eller tilføj det til jeres liste.')}
+              </p>
             </div>
 
             {resultsLoading ? (
@@ -1226,7 +1189,7 @@ function PanelError({ label, onRetry }: { label: string; onRetry: () => void }) 
    PICKS VIEW — venue management
 ═══════════════════════════════════════════════════════════════════════ */
 function PicksView({
-  venues, couple, saved, sent, booked, stageOf, initialSelectedId, onToggleSave, onOutreach, onBook, onDiscover, onBack, onFindMore, onReview, onAva, onRefresh, embedded = false, categoryBar,
+  venues, couple, saved, sent, booked, stageOf, initialSelectedId, onToggleSave, onOutreach, onBook, onDiscover, onBack, onReview, onAva, onRefresh, embedded = false, categoryBar,
 }: {
   venues: DisplayVenue[];
   couple: Couple;
@@ -1236,7 +1199,6 @@ function PicksView({
   onToggleSave: (id: string) => void; onOutreach: (id: string) => void;
   onBook: (id: string) => void; onDiscover: () => void; onAva: () => void;
   onBack?: () => void;
-  onFindMore?: () => void;
   onReview: () => void;
   onRefresh: () => Promise<void>;
   embedded?: boolean;
@@ -1328,40 +1290,17 @@ function PicksView({
       </div>
       )}
 
-      {/* ── Header + list tools ──────────────────────────────────────── */}
-      <div className={cn(padX, 'pt-8')}>
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h2 className="font-serif text-[clamp(2rem,4vw,2.25rem)] leading-[1.1] tracking-[-0.02em] text-[#314523]">
-              {t('Venues I')} <span className="italic">{t('overvejer.')}</span>
-            </h2>
-            <p className="mt-1 max-w-xl text-[13px] text-[#6c7561]">
-              {t(venues.length === 1 ? '{n} venue på listen' : '{n} venues på listen', { n: venues.length })}
-              {venueCity ? t(' · nær {area}', { area: venueCity }) : ''}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2.5">
-            <button onClick={onDiscover}
-              className="flex items-center gap-2 rounded-full border border-[var(--color-line-strong)] px-4 py-2.5 text-[0.72rem] font-bold uppercase tracking-[0.12em] text-ink hover:bg-shell transition-colors cursor-pointer">
-              <GlobeIcon size={14} /> {t('Udforsk kloden')}
-            </button>
-            {onFindMore && (
-              <button onClick={onFindMore}
-                className="flex items-center gap-2 rounded-full border border-[var(--color-line-strong)] px-4 py-2.5 text-[0.72rem] font-bold uppercase tracking-[0.12em] text-ink hover:bg-shell transition-colors cursor-pointer">
-                <Sparkles size={14} /> {t('Find flere som disse')}
-              </button>
-            )}
-            {savedVenues.length >= 2 && (
-              <button onClick={() => setComparing(true)}
-                className="rounded-full bg-ink px-4 py-2.5 text-[0.72rem] font-bold uppercase tracking-[0.12em] text-canvas hover:opacity-85 transition-opacity cursor-pointer">
-                {t('Sammenlign ({n})', { n: savedVenues.length })}
-              </button>
-            )}
-          </div>
+      {/* ── List tools ──────────────────────────────────────────────── */}
+      {savedVenues.length >= 2 && (
+        <div className={cn(padX, 'pt-8 flex justify-end')}>
+          <button onClick={() => setComparing(true)}
+            className="rounded-full bg-ink px-4 py-2.5 text-[0.72rem] font-bold uppercase tracking-[0.12em] text-canvas hover:opacity-85 transition-opacity cursor-pointer">
+            {t('Sammenlign ({n})', { n: savedVenues.length })}
+          </button>
         </div>
-      </div>
+      )}
 
-      {/* ── Category filter (hub shortlist) — sits under the list header ── */}
+      {/* ── Category filter (hub shortlist) ──────────────────────────── */}
       {categoryBar && <div className={cn(padX, 'pt-6')}>{categoryBar}</div>}
 
       {/* ── Outreach progress → review page ──────────────────────────── */}

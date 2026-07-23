@@ -33,7 +33,7 @@ export default function CategoryFilterBar({
   const { t } = useLang();
 
   return (
-    <div className="mt-4 flex gap-2 overflow-x-auto hide-scrollbar -mx-1 px-1 pb-1">
+    <div className="flex gap-2 overflow-x-auto hide-scrollbar -mx-1 px-1 pb-1">
       {HUB_CATS.map((c) => {
         const active = cat === c.id;
         const locked = vendorsLocked && c.id !== 'venue';
