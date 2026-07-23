@@ -1414,4 +1414,38 @@ export const EN: Record<string, string> = {
   'Åbn invitationen': 'Open the invitation',
   'Gemmer…': 'Saving…',
   'Gem & del': 'Save & share',
+  // ── Honeymoon screen ────────────────────────────────────────────────
+  'Bryllupsrejse': 'Honeymoon',
+  'Udforsk': 'Explore',
+  'Gemte': 'Saved',
+  'Drøm jer væk sammen — find destinationer på kloden, bliv inspireret, og gem de steder I forelsker jer i.':
+    'Dream away together — find destinations on the globe, get inspired, and save the places you fall in love with.',
+  'Tryk på et land på kloden — eller skriv selv et sted — for at se honeymoon-destinationer.':
+    'Tap a country on the globe — or type a place yourself — to see honeymoon destinations.',
+  'f.eks. Maldiverne · Toscana · Bali': 'e.g. Maldives · Tuscany · Bali',
+  'Søg hoteller nær {area}': 'Search hotels near {area}',
+  'Finder honeymoon-destinationer i {country}…': 'Finding honeymoon destinations in {country}…',
+  'Honeymoon-hoteller': 'Honeymoon hotels',
+  'Romantiske ophold til jeres bryllupsrejse — tryk på hjertet for at gemme.':
+    'Romantic stays for your honeymoon — tap the heart to save.',
+  'Kunne ikke finde hoteller her.': "Couldn't find hotels here.",
+  'Se hoteller': 'See hotels',
+  'Eventyr': 'Adventure',
+  'Natur': 'Nature',
+  'Hotel': 'Hotel',
+  'Tur': 'Trip',
+  'Rute': 'Route',
+  'Samler inspiration…': 'Gathering inspiration…',
+  'Ingen inspiration lige nu': 'No inspiration right now',
+  'Prøv i stedet at udforske destinationer på kloden.': 'Try exploring destinations on the globe instead.',
+  'Honeymoon-typer': 'Honeymoon types',
+  'Destinations-spotlight': 'Destination spotlight',
+  'Idéer til turen': 'Trip ideas',
+  'Ture, ruter & romantiske ophold': 'Trips, routes & romantic stays',
+  'Destinationer': 'Destinations',
+  'Hoteller': 'Hotels',
+  'Idéer': 'Ideas',
+  'Ingen gemte endnu': 'Nothing saved yet',
+  'Tryk på hjertet ved en destination, et hotel eller en idé, så samler vi dem her.':
+    'Tap the heart on a destination, hotel or idea and we’ll collect them here.',
 };

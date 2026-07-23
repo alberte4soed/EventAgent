@@ -23,6 +23,7 @@ import Invites from './screens/Invites';
 import Seating from './screens/Seating';
 import Registry from './screens/Registry';
 import Inbox from './screens/Inbox';
+import Honeymoon from './screens/Honeymoon';
 
 export default function KalasRoot({ initialLang = 'da' }: { initialLang?: Lang }) {
   return (
@@ -98,6 +99,7 @@ function AppInner() {
     registry:    <Registry onNavigate={navigate} />,
     invites:     <Invites />,
     seating:     <Seating />,
+    honeymoon:   <Honeymoon onNavigate={navigate} />,
   };
 
   const activeScreen = screen === 'ava' ? 'home' : screen;
