@@ -5,7 +5,7 @@ import {
   Home, UsersRound,
   Wallet, Users, Globe, Mail, ListChecks, LayoutDashboard,
   LayoutGrid, X, Settings, Gift, PanelLeftClose, PanelLeft,
-  Bell, MessageCircle, LogOut, UserPlus, ChevronDown, Inbox,
+  Bell, MessageCircle, LogOut, UserPlus, ChevronDown, Inbox, Plane,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { couple } from './data';
@@ -15,7 +15,7 @@ import { SignOutButton } from '@/components/auth/SignOutButton';
 
 export type ScreenId =
   | 'home' | 'ava' | 'team' | 'inbox'
-  | 'budget' | 'guests' | 'website' | 'registry' | 'invites' | 'planning' | 'seating';
+  | 'budget' | 'guests' | 'website' | 'registry' | 'invites' | 'planning' | 'seating' | 'honeymoon';
 
 type NavItem = { id: ScreenId; label: string; icon: LucideIcon; group: 'main' | 'plan' };
 
@@ -30,6 +30,7 @@ const NAV: NavItem[] = [
   { id: 'registry',    label: 'Ønskeliste',    icon: Gift,          group: 'plan' },
   { id: 'invites',     label: 'Invitationer',  icon: Mail,          group: 'plan' },
   { id: 'seating',     label: 'Bordplan',      icon: LayoutDashboard, group: 'plan' },
+  { id: 'honeymoon',   label: 'Bryllupsrejse', icon: Plane,         group: 'plan' },
 ];
 
 const MOBILE_TABS: ScreenId[] = ['home', 'planning', 'inbox'];
