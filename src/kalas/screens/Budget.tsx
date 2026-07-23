@@ -3,6 +3,13 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Plus, X, ChevronDown, ArrowRight, Check, Pencil, Bell, StickyNote, Sparkles } from 'lucide-react';
 import BudgetContractPanel from './BudgetContractPanel';
 import { budgetLines, type BudgetLine } from '../data';
+import {
+  BUDGET_COLORS,
+  BUDGET_ICON_IDS,
+  nextBudgetColor,
+  resolveBudgetIcon,
+  type BudgetIconId,
+} from '../lib/budget-style';
 import { Eyebrow, Chip, cn } from '../ui';
 import AnimateNumber from '../AnimateNumber';
 import OnboardingHint from '../OnboardingHint';
@@ -10,6 +17,8 @@ import { useWedding } from '../useWedding';
 import { useLang } from '../i18n';
 import { navigateToHub, type NavigateTarget } from '../lib/hub-nav';
 import type { HubCat } from './team/shared';
+
+const isCustomLine = (id: string) => id.startsWith('custom-');
 
 /* Budget benchmark id → the vendor-search chip it should deep-link to.
    Custom + 'misc' lines have no matching vendor category, so no CTA. */
@@ -83,7 +92,15 @@ export default function Budget({ onNavigate }: { onNavigate?: (s: NavigateTarget
     const stdById = new Map(budgetLines.map((l) => [l.id, l]));
     const nextLines: BudgetLine[] = budgetItems.map((i) => {
       const std = stdById.get(i.category);
-      return { id: i.category, label: i.label, pct: std?.pct ?? 0, spent: i.paid_amount, hint: std?.hint ?? '' };
+      return {
+        id: i.category,
+        label: i.label,
+        pct: std?.pct ?? 0,
+        spent: i.paid_amount,
+        hint: std?.hint ?? '',
+        icon: i.icon ?? std?.icon ?? 'sparkles',
+        color: i.color ?? std?.color ?? BUDGET_COLORS[0],
+      };
     });
     setLines(nextLines);
     setAmounts((prev) => {
@@ -107,7 +124,10 @@ export default function Budget({ onNavigate }: { onNavigate?: (s: NavigateTarget
     seededRef.current = true;
     await Promise.all(
       ls.map((l, idx) =>
-        saveBudgetItem({ category: l.id, label: l.label, planned_amount: amts[l.id] ?? 0, paid_amount: l.spent, sort: idx })
+        saveBudgetItem({
+          category: l.id, label: l.label, planned_amount: amts[l.id] ?? 0,
+          paid_amount: l.spent, icon: l.icon, color: l.color, sort: idx,
+        })
       )
     );
   };
@@ -118,7 +138,10 @@ export default function Budget({ onNavigate }: { onNavigate?: (s: NavigateTarget
       return;
     }
     const line = lines.find((l) => l.id === id);
-    void saveBudgetItem({ category: id, label: line?.label ?? id, planned_amount: amount });
+    void saveBudgetItem({
+      category: id, label: line?.label ?? id, planned_amount: amount,
+      icon: line?.icon, color: line?.color,
+    });
   };
 
   // Persist a non-estimate field (actual cost, paid, note, reminder). Seeds the
@@ -134,13 +157,14 @@ export default function Budget({ onNavigate }: { onNavigate?: (s: NavigateTarget
         lines.map((l, idx) =>
           saveBudgetItem({
             category: l.id, label: l.label, planned_amount: amounts[l.id] ?? 0,
-            paid_amount: l.spent, sort: idx, ...(l.id === id ? patch : {}),
+            paid_amount: l.spent, icon: l.icon, color: l.color, sort: idx,
+            ...(l.id === id ? patch : {}),
           }),
         ),
       );
       return;
     }
-    void saveBudgetItem({ category: id, label: line?.label ?? id, ...patch });
+    void saveBudgetItem({ category: id, label: line?.label ?? id, icon: line?.icon, color: line?.color, ...patch });
   };
 
   // Deep-link a budget line straight into vendor search for its category.
@@ -162,16 +186,23 @@ export default function Budget({ onNavigate }: { onNavigate?: (s: NavigateTarget
     seededRef.current = true; // the benchmark set below becomes the persisted base
     await updateEvent({ budget: String(estTotal), guest_count: estGuests });
     await Promise.all(
-      BENCHMARK_DIST.map((d) =>
-        saveBudgetItem({ category: d.id, label: d.label, planned_amount: newAmounts[d.id], sort: BENCHMARK_DIST.indexOf(d) })
-      )
+      BENCHMARK_DIST.map((d) => {
+        const std = budgetLines.find((l) => l.id === d.id);
+        return saveBudgetItem({
+          category: d.id, label: d.label, planned_amount: newAmounts[d.id],
+          icon: std?.icon, color: std?.color, sort: BENCHMARK_DIST.indexOf(d),
+        });
+      })
     );
   }
   const [addingNew, setAddingNew] = useState(false);
   const [newLabel, setNewLabel] = useState('');
+  const [newIcon, setNewIcon] = useState<BudgetIconId>('sparkles');
+  const [newColor, setNewColor] = useState<string>(BUDGET_COLORS[0]);
   const inputRef = useRef<HTMLInputElement>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editLabel, setEditLabel] = useState('');
+  const [styleEditId, setStyleEditId] = useState<string | null>(null);
 
   const allocated = useMemo(() => Object.values(amounts).reduce((a, b) => a + b, 0), [amounts]);
   const remaining = total - allocated;
@@ -183,13 +214,32 @@ export default function Budget({ onNavigate }: { onNavigate?: (s: NavigateTarget
     const label = newLabel.trim();
     if (!label) return;
     const id = `custom-${Date.now()}`;
-    const newLine: BudgetLine = { id, label, pct: 0, spent: 0, hint: '' };
+    const newLine: BudgetLine = {
+      id, label, pct: 0, spent: 0, hint: '', icon: newIcon, color: newColor,
+    };
     setLines((prev) => [...prev, newLine]);
     setAmounts((prev) => ({ ...prev, [id]: 0 }));
     setNewLabel('');
+    setNewIcon('sparkles');
+    setNewColor(nextBudgetColor([...lines.map((l) => l.color), newColor]));
     setAddingNew(false);
     if (budgetItems.length === 0) void seedAll([...lines, newLine], { ...amounts, [id]: 0 });
-    else void saveBudgetItem({ category: id, label, planned_amount: 0 });
+    else void saveBudgetItem({ category: id, label, planned_amount: 0, icon: newIcon, color: newColor });
+  };
+
+  const persistStyle = (id: string, icon: string, color: string) => {
+    setLines((prev) => prev.map((l) => (l.id === id ? { ...l, icon, color } : l)));
+    const line = lines.find((l) => l.id === id);
+    if (budgetItems.length === 0) {
+      void seedAll(
+        lines.map((l) => (l.id === id ? { ...l, icon, color } : l)),
+        amounts,
+      );
+      return;
+    }
+    void saveBudgetItem({
+      category: id, label: line?.label ?? id, planned_amount: amounts[id] ?? 0, icon, color,
+    });
   };
 
   const removeLine = (id: string) => {
@@ -197,6 +247,7 @@ export default function Budget({ onNavigate }: { onNavigate?: (s: NavigateTarget
     setLines(remaining);
     setAmounts((prev) => { const next = { ...prev }; delete next[id]; return next; });
     if (editingId === id) setEditingId(null);
+    if (styleEditId === id) setStyleEditId(null);
     // When nothing is persisted yet, seed everything *except* the removed line
     // so the removal sticks; otherwise delete the persisted row.
     if (budgetItems.length === 0) void seedAll(remaining, amounts);
@@ -213,10 +264,19 @@ export default function Budget({ onNavigate }: { onNavigate?: (s: NavigateTarget
     const renamed = lines.map((b) => (b.id === id ? { ...b, label } : b));
     setLines(renamed);
     if (budgetItems.length === 0) void seedAll(renamed, amounts);
-    else void saveBudgetItem({ category: id, label, planned_amount: amounts[id] ?? 0 });
+    else void saveBudgetItem({
+      category: id, label, planned_amount: amounts[id] ?? 0,
+      icon: lines.find((l) => l.id === id)?.icon,
+      color: lines.find((l) => l.id === id)?.color,
+    });
   };
 
-  const startAdding = () => { setAddingNew(true); setTimeout(() => inputRef.current?.focus(), 50); };
+  const startAdding = () => {
+    setNewColor(nextBudgetColor(lines.map((l) => l.color)));
+    setNewIcon('sparkles');
+    setAddingNew(true);
+    setTimeout(() => inputRef.current?.focus(), 50);
+  };
 
   // Real payment timeline, derived from the lines that have an agreed cost
   // and/or a reminder date — replacing the old hard-coded schedule.
@@ -342,24 +402,29 @@ export default function Budget({ onNavigate }: { onNavigate?: (s: NavigateTarget
 
       {/* Stacked allocation bar */}
       <div className="mt-8 flex h-3 overflow-hidden rounded-full bg-shell">
-        {lines.map((b, i) => (
+        {lines.map((b) => (
           <motion.div key={b.id}
             initial={{ width: 0 }} animate={{ width: `${((amounts[b.id] ?? 0) / total) * 100}%` }}
             transition={{ duration: 0.5 }}
-            style={{ background: `hsl(${74 + i * 8} ${22 - i}% ${42 + i * 4}%)` }}
+            style={{ background: b.color }}
             title={t(b.label)}
           />
         ))}
       </div>
       {/* Legend — so the bar actually reads */}
       <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5">
-        {lines.map((b, i) => (
-          <span key={b.id} className="flex items-center gap-1.5 text-[0.72rem] text-muted">
-            <span className="h-2 w-2 rounded-full shrink-0"
-              style={{ background: `hsl(${74 + i * 8} ${22 - i}% ${42 + i * 4}%)` }} />
-            {t(b.label)} · {Math.round(((amounts[b.id] ?? 0) / total) * 100)}%
-          </span>
-        ))}
+        {lines.map((b) => {
+          const Icon = resolveBudgetIcon(b.icon);
+          return (
+            <span key={b.id} className="flex items-center gap-1.5 text-[0.72rem] text-muted">
+              <span className="flex h-4 w-4 items-center justify-center rounded-full shrink-0"
+                style={{ background: b.color }}>
+                <Icon size={9} className="text-white" strokeWidth={2.5} />
+              </span>
+              {t(b.label)} · {Math.round(((amounts[b.id] ?? 0) / total) * 100)}%
+            </span>
+          );
+        })}
       </div>
 
       {/* Editable lines */}
@@ -373,6 +438,9 @@ export default function Budget({ onNavigate }: { onNavigate?: (s: NavigateTarget
           const reminder = reminderById[b.id] ?? '';
           const note = noteById[b.id] ?? '';
           const days = daysUntil(reminder);
+          const Icon = resolveBudgetIcon(b.icon);
+          const custom = isCustomLine(b.id);
+          const styleOpen = styleEditId === b.id;
           return (
           <motion.div key={b.id}
             initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
@@ -380,6 +448,27 @@ export default function Budget({ onNavigate }: { onNavigate?: (s: NavigateTarget
             className="py-7">
             <div className="flex items-baseline justify-between gap-4">
               <div className="flex items-center gap-2.5 min-w-0">
+                {custom ? (
+                  <button
+                    type="button"
+                    onClick={() => setStyleEditId(styleOpen ? null : b.id)}
+                    aria-label={t('Vælg ikon og farve')}
+                    aria-expanded={styleOpen}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-opacity hover:opacity-80 cursor-pointer"
+                    style={{ background: b.color }}
+                    title={t('Vælg ikon og farve')}
+                  >
+                    <Icon size={15} className="text-white" strokeWidth={2.25} />
+                  </button>
+                ) : (
+                  <span
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+                    style={{ background: b.color }}
+                    aria-hidden
+                  >
+                    <Icon size={15} className="text-white" strokeWidth={2.25} />
+                  </span>
+                )}
                 {editingId === b.id ? (
                   <input
                     autoFocus
@@ -415,6 +504,15 @@ export default function Budget({ onNavigate }: { onNavigate?: (s: NavigateTarget
                 </button>
               </div>
             </div>
+
+            {styleOpen && (
+              <StylePicker
+                icon={b.icon}
+                color={b.color}
+                onIcon={(icon) => persistStyle(b.id, icon, b.color)}
+                onColor={(color) => persistStyle(b.id, b.icon, color)}
+              />
+            )}
 
             {/* Estimate slider (primary) */}
             <div className="mt-4 flex items-center gap-4">
@@ -560,8 +658,15 @@ export default function Budget({ onNavigate }: { onNavigate?: (s: NavigateTarget
 
         {/* Add new category */}
         {addingNew ? (
-          <div className="py-5">
+          <div className="py-5 space-y-4">
             <div className="flex items-center gap-3">
+              <span
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+                style={{ background: newColor }}
+                aria-hidden
+              >
+                {(() => { const Preview = resolveBudgetIcon(newIcon); return <Preview size={16} className="text-white" strokeWidth={2.25} />; })()}
+              </span>
               <input
                 ref={inputRef}
                 type="text"
@@ -583,6 +688,12 @@ export default function Budget({ onNavigate }: { onNavigate?: (s: NavigateTarget
                 <X size={16} />
               </button>
             </div>
+            <StylePicker
+              icon={newIcon}
+              color={newColor}
+              onIcon={(icon) => setNewIcon(icon)}
+              onColor={setNewColor}
+            />
           </div>
         ) : (
           <div className="py-5">
@@ -677,6 +788,70 @@ const STAT_STYLES = {
   remaining: { bg: 'bg-[#f5f0e4]',   label: '!text-clay/70',    value: 'text-clay' },
   over:      { bg: 'bg-[#f9edea]',   label: '!text-red-700/70', value: 'text-red-700' },
 } as const;
+
+function StylePicker({
+  icon,
+  color,
+  onIcon,
+  onColor,
+}: {
+  icon: string;
+  color: string;
+  onIcon: (id: BudgetIconId) => void;
+  onColor: (hex: string) => void;
+}) {
+  const { t } = useLang();
+  return (
+    <div className="mt-4 space-y-3 rule rounded-2xl bg-shell px-4 py-3.5">
+      <div>
+        <p className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-muted mb-2">{t('Ikon')}</p>
+        <div className="flex flex-wrap gap-1.5">
+          {BUDGET_ICON_IDS.map((id) => {
+            const I = resolveBudgetIcon(id);
+            const selected = icon === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => onIcon(id)}
+                aria-label={t('Vælg ikon')}
+                aria-pressed={selected}
+                className={cn(
+                  'flex h-8 w-8 items-center justify-center rounded-full transition-colors cursor-pointer',
+                  selected ? 'bg-ink text-canvas' : 'bg-card text-ink-soft hover:text-ink rule',
+                )}
+              >
+                <I size={14} strokeWidth={2.25} />
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <div>
+        <p className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-muted mb-2">{t('Farve')}</p>
+        <div className="flex flex-wrap gap-1.5">
+          {BUDGET_COLORS.map((hex) => {
+            const selected = color.toLowerCase() === hex.toLowerCase();
+            return (
+              <button
+                key={hex}
+                type="button"
+                onClick={() => onColor(hex)}
+                aria-label={t('Vælg farve')}
+                aria-pressed={selected}
+                className={cn(
+                  'h-7 w-7 rounded-full transition-transform cursor-pointer',
+                  selected ? 'ring-2 ring-ink ring-offset-2 ring-offset-[var(--color-canvas)] scale-105' : 'hover:scale-105',
+                )}
+                style={{ background: hex }}
+              />
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function Stat({ label, value, tone }: { label: string; value: number; tone: keyof typeof STAT_STYLES }) {
   const { t } = useLang();

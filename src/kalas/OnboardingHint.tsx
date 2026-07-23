@@ -28,7 +28,7 @@ const HINTS: Record<HintId, HintConfig> = {
     cta: 'Prøv Ava nu',
   },
   team: {
-    eyebrow: 'Venue & leverandører',
+    eyebrow: 'Leverandører',
     title: 'Ét sted til hele holdet',
     body: 'Udforsk venues og leverandører, gem dem på shortlisten, følg Ava\'s henvendelser i indbakken og hold styr på hvem I har booket.',
     cta: 'Kom i gang',

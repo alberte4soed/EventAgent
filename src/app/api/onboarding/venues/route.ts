@@ -8,6 +8,7 @@ import {
   cacheGet,
   cacheSet,
   getDetails,
+  isPlausibleVenue,
   matchPlace,
   resolvePhotoUrls,
   type PlaceResult,
@@ -45,14 +46,27 @@ interface Body {
 
 const TARGET = 10;
 
-/** Shared curation brief — couples swipe to teach Ava their taste; breadth beats similarity. */
+/**
+ * Shared curation brief. Two jobs at once: keep every pick a genuine WEDDING
+ * venue (the #1 complaint is random hotels / restaurants / non-venues), while
+ * still spreading across aesthetics so swiping actually reveals taste.
+ */
 const DIVERSITY_BRIEF = `
-The couple will SWIPE these cards to reveal their taste — your job is MAXIMUM variety, not ten versions of the same dreamy estate.
-Across exactly ${TARGET} venues, spread widely across vibes and settings. Aim for at least 8 clearly different aesthetics, e.g.:
-rustic barn / farm, modern minimalist loft, grand historic palace or manor, coastal or beach, garden or orangerie,
-industrial warehouse, vineyard or wine country, castle, boutique design hotel, lakeside, urban rooftop, chapel, tented estate.
-Mix indoor-dominant and outdoor-dominant, city and countryside, intimate and grand, budget-friendly and splurge where possible.
-No two picks should feel interchangeable — if three venues are all "elegant manor in rolling hills", replace the duplicates.
+FOCUS — every single pick must be a place that genuinely hosts weddings and events: a dedicated wedding/event
+venue, an estate, manor, castle, barn or farm that hosts weddings, a vineyard or winery, a historic hall,
+orangery or garden, a museum or gallery that rents for events, or a hotel/restaurant ONLY IF it markets a real
+wedding offering (a wedding package, event/banquet space, a "bryllup"/"weddings" page). This is a wedding-venue
+shortlist, NOT a list of nice places in the city.
+
+Do NOT include: ordinary city or chain business hotels with no wedding offering, everyday restaurants or cafés,
+bars, nightclubs, shops, offices, town halls, associations, sports facilities, playgrounds, or private homes.
+
+VARIETY — within that focus, make the ${TARGET} venues feel distinct so the couple's swipes reveal a preference.
+Spread across settings where the area allows: rustic barn / farm, historic manor or palace, castle, coastal or
+beach, garden or orangery, vineyard or wine country, a design hotel with a real wedding offering, lakeside,
+industrial/warehouse event space, chapel, tented estate. Mix indoor and outdoor, city and countryside, intimate
+and grand, budget-friendly and splurge. No two picks should be interchangeable — but never trade the wedding-venue
+focus for variety.
 `.trim();
 
 const suggestSchema: Schema = {
@@ -96,11 +110,11 @@ for about ${args.guestCount} guests. ${lovedLine} ${budgetLine}
 ${DIVERSITY_BRIEF}
 
 Rules:
-- Every "name" must be a real, findable venue or estate (not a city or region).
-- All must genuinely host weddings and fit the guest count roughly.
-- "why_fit" is ONE warm sentence highlighting THIS venue's distinct vibe (${langNote}).
+- Every "name" must be a real, findable, specific venue or estate (not a city, region, or generic business).
+- Every pick must be a place that actually hosts weddings/events and fits the guest count roughly — when in doubt, leave it out.
+- "why_fit" is ONE warm sentence highlighting THIS venue's distinct wedding vibe (${langNote}).
 - "capacity" and "price_hint" only when you have reasonable confidence; otherwise null.
-- No duplicates. No invented places.
+- No duplicates. No invented places. No generic hotels/restaurants without a real wedding offering.
 `.trim();
 }
 
@@ -123,14 +137,16 @@ async function suggestGrounded(
   destination: string
 ): Promise<ExtractedVenue[]> {
   const ai = getGemini();
-  const searchPrompt = `Search the web and find ${TARGET} real wedding venues in or near ${destination} for about ${args.guestCount} guests.
+  const searchPrompt = `Search the web and find ${TARGET} real WEDDING venues in or near ${destination} for about ${args.guestCount} guests.
+Search for genuine wedding venues — try queries like "bryllupslokale ${destination}", "wedding venue ${destination}",
+"bryllupsgård", "slot bryllup", "hold bryllup ${destination}" — and check each candidate has a real wedding/event offering.
 ${args.loved.length ? `Dream places they saved: ${args.loved.join(", ")}.` : ""}
 ${args.budget ? `Budget: ${args.budget} DKK.` : ""}
 
 ${DIVERSITY_BRIEF}
 
 Report each venue's name, distinct atmosphere/vibe, why it fits, address if visible, capacity and price hints.
-Prioritize variety — the couple swipes to learn their style, so avoid a homogeneous list.`;
+Only include places that genuinely host weddings; skip ordinary hotels, restaurants and non-venues even to reach the count.`;
 
   const grounded = await ai.models.generateContent({
     model: GEMINI_MODEL,
@@ -159,6 +175,9 @@ async function enrich(
   const place = await matchPlace(extracted.name, destination);
   if (!place) return null;
   if (place.businessStatus && place.businessStatus !== "OPERATIONAL") return null;
+  // Google's type tags catch the junk a name match lets through — playgrounds,
+  // offices, shops, transit — so a bad pick never reaches the couple's cards.
+  if (!isPlausibleVenue(place)) return null;
 
   const details: PlaceResult | null = await getDetails(place.id);
   const resolved = details ?? place;
@@ -188,7 +207,7 @@ function cacheKey(
   lang: string
 ): string {
   const lovedKey = [...loved].sort().join("|").toLowerCase();
-  return `onboarding-venues:v4:${lang}:${destination.toLowerCase()}:${guestCount}:${lovedKey}`;
+  return `onboarding-venues:v5:${lang}:${destination.toLowerCase()}:${guestCount}:${lovedKey}`;
 }
 
 export async function POST(request: NextRequest) {

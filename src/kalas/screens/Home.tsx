@@ -111,7 +111,7 @@ export default function Home({ onNavigate }: { onNavigate: (s: NavigateTarget) =
             : 'todo',
         screen: 'team',
         hubTab: 'explore',
-        hubCat: 'alle',
+        hubCat: 'fotografi',
       },
       {
         id: 'invites',
@@ -286,7 +286,7 @@ export default function Home({ onNavigate }: { onNavigate: (s: NavigateTarget) =
             </div>
             <button
               type="button"
-              onClick={() => goHub('explore', 'alle')}
+              onClick={() => goHub('explore', 'fotografi')}
               className="shrink-0 text-sm font-bold text-[#314523] hover:opacity-70"
             >
               {t('Se alle →')}

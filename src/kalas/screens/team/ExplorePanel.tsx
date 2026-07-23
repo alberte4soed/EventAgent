@@ -1,10 +1,11 @@
 "use client";
 
 import VenueDiscovery, { type VenueHubView } from '../Venues';
-import Suppliers from '../Suppliers';
+import VendorExplore from './VendorExplore';
 import CategoryFilterBar from './CategoryFilterBar';
+import { useLang } from '../../i18n';
 import type { NavigateTarget } from '../../lib/hub-nav';
-import type { HubCat, HubTab } from './shared';
+import { EXPLORE_HEADERS, type HubCat, type HubTab } from './shared';
 
 export default function ExplorePanel({
   cat,
@@ -25,7 +26,7 @@ export default function ExplorePanel({
   onSwitchTab: (tab: HubTab, cat?: HubCat) => void;
   vendorsLocked?: boolean;
 }) {
-  const showVenues = cat === 'venue' || cat === 'alle';
+  const { t } = useLang();
   const goToVenue = () => onSwitchTab('explore', 'venue');
   // The filter bar drops in under each sub-view's own header (Discover for
   // venues, top of the grid for vendors) instead of being pinned to the top.
@@ -33,7 +34,7 @@ export default function ExplorePanel({
     <CategoryFilterBar cat={cat} onCatChange={onCatChange} vendorsLocked={vendorsLocked} />
   );
 
-  if (showVenues && cat !== 'alle') {
+  if (cat === 'venue') {
     return (
       <VenueDiscovery
         onNavigate={onNavigate}
@@ -50,40 +51,20 @@ export default function ExplorePanel({
     );
   }
 
-  if (showVenues && cat === 'alle') {
-    return (
-      <div className="space-y-8">
-        <section>
-          <VenueDiscovery
-            onNavigate={onNavigate}
-            hub={{
-              view: 'discover',
-              onViewChange: onVenueViewChange,
-              onSwitchTab: onSwitchTab,
-              searchQuery: query,
-              category: 'venue',
-              showHint: false,
-              categoryBar,
-            }}
-          />
-        </section>
-        <section className="rule-t pt-8">
-          <Suppliers
-            onNavigate={onNavigate}
-            hub={{ cat: 'alle', query, showHint: false, locked: vendorsLocked, onGoToVenue: goToVenue }}
-          />
-        </section>
-      </div>
-    );
-  }
+  const header = EXPLORE_HEADERS[cat];
 
   return (
     <div className="space-y-6">
+      <div>
+        <h1 className="mt-1 font-serif text-[clamp(2rem,4vw,2.25rem)] leading-[1.1] tracking-[-0.02em] text-[#314523]">
+          {t(header.title)}
+        </h1>
+        <p className="mt-1 max-w-xl text-[13px] text-[#6c7561]">
+          {t(header.body)}
+        </p>
+      </div>
       {categoryBar}
-      <Suppliers
-        onNavigate={onNavigate}
-        hub={{ cat, query, showHint: false, locked: vendorsLocked, onGoToVenue: goToVenue }}
-      />
+      <VendorExplore cat={cat} onGoToVenue={goToVenue} onNavigate={onNavigate} />
     </div>
   );
 }

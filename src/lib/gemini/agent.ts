@@ -15,6 +15,7 @@ import {
   resolvePhotoUrls,
   mapReviews,
   emailMatchesWebsite,
+  isPlausibleVenue,
   type PlaceResult,
 } from "@/lib/places/client";
 import { rankScore } from "@/lib/ranking";
@@ -331,6 +332,7 @@ const VENDOR_CATEGORIES: VendorCategory[] = [
   "musician",
   "caterer",
   "planner",
+  "accommodation",
   "other",
 ];
 
@@ -448,6 +450,9 @@ async function execSearchVenues(
     const place = matches[i];
     if (place) {
       if (place.businessStatus && place.businessStatus !== "OPERATIONAL") continue;
+      // For venues, drop obvious non-venues (playgrounds, offices, shops) that
+      // a name match let through — same guard as the explore page.
+      if (category === "venue" && !isPlausibleVenue(place)) continue;
       if (seenPlaceIds.has(place.id)) continue;
       seenPlaceIds.add(place.id);
     }
@@ -759,6 +764,7 @@ const VENDOR_CATEGORY_SET = new Set<VendorCategory>([
   "musician",
   "caterer",
   "planner",
+  "accommodation",
   "other",
 ]);
 

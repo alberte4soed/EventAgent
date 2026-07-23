@@ -22,9 +22,8 @@ describe('venueLockedIn', () => {
 });
 
 describe('catLocked', () => {
-  it('never locks the venue or "alle" category', () => {
+  it('never locks the venue category', () => {
     expect(catLocked('venue', [venue({})], null)).toBe(false);
-    expect(catLocked('alle', [venue({})], null)).toBe(false);
   });
 
   it('locks vendor categories until a venue is locked in', () => {

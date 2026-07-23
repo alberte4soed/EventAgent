@@ -98,7 +98,7 @@ export default function Suppliers({
   const locked = hub?.locked ?? false;
   const [query, setQuery] = useState(hub?.query ?? '');
   const [cat, setCat] = useState<Cat>(() => {
-    if (hub?.cat && hub.cat !== 'venue' && hub.cat !== 'alle') {
+    if (hub?.cat && hub.cat !== 'venue') {
       const mapped = hub.cat as Cat;
       if (CATS.some((c) => c.id === mapped)) return mapped;
     }
@@ -117,8 +117,7 @@ export default function Suppliers({
 
   useEffect(() => {
     if (!hub?.cat || hub.cat === 'venue') return;
-    if (hub.cat === 'alle') setCat('alle');
-    else if (CATS.some((c) => c.id === hub.cat)) setCat(hub.cat as Cat);
+    if (CATS.some((c) => c.id === hub.cat)) setCat(hub.cat as Cat);
   }, [hub?.cat, hub]);
 
   useEffect(() => {

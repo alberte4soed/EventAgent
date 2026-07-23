@@ -26,7 +26,7 @@ const STEPS: Step[] = [
     body: 'Ava sekvenserer opgaverne baglæns fra jeres dato, så I altid kender næste skridt.' },
   { id: 'inbox', label: 'Inbox', title: 'Henvendelserne samlet',
     body: 'Se svar fra venues og leverandører, godkend Avas udkast, og hold styr på tilbud.' },
-  { id: 'team', label: 'Venue & leverandører', title: 'Fra opdagelse til booking',
+  { id: 'team', label: 'Leverandører', title: 'Fra opdagelse til booking',
     body: 'Find venues og leverandører, gem dem på shortlisten, og hold styr på jeres bookede team.' },
   { id: 'budget', label: 'Budget', title: 'Styr på pengene',
     body: 'Ava fordeler budgettet og siger til, før I rammer loftet.' },

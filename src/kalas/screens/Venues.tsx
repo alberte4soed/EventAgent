@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { Lightbox } from '../onboarding/Lightbox';
 import OutreachDialog from '../OutreachDialog';
+import LocationChip from './team/LocationChip';
 import { IMAGES } from '../data';
 import { useWedding, type Couple } from '../useWedding';
 import { Eyebrow, Pill, cn } from '../ui';
@@ -808,7 +809,6 @@ function DiscoverView({
               <ArrowLeft size={13} /> {t('Venues')}
             </button>
           )}
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#8a9079]">{t('Trin 1 · Opdag')}</p>
           <h1 className="mt-1 font-serif text-[clamp(2rem,4vw,2.25rem)] leading-[1.1] tracking-[-0.02em] text-[#314523]">
             {t('Byg jeres liste af venues')}
           </h1>
@@ -816,15 +816,18 @@ function DiscoverView({
             {t('Drej på kloden og vælg et land, eller skriv selv et sted — Ava researcher rigtige venues, som I kan gå på opdagelse i nedenfor.')}
           </p>
         </div>
-        {onViewList && listCount > 0 && (
-          <button
-            type="button"
-            onClick={onViewList}
-            className="flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-[#314523] px-3 text-xs font-semibold text-[#f7f5ef] transition-opacity hover:opacity-90 cursor-pointer"
-          >
-            {t('Se din liste ({n})', { n: listCount })} <ArrowUpRight size={13} />
-          </button>
-        )}
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          <LocationChip />
+          {onViewList && listCount > 0 && (
+            <button
+              type="button"
+              onClick={onViewList}
+              className="flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-[#314523] px-3 text-xs font-semibold text-[#f7f5ef] transition-opacity hover:opacity-90 cursor-pointer"
+            >
+              {t('Se din liste ({n})', { n: listCount })} <ArrowUpRight size={13} />
+            </button>
+          )}
+        </div>
       </div>
 
       {categoryBar}

@@ -21,8 +21,6 @@ import {
   batchSupplierFilter,
 } from '@/lib/vendor-batch';
 
-const SUGGESTIONS = ['Find venues til os', 'Hvad mangler vi at booke?', 'Skriv til fotografer'];
-
 export default function Ava({
   onNavigate,
   onClose,
@@ -149,13 +147,12 @@ function AvaChat({
       'flex flex-col',
       variant === 'drawer' ? 'h-full px-4' : 'mx-auto h-[calc(100dvh-130px)] max-w-2xl px-5 lg:h-screen',
     )}>
-      <header className="flex items-center gap-3 border-b border-[#d9ded9] py-4">
+      <header className="flex shrink-0 items-center gap-3 py-4">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#173c32]">
           <span className="font-serif text-[1.3rem] leading-none text-white">K</span>
         </div>
         <div className="min-w-0 flex-1">
           <div className="font-serif text-[1.15rem] text-[#173c32]">Ava</div>
-          <div className="text-[0.72rem] text-[#236b53]">{t('● Online · jeres bryllupsplanlægger')}</div>
         </div>
         {onClose && (
           <button
@@ -169,23 +166,21 @@ function AvaChat({
         )}
       </header>
 
-      <div className="hide-scrollbar flex-1 space-y-4 overflow-y-auto py-5">
-        {visible.map((m) => (
-          <Bubble key={m.id} msg={m} onNavigate={onNavigate} venues={venues} onRefresh={refresh} />
-        ))}
-        {agentStatus && <TypingDots label={agentStatus} />}
-        <div ref={endRef} />
+      <div className="relative min-h-0 flex-1">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-10 bg-gradient-to-b from-[#f5f3ee] to-transparent"
+        />
+        <div className="hide-scrollbar h-full space-y-4 overflow-y-auto py-5">
+          {visible.map((m) => (
+            <Bubble key={m.id} msg={m} onNavigate={onNavigate} venues={venues} onRefresh={refresh} />
+          ))}
+          {agentStatus && <TypingDots label={agentStatus} />}
+          <div ref={endRef} />
+        </div>
       </div>
 
       <div className="border-t border-[#d9ded9] pb-3 pt-2">
-        <div className="mb-3 flex flex-wrap gap-2">
-          {SUGGESTIONS.map((s) => (
-            <button key={s} onClick={() => sendMessage(t(s))} disabled={agentStatus !== null}
-              className="rounded-full rule bg-card px-3.5 py-2 text-[0.8rem] text-ink-soft transition-colors hover:bg-shell cursor-pointer disabled:opacity-50">
-              {t(s)}
-            </button>
-          ))}
-        </div>
         <form onSubmit={(e) => { e.preventDefault(); const msg = draft; setDraft(''); void sendMessage(msg); }}
           className="flex items-center gap-2 rounded-full rule bg-card px-2 py-2">
           <button type="button" aria-label={t('Vedhæft fil')} disabled

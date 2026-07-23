@@ -52,6 +52,8 @@ const SEARCH_FIELD_MASK = [
   "places.priceLevel",
   "places.businessStatus",
   "places.photos",
+  "places.primaryType",
+  "places.types",
 ].join(",");
 
 const DETAILS_FIELD_MASK = [
@@ -68,6 +70,8 @@ const DETAILS_FIELD_MASK = [
   "businessStatus",
   "photos",
   "editorialSummary",
+  "primaryType",
+  "types",
 ].join(",");
 
 interface PlacePhoto {
@@ -86,6 +90,8 @@ export interface PlaceResult {
   priceLevel?: string;
   businessStatus?: string;
   photos?: PlacePhoto[];
+  primaryType?: string;
+  types?: string[];
   reviews?: {
     rating?: number;
     relativePublishTimeDescription?: string;
@@ -93,6 +99,89 @@ export interface PlaceResult {
     authorAttribution?: { displayName?: string };
   }[];
   editorialSummary?: { text?: string };
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Place-type classification
+   Google Places (New) tags each place with a `primaryType` and a list of
+   `types`. We use these to keep discovery focused: a venue search should not
+   surface playgrounds, schools, offices, shops or transit stops just because
+   their name token-matched, and an accommodation search should only surface
+   real lodging.
+   ────────────────────────────────────────────────────────────────────────── */
+
+/** Types that are never a wedding/event venue — hard-reject on any of these. */
+const NON_VENUE_TYPES = new Set<string>([
+  // Civic / government / offices
+  "local_government_office", "city_hall", "courthouse", "embassy", "police",
+  "fire_station", "post_office", "government_office",
+  // Education / childcare
+  "school", "primary_school", "secondary_school", "preschool",
+  "child_care_agency", "playground",
+  // Health
+  "hospital", "doctor", "dentist", "pharmacy", "drugstore", "physiotherapist",
+  "veterinary_care", "medical_lab",
+  // Money / professional services
+  "bank", "atm", "accounting", "insurance_agency", "lawyer", "real_estate_agency",
+  "travel_agency", "telecommunications_service_provider",
+  // Retail / shops
+  "store", "grocery_store", "supermarket", "convenience_store", "shopping_mall",
+  "department_store", "clothing_store", "shoe_store", "jewelry_store",
+  "electronics_store", "furniture_store", "home_goods_store", "hardware_store",
+  "book_store", "pet_store", "liquor_store", "gift_shop", "market",
+  "wholesaler", "warehouse_store", "auto_parts_store", "bicycle_store",
+  "cell_phone_store", "sporting_goods_store",
+  // Automotive
+  "car_dealer", "car_rental", "car_repair", "car_wash", "gas_station",
+  "parking", "electric_vehicle_charging_station",
+  // Transit
+  "airport", "bus_station", "train_station", "subway_station", "transit_station",
+  "taxi_stand", "light_rail_station", "ferry_terminal",
+  // Personal services / trades
+  "hair_salon", "beauty_salon", "nail_salon", "barber_shop", "laundry",
+  "storage", "moving_company", "plumber", "electrician", "locksmith",
+  "roofing_contractor", "painter", "funeral_home", "cemetery",
+  // Fast / casual food that is not an event space
+  "fast_food_restaurant", "meal_takeaway", "meal_delivery", "cafe",
+  "coffee_shop", "sandwich_shop", "ice_cream_shop", "donut_shop", "bakery",
+  // Recreation that reads wrong for a wedding
+  "gym", "fitness_center", "sports_complex", "sports_club", "swimming_pool",
+  "amusement_park", "aquarium", "zoo", "bowling_alley", "casino",
+  "movie_theater", "shopping_center",
+]);
+
+/** Lodging types — what an accommodation search should keep. */
+const LODGING_TYPES = new Set<string>([
+  "hotel", "resort_hotel", "motel", "bed_and_breakfast", "guest_house",
+  "hostel", "inn", "lodging", "cottage", "extended_stay_hotel",
+  "budget_japanese_inn", "japanese_inn", "farmstay", "campground",
+  "rv_park", "private_guest_room",
+]);
+
+function placeTypeTokens(place: Pick<PlaceResult, "primaryType" | "types">): string[] {
+  const tokens: string[] = [];
+  if (place.primaryType) tokens.push(place.primaryType);
+  if (place.types) tokens.push(...place.types);
+  return tokens;
+}
+
+/**
+ * True when a place could plausibly host a wedding/event. Google's typing is
+ * imperfect, so we only *reject* on an unambiguous non-venue type rather than
+ * requiring an allowlist (real venues carry wildly varied types — event_venue,
+ * banquet_hall, hotel, tourist_attraction, park, winery, church, farm…).
+ * When a place has no type data at all we keep it (best-effort, verified by name).
+ */
+export function isPlausibleVenue(place: Pick<PlaceResult, "primaryType" | "types">): boolean {
+  const tokens = placeTypeTokens(place);
+  if (tokens.length === 0) return true;
+  return !tokens.some((t) => NON_VENUE_TYPES.has(t));
+}
+
+/** True when a place is real lodging (for the accommodation search). */
+export function isLodging(place: Pick<PlaceResult, "primaryType" | "types">): boolean {
+  const tokens = placeTypeTokens(place);
+  return tokens.some((t) => LODGING_TYPES.has(t));
 }
 
 function apiKey(): string | null {

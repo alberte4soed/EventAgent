@@ -86,7 +86,12 @@ interface WeddingData {
   refresh: () => Promise<void>;
   updateEvent: (patch: Partial<EventRow>) => Promise<void>;
 
-  saveBudgetItem: (item: { category: string; label: string; planned_amount?: number; paid_amount?: number; sort?: number }) => Promise<void>;
+  saveBudgetItem: (item: {
+    category: string; label: string;
+    planned_amount?: number; paid_amount?: number; actual_cost?: number;
+    notes?: string | null; reminder_at?: string | null;
+    icon?: string | null; color?: string | null; sort?: number;
+  }) => Promise<void>;
   deleteBudgetItem: (category: string) => Promise<void>;
 
   addGuest: (guest: Partial<GuestRow> & { name: string }) => Promise<GuestRow | null>;
@@ -319,7 +324,8 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
     async (item: {
       category: string; label: string;
       planned_amount?: number; paid_amount?: number; actual_cost?: number;
-      notes?: string | null; reminder_at?: string | null; sort?: number;
+      notes?: string | null; reminder_at?: string | null;
+      icon?: string | null; color?: string | null; sort?: number;
     }) => {
       if (!eventId || !userId) return;
       const existing = budgetItems.find((b) => b.category === item.category);
@@ -333,6 +339,8 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
             actual_cost: item.actual_cost ?? existing.actual_cost,
             notes: item.notes !== undefined ? item.notes : existing.notes,
             reminder_at: item.reminder_at !== undefined ? item.reminder_at : existing.reminder_at,
+            icon: item.icon !== undefined ? item.icon : existing.icon,
+            color: item.color !== undefined ? item.color : existing.color,
             sort: item.sort ?? existing.sort,
           })
           .eq("id", existing.id)
@@ -352,6 +360,8 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
             actual_cost: item.actual_cost ?? 0,
             notes: item.notes ?? null,
             reminder_at: item.reminder_at ?? null,
+            icon: item.icon ?? null,
+            color: item.color ?? null,
             sort: item.sort ?? 0,
           })
           .select()

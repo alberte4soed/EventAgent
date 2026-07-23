@@ -54,7 +54,7 @@ export default function ShortlistPanel({
 
   const likedVenues = liked.filter((v) => v.category === 'venue');
   const likedVendors = liked.filter((v) => v.category !== 'venue');
-  const showVenueList = cat === 'venue' || cat === 'alle';
+  const showVenueList = cat === 'venue';
   const showVendorList = cat !== 'venue';
   // The venue list carries its own "Trin 2" header; the category bar drops in
   // beneath it there. Everywhere else in the shortlist it sits at the top.
@@ -113,6 +113,7 @@ export default function ShortlistPanel({
           items={likedVendors}
           contacted={sentIds}
           locked={vendorsLocked}
+          exploreCat={cat}
           onExplore={(c) => onSwitchTab('explore', c)}
         />
       )}
@@ -122,7 +123,7 @@ export default function ShortlistPanel({
           <p className="font-serif text-[1.3rem] italic text-ink-soft">{t('Ingen favoritter endnu')}</p>
           <button
             type="button"
-            onClick={() => onSwitchTab('explore', cat === 'alle' ? 'venue' : cat)}
+            onClick={() => onSwitchTab('explore', cat)}
             className="mt-4 inline-flex h-8 items-center gap-1.5 rounded-full bg-[#314523] px-3 text-xs font-semibold text-[#f7f5ef] hover:opacity-90 transition-colors cursor-pointer"
           >
             {cat === 'venue' ? t('Udforsk venues') : t('Udforsk leverandører')}
@@ -139,11 +140,13 @@ function VendorShortlist({
   items,
   contacted,
   locked = false,
+  exploreCat,
   onExplore,
 }: {
   items: VenueRow[];
   contacted: Set<string>;
   locked?: boolean;
+  exploreCat: HubCat;
   onExplore: (cat: HubCat) => void;
 }) {
   const { refresh } = useWedding();
@@ -255,7 +258,7 @@ function VendorShortlist({
       </div>
       <button
         type="button"
-        onClick={() => onExplore('alle')}
+        onClick={() => onExplore(exploreCat)}
         className={cn(
           'mt-6 flex h-11 w-full items-center justify-center gap-2 rounded-[18px] border border-[#d8d4c7] bg-[#fcfbf7] px-5',
           'text-sm text-[#314523] hover:bg-[#f7f5ef] transition-colors cursor-pointer',

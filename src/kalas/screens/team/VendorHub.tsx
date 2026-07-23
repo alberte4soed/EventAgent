@@ -9,11 +9,11 @@ import HubTabBar from './HubTabBar';
 import ExplorePanel from './ExplorePanel';
 import ShortlistPanel from './ShortlistPanel';
 import BookedPanel from './BookedPanel';
+import { effectiveLocation } from '../../lib/location';
 import {
   hubBadges,
   readHubDeepLink,
   resolveDefaultTab,
-  venueLockedIn,
   type HubCat,
   type HubTab,
 } from './shared';
@@ -27,7 +27,7 @@ export default function VendorHub({ onNavigate }: { onNavigate?: (s: NavigateTar
     if (deepLink.tab) return deepLink.tab;
     return resolveDefaultTab(venues, outbound, replies, event?.chosen_venue_id);
   });
-  const [cat, setCat] = useState<HubCat>(deepLink.cat ?? 'alle');
+  const [cat, setCat] = useState<HubCat>(deepLink.cat ?? 'venue');
   const [venueView, setVenueView] = useState<VenueHubView>(
     deepLink.tab === 'shortlist' ? 'list' : 'discover',
   );
@@ -37,10 +37,12 @@ export default function VendorHub({ onNavigate }: { onNavigate?: (s: NavigateTar
     [venues, outbound, replies, event?.chosen_venue_id],
   );
 
-  // Non-venue categories stay locked until a venue is locked in from the shortlist.
+  // Non-venue categories unlock once the couple has a location — from the venue
+  // they chose, or the one they set by hand on the venue page. Vendors are all
+  // local to that spot, so the location is what gates finding them.
   const vendorsLocked = useMemo(
-    () => !venueLockedIn(venues, event?.chosen_venue_id),
-    [venues, event?.chosen_venue_id],
+    () => !effectiveLocation(event, venues),
+    [event, venues],
   );
 
   const onSwitchTab = useCallback((next: HubTab, nextCat?: HubCat) => {

@@ -62,6 +62,7 @@ export type VendorCategory =
   | "musician"
   | "caterer"
   | "planner"
+  | "accommodation"
   | "other";
 
 export interface VenueReview {
@@ -303,6 +304,8 @@ export interface BudgetItemRow {
   actual_cost: number;
   notes: string | null;
   reminder_at: string | null;
+  icon: string | null;
+  color: string | null;
   sort: number;
   created_at: string;
 }

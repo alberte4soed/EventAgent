@@ -23,7 +23,7 @@ const NAV: NavItem[] = [
   { id: 'home',        label: 'Hjem',          icon: Home,          group: 'main' },
   { id: 'planning',    label: 'Tidslinje',     icon: ListChecks,    group: 'main' },
   { id: 'inbox',       label: 'Inbox',         icon: Inbox,         group: 'main' },
-  { id: 'team',        label: 'Venue & leverandører', icon: UsersRound,  group: 'plan' },
+  { id: 'team',        label: 'Leverandører', icon: UsersRound,  group: 'plan' },
   { id: 'budget',      label: 'Budget',        icon: Wallet,        group: 'plan' },
   { id: 'guests',      label: 'Gæster',        icon: Users,         group: 'plan' },
   { id: 'website',     label: 'Hjemmeside',    icon: Globe,         group: 'plan' },
@@ -285,13 +285,15 @@ export default function Shell({
               initial={false}
               animate={{ width: avaOpen ? DRAWER_W : 0 }}
               transition={shellTransition}
-              className="h-full shrink-0 overflow-hidden border-l border-[#d9ded9]"
-              style={{ backgroundColor: PAGE_BG }}
+              className="h-full shrink-0 overflow-hidden"
               role={avaOpen ? 'dialog' : undefined}
               aria-label={t('Tal med Ava')}
               aria-hidden={!avaOpen}
             >
-              <div className="flex h-full w-[min(100vw,28rem)] flex-col">
+              <div
+                className="flex h-full w-[min(100vw,28rem)] flex-col border-l border-t border-[#e0ddd2]"
+                style={{ backgroundColor: PAGE_BG }}
+              >
                 {avaOpen ? avaDrawer : null}
               </div>
             </motion.aside>

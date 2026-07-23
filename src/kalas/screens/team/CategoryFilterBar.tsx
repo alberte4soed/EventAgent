@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  Lock, LayoutGrid, Building2, Camera, Video, Flower2,
+  Lock, Building2, BedDouble, Camera, Video, Flower2,
   UtensilsCrossed, Martini, Cake, Music, Scissors, type LucideIcon,
 } from 'lucide-react';
 import { cn } from '../../ui';
@@ -9,8 +9,8 @@ import { useLang } from '../../i18n';
 import { HUB_CATS, type HubCat } from './shared';
 
 const CAT_ICONS: Record<HubCat, LucideIcon> = {
-  alle: LayoutGrid,
   venue: Building2,
+  overnatning: BedDouble,
   fotografi: Camera,
   video: Video,
   blomster: Flower2,
@@ -36,7 +36,7 @@ export default function CategoryFilterBar({
     <div className="mt-4 flex gap-2 overflow-x-auto hide-scrollbar -mx-1 px-1 pb-1">
       {HUB_CATS.map((c) => {
         const active = cat === c.id;
-        const locked = vendorsLocked && c.id !== 'venue' && c.id !== 'alle';
+        const locked = vendorsLocked && c.id !== 'venue';
         const Icon = CAT_ICONS[c.id];
         return (
           <button

@@ -34,6 +34,7 @@ const CATEGORY_DA: Record<VendorCategory, string> = {
   musician: "musiker/DJ",
   caterer: "cateringleverandør",
   planner: "bryllupsplanlægger",
+  accommodation: "overnatningssted",
   other: "leverandør",
 };
 
