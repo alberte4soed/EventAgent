@@ -1332,8 +1332,7 @@ function PicksView({
       <div className={cn(padX, 'pt-8')}>
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#8a9079]">{t('Trin 2 · Jeres liste')}</p>
-            <h2 className="mt-1 font-serif text-[clamp(2rem,4vw,2.25rem)] leading-[1.1] tracking-[-0.02em] text-[#314523]">
+            <h2 className="font-serif text-[clamp(2rem,4vw,2.25rem)] leading-[1.1] tracking-[-0.02em] text-[#314523]">
               {t('Venues I')} <span className="italic">{t('overvejer.')}</span>
             </h2>
             <p className="mt-1 max-w-xl text-[13px] text-[#6c7561]">

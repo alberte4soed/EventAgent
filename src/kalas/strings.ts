@@ -114,10 +114,12 @@ export const EN: Record<string, string> = {
   // ── Chat mode ───────────────────────────────────────────────────────
   'Chat-tilstand': 'Chat mode',
   'Klassisk visning': 'Classic view',
+  'Klassisk': 'Classic',
   'Viser: {page}': 'Showing: {page}',
   'Ava styrer skærmen — sig hvad I vil se.': 'Ava drives the screen — tell her what you want to see.',
   'Chat': 'Chat',
   'Skærm': 'Screen',
+  'Skift mellem chat og klassisk': 'Switch between chat and classic',
 
   // ── Home dashboard (palette refresh) ────────────────────────────────
   'Planlægningshjem': 'Planning home',
@@ -1183,7 +1185,6 @@ export const EN: Record<string, string> = {
   'Tilbage til listen': 'Back to list',
   'Tilføj til liste': 'Add to list',
   'Tom endnu': 'Empty for now',
-  'Trin 2 · Jeres liste': 'Step 2 · Your list',
   'Trin 3 · Godkend': 'Step 3 · Approve',
   'Tryk på et land på kloden — eller skriv selv et sted — for at se byer og bryllupsdestinationer.': 'Tap a country on the globe — or type a place yourself — to see cities and wedding destinations.',
   'Udforsk flere venues': 'Explore more venues',

@@ -43,12 +43,11 @@ export default function KalasRoot({ initialLang = 'da' }: { initialLang?: Lang }
 }
 
 function AppInner() {
-  const { pendingCount, avaBadge } = useKalas();
+  const { pendingCount } = useKalas();
   const { replies } = useWedding();
   const inboxBadge = replies.filter((r) => !r.read_at).length;
-  const [avaOpen, setAvaOpen] = useState(false);
   const [hubTick, setHubTick] = useState(0);
-  // Chat mode: sidebar-free, Ava-driven interface. Sticky across visits.
+  // Chat mode: collapsed icon-rail + Ava-driven stage. Sticky across visits.
   const [chatMode, setChatMode] = useState(() => {
     try { return localStorage.getItem('kalas_chat_mode') === '1'; } catch { return false; }
   });
@@ -73,17 +72,21 @@ function AppInner() {
     } catch { return false; }
   });
 
+  const toggleChatMode = useCallback((on: boolean) => {
+    setChatMode(on);
+    try { localStorage.setItem('kalas_chat_mode', on ? '1' : '0'); } catch { /* ignore */ }
+  }, []);
+
   const navigate = (s: NavigateTarget) => {
     if (s === 'ava') {
-      // In chat mode the chat is always on screen — nothing to open.
-      if (!chatMode) setAvaOpen(true);
+      // In-page “talk to Ava” CTAs enter chat mode.
+      toggleChatMode(true);
       return;
     }
     const hadDeepLink = isLegacyHubScreen(s)
       || Boolean(sessionStorage.getItem('kalas_hub_tab') || sessionStorage.getItem('kalas_hub_cat'));
     const target = resolveScreenNavigation(s);
     if (target === 'team' && hadDeepLink) setHubTick((t) => t + 1);
-    setAvaOpen(false);
     sessionStorage.setItem('kalas_screen', target);
     setScreen(target);
     // Chat mode: any navigation should surface the stage on mobile too.
@@ -91,8 +94,7 @@ function AppInner() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Agent-fired navigation (streamed `ui` frames). Unlike user navigation it
-  // must not close the Ava drawer — the agent navigates mid-conversation.
+  // Agent-fired navigation (streamed `ui` frames).
   const applyUiAction = useCallback((action: AgentUiAction) => {
     if (action.kind !== 'navigate') return;
     const target = agentActionToScreen(action);
@@ -101,12 +103,6 @@ function AppInner() {
     setScreen(target);
     setStageTick((t) => t + 1);
   }, []);
-
-  const toggleChatMode = (on: boolean) => {
-    setChatMode(on);
-    try { localStorage.setItem('kalas_chat_mode', on ? '1' : '0'); } catch { /* ignore */ }
-    if (on) setAvaOpen(false);
-  };
 
   const finishTour = () => {
     try { sessionStorage.removeItem('kalas_tour'); } catch { /* ignore */ }
@@ -135,8 +131,10 @@ function AppInner() {
       <ChatShell
         current={activeScreen}
         onNavigate={navigate}
-        onExit={() => toggleChatMode(false)}
+        onChatModeChange={toggleChatMode}
         stageSignal={stageTick}
+        pendingCount={pendingCount}
+        inboxBadge={inboxBadge}
         chat={
           <Ava
             onNavigate={navigate}
@@ -158,19 +156,8 @@ function AppInner() {
         onNavigate={navigate}
         pendingCount={pendingCount}
         inboxBadge={inboxBadge}
-        avaBadge={avaBadge}
-        avaOpen={avaOpen}
-        onAvaOpen={() => setAvaOpen(true)}
-        onChatMode={() => toggleChatMode(true)}
-        avaDrawer={
-          <Ava
-            onNavigate={navigate}
-            onClose={() => setAvaOpen(false)}
-            onUiAction={applyUiAction}
-            uiMode="classic"
-            variant="drawer"
-          />
-        }
+        chatMode={false}
+        onChatModeChange={toggleChatMode}
       >
         <AnimatePresence mode="wait">
           <div key={activeScreen}>{screens[activeScreen as AppScreen]}</div>

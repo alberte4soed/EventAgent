@@ -1,17 +1,17 @@
 import * as React from 'react';
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Home, UsersRound,
   Wallet, Users, Globe, Mail, ListChecks, LayoutDashboard,
   LayoutGrid, X, Settings, Gift, PanelLeftClose, PanelLeft,
-  Bell, MessageCircle, LogOut, UserPlus, ChevronDown, Inbox,
+  LogOut, UserPlus, Inbox,
   Sparkles,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { couple } from './data';
 import { cn } from './ui';
-import { useLang, type Lang } from './i18n';
+import { useLang } from './i18n';
 import { SignOutButton } from '@/components/auth/SignOutButton';
 
 export type ScreenId =
@@ -36,8 +36,7 @@ export const NAV: NavItem[] = [
 const MOBILE_TABS: ScreenId[] = ['home', 'planning', 'inbox'];
 
 const SIDEBAR_W = 224;
-const SIDEBAR_RAIL_W = 72;
-const DRAWER_W = 448;
+export const SIDEBAR_RAIL_W = 72;
 
 const shellTransition = { type: 'spring' as const, stiffness: 380, damping: 36 };
 
@@ -83,32 +82,22 @@ export default function Shell({
   onNavigate,
   pendingCount,
   inboxBadge = 0,
-  avaBadge,
-  avaOpen,
-  onAvaOpen,
-  onChatMode,
-  avaDrawer,
+  chatMode = false,
+  onChatModeChange,
   children,
 }: {
   current: ScreenId;
   onNavigate: (s: ScreenId) => void;
   pendingCount: number;
   inboxBadge?: number;
-  avaBadge: number;
-  avaOpen: boolean;
-  onAvaOpen: () => void;
-  /** Switch the whole app into the full-screen chat interface. */
-  onChatMode?: () => void;
-  avaDrawer: React.ReactNode;
+  chatMode?: boolean;
+  /** Toggle between chat mode and classic shell. */
+  onChatModeChange?: (on: boolean) => void;
   children: React.ReactNode;
 }) {
   const { t } = useLang();
   const [moreOpen, setMoreOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-
-  useEffect(() => {
-    if (avaOpen) setSidebarCollapsed(true);
-  }, [avaOpen]);
 
   const sidebarRail = sidebarCollapsed;
   const navigate = (s: ScreenId) => { setMoreOpen(false); onNavigate(s); };
@@ -243,40 +232,9 @@ export default function Shell({
               <span className="lg:hidden"><Wordmark /></span>
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              {onChatMode && (
-                <button
-                  type="button"
-                  onClick={onChatMode}
-                  aria-label={t('Chat-tilstand')}
-                  title={t('Chat-tilstand')}
-                  className="flex h-8 items-center gap-1.5 rounded-full border border-[#d8d4c7] px-3 text-xs font-semibold text-[#6c7561] transition-colors hover:bg-[#314523]/6 hover:text-[#314523] cursor-pointer"
-                >
-                  <Sparkles size={13} />
-                  <span className="hidden sm:inline">{t('Chat-tilstand')}</span>
-                </button>
+              {onChatModeChange && (
+                <ModeToggle chatMode={chatMode} onChange={onChatModeChange} />
               )}
-              <button
-                type="button"
-                onClick={onAvaOpen}
-                aria-label={avaBadge > 0 ? t('Tal med Ava — {n} nye beskeder', { n: avaBadge }) : t('Spørg Ava')}
-                className="relative flex h-8 items-center gap-1.5 rounded-full bg-[#314523] px-3 text-xs font-semibold text-[#fffdf7] transition-opacity hover:opacity-90 cursor-pointer"
-              >
-                <MessageCircle size={13} />
-                <span className="hidden sm:inline">{t('Spørg Ava')}</span>
-                {avaBadge > 0 && (
-                  <span className="absolute -right-1 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-[#b34e37] px-0.5 text-[0.5rem] font-bold text-white">
-                    {avaBadge}
-                  </span>
-                )}
-              </button>
-              <LangFlagMenu />
-              <button
-                type="button"
-                aria-label={t('Notifikationer')}
-                className="flex size-8 items-center justify-center rounded-full border border-[#d8d4c7] text-[#6c7561] transition-colors hover:bg-[#314523]/6 hover:text-[#314523] cursor-pointer"
-              >
-                <Bell size={15} />
-              </button>
               <a
                 href="/settings"
                 aria-label={t('Indstillinger')}
@@ -296,23 +254,6 @@ export default function Shell({
             >
               <div className="min-h-full">{children}</div>
             </main>
-
-            <motion.aside
-              initial={false}
-              animate={{ width: avaOpen ? DRAWER_W : 0 }}
-              transition={shellTransition}
-              className="h-full shrink-0 overflow-hidden"
-              role={avaOpen ? 'dialog' : undefined}
-              aria-label={t('Tal med Ava')}
-              aria-hidden={!avaOpen}
-            >
-              <div
-                className="flex h-full w-[min(100vw,28rem)] flex-col border-l border-t border-[#e0ddd2]"
-                style={{ backgroundColor: PAGE_BG }}
-              >
-                {avaOpen ? avaDrawer : null}
-              </div>
-            </motion.aside>
           </div>
         </div>
       </div>
@@ -399,7 +340,7 @@ export default function Shell({
   );
 }
 
-function NavRow({ item, active, onClick, badge, collapsed = false }: {
+export function NavRow({ item, active, onClick, badge, collapsed = false }: {
   item: NavItem; active: boolean; onClick: () => void; badge?: number; collapsed?: boolean;
 }) {
   const { t } = useLang();
@@ -436,79 +377,47 @@ function NavRow({ item, active, onClick, badge, collapsed = false }: {
   );
 }
 
-const LANG_OPTIONS: { id: Lang; flag: string; label: string }[] = [
-  { id: 'da', flag: '🇩🇰', label: 'Dansk' },
-  { id: 'en', flag: '🇬🇧', label: 'English' },
-];
-
-export function LangFlagMenu() {
-  const { lang, setLang, t } = useLang();
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement | null>(null);
-  const current = LANG_OPTIONS.find((o) => o.id === lang) ?? LANG_OPTIONS[0];
-
-  useEffect(() => {
-    if (!open) return;
-    const onPointer = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
-    };
-    document.addEventListener('mousedown', onPointer);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onPointer);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open]);
-
+export function ModeToggle({
+  chatMode,
+  onChange,
+}: {
+  chatMode: boolean;
+  onChange: (on: boolean) => void;
+}) {
+  const { t } = useLang();
+  const options = [
+    { id: true as const, label: 'Chat', icon: Sparkles },
+    { id: false as const, label: 'Klassisk', icon: PanelLeft },
+  ];
   return (
-    <div ref={rootRef} className="relative">
-      <button
-        type="button"
-        aria-label={t('Sprog')}
-        aria-expanded={open}
-        aria-haspopup="listbox"
-        onClick={() => setOpen((v) => !v)}
-        className="flex h-8 cursor-pointer items-center gap-1 rounded-full border border-[#d8d4c7] pl-2 pr-1.5 text-[#6c7561] transition-colors hover:bg-[#314523]/6 hover:text-[#314523]"
-      >
-        <span className="text-[1.05rem] leading-none" aria-hidden>{current.flag}</span>
-        <ChevronDown size={13} className={cn('transition-transform', open && 'rotate-180')} />
-      </button>
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.15 }}
-            role="listbox"
-            aria-label={t('Sprog')}
-            className="absolute right-0 top-[calc(100%+6px)] z-50 min-w-[148px] overflow-hidden rounded-xl border border-[#d8d4c7] bg-[#fcfbf7] py-1 shadow-[0_12px_32px_-12px_rgba(46,51,37,0.28)]"
+    <div
+      role="group"
+      aria-label={t('Skift mellem chat og klassisk')}
+      className="flex items-center rounded-full border border-[#d8d4c7] bg-[#fcfbf7]/70 p-0.5"
+    >
+      {options.map(({ id, label, icon: Icon }) => {
+        const active = chatMode === id;
+        return (
+          <button
+            key={label}
+            type="button"
+            aria-pressed={active}
+            aria-label={t(id ? 'Chat-tilstand' : 'Klassisk visning')}
+            title={t(id ? 'Chat-tilstand' : 'Klassisk visning')}
+            onClick={() => onChange(id)}
+            className={cn(
+              'relative flex h-7 cursor-pointer items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold transition-colors',
+              active
+                ? 'bg-[#314523] text-[#fffdf7]'
+                : 'text-[#6c7561] hover:text-[#314523]',
+            )}
           >
-            {LANG_OPTIONS.map((opt) => {
-              const active = opt.id === lang;
-              return (
-                <button
-                  key={opt.id}
-                  type="button"
-                  role="option"
-                  aria-selected={active}
-                  onClick={() => { setLang(opt.id); setOpen(false); }}
-                  className={cn(
-                    'flex w-full cursor-pointer items-center gap-2.5 px-3 py-2 text-left text-[0.82rem] transition-colors',
-                    active ? 'bg-[#314523]/8 font-semibold text-[#314523]' : 'text-[#59634f] hover:bg-[#314523]/[0.06]',
-                  )}
-                >
-                  <span className="text-[1.1rem] leading-none" aria-hidden>{opt.flag}</span>
-                  {opt.label}
-                </button>
-              );
-            })}
-          </motion.div>
-        )}
-      </AnimatePresence>
+            <Icon size={12} strokeWidth={1.8} />
+            <span className="hidden sm:inline">{t(label)}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }
+
