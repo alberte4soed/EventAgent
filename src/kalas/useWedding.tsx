@@ -18,6 +18,7 @@ import type {
   EmailReplyRow,
   EventRow,
   GuestRow,
+  InvitationRow,
   InviteDesignRow,
   InviteOrderRow,
   MoodboardItemRow,
@@ -63,6 +64,7 @@ interface WeddingData {
   proposals: ReplyProposalRow[];
   inviteOrders: InviteOrderRow[];
   inviteDesigns: InviteDesignRow[];
+  invitations: InvitationRow[];
   journey: JourneyStage[];
 
   // Planning tables (migration 0007) — the couple's own editable data.
@@ -105,6 +107,15 @@ interface WeddingData {
   addRegistryItem: (item: Partial<RegistryItemRow> & { title: string }) => Promise<RegistryItemRow | null>;
   updateRegistryItem: (id: string, patch: Partial<RegistryItemRow>) => Promise<void>;
   deleteRegistryItem: (id: string) => Promise<void>;
+
+  /** Create/update a digital invitation via /api/invitations (assigns a unique
+      share slug server-side). Returns the saved row. */
+  saveInvitation: (input: {
+    id?: string;
+    templateId: string;
+    data: Record<string, unknown>;
+    publish?: boolean;
+  }) => Promise<InvitationRow | null>;
 }
 
 const FALLBACK_COUPLE: Couple = {
@@ -188,6 +199,7 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
   const [proposals, setProposals] = useState<ReplyProposalRow[]>([]);
   const [inviteOrders, setInviteOrders] = useState<InviteOrderRow[]>([]);
   const [inviteDesigns, setInviteDesigns] = useState<InviteDesignRow[]>([]);
+  const [invitations, setInvitations] = useState<InvitationRow[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const [budgetItems, setBudgetItems] = useState<BudgetItemRow[]>([]);
   const [guests, setGuests] = useState<GuestRow[]>([]);
@@ -238,7 +250,7 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
     setEvent(ev);
 
     if (ev) {
-      const [v, d, o, r, at, p, io, idz, bi, g, tt, mb, ws, sp, ri, rc, wd, sph, wo] = await Promise.all([
+      const [v, d, o, r, at, p, io, idz, bi, g, tt, mb, ws, sp, ri, rc, wd, sph, wo, inv] = await Promise.all([
         supabase.from("venues").select("*").eq("event_id", ev.id).order("created_at"),
         supabase.from("email_drafts").select("*").eq("event_id", ev.id),
         supabase.from("outbound_emails").select("*").eq("event_id", ev.id).order("created_at"),
@@ -258,6 +270,7 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
         supabase.from("website_designs").select("*").eq("event_id", ev.id).order("created_at", { ascending: false }),
         supabase.from("site_photos").select("*").eq("event_id", ev.id).order("sort").order("created_at"),
         supabase.from("website_orders").select("*").eq("event_id", ev.id).order("created_at", { ascending: false }),
+        supabase.from("invitations").select("*").eq("event_id", ev.id).order("created_at", { ascending: false }),
       ]);
       setVenues((v.data ?? []) as VenueRow[]);
       setDrafts((d.data ?? []) as EmailDraftRow[]);
@@ -278,6 +291,7 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
       setWebsiteDesigns((wd.data ?? []) as WebsiteDesignRow[]);
       setSitePhotos((sph.data ?? []) as SitePhotoRow[]);
       setWebsiteOrders((wo.data ?? []) as WebsiteOrderRow[]);
+      setInvitations((inv.data ?? []) as InvitationRow[]);
     }
     setLoading(false);
   }, [supabase]);
@@ -302,7 +316,11 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
   );
 
   const saveBudgetItem = useCallback(
-    async (item: { category: string; label: string; planned_amount?: number; paid_amount?: number; sort?: number }) => {
+    async (item: {
+      category: string; label: string;
+      planned_amount?: number; paid_amount?: number; actual_cost?: number;
+      notes?: string | null; reminder_at?: string | null; sort?: number;
+    }) => {
       if (!eventId || !userId) return;
       const existing = budgetItems.find((b) => b.category === item.category);
       if (existing) {
@@ -312,6 +330,9 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
             label: item.label,
             planned_amount: item.planned_amount ?? existing.planned_amount,
             paid_amount: item.paid_amount ?? existing.paid_amount,
+            actual_cost: item.actual_cost ?? existing.actual_cost,
+            notes: item.notes !== undefined ? item.notes : existing.notes,
+            reminder_at: item.reminder_at !== undefined ? item.reminder_at : existing.reminder_at,
             sort: item.sort ?? existing.sort,
           })
           .eq("id", existing.id)
@@ -328,6 +349,9 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
             label: item.label,
             planned_amount: item.planned_amount ?? 0,
             paid_amount: item.paid_amount ?? 0,
+            actual_cost: item.actual_cost ?? 0,
+            notes: item.notes ?? null,
+            reminder_at: item.reminder_at ?? null,
             sort: item.sort ?? 0,
           })
           .select()
@@ -558,6 +582,21 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
     [supabase]
   );
 
+  const saveInvitation = useCallback(
+    async (input: { id?: string; templateId: string; data: Record<string, unknown>; publish?: boolean }) => {
+      const res = await fetch("/api/invitations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      });
+      if (!res.ok) return null;
+      const row = (await res.json()) as InvitationRow;
+      setInvitations((rows) => upsertById(rows, row));
+      return row;
+    },
+    []
+  );
+
   // Realtime: keep the wedding fresh as the agent/cron writes rows.
   useEffect(() => {
     if (!event?.id) return;
@@ -663,6 +702,14 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
             ? setRegistryClaims((rows) => removeById(rows, (p.old as { id: string }).id))
             : setRegistryClaims((rows) => upsertById(rows, p.new as RegistryClaimRow))
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "invitations", filter: `event_id=eq.${eventId}` },
+        (p) =>
+          p.eventType === "DELETE"
+            ? setInvitations((rows) => removeById(rows, (p.old as { id: string }).id))
+            : setInvitations((rows) => upsertById(rows, p.new as InvitationRow))
+      )
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
@@ -705,6 +752,7 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
       proposals,
       inviteOrders,
       inviteDesigns,
+      invitations,
       journey,
       budgetItems,
       guests,
@@ -737,15 +785,16 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
       addRegistryItem,
       updateRegistryItem,
       deleteRegistryItem,
+      saveInvitation,
     }),
     [
       loading, event, profile, email, venues, drafts, outbound, replies, attachments, proposals,
-      inviteOrders, inviteDesigns, journey, budgetItems, guests, timelineTasks,
+      inviteOrders, inviteDesigns, invitations, journey, budgetItems, guests, timelineTasks,
       moodboardItems, weddingSite, seatingPlan, registryItems, registryClaims,
       websiteDesigns, sitePhotos, websiteOrders, load, updateEvent, saveBudgetItem,
       deleteBudgetItem, addGuest, updateGuest, deleteGuest, addTask, updateTask, deleteTask, seedTasks,
       addMoodboardItem, removeMoodboardItem, saveSite, saveSeating,
-      addRegistryItem, updateRegistryItem, deleteRegistryItem,
+      addRegistryItem, updateRegistryItem, deleteRegistryItem, saveInvitation,
     ]
   );
 

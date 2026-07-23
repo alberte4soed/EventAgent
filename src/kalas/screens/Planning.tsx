@@ -165,6 +165,16 @@ export default function Planning() {
 
   return (
     <div className="flex min-h-full flex-col gap-6 bg-[#f5f3ee] px-6 py-8 sm:px-9 lg:px-12 lg:py-8">
+      {/* Header */}
+      <div>
+        <h1 className="font-serif text-[clamp(2rem,4vw,2.4rem)] leading-[1.1] tracking-[-0.02em] text-[#314523]">
+          {t('Tidslinje')}
+        </h1>
+        <p className="mt-1.5 max-w-xl text-[13px] leading-relaxed text-[#6c7561]">
+          {t('Milepælene frem til brylluppet — hold jer på sporet, ét skridt ad gangen.')}
+        </p>
+      </div>
+
       {/* Checklist panel — mirrors “Kom godt i gang” */}
       <motion.section
         initial={{ opacity: 0, y: 12 }}

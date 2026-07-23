@@ -89,7 +89,15 @@ export default function Guests() {
 
   return (
     <div className="px-6 py-8 sm:px-9 lg:px-12 lg:py-8">
-      <div className="flex items-center justify-end gap-2">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="font-serif text-[clamp(2rem,4vw,2.4rem)] leading-[1.1] tracking-[-0.02em] text-[#314523]">
+            {t('Gæster')}
+          </h1>
+          <p className="mt-1.5 max-w-xl text-[13px] leading-relaxed text-[#6c7561]">
+            {t('Hold styr på jeres gæsteliste og RSVP — og send invitationer, når I er klar.')}
+          </p>
+        </div>
         <div className="hidden items-center gap-2 sm:flex">
           <Pill variant="outline"><Upload size={15} /> {t('Importér')}</Pill>
           <Pill arrow onClick={startAdding}><Plus size={15} /> {t('Tilføj')}</Pill>

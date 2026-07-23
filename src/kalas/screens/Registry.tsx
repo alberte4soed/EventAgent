@@ -61,7 +61,10 @@ export default function Registry({ onNavigate }: { onNavigate?: (s: import('../S
 
   return (
     <div className="px-6 py-8 sm:px-9 lg:px-12 lg:py-8">
-      <p className="max-w-lg text-[0.9rem] text-ink-soft">
+      <h1 className="font-serif text-[clamp(2rem,4vw,2.4rem)] leading-[1.1] tracking-[-0.02em] text-[#314523]">
+        {t('Ønskeliste')}
+      </h1>
+      <p className="mt-1.5 max-w-xl text-[13px] leading-relaxed text-[#6c7561]">
         {t('Indsæt et link til en gave, så henter vi billede og pris. Gæsterne kan reservere den fra jeres bryllupsside — så to ikke køber det samme.')}
       </p>
 

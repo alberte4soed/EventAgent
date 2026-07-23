@@ -3,7 +3,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Search, Heart, MessageCircle, ChevronDown, X, Lock } from 'lucide-react';
-import { dnaTraits } from '../data';
 import { useWedding } from '../useWedding';
 import { Eyebrow, Pill, cn } from '../ui';
 import { useLang } from '../i18n';
@@ -95,7 +94,7 @@ export default function Suppliers({
   };
 }) {
   const { t } = useLang();
-  const { couple, venues, refresh } = useWedding();
+  const { venues, refresh } = useWedding();
   const locked = hub?.locked ?? false;
   const [query, setQuery] = useState(hub?.query ?? '');
   const [cat, setCat] = useState<Cat>(() => {
@@ -226,25 +225,6 @@ export default function Suppliers({
           </div>
         )}
 
-        {/* ── DNA context banner ──────────────────────────────────────── */}
-        <div className="rounded-[18px] border border-[#d8d4c7] bg-[#ece9df] px-6 py-5">
-          <p className="mb-3 text-[0.62rem] font-medium uppercase tracking-[0.28em] text-[#8a9079]">
-            {t('Moodboard-DNA · {names}', {
-              names: `${couple.a || 'I'}${couple.b ? ` & ${couple.b}` : ''}`,
-            })}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {dnaTraits.slice(0, 4).map((t) => (
-              <span key={t.label}
-                className="inline-flex items-center gap-2 rounded-full border border-[#e4e0d4] bg-[#fcfbf7] px-3.5 py-1.5">
-                <span className="h-[3px] shrink-0 rounded-full bg-[#314523]"
-                  style={{ width: `${Math.round(t.pct / 12)}px` }} />
-                <span className="text-[0.68rem] font-medium text-[#314523]">{t.label}</span>
-              </span>
-            ))}
-          </div>
-        </div>
-
         {/* Ask-Ava-to-send banner when vendors are saved (gated until venue chosen) */}
         {savedCount > 0 && !locked && (
           <button onClick={() => onNavigate?.('ava')}
@@ -258,59 +238,33 @@ export default function Suppliers({
           </button>
         )}
 
-        {/* ── Results header ───────────────────────────────────────────── */}
-        <div className="mt-10 flex items-baseline justify-between">
-          <Eyebrow className="!text-[#8a9079]">
-            {cat === 'alle' ? t('Jeres leverandører') : catLabel} · {t('{n} resultater', { n: results.length })}
-          </Eyebrow>
-          {savedCount > 0 && (
-            <span className="flex items-center gap-1.5 text-[0.7rem] text-[#6c7561]">
-              <Heart size={11} fill="currentColor" className="text-[#314523]" />
-              {t('{n} gemt', { n: savedCount })}
-            </span>
-          )}
-        </div>
-
-        {/* ── Vendor grid / empty state ────────────────────────────────── */}
-        <AnimatePresence mode="wait">
-          {results.length === 0 ? (
-            <motion.div key="empty"
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="mt-16 text-center">
-              <p className="font-serif text-[1.3rem] italic text-[#6c7561]">
-                {vendors.length === 0
-                  ? t('Ingen leverandører fundet endnu')
-                  : t('Ingen resultater for "{query}"', { query })}
-              </p>
-              {vendors.length === 0 ? (
-                locked ? (
-                  <p className="mt-3 text-[0.78rem] text-[#6c7561]">
-                    {t('Vælg jeres lokation, så finder Ava leverandører der matcher.')}
-                  </p>
-                ) : (
-                  <button onClick={() => onNavigate?.('ava')}
-                    className="mt-4 inline-flex h-8 items-center gap-1.5 rounded-full bg-[#314523] px-3 text-xs font-semibold text-[#f7f5ef] hover:opacity-90 transition-colors cursor-pointer">
-                    <MessageCircle size={13} /> {t('Bed Ava finde leverandører')}
-                  </button>
-                )
-              ) : (
-                <button onClick={() => { setQuery(''); setCat('alle'); }}
-                  className="mt-4 text-[0.78rem] text-muted hover:text-ink transition-colors cursor-pointer underline underline-offset-2">
-                  {t('Ryd filter')}
-                </button>
+        {/* ── Results header + grid (only when there are results) ──────── */}
+        {results.length > 0 && (
+          <>
+            <div className="mt-10 flex items-baseline justify-between">
+              <Eyebrow className="!text-[#8a9079]">
+                {cat === 'alle' ? t('Jeres leverandører') : catLabel} · {t('{n} resultater', { n: results.length })}
+              </Eyebrow>
+              {savedCount > 0 && (
+                <span className="flex items-center gap-1.5 text-[0.7rem] text-[#6c7561]">
+                  <Heart size={11} fill="currentColor" className="text-[#314523]" />
+                  {t('{n} gemt', { n: savedCount })}
+                </span>
               )}
-            </motion.div>
-          ) : (
-            <motion.div key={`${cat}-${query}`}
-              initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-              className="mt-6 grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-              {results.map((s, i) => (
-                <SupplierCard key={s.id} s={s} i={i} onToggleSave={like} />
-              ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
+            </div>
+
+            <AnimatePresence mode="wait">
+              <motion.div key={`${cat}-${query}`}
+                initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                className="mt-6 grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                {results.map((s, i) => (
+                  <SupplierCard key={s.id} s={s} i={i} onToggleSave={like} />
+                ))}
+              </motion.div>
+            </AnimatePresence>
+          </>
+        )}
 
         {/* ── FAQ ──────────────────────────────────────────────────────── */}
         <section className="mt-20 rule-t pt-12">

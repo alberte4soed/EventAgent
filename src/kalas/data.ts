@@ -136,13 +136,13 @@ export type BudgetLine = {
 };
 
 export const budgetLines: BudgetLine[] = [
-  { id: 'venue', label: 'Venue & leje', pct: 33, spent: 0, hint: 'Inkl. borde, stole, telt' },
-  { id: 'catering', label: 'Mad & drikke', pct: 27, spent: 0, hint: '118 kuverter' },
-  { id: 'photo', label: 'Foto & film', pct: 11, spent: 18500, hint: 'Depositum betalt' },
+  { id: 'venue', label: 'Venue & leje', pct: 33, spent: 0, hint: '' },
+  { id: 'catering', label: 'Mad & drikke', pct: 27, spent: 0, hint: '' },
+  { id: 'photo', label: 'Foto & film', pct: 11, spent: 0, hint: '' },
   { id: 'florals', label: 'Blomster & dekoration', pct: 9, spent: 0, hint: '' },
-  { id: 'music', label: 'Musik & underholdning', pct: 7, spent: 0, hint: 'Live band' },
-  { id: 'attire', label: 'Tøj & beauty', pct: 8, spent: 9200, hint: 'Kjole reserveret' },
-  { id: 'misc', label: 'Invitationer & andet', pct: 5, spent: 1400, hint: 'Save-the-dates' },
+  { id: 'music', label: 'Musik & underholdning', pct: 7, spent: 0, hint: '' },
+  { id: 'attire', label: 'Tøj & beauty', pct: 8, spent: 0, hint: '' },
+  { id: 'misc', label: 'Invitationer & andet', pct: 5, spent: 0, hint: '' },
 ];
 
 /* ── Vendors / quote tracker ─────────────────────────────────────────── */

@@ -1,9 +1,25 @@
 "use client";
 
-import { Lock } from 'lucide-react';
+import {
+  Lock, LayoutGrid, Building2, Camera, Video, Flower2,
+  UtensilsCrossed, Martini, Cake, Music, Scissors, type LucideIcon,
+} from 'lucide-react';
 import { cn } from '../../ui';
 import { useLang } from '../../i18n';
 import { HUB_CATS, type HubCat } from './shared';
+
+const CAT_ICONS: Record<HubCat, LucideIcon> = {
+  alle: LayoutGrid,
+  venue: Building2,
+  fotografi: Camera,
+  video: Video,
+  blomster: Flower2,
+  catering: UtensilsCrossed,
+  bar: Martini,
+  kage: Cake,
+  musik: Music,
+  beauty: Scissors,
+};
 
 export default function CategoryFilterBar({
   cat,
@@ -19,23 +35,29 @@ export default function CategoryFilterBar({
   return (
     <div className="mt-4 flex gap-2 overflow-x-auto hide-scrollbar -mx-1 px-1 pb-1">
       {HUB_CATS.map((c) => {
+        const active = cat === c.id;
         const locked = vendorsLocked && c.id !== 'venue' && c.id !== 'alle';
+        const Icon = CAT_ICONS[c.id];
         return (
           <button
             key={c.id}
             type="button"
             onClick={() => onCatChange(c.id)}
+            aria-pressed={active}
             title={locked ? t('Vælg jeres lokation først') : undefined}
             className={cn(
-              'flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs font-semibold transition-all cursor-pointer',
-              cat === c.id
-                ? 'bg-[#314523] text-[#f7f5ef]'
-                : 'border border-[#e4e0d4] bg-[#f7f5ef] text-[#6c7561] hover:text-[#314523]',
-              locked && cat !== c.id && 'opacity-70',
+              'flex h-8 shrink-0 items-center gap-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer',
+              active
+                ? 'bg-[var(--color-sage-tint)] text-[#314523] border-[0.5px] border-[var(--color-sage-strong)] pl-3 pr-2.5'
+                : 'border border-[#e4e0d4] bg-[#f7f5ef] text-[#6c7561] hover:text-[#314523] hover:bg-[#efece3] px-3',
+              locked && !active && 'opacity-70',
             )}
           >
-            {locked && <Lock size={11} className="shrink-0 opacity-70" />}
+            {locked
+              ? <Lock size={13} className="shrink-0 opacity-70" aria-hidden />
+              : <Icon size={14} className="shrink-0" aria-hidden />}
             {t(c.label)}
+            {active && <span className="h-1 w-1 rounded-full bg-[#314523]" aria-hidden />}
           </button>
         );
       })}

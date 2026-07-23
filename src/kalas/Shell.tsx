@@ -52,12 +52,12 @@ function Wordmark({ light = false }: { light?: boolean }) {
   return (
     <span
       className={cn(
-        'text-[1.75rem] leading-none lowercase',
+        'text-[1.75rem] leading-none',
         light ? 'text-[#fffdf7]' : 'text-[#314523]',
       )}
-      style={{ fontFamily: 'var(--font-logo)', fontWeight: 600, letterSpacing: '-0.02em' }}
+      style={{ fontFamily: 'var(--font-wordmark)', fontWeight: 700, letterSpacing: 0 }}
     >
-      kalas
+      Kalas
     </span>
   );
 }

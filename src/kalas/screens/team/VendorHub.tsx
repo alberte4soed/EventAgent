@@ -6,7 +6,6 @@ import OnboardingHint from '../../OnboardingHint';
 import type { NavigateTarget } from '../../lib/hub-nav';
 import type { VenueHubView } from '../Venues';
 import HubTabBar from './HubTabBar';
-import CategoryFilterBar from './CategoryFilterBar';
 import ExplorePanel from './ExplorePanel';
 import ShortlistPanel from './ShortlistPanel';
 import BookedPanel from './BookedPanel';
@@ -73,14 +72,13 @@ export default function VendorHub({ onNavigate }: { onNavigate?: (s: NavigateTar
       <HubTabBar tab={tab} badges={badges} onChange={onTabChange} />
 
       <div className="px-6 py-8 sm:px-9 lg:px-12">
-        {(tab === 'explore' || tab === 'shortlist') && (
-          <CategoryFilterBar cat={cat} onCatChange={setCat} vendorsLocked={vendorsLocked} />
-        )}
-
-        <div className={(tab === 'explore' || tab === 'shortlist') ? 'mt-6' : undefined}>
+        {/* The category filter now lives under each panel's own header
+            (ExplorePanel → Discover/Suppliers, ShortlistPanel → "Trin 2"). */}
+        <div>
           {tab === 'explore' && (
             <ExplorePanel
               cat={cat}
+              onCatChange={setCat}
               query=""
               venueView={venueView}
               onVenueViewChange={setVenueView}
@@ -92,6 +90,7 @@ export default function VendorHub({ onNavigate }: { onNavigate?: (s: NavigateTar
           {tab === 'shortlist' && (
             <ShortlistPanel
               cat={cat}
+              onCatChange={setCat}
               query=""
               venueView={venueView}
               onVenueViewChange={setVenueView}

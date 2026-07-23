@@ -1,12 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, X, ChevronDown, ArrowRight, Check, Pencil } from 'lucide-react';
+import { Plus, X, ChevronDown, ArrowRight, Check, Pencil, Bell, StickyNote, Sparkles } from 'lucide-react';
+import BudgetContractPanel from './BudgetContractPanel';
 import { budgetLines, type BudgetLine } from '../data';
 import { Eyebrow, Chip, cn } from '../ui';
 import AnimateNumber from '../AnimateNumber';
 import OnboardingHint from '../OnboardingHint';
 import { useWedding } from '../useWedding';
 import { useLang } from '../i18n';
+import { navigateToHub, type NavigateTarget } from '../lib/hub-nav';
+import type { HubCat } from './team/shared';
+
+/* Budget benchmark id → the vendor-search chip it should deep-link to.
+   Custom + 'misc' lines have no matching vendor category, so no CTA. */
+const BUDGET_TO_HUBCAT: Record<string, HubCat> = {
+  venue: 'venue', photo: 'fotografi', catering: 'catering',
+  florals: 'blomster', music: 'musik', attire: 'beauty',
+};
 
 /* ── Benchmark fordeling (dansk gennemsnit) ──────────────────────────── */
 const BENCHMARK_DIST = [
@@ -23,20 +33,23 @@ const DK_AVG_PER_GUEST = 1850; // kr pr gæst, dansk gennemsnit
 
 const kr = (n: number) => new Intl.NumberFormat('da-DK').format(Math.round(n));
 
-const PAYMENTS: { label: string; when: string; amount: number | null; paid: boolean }[] = [
-  { label: 'Depositum · Foto & film',       when: 'Nov 2025', amount: 18500, paid: true  },
-  { label: 'Depositum · Tøj & beauty',      when: 'Jan 2026', amount: 9200,  paid: true  },
-  { label: 'Save-the-dates',                when: 'Jan 2026', amount: 1400,  paid: true  },
-  { label: 'Venue · depositum',             when: 'Mar 2026', amount: 20000, paid: false },
-  { label: 'Blomster & dekoration',         when: 'Jun 2026', amount: null,  paid: false },
-  { label: 'Finale antal til catering',     when: 'Aug 2026', amount: null,  paid: false },
-  { label: 'Foto & film · restbetaling',    when: 'Aug 2026', amount: 5500,  paid: false },
-  { label: 'Venue & catering · restbetaling', when: 'Sep 2026', amount: null, paid: false },
-];
+/** Paid state of a line: fully paid, partially paid, or nothing paid. */
+const paidState = (actual: number, paid: number): 'full' | 'partial' | 'none' =>
+  actual > 0 && paid >= actual ? 'full' : paid > 0 ? 'partial' : 'none';
 
-export default function Budget() {
+/** Whole days from today until a YYYY-MM-DD date (negative = overdue). */
+function daysUntil(dateStr: string): number | null {
+  if (!dateStr) return null;
+  const d = new Date(dateStr + 'T00:00:00');
+  if (Number.isNaN(d.getTime())) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.round((d.getTime() - today.getTime()) / 86400000);
+}
+
+export default function Budget({ onNavigate }: { onNavigate?: (s: NavigateTarget) => void }) {
   const { t } = useLang();
-  const { couple, budgetItems, saveBudgetItem, deleteBudgetItem, updateEvent } = useWedding();
+  const { couple, event, budgetItems, saveBudgetItem, deleteBudgetItem, updateEvent } = useWedding();
   const [estimatorDone, setEstimatorDone] = useState(false);
   const [estimatorOpen, setEstimatorOpen] = useState(false);
   const [estGuests, setEstGuests] = useState(couple.guests);
@@ -50,6 +63,17 @@ export default function Budget() {
   const [amounts, setAmounts] = useState<Record<string, number>>(
     () => Object.fromEntries(budgetLines.map((b) => [b.id, Math.round((total * b.pct) / 100)])),
   );
+  // Per-line workspace fields, mirrored from budget_items once persisted.
+  const [actuals, setActuals] = useState<Record<string, number>>({});
+  const [paids, setPaids] = useState<Record<string, number>>({});
+  const [noteById, setNoteById] = useState<Record<string, string>>({});
+  const [reminderById, setReminderById] = useState<Record<string, string>>({});
+  // Which lines have their reminder / note editor toggled open (Layout A).
+  const [remOpen, setRemOpen] = useState<Record<string, boolean>>({});
+  const [noteOpen, setNoteOpen] = useState<Record<string, boolean>>({});
+  const [contractOpen, setContractOpen] = useState<Record<string, boolean>>({});
+  // Which amount cell is being edited inline, keyed `${id}:actual` | `${id}:paid`.
+  const [editCell, setEditCell] = useState<string | null>(null);
 
   // Once anything is persisted, `budget_items` is the source of truth for which
   // categories exist and what they're called — so removing or renaming a
@@ -67,6 +91,10 @@ export default function Budget() {
       for (const i of budgetItems) next[i.category] = i.planned_amount;
       return next;
     });
+    setActuals(Object.fromEntries(budgetItems.map((i) => [i.category, i.actual_cost])));
+    setPaids(Object.fromEntries(budgetItems.map((i) => [i.category, i.paid_amount])));
+    setNoteById(Object.fromEntries(budgetItems.map((i) => [i.category, i.notes ?? ''])));
+    setReminderById(Object.fromEntries(budgetItems.map((i) => [i.category, i.reminder_at ?? ''])));
     setEstimatorDone(true);
   }, [budgetItems]);
 
@@ -91,6 +119,36 @@ export default function Budget() {
     }
     const line = lines.find((l) => l.id === id);
     void saveBudgetItem({ category: id, label: line?.label ?? id, planned_amount: amount });
+  };
+
+  // Persist a non-estimate field (actual cost, paid, note, reminder). Seeds the
+  // whole list first if nothing is persisted yet, merging the patch into its row.
+  const persistField = (
+    id: string,
+    patch: { actual_cost?: number; paid_amount?: number; notes?: string | null; reminder_at?: string | null },
+  ) => {
+    const line = lines.find((l) => l.id === id);
+    if (budgetItems.length === 0 && !seededRef.current) {
+      seededRef.current = true;
+      void Promise.all(
+        lines.map((l, idx) =>
+          saveBudgetItem({
+            category: l.id, label: l.label, planned_amount: amounts[l.id] ?? 0,
+            paid_amount: l.spent, sort: idx, ...(l.id === id ? patch : {}),
+          }),
+        ),
+      );
+      return;
+    }
+    void saveBudgetItem({ category: id, label: line?.label ?? id, ...patch });
+  };
+
+  // Deep-link a budget line straight into vendor search for its category.
+  const goFind = (id: string) => {
+    const hc = BUDGET_TO_HUBCAT[id];
+    if (!hc || !onNavigate) return;
+    navigateToHub('explore', hc);
+    onNavigate('team');
   };
 
   async function applyEstimate() {
@@ -160,8 +218,43 @@ export default function Budget() {
 
   const startAdding = () => { setAddingNew(true); setTimeout(() => inputRef.current?.focus(), 50); };
 
+  // Real payment timeline, derived from the lines that have an agreed cost
+  // and/or a reminder date — replacing the old hard-coded schedule.
+  const timeline = useMemo(() => {
+    return lines
+      .map((b) => {
+        const actual = actuals[b.id] ?? 0;
+        const paid = paids[b.id] ?? 0;
+        return {
+          id: b.id,
+          label: b.label,
+          due: reminderById[b.id] ?? '',
+          outstanding: Math.max(0, actual - paid),
+          fullyPaid: paidState(actual, paid) === 'full',
+          hasCost: actual > 0,
+        };
+      })
+      .filter((r) => r.hasCost || r.due)
+      .sort((a, b) => (a.due && b.due ? a.due.localeCompare(b.due) : a.due ? -1 : b.due ? 1 : 0));
+  }, [lines, actuals, paids, reminderById]);
+
+  const nextDueIdx = timeline.findIndex((r) => !r.fullyPaid && (r.outstanding > 0 || r.due));
+  const remainingKnown = timeline.reduce((a, r) => a + r.outstanding, 0);
+  const fmtDate = (d: string) =>
+    d ? new Date(d + 'T00:00:00').toLocaleDateString('da-DK', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+
   return (
     <div className="px-6 py-8 sm:px-9 lg:px-12 lg:py-8">
+      {/* ── Header ────────────────────────────────────────────────────── */}
+      <div className="mb-8">
+        <h1 className="font-serif text-[clamp(2rem,4vw,2.4rem)] leading-[1.1] tracking-[-0.02em] text-[#314523]">
+          {t('Budget')}
+        </h1>
+        <p className="mt-1.5 max-w-xl text-[13px] leading-relaxed text-[#6c7561]">
+          {t('Hold styr på hvad brylluppet koster — og hvad I har tilbage.')}
+        </p>
+      </div>
+
       {/* ── Budget estimator ──────────────────────────────────────────── */}
       <div className="rule rounded-2xl overflow-hidden">
         <button onClick={() => setEstimatorOpen(v => !v)}
@@ -271,11 +364,20 @@ export default function Budget() {
 
       {/* Editable lines */}
       <div className="mt-10 divide-y divide-[var(--color-line)]">
-        {lines.map((b) => (
+        {lines.map((b) => {
+          const est = amounts[b.id] ?? 0;
+          const actual = actuals[b.id] ?? 0;
+          const paid = paids[b.id] ?? 0;
+          const state = paidState(actual, paid);
+          const hubCat = BUDGET_TO_HUBCAT[b.id];
+          const reminder = reminderById[b.id] ?? '';
+          const note = noteById[b.id] ?? '';
+          const days = daysUntil(reminder);
+          return (
           <motion.div key={b.id}
             initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            className="py-5">
+            className="py-7">
             <div className="flex items-baseline justify-between gap-4">
               <div className="flex items-center gap-2.5 min-w-0">
                 {editingId === b.id ? (
@@ -298,11 +400,14 @@ export default function Budget() {
                     <Pencil size={12} className="text-muted/0 group-hover:text-muted transition-colors" />
                   </button>
                 )}
-                {b.spent > 0 && <Chip tone="success">{t('{amount} kr betalt', { amount: kr(b.spent) })}</Chip>}
+                {state === 'full' && <Chip tone="success">{t('Fuldt betalt')}</Chip>}
+                {state === 'partial' && (
+                  <Chip tone="success">{t('{paid} af {actual} betalt', { paid: kr(paid), actual: kr(actual) })}</Chip>
+                )}
               </div>
               <div className="flex items-baseline gap-3 shrink-0">
                 <div className="font-serif text-[1.3rem] text-ink tabular-nums">
-                  <AnimateNumber value={amounts[b.id] ?? 0} suffix=" kr" />
+                  <AnimateNumber value={est} suffix=" kr" />
                 </div>
                 <button onClick={() => removeLine(b.id)} aria-label={t('Fjern {label}', { label: t(b.label) })}
                   className="text-muted hover:text-[var(--color-terracotta)] transition-colors cursor-pointer">
@@ -310,7 +415,9 @@ export default function Budget() {
                 </button>
               </div>
             </div>
-            <div className="mt-3 flex items-center gap-4">
+
+            {/* Estimate slider (primary) */}
+            <div className="mt-4 flex items-center gap-4">
               <input
                 type="range" min={0} max={Math.round(total * 0.45)} step={500}
                 value={amounts[b.id] ?? 0} onChange={(e) => setAmount(b.id, Number(e.target.value))}
@@ -323,9 +430,133 @@ export default function Budget() {
                 {Math.round(((amounts[b.id] ?? 0) / total) * 100)}%
               </span>
             </div>
-            {b.hint && <p className="mt-1 text-[0.78rem] text-muted">{b.hint}</p>}
+
+            {/* Always-visible tracking line: faktisk · betalt · rest · vendor · reminder · note */}
+            <div className="mt-5 flex flex-wrap items-center gap-x-7 gap-y-3 text-[0.82rem]">
+              <span className="inline-flex items-baseline gap-2">
+                <span className="text-muted">{t('Faktisk')}</span>
+                {editCell === `${b.id}:actual` ? (
+                  <input autoFocus type="number" min={0} step={500} value={actual || ''} placeholder="0"
+                    onChange={(e) => setActuals((a) => ({ ...a, [b.id]: Math.max(0, Number(e.target.value)) }))}
+                    onBlur={(e) => { persistField(b.id, { actual_cost: Math.max(0, Number(e.target.value)) }); setEditCell(null); }}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === 'Escape') (e.target as HTMLInputElement).blur(); }}
+                    aria-label={t('Faktisk pris for {label}', { label: t(b.label) })}
+                    className="w-20 bg-transparent font-semibold text-ink tabular-nums border-b border-[var(--color-line-strong)] focus:outline-none" />
+                ) : (
+                  <button onClick={() => setEditCell(`${b.id}:actual`)}
+                    aria-label={t('Faktisk pris for {label}', { label: t(b.label) })}
+                    className="font-semibold text-ink tabular-nums hover:opacity-60 transition-opacity cursor-pointer">
+                    {actual > 0 ? kr(actual) : '—'}
+                  </button>
+                )}
+              </span>
+              <span className="inline-flex items-baseline gap-2">
+                <span className="text-muted">{t('Betalt')}</span>
+                {editCell === `${b.id}:paid` ? (
+                  <input autoFocus type="number" min={0} step={500} value={paid || ''} placeholder="0"
+                    onChange={(e) => setPaids((p) => ({ ...p, [b.id]: Math.max(0, Number(e.target.value)) }))}
+                    onBlur={(e) => { persistField(b.id, { paid_amount: Math.max(0, Number(e.target.value)) }); setEditCell(null); }}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === 'Escape') (e.target as HTMLInputElement).blur(); }}
+                    aria-label={t('Betalt for {label}', { label: t(b.label) })}
+                    className="w-20 bg-transparent font-semibold text-ink tabular-nums border-b border-[var(--color-line-strong)] focus:outline-none" />
+                ) : (
+                  <button onClick={() => setEditCell(`${b.id}:paid`)}
+                    aria-label={t('Betalt for {label}', { label: t(b.label) })}
+                    className="font-semibold text-ink tabular-nums hover:opacity-60 transition-opacity cursor-pointer">
+                    {paid > 0 ? kr(paid) : '—'}
+                  </button>
+                )}
+              </span>
+              {actual > 0 && (
+                <span className="inline-flex items-baseline gap-2">
+                  <span className="text-muted">{t('Rest')}</span>
+                  <span className={cn('font-semibold tabular-nums', actual - paid > 0 ? 'text-[var(--color-terracotta)]' : 'text-success')}>
+                    {kr(Math.max(0, actual - paid))}
+                  </span>
+                </span>
+              )}
+
+              <span className="flex-1" />
+
+              <span className="flex items-center gap-5">
+                {hubCat && (
+                  <button onClick={() => goFind(b.id)}
+                    className="text-ink underline underline-offset-2 hover:text-ink-soft transition-colors cursor-pointer">
+                    {b.id === 'venue' ? t('Se venues der matcher jer') : t('Se top matches')}
+                  </button>
+                )}
+                <span className="flex items-center gap-4">
+                  <button onClick={() => setRemOpen((s) => ({ ...s, [b.id]: !s[b.id] }))}
+                    aria-label={t('Påmindelse for {label}', { label: t(b.label) })} aria-pressed={Boolean(remOpen[b.id] || reminder)}
+                    className={cn('transition-colors cursor-pointer', reminder ? 'text-ink' : 'text-muted hover:text-ink')}>
+                    <Bell size={16} />
+                  </button>
+                  <button onClick={() => setNoteOpen((s) => ({ ...s, [b.id]: !s[b.id] }))}
+                    aria-label={t('Note for {label}', { label: t(b.label) })} aria-pressed={Boolean(noteOpen[b.id] || note)}
+                    className={cn('transition-colors cursor-pointer', note ? 'text-ink' : 'text-muted hover:text-ink')}>
+                    <StickyNote size={16} />
+                  </button>
+                  <button onClick={() => setContractOpen((s) => ({ ...s, [b.id]: !s[b.id] }))}
+                    aria-label={t('Kontrakt for {label}', { label: t(b.label) })} aria-pressed={Boolean(contractOpen[b.id])}
+                    className={cn('transition-colors cursor-pointer', contractOpen[b.id] ? 'text-[#6a5acd]' : 'text-muted hover:text-[#6a5acd]')}>
+                    <Sparkles size={16} />
+                  </button>
+                </span>
+              </span>
+            </div>
+
+            {/* Reminder editor — shown when toggled or already set */}
+            {(remOpen[b.id] || reminder) && (
+              <div className="mt-4 flex items-center gap-3">
+                <input type="date" value={reminder}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setReminderById((r) => ({ ...r, [b.id]: v }));
+                    persistField(b.id, { reminder_at: v || null });
+                  }}
+                  aria-label={t('Påmindelsesdato for {label}', { label: t(b.label) })}
+                  className="kalas-date rule rounded-lg bg-shell px-2.5 py-1.5 text-[0.85rem] font-semibold [color-scheme:light] focus:outline-none focus:border-[var(--color-sage-strong)]" />
+                {days != null && (
+                  <span className={cn('text-[0.76rem]', days < 0 ? 'text-[var(--color-terracotta)]' : 'text-muted')}>
+                    {days < 0
+                      ? t('forfaldt for {n} dage siden', { n: Math.abs(days) })
+                      : days === 0 ? t('forfalder i dag')
+                      : t('forfalder om {n} dage', { n: days })}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Note editor — shown when toggled or already set */}
+            {(noteOpen[b.id] || note) && (
+              <textarea rows={2} value={note}
+                placeholder={t('Fx aftaler, kontaktperson, hvad prisen dækker…')}
+                onChange={(e) => setNoteById((n) => ({ ...n, [b.id]: e.target.value }))}
+                onBlur={(e) => persistField(b.id, { notes: e.target.value })}
+                aria-label={t('Note for {label}', { label: t(b.label) })}
+                className="mt-4 w-full resize-none rule rounded-lg bg-shell px-3 py-2.5 text-[0.82rem] text-ink placeholder:text-muted/60 focus:outline-none" />
+            )}
+
+            {/* Contract upload + Ava review — toggled by the ✨ icon */}
+            {contractOpen[b.id] && (
+              <BudgetContractPanel
+                eventId={event?.id ?? null}
+                category={b.id}
+                onApply={(patch) => {
+                  if (patch.actual_cost != null) setActuals((a) => ({ ...a, [b.id]: patch.actual_cost! }));
+                  if (patch.reminder_at) {
+                    setReminderById((r) => ({ ...r, [b.id]: patch.reminder_at! }));
+                    setRemOpen((s) => ({ ...s, [b.id]: true }));
+                  }
+                  persistField(b.id, patch);
+                }}
+              />
+            )}
+
+            {b.hint && <p className="mt-1.5 text-[0.78rem] text-muted">{b.hint}</p>}
           </motion.div>
-        ))}
+          );
+        })}
 
         {/* Add new category */}
         {addingNew ? (
@@ -369,54 +600,71 @@ export default function Budget() {
         <h2 className="display mt-3 text-[clamp(1.8rem,3.5vw,2.6rem)] text-ink">
           {t('Hvornår skal')} <span className="italic">{t('pengene bruges?')}</span>
         </h2>
-        <div className="mt-8 space-y-0 divide-y divide-[var(--color-line)] rule rounded-2xl overflow-hidden">
-          {PAYMENTS.map((p, i) => {
-            const isNext = !p.paid && PAYMENTS.findIndex((x) => !x.paid) === i;
-            return (
-            <motion.div key={i}
-              initial={{ opacity: 0, x: -10 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: i * 0.05, ease: [0.22, 1, 0.36, 1] }}
-              className={`flex items-center gap-4 px-5 py-4 ${isNext ? 'bg-sage-tint/50' : 'bg-card'}`}>
-              <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${p.paid ? 'bg-sage-tint' : isNext ? 'bg-sage' : 'bg-shell'}`}>
-                {p.paid
-                  ? <span className="h-2 w-2 rounded-full bg-sage" />
-                  : <span className={`h-2 w-2 rounded-full ${isNext ? 'bg-ink' : 'bg-[var(--color-line-strong)]'}`} />}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className={`text-[0.88rem] ${p.paid ? 'text-muted line-through' : 'text-ink'}`}>
-                  {t(p.label)}
-                  {isNext && (
-                    <span className="ml-2 rounded-full bg-ink px-2 py-0.5 text-[0.58rem] font-bold uppercase tracking-[0.12em] text-canvas align-middle">
-                      {t('Næste')}
-                    </span>
-                  )}
-                </p>
-              </div>
-              <div className="text-right shrink-0">
-                {p.amount != null && (
-                  <p className={`font-serif text-[0.95rem] ${p.paid ? 'text-muted' : 'text-ink'}`}>
-                    {kr(p.amount)} kr
-                  </p>
-                )}
-                <p className="text-[0.68rem] uppercase tracking-[0.14em] text-muted mt-0.5">{p.when}</p>
-              </div>
-            </motion.div>
-            );
-          })}
-        </div>
-        <p className="mt-3 text-[0.78rem] text-muted">
-          {t('Kendte betalinger tilbage:')}{' '}
-          <span className="text-ink font-medium">
-            {kr(PAYMENTS.filter((p) => !p.paid && p.amount != null).reduce((a, p) => a + (p.amount ?? 0), 0))} kr
-          </span>
-          {' '}{t('· beløb uden tal afhænger af jeres valg')}
-        </p>
+        {timeline.length === 0 ? (
+          <p className="mt-8 rule rounded-2xl bg-card px-5 py-6 text-[0.85rem] text-muted">
+            {t('Tilføj en faktisk pris og en påmindelse på en kategori, så bygger vi jeres betalingsplan her.')}
+          </p>
+        ) : (
+          <>
+            <div className="mt-8 space-y-0 divide-y divide-[var(--color-line)] rule rounded-2xl overflow-hidden">
+              {timeline.map((p, i) => {
+                const isNext = i === nextDueIdx;
+                const overdueDays = daysUntil(p.due);
+                return (
+                <motion.div key={p.id}
+                  initial={{ opacity: 0, x: -10 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
+                  transition={{ duration: 0.4, delay: i * 0.05, ease: [0.22, 1, 0.36, 1] }}
+                  className={`flex items-center gap-4 px-5 py-4 ${isNext ? 'bg-sage-tint/50' : 'bg-card'}`}>
+                  <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${p.fullyPaid ? 'bg-sage-tint' : isNext ? 'bg-sage' : 'bg-shell'}`}>
+                    {p.fullyPaid
+                      ? <span className="h-2 w-2 rounded-full bg-sage" />
+                      : <span className={`h-2 w-2 rounded-full ${isNext ? 'bg-ink' : 'bg-[var(--color-line-strong)]'}`} />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-[0.88rem] ${p.fullyPaid ? 'text-muted line-through' : 'text-ink'}`}>
+                      {t(p.label)}
+                      {isNext && (
+                        <span className="ml-2 rounded-full bg-ink px-2 py-0.5 text-[0.58rem] font-bold uppercase tracking-[0.12em] text-canvas align-middle">
+                          {t('Næste')}
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    {p.outstanding > 0 && (
+                      <p className={`font-serif text-[0.95rem] ${p.fullyPaid ? 'text-muted' : 'text-ink'}`}>
+                        {kr(p.outstanding)} kr
+                      </p>
+                    )}
+                    <p className={`text-[0.68rem] uppercase tracking-[0.14em] mt-0.5 ${!p.fullyPaid && overdueDays != null && overdueDays < 0 ? 'text-[var(--color-terracotta)]' : 'text-muted'}`}>
+                      {p.due ? fmtDate(p.due) : t('ingen dato')}
+                    </p>
+                  </div>
+                </motion.div>
+                );
+              })}
+            </div>
+            <p className="mt-3 text-[0.78rem] text-muted">
+              {t('Udestående betalinger:')}{' '}
+              <span className="text-ink font-medium">{kr(remainingKnown)} kr</span>
+              {' '}{t('· baseret på faktiske priser I har indtastet')}
+            </p>
+          </>
+        )}
       </div>
 
       <style>{`
         .kalas-range { -webkit-appearance: none; appearance: none; height: 2px; background: var(--color-line-strong); border-radius: 999px; cursor: pointer; }
         .kalas-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 999px; background: var(--color-sage); border: 2px solid var(--color-canvas); box-shadow: 0 1px 4px rgba(46,51,37,0.2); cursor: pointer; }
         .kalas-range::-moz-range-thumb { width: 16px; height: 16px; border-radius: 999px; background: var(--color-sage); border: 2px solid var(--color-canvas); cursor: pointer; }
+        .kalas-date { color: #314523; }
+        .kalas-date::-webkit-datetime-edit,
+        .kalas-date::-webkit-datetime-edit-fields-wrapper,
+        .kalas-date::-webkit-datetime-edit-text,
+        .kalas-date::-webkit-datetime-edit-month-field,
+        .kalas-date::-webkit-datetime-edit-day-field,
+        .kalas-date::-webkit-datetime-edit-year-field { color: #314523; }
+        .kalas-date::-webkit-calendar-picker-indicator { filter: invert(19%) sepia(18%) saturate(1200%) hue-rotate(60deg); }
       `}</style>
       <OnboardingHint id="budget" />
     </div>

@@ -92,7 +92,7 @@ function AppInner() {
     team:        <VendorHub key={hubTick} onNavigate={navigate} />,
     inbox:       <Inbox onNavigate={navigate} />,
     planning:    <Planning />,
-    budget:      <Budget />,
+    budget:      <Budget onNavigate={navigate} />,
     guests:      <Guests />,
     website:     <Website />,
     registry:    <Registry onNavigate={navigate} />,

@@ -264,6 +264,22 @@ export interface InviteOrderRow {
   created_at: string;
 }
 
+export type InvitationStatus = "draft" | "published";
+
+/** A digital invitation: chosen template + the content (InvitationData) it
+    renders, addressable publicly by slug. RSVPs land in the `guests` table. */
+export interface InvitationRow {
+  id: string;
+  event_id: string;
+  user_id: string;
+  template_id: string;
+  data: Record<string, unknown>;
+  slug: string | null;
+  status: InvitationStatus;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface GoogleTokensRow {
   user_id: string;
   google_email: string | null;
@@ -284,7 +300,38 @@ export interface BudgetItemRow {
   label: string;
   planned_amount: number;
   paid_amount: number;
+  actual_cost: number;
+  notes: string | null;
+  reminder_at: string | null;
   sort: number;
+  created_at: string;
+}
+
+/** Ava's structured contract review (Gemini output), stored on budget_contracts.review. */
+export interface ContractReview {
+  vendorName?: string;
+  totalPrice?: number;
+  currency?: string;
+  depositAmount?: number;
+  paymentSchedule?: { label: string; amount: number; dueDate: string }[];
+  cancellationPolicy?: string;
+  summary: string;
+  redFlags?: string[];
+  suggestedActualCost?: number;
+  suggestedReminderDate?: string;
+  language?: string;
+}
+
+export interface BudgetContractRow {
+  id: string;
+  event_id: string;
+  user_id: string;
+  category: string;
+  filename: string;
+  mime_type: string | null;
+  size_bytes: number | null;
+  storage_path: string;
+  review: ContractReview | null;
   created_at: string;
 }
 

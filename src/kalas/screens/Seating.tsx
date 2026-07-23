@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Plus, X, Minus, Check, Download, Share2, ChevronDown, Trash2 } from 'lucide-react';
-import { Eyebrow, Pill, cn } from '../ui';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
+import { Plus, X, Minus, Check, ChevronDown, Trash2, Sparkles, GripVertical } from 'lucide-react';
+import { Eyebrow, Pill, Chip, cn } from '../ui';
 import OnboardingHint from '../OnboardingHint';
 import { useLang } from '../i18n';
 import { useWedding } from '../useWedding';
@@ -81,9 +81,6 @@ const ALL_GUESTS: Guest[] = [
 ];
 
 /* ── Initial state ─────────────────────────────────────────────────── */
-let nextId = 10;
-const mkId = () => `t${nextId++}`;
-
 const INIT_TABLES: TableDef[] = [
   { id: 'head', name: 'Brudebordet', shape: 'rect',  capacity: 10, guestIds: [] },
   { id: 't1',   name: 'Bord 1',      shape: 'round', capacity: 8,  guestIds: [] },
@@ -116,10 +113,16 @@ function tablePositions(tables: TableDef[]) {
 ══════════════════════════════════════════════════════════════════════ */
 export default function Seating() {
   const { t } = useLang();
+  const reduce = useReducedMotion();
   const { loading, guests, seatingPlan, saveSeating } = useWedding();
   const [tables, setTables]     = useState<TableDef[]>(INIT_TABLES);
   const [positions, setPositions] = useState<Record<string, { x: number; y: number }>>({});
   const [activeId, setActiveId] = useState<string>('t1');
+  const [expanded, setExpanded] = useState<string | null>(null);
+
+  // Per-instance id counter (avoids a module-global that collides on remount).
+  const idRef = useRef(10);
+  const mkId = () => `t${idRef.current++}`;
 
   // Seat the real guest list; fall back to the demo roster only when the
   // couple hasn't added anyone yet.
@@ -147,13 +150,19 @@ export default function Seating() {
 
   const moveTable = (id: string, x: number, y: number) =>
     setPositions((prev) => ({ ...prev, [id]: { x, y } }));
-  const [expanded, setExpanded] = useState<string | null>(null);
-  const [exported, setExported] = useState(false);
 
   const assignedIds = new Set(tables.flatMap((t) => t.guestIds));
   const unassigned  = pool.filter((g) => !assignedIds.has(g.id));
   const totalSeated = assignedIds.size;
   const activeTable = tables.find((t) => t.id === activeId);
+
+  // A drag is one gesture: the window listeners below close over this render's
+  // `tables`/`activeId`, which is exactly the state at pointer-down.
+  const hasRoom = (id: string | null): boolean => {
+    if (!id) return false;
+    const tb = tables.find((t) => t.id === id);
+    return !!tb && tb.guestIds.length < tb.capacity;
+  };
 
   /* ── Table mutations ─────────────────────────────────────────────── */
   const addTable = (shape: Shape) => {
@@ -181,19 +190,63 @@ export default function Seating() {
     ));
   };
 
-  const assignGuest = (guestId: string) => {
-    if (!activeId) return;
-    const t = tables.find((t) => t.id === activeId);
-    if (!t || t.guestIds.length >= t.capacity) return;
+  // Assign to a specific table (drag drop). Ignores full/duplicate.
+  const assignToTable = (tableId: string, guestId: string) => {
     setTables((prev) => prev.map((tbl) =>
-      tbl.id === activeId ? { ...tbl, guestIds: [...tbl.guestIds, guestId] } : tbl
+      tbl.id === tableId && !tbl.guestIds.includes(guestId) && tbl.guestIds.length < tbl.capacity
+        ? { ...tbl, guestIds: [...tbl.guestIds, guestId] }
+        : tbl
     ));
+  };
+
+  // Click / keyboard fallback: assign to the currently selected table.
+  const assignToActive = (guestId: string) => {
+    if (hasRoom(activeId)) assignToTable(activeId, guestId);
   };
 
   const unassignGuest = (tableId: string, guestId: string) => {
     setTables((prev) => prev.map((t) =>
       t.id === tableId ? { ...t, guestIds: t.guestIds.filter((id) => id !== guestId) } : t
     ));
+  };
+
+  /* ── Drag a guest from the pool onto a table on the floor plan ─────── */
+  const [dragGuest, setDragGuest] = useState<Guest | null>(null);
+  const [hoverTableId, setHoverTableId] = useState<string | null>(null);
+  const [ghostPos, setGhostPos] = useState<{ x: number; y: number } | null>(null);
+
+  const tableUnderPoint = (x: number, y: number): string | null => {
+    const el = document.elementFromPoint(x, y)?.closest('[data-table-id]');
+    return el?.getAttribute('data-table-id') ?? null;
+  };
+
+  const startGuestDrag = (guest: Guest, e: React.PointerEvent) => {
+    if (assignedIds.has(guest.id)) return;
+    const sx = e.clientX, sy = e.clientY;
+    let dragging = false;
+    const move = (ev: PointerEvent) => {
+      if (!dragging) {
+        if (Math.hypot(ev.clientX - sx, ev.clientY - sy) < 6) return; // click vs drag
+        dragging = true;
+        setDragGuest(guest);
+      }
+      setGhostPos({ x: ev.clientX, y: ev.clientY });
+      const id = tableUnderPoint(ev.clientX, ev.clientY);
+      setHoverTableId(hasRoom(id) ? id : null);
+    };
+    const up = (ev: PointerEvent) => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      if (dragging) {
+        const id = tableUnderPoint(ev.clientX, ev.clientY);
+        if (hasRoom(id)) assignToTable(id as string, guest.id);
+      } else {
+        assignToActive(guest.id); // treated as a tap → click fallback
+      }
+      setDragGuest(null); setHoverTableId(null); setGhostPos(null);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
   };
 
   /* Ava auto-seat: keep groups together — prefer tables that already hold
@@ -233,156 +286,144 @@ export default function Seating() {
     guests: pool.filter((g) => g.group === grp),
   }));
 
+  const pct = pool.length ? Math.round((totalSeated / pool.length) * 100) : 0;
+
   return (
     <div className="pb-24">
       {/* ── Header ──────────────────────────────────────────────────── */}
       <div className="px-6 py-8 sm:px-9 lg:px-12 lg:py-8">
-        <p className="max-w-lg text-ink-soft leading-relaxed">
-          {t('Vælg bordform og kapacitet — tilføj borde efter behov, og placer jeres gæster ved at vælge et bord og klikke på gæsterne nedenfor.')}
-        </p>
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="font-serif text-[clamp(2rem,4vw,2.4rem)] leading-[1.1] tracking-[-0.02em] text-[#314523]">
+              {t('Bordplan')}
+            </h1>
+            <p className="mt-1.5 max-w-xl text-[13px] leading-relaxed text-[#6c7561]">
+              {t('Træk en gæst fra listen ud på et bord — eller vælg et bord og tryk på gæsten. Træk bordene rundt, som salen står.')}
+            </p>
+          </div>
+          {unassigned.length > 0 && (
+            <Pill variant="solid" onClick={autoSeat} className="shrink-0">
+              <Sparkles size={13} /> {t('Lad Ava placere resten ({n})', { n: unassigned.length })}
+            </Pill>
+          )}
+        </div>
 
-        {/* Stats */}
+        {/* Stats + progress */}
         <div className="mt-6 flex flex-wrap items-center gap-3">
-          <div className="rule rounded-2xl bg-card px-5 py-3">
-            <p className="eyebrow">{t('Placeret')}</p>
-            <p className="mt-0.5 font-serif text-[1.5rem] leading-none text-ink">{totalSeated} / {pool.length}</p>
+          <StatTile label={t('Placeret')} value={`${totalSeated} / ${pool.length}`} />
+          <StatTile label={t('Borde')} value={tables.length} />
+          <StatTile label={t('Total kapacitet')} value={tables.reduce((a, tb) => a + tb.capacity, 0)} />
+          <div className="ml-auto w-full max-w-xs self-center">
+            <div className="mb-1.5 flex items-center justify-between">
+              <span className="eyebrow text-[0.62rem]">{t('Placeret')}</span>
+              <span className="text-[0.74rem] text-muted">{pct}%</span>
+            </div>
+            <div className="h-1.5 overflow-hidden rounded-full bg-shell">
+              <motion.div animate={{ width: `${pct}%` }}
+                transition={reduce ? { duration: 0 } : { duration: 0.5, ease: 'easeOut' }}
+                className="h-full rounded-full bg-sage" />
+            </div>
           </div>
-          <div className="rule rounded-2xl bg-card px-5 py-3">
-            <p className="eyebrow">{t('Borde')}</p>
-            <p className="mt-0.5 font-serif text-[1.5rem] leading-none text-ink">{tables.length}</p>
-          </div>
-          <div className="rule rounded-2xl bg-card px-5 py-3">
-            <p className="eyebrow">{t('Total kapacitet')}</p>
-            <p className="mt-0.5 font-serif text-[1.5rem] leading-none text-ink">{tables.reduce((a, t) => a + t.capacity, 0)}</p>
-          </div>
-          <div className="ml-auto flex items-center gap-2 self-start">
-            {unassigned.length > 0 && (
-              <button onClick={autoSeat}
-                className="flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-semibold uppercase tracking-[0.12em] text-canvas hover:opacity-90 transition-opacity cursor-pointer"
-                style={{ background: 'var(--color-ink)' }}>
-                {t('Lad Ava placere resten ({n})', { n: unassigned.length })}
+        </div>
+      </div>
+
+      {/* ── Plan (left) + guest pool (right, sticky on desktop) ───────── */}
+      <div className="px-6 sm:px-9 lg:px-12 lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-8 lg:items-start">
+        <div className="min-w-0">
+          {/* Add table bar */}
+          <div className="mb-5 flex flex-wrap items-center gap-2.5">
+            <Eyebrow className="mr-1">{t('Tilføj bord')}</Eyebrow>
+            {(Object.entries(SHAPE_META) as [Shape, typeof SHAPE_META[Shape]][]).map(([shape, meta]) => (
+              <button key={shape} onClick={() => addTable(shape)}
+                className="flex min-h-[40px] items-center gap-2 rounded-full rule bg-card px-4 py-2 text-[0.82rem] font-medium text-ink-soft hover:bg-shell hover:text-ink transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ink/40">
+                <Plus size={13} />
+                <ShapeIcon shape={shape} size={14} />
+                {t(meta.label)}
               </button>
-            )}
-            <button onClick={() => setExported(true)}
-              className="flex h-8 items-center gap-1.5 rounded-full rule px-3 text-xs font-semibold text-ink-soft hover:text-ink hover:bg-card transition-all cursor-pointer">
-              <Download size={13} /> {exported ? t('Eksporteret') : t('Eksportér PDF')}
-            </button>
-            <button className="flex h-8 items-center gap-1.5 rounded-full rule px-3 text-xs font-semibold text-ink-soft hover:text-ink hover:bg-card transition-all cursor-pointer">
-              <Share2 size={13} /> {t('Del med venue')}
-            </button>
-          </div>
-        </div>
-
-        {/* Progress */}
-        <div className="mt-5 max-w-md">
-          <div className="flex justify-between items-center mb-1.5">
-            <span className="eyebrow text-[0.62rem]">{t('Placeret')}</span>
-            <span className="text-[0.74rem] text-muted">{Math.round((totalSeated / pool.length) * 100)}%</span>
-          </div>
-          <div className="h-1 rounded-full bg-shell overflow-hidden">
-            <motion.div animate={{ width: `${(totalSeated / pool.length) * 100}%` }}
-              transition={{ duration: 0.5, ease: 'easeOut' }} className="h-full rounded-full bg-sage" />
-          </div>
-        </div>
-      </div>
-
-      {/* ── Add table bar ────────────────────────────────────────────── */}
-      <div className="px-6 sm:px-9 lg:px-12 mb-8">
-        <div className="flex flex-wrap items-center gap-3">
-          <Eyebrow className="mr-1">{t('Tilføj bord')}</Eyebrow>
-          {(Object.entries(SHAPE_META) as [Shape, typeof SHAPE_META[Shape]][]).map(([shape, meta]) => (
-            <button key={shape} onClick={() => addTable(shape)}
-              className="flex items-center gap-2 rounded-full rule bg-card px-4 py-2 text-[0.82rem] font-medium text-ink-soft hover:text-ink hover:bg-shell transition-all cursor-pointer">
-              <Plus size={13} />
-              <ShapeIcon shape={shape} size={14} />
-              {t(meta.label)}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Floor plan ──────────────────────────────────────────────── */}
-      <div className="px-6 sm:px-9 lg:px-12 mb-10">
-        <FloorPlan tables={tables} activeId={activeId} onSelect={setActiveId}
-          positions={positions} onMove={moveTable} />
-        {/* Shape legend */}
-        <div className="mt-3 flex flex-wrap gap-4">
-          {(Object.entries(SHAPE_META) as [Shape, typeof SHAPE_META[Shape]][]).map(([shape, meta]) => (
-            <div key={shape} className="flex items-center gap-1.5">
-              <ShapeIcon shape={shape} size={13} className="text-muted" />
-              <span className="text-[0.72rem] text-muted">{t(meta.label)}</span>
-            </div>
-          ))}
-          <div className="ml-auto text-[0.72rem] text-muted">{t('Klik for at vælge · træk for at flytte bordet')}</div>
-        </div>
-      </div>
-
-      {/* ── Table cards ─────────────────────────────────────────────── */}
-      <div className="px-6 sm:px-9 lg:px-12 mb-12">
-        <Eyebrow className="mb-5">{t('Borde · {n} i alt', { n: tables.length })}</Eyebrow>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {tables.map((t) => (
-            <TableCard
-              key={t.id}
-              table={t}
-              guests={pool}
-              isActive={activeId === t.id}
-              isExpanded={expanded === t.id}
-              onSelect={() => { setActiveId(t.id); setExpanded(t.id); }}
-              onToggleExpand={() => setExpanded(expanded === t.id ? null : t.id)}
-              onShapeChange={(s) => setShape(t.id, s)}
-              onCapacityChange={(d) => setCapacity(t.id, d)}
-              onRemoveGuest={(gId) => unassignGuest(t.id, gId)}
-              onDelete={t.id !== 'head' ? () => removeTable(t.id) : undefined}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* ── Guest pool ──────────────────────────────────────────────── */}
-      <div className="px-6 sm:px-9 lg:px-12">
-        <div className="rule rounded-2xl overflow-hidden">
-          {/* Pool header */}
-          <div className="flex items-center justify-between bg-card px-6 py-4 rule-b">
-            <div>
-              <Eyebrow>{t('Gæsteliste')}</Eyebrow>
-              {activeTable && activeTable.guestIds.length >= activeTable.capacity ? (
-                <p className="mt-1 font-serif text-[1.05rem] text-ink">
-                  <span className="italic">{t(activeTable.name)}</span>{' '}
-                  {t('er fuldt — vælg et andet bord ovenfor')}
-                </p>
-              ) : (
-                <p className="mt-1 font-serif text-[1.05rem] text-ink">
-                  {t('Klik på en gæst for at placere dem ved')}{' '}
-                  <span className="italic">{t(activeTable?.name ?? 'det valgte bord')}</span>
-                  {activeTable && (
-                    <span className="ml-2 inline-block rounded-full bg-sage-tint px-2.5 py-0.5 text-[0.68rem] font-sans font-semibold not-italic align-middle text-ink">
-                      {t('{n} ledige pladser', { n: activeTable.capacity - activeTable.guestIds.length })}
-                    </span>
-                  )}
-                </p>
-              )}
-            </div>
-            <div className="shrink-0 text-right">
-              <p className="eyebrow">{t('Uplacerede')}</p>
-              <p className="mt-0.5 font-serif text-[1.5rem] leading-none text-ink">{unassigned.length}</p>
-            </div>
-          </div>
-
-          {/* Groups */}
-          <div className="divide-y divide-[var(--color-line)]">
-            {groups.map((grp) => (
-              <GuestGroup
-                key={grp.name}
-                group={grp}
-                assignedIds={assignedIds}
-                activeTable={activeTable}
-                onAssign={assignGuest}
-              />
             ))}
           </div>
+
+          {/* Floor plan */}
+          <FloorPlan tables={tables} activeId={activeId} onSelect={setActiveId}
+            positions={positions} onMove={moveTable}
+            dragging={Boolean(dragGuest)} hoverTableId={hoverTableId} />
+          <div className="mt-3 flex flex-wrap gap-4">
+            {(Object.entries(SHAPE_META) as [Shape, typeof SHAPE_META[Shape]][]).map(([shape, meta]) => (
+              <div key={shape} className="flex items-center gap-1.5">
+                <ShapeIcon shape={shape} size={13} className="text-muted" />
+                <span className="text-[0.72rem] text-muted">{t(meta.label)}</span>
+              </div>
+            ))}
+            <div className="ml-auto text-[0.72rem] text-muted">{t('Klik for at vælge · træk for at flytte bordet')}</div>
+          </div>
+
+          {/* Table cards */}
+          <div className="mt-10">
+            <Eyebrow className="mb-5">{t('Borde · {n} i alt', { n: tables.length })}</Eyebrow>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {tables.map((tb) => (
+                <TableCard
+                  key={tb.id}
+                  table={tb}
+                  guests={pool}
+                  isActive={activeId === tb.id}
+                  isExpanded={expanded === tb.id}
+                  isDropTarget={hoverTableId === tb.id}
+                  onSelect={() => { setActiveId(tb.id); setExpanded(tb.id); }}
+                  onToggleExpand={() => setExpanded(expanded === tb.id ? null : tb.id)}
+                  onShapeChange={(s) => setShape(tb.id, s)}
+                  onCapacityChange={(d) => setCapacity(tb.id, d)}
+                  onRemoveGuest={(gId) => unassignGuest(tb.id, gId)}
+                  onDelete={tb.id !== 'head' ? () => removeTable(tb.id) : undefined}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Guest pool */}
+        <div className="mt-10 lg:mt-0 lg:sticky lg:top-6">
+          <div className="rule rounded-2xl overflow-hidden">
+            <div className="bg-card px-5 py-4 rule-b">
+              <div className="flex items-center justify-between gap-3">
+                <Eyebrow>{t('Gæsteliste')}</Eyebrow>
+                <Chip tone={unassigned.length ? 'neutral' : 'success'}>
+                  {t('{n} uplacerede', { n: unassigned.length })}
+                </Chip>
+              </div>
+              <p className="mt-1.5 text-[0.8rem] leading-relaxed text-muted">
+                {activeTable && activeTable.guestIds.length >= activeTable.capacity
+                  ? t('{name} er fuldt — træk til et andet bord', { name: t(activeTable.name) })
+                  : t('Træk en gæst ud på bordplanen — eller tryk for at sætte ved {name}', { name: t(activeTable?.name ?? 'det valgte bord') })}
+              </p>
+            </div>
+            <div className="max-h-[62vh] overflow-y-auto divide-y divide-[var(--color-line)]">
+              {groups.map((grp) => (
+                <GuestGroup
+                  key={grp.name}
+                  group={grp}
+                  assignedIds={assignedIds}
+                  activeTable={activeTable}
+                  reduce={Boolean(reduce)}
+                  onGuestPointerDown={startGuestDrag}
+                  onAssignActive={assignToActive}
+                />
+              ))}
+            </div>
+          </div>
         </div>
       </div>
+
+      {/* Floating drag ghost */}
+      {dragGuest && ghostPos && (
+        <div aria-hidden
+          style={{ position: 'fixed', left: ghostPos.x, top: ghostPos.y, transform: 'translate(-50%, -150%)', pointerEvents: 'none', zIndex: 60 }}
+          className="flex items-center gap-1.5 rounded-full bg-ink px-3.5 py-2 text-[0.82rem] text-canvas shadow-[0_10px_30px_-8px_rgba(0,0,0,0.5)]">
+          <span className="h-2 w-2 rounded-full" style={{ background: colorFor(dragGuest.group) }} />
+          {dragGuest.name}
+        </div>
+      )}
+
       <OnboardingHint id="seating" />
     </div>
   );
@@ -390,11 +431,13 @@ export default function Seating() {
 
 /* ── Floor plan — tables are draggable ───────────────────────────────── */
 function FloorPlan({
-  tables, activeId, onSelect, positions, onMove,
+  tables, activeId, onSelect, positions, onMove, dragging = false, hoverTableId = null,
 }: {
   tables: TableDef[]; activeId: string; onSelect: (id: string) => void;
   positions: Record<string, { x: number; y: number }>;
   onMove: (id: string, x: number, y: number) => void;
+  dragging?: boolean;
+  hoverTableId?: string | null;
 }) {
   const { t } = useLang();
   const svgRef = useRef<SVGSVGElement>(null);
@@ -463,12 +506,16 @@ function FloorPlan({
           const isActive = activeId === 'head';
           const filled   = head.guestIds.length;
           const cap      = head.capacity;
+          const isHover  = hoverTableId === 'head';
+          const canDrop  = dragging && filled < cap;
           const { cx, cy } = headPos;
           return (
-            <g className="cursor-grab active:cursor-grabbing"
+            <g data-table-id="head" className="cursor-grab active:cursor-grabbing"
               onPointerDown={startDrag('head', cx, cy)}>
-              {isActive && <rect x={cx - 127} y={cy - 26} width="254" height="52" rx="26"
-                fill="none" stroke="#314523" strokeWidth="2" opacity="0.35" />}
+              {(isActive || isHover) && <rect x={cx - 127} y={cy - 26} width="254" height="52" rx="26"
+                fill="none" stroke="#314523" strokeWidth={isHover ? 3 : 2} opacity={isHover ? 0.9 : 0.35} />}
+              {canDrop && !isHover && <rect x={cx - 127} y={cy - 26} width="254" height="52" rx="26"
+                fill="none" stroke="#314523" strokeWidth="1.5" strokeDasharray="5 4" opacity="0.4" />}
               <rect x={cx - 120} y={cy - 22} width="240" height="44" rx="22"
                 fill={isActive ? '#314523' : '#31452320'}
                 stroke="#314523" strokeWidth={isActive ? 0 : 1.5} />
@@ -494,12 +541,19 @@ function FloorPlan({
           const col        = '#314523';
           const bgAlpha    = isActive ? 'cc' : '22';
           const strokeAlpha = isActive ? '' : '66';
+          const isHover    = hoverTableId === tbl.id;
+          const canDrop    = dragging && tbl.guestIds.length < tbl.capacity;
 
           return (
-            <g key={tbl.id} className="cursor-grab active:cursor-grabbing"
+            <g key={tbl.id} data-table-id={tbl.id} className="cursor-grab active:cursor-grabbing"
               onPointerDown={startDrag(tbl.id, cx, cy)}>
+              {/* Drop-target ring while dragging a guest */}
+              {isHover && <TableShape shape={tbl.shape} cx={cx} cy={cy} r={36} fill="none"
+                stroke={col} strokeWidth={3} opacity={0.9} />}
+              {canDrop && !isHover && <TableShape shape={tbl.shape} cx={cx} cy={cy} r={34} fill="none"
+                stroke={col} strokeWidth={1.5} opacity={0.4} />}
               {/* Active glow ring */}
-              {isActive && <TableShape shape={tbl.shape} cx={cx} cy={cy} r={32} fill="none"
+              {isActive && !isHover && <TableShape shape={tbl.shape} cx={cx} cy={cy} r={32} fill="none"
                 stroke={col} strokeWidth={2} opacity={0.3} />}
 
               {/* Table body */}
@@ -575,13 +629,14 @@ function TableShape({
 
 /* ── Table card ──────────────────────────────────────────────────────── */
 function TableCard({
-  table, guests, isActive, isExpanded,
+  table, guests, isActive, isExpanded, isDropTarget = false,
   onSelect, onToggleExpand, onShapeChange, onCapacityChange, onRemoveGuest, onDelete,
 }: {
   table: TableDef;
   guests: Guest[];
   isActive: boolean;
   isExpanded: boolean;
+  isDropTarget?: boolean;
   onSelect: () => void;
   onToggleExpand: () => void;
   onShapeChange: (s: Shape) => void;
@@ -599,7 +654,8 @@ function TableCard({
   return (
     <motion.div layout
       className={cn('rule rounded-2xl overflow-hidden transition-all duration-200',
-        isActive && 'ring-2 ring-ink ring-offset-2 ring-offset-canvas')}>
+        isDropTarget ? 'ring-2 ring-sage-strong ring-offset-2 ring-offset-canvas'
+          : isActive && 'ring-2 ring-ink ring-offset-2 ring-offset-canvas')}>
 
       {/* Card header — click to select */}
       <div
@@ -620,7 +676,7 @@ function TableCard({
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline gap-2">
             <span className="font-serif text-[1.05rem] text-ink truncate">{t(table.name)}</span>
-            {isFull && <span className="text-[0.65rem] font-medium uppercase tracking-[0.1em] text-sage">{t('Fuld')}</span>}
+            {isFull && <Chip tone="sage">{t('Fuld')}</Chip>}
           </div>
           <div className="mt-1 text-[0.72rem] text-muted">{t(SHAPE_META[table.shape].label)}</div>
         </div>
@@ -736,22 +792,24 @@ function TableCard({
 
 /* ── Guest group section ─────────────────────────────────────────────── */
 function GuestGroup({
-  group, assignedIds, activeTable, onAssign,
+  group, assignedIds, activeTable, reduce, onGuestPointerDown, onAssignActive,
 }: {
   group: { name: string; color: string; guests: Guest[] };
   assignedIds: Set<string>;
   activeTable: TableDef | undefined;
-  onAssign: (id: string) => void;
+  reduce: boolean;
+  onGuestPointerDown: (guest: Guest, e: React.PointerEvent) => void;
+  onAssignActive: (id: string) => void;
 }) {
   const { t } = useLang();
   const [collapsed, setCollapsed] = useState(false);
-  const canAssign = activeTable && activeTable.guestIds.length < activeTable.capacity;
+  const activeName = activeTable ? t(activeTable.name) : t('det valgte bord');
 
   return (
     <div>
       <button
         onClick={() => setCollapsed((v) => !v)}
-        className="flex w-full items-center gap-3 px-6 py-3.5 cursor-pointer hover:bg-card/30 transition-colors">
+        className="flex w-full items-center gap-3 px-5 py-3.5 cursor-pointer hover:bg-card/30 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ink/30">
         <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: group.color }} />
         <span className="flex-1 text-left font-serif text-[0.98rem] text-ink">{group.name}</span>
         <span className="text-[0.72rem] text-muted">
@@ -769,26 +827,32 @@ function GuestGroup({
         {!collapsed && (
           <motion.div
             initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }}
-            transition={{ duration: 0.22 }}
+            transition={reduce ? { duration: 0 } : { duration: 0.22 }}
             className="overflow-hidden">
-            <div className="flex flex-wrap gap-2 px-6 pb-4">
+            <div className="flex flex-wrap gap-2 px-5 pb-4">
               {group.guests.map((g) => {
                 const placed = assignedIds.has(g.id);
+                if (placed) {
+                  return (
+                    <span key={g.id}
+                      className="relative flex min-h-[36px] items-center gap-1.5 rounded-full bg-sage-tint px-3.5 py-2 text-[0.82rem] text-ink-soft">
+                      <Check size={11} className="shrink-0 text-sage" />
+                      {g.name}
+                    </span>
+                  );
+                }
                 return (
                   <motion.button
                     key={g.id}
-                    whileTap={{ scale: 0.94 }}
-                    onClick={() => !placed && canAssign && onAssign(g.id)}
-                    disabled={placed || !canAssign}
-                    className={cn(
-                      'relative flex items-center gap-2 rounded-full px-3.5 py-2 text-[0.82rem] transition-all cursor-pointer',
-                      placed
-                        ? 'bg-sage-tint text-ink-soft cursor-default'
-                        : canAssign
-                          ? 'rule bg-canvas text-ink hover:bg-card hover:shadow-sm'
-                          : 'rule bg-canvas text-muted cursor-not-allowed opacity-50',
-                    )}>
-                    {placed && <Check size={11} className="text-sage shrink-0" />}
+                    whileTap={reduce ? undefined : { scale: 0.94 }}
+                    onPointerDown={(e) => onGuestPointerDown(g, e)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onAssignActive(g.id); }
+                    }}
+                    aria-label={t('Placér {name} ved {table}', { name: g.name, table: activeName })}
+                    style={{ touchAction: 'none' }}
+                    className="relative flex min-h-[36px] touch-none items-center gap-1.5 rounded-full rule bg-canvas px-3 py-2 text-[0.82rem] text-ink transition-colors hover:bg-card cursor-grab active:cursor-grabbing focus:outline-none focus-visible:ring-2 focus-visible:ring-ink/40">
+                    <GripVertical size={12} className="shrink-0 text-muted" />
                     {g.name}
                   </motion.button>
                 );
@@ -797,6 +861,16 @@ function GuestGroup({
           </motion.div>
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+/* ── Stat tile ───────────────────────────────────────────────────────── */
+function StatTile({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="rule rounded-2xl bg-card px-5 py-3">
+      <p className="eyebrow">{label}</p>
+      <p className="mt-0.5 font-serif text-[1.5rem] leading-none text-ink">{value}</p>
     </div>
   );
 }

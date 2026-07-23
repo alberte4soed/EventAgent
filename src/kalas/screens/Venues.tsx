@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, type ReactNode } from 'react';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'motion/react';
 import {
@@ -119,6 +119,8 @@ export type VenueHubConfig = {
   searchQuery?: string;
   category?: HubCat;
   showHint?: boolean;
+  /** Optional category filter bar rendered under the "Trin 2" list header (hub shortlist). */
+  categoryBar?: ReactNode;
 };
 
 export default function VenueDiscovery({
@@ -166,11 +168,6 @@ export default function VenueDiscovery({
 
   const goInbox = () => {
     onNavigate?.('inbox');
-  };
-
-  const goVendorsExplore = () => {
-    if (hub?.onSwitchTab) hub.onSwitchTab('explore', 'fotografi');
-    else onNavigate?.('vendors');
   };
 
   // Derived state from real rows.
@@ -270,6 +267,7 @@ export default function VenueDiscovery({
             onBack={hub ? undefined : () => setView('home')}
             onViewList={hasRealVenues ? () => goList() : undefined}
             embedded={Boolean(hub)}
+            categoryBar={hub?.categoryBar}
           />
         )}
         {vview === 'list' && (
@@ -285,9 +283,9 @@ export default function VenueDiscovery({
             onFindMore={likedNames.length > 0 ? () => goDiscover(true) : undefined}
             onReview={() => setView('review')}
             onAva={() => onNavigate?.('ava')}
-            onNextStep={goVendorsExplore}
             onRefresh={refresh}
-            embedded={Boolean(hub)} />
+            embedded={Boolean(hub)}
+            categoryBar={hub?.categoryBar} />
         )}
         {vview === 'review' && (
           <OutreachReview key="review"
@@ -606,7 +604,7 @@ function VenuesHome({
    DISCOVER VIEW — globe → country → destination → real venues
 ═══════════════════════════════════════════════════════════════════════ */
 function DiscoverView({
-  couple, savedPlaceIds, listCount, similarNames, onSaved, onBack, onViewList, embedded = false,
+  couple, savedPlaceIds, listCount, similarNames, onSaved, onBack, onViewList, embedded = false, categoryBar,
 }: {
   couple: Couple;
   savedPlaceIds: Set<string>;
@@ -616,6 +614,7 @@ function DiscoverView({
   onBack?: () => void;
   onViewList?: () => void;
   embedded?: boolean;
+  categoryBar?: ReactNode;
 }) {
   const { lang, t } = useLang();
   const venueArea = venueAreaLabel(couple.region);
@@ -827,6 +826,8 @@ function DiscoverView({
           </button>
         )}
       </div>
+
+      {categoryBar}
 
       <div className="grid gap-[18px] xl:grid-cols-[minmax(0,1fr)_400px]">
         {/* Globe */}
@@ -1222,7 +1223,7 @@ function PanelError({ label, onRetry }: { label: string; onRetry: () => void }) 
    PICKS VIEW — venue management
 ═══════════════════════════════════════════════════════════════════════ */
 function PicksView({
-  venues, couple, saved, sent, booked, stageOf, initialSelectedId, onToggleSave, onOutreach, onBook, onDiscover, onBack, onFindMore, onReview, onAva, onNextStep, onRefresh, embedded = false,
+  venues, couple, saved, sent, booked, stageOf, initialSelectedId, onToggleSave, onOutreach, onBook, onDiscover, onBack, onFindMore, onReview, onAva, onRefresh, embedded = false, categoryBar,
 }: {
   venues: DisplayVenue[];
   couple: Couple;
@@ -1234,9 +1235,9 @@ function PicksView({
   onBack?: () => void;
   onFindMore?: () => void;
   onReview: () => void;
-  onNextStep?: () => void;
   onRefresh: () => Promise<void>;
   embedded?: boolean;
+  categoryBar?: ReactNode;
 }) {
   const { t } = useLang();
   const [selectedId, setSelectedId] = useState<string | null>(initialSelectedId ?? null);
@@ -1308,53 +1309,19 @@ function PicksView({
     );
   }
 
-  const bookedVenue = booked ? venues.find((v) => v.id === booked) : null;
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
       transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
       className="pb-24">
 
-      {/* ── Booked celebration banner ────────────────────────────────── */}
-      {bookedVenue && (
-        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-          className="mx-6 mt-8 sm:mx-9 lg:mx-12 flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-ink px-6 py-5 text-canvas">
-          <div className="flex items-center gap-4 min-w-0">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-canvas/15">
-              <Check size={18} />
-            </div>
-            <div className="min-w-0">
-              <p className="font-serif text-[1.15rem] leading-snug">{t('{name} er jeres venue', { name: bookedVenue.name })}</p>
-              <p className="mt-0.5 text-[0.78rem] text-canvas/70">{t('Alt om stedet samles her. Næste skridt: fotograf og catering.')}</p>
-            </div>
-          </div>
-          {onNextStep && (
-            <button onClick={onNextStep}
-              className="shrink-0 rounded-full bg-canvas px-5 py-2.5 text-[0.7rem] font-bold uppercase tracking-[0.16em] text-ink hover:opacity-90 transition-opacity cursor-pointer">
-              {t('Find fotograf →')}
-            </button>
-          )}
-        </motion.div>
-      )}
-
-      {/* ── Chosen overview (only when a venue is booked) ───────────── */}
-      {(onBack || booked) && (
+      {/* ── Back button ──────────────────────────────────────────────── */}
+      {onBack && (
       <div className={cn(padX, 'pt-8')}>
-        {onBack && (
-          <button type="button" onClick={onBack}
-            className="mb-5 flex items-center gap-2 text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted hover:text-ink transition-colors cursor-pointer">
-            <ArrowLeft size={13} /> {t('Venues')}
-          </button>
-        )}
-        {booked && (
-        <ChosenOverview
-          chosen={venues.find((v) => v.id === booked) ?? null}
-          couple={couple}
-          onOpenDetail={() => setSelectedId(booked)}
-          onDiscover={onDiscover}
-        />
-        )}
+        <button type="button" onClick={onBack}
+          className="flex items-center gap-2 text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted hover:text-ink transition-colors cursor-pointer">
+          <ArrowLeft size={13} /> {t('Venues')}
+        </button>
       </div>
       )}
 
@@ -1363,10 +1330,10 @@ function PicksView({
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#8a9079]">{t('Trin 2 · Jeres liste')}</p>
-            <h2 className="display mt-2 text-[clamp(2rem,5vw,3rem)] text-ink">
+            <h2 className="mt-1 font-serif text-[clamp(2rem,4vw,2.25rem)] leading-[1.1] tracking-[-0.02em] text-[#314523]">
               {t('Venues I')} <span className="italic">{t('overvejer.')}</span>
             </h2>
-            <p className="mt-2 max-w-md text-ink-soft">
+            <p className="mt-1 max-w-xl text-[13px] text-[#6c7561]">
               {t(venues.length === 1 ? '{n} venue på listen' : '{n} venues på listen', { n: venues.length })}
               {venueCity ? t(' · nær {area}', { area: venueCity }) : ''}
             </p>
@@ -1391,6 +1358,9 @@ function PicksView({
           </div>
         </div>
       </div>
+
+      {/* ── Category filter (hub shortlist) — sits under the list header ── */}
+      {categoryBar && <div className={cn(padX, 'pt-6')}>{categoryBar}</div>}
 
       {/* ── Outreach progress → review page ──────────────────────────── */}
       {savedVenues.length > 0 && (

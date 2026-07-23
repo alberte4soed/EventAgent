@@ -18,7 +18,7 @@ export default function HubTabBar({
 
   const labels: Record<HubTab, string> = {
     explore: t('Explore'),
-    shortlist: t('Shortlist'),
+    shortlist: t('Favoritter'),
     booked: t('Booked'),
   };
 

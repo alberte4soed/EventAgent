@@ -2,11 +2,13 @@
 
 import VenueDiscovery, { type VenueHubView } from '../Venues';
 import Suppliers from '../Suppliers';
+import CategoryFilterBar from './CategoryFilterBar';
 import type { NavigateTarget } from '../../lib/hub-nav';
 import type { HubCat, HubTab } from './shared';
 
 export default function ExplorePanel({
   cat,
+  onCatChange,
   query,
   venueView,
   onVenueViewChange,
@@ -15,6 +17,7 @@ export default function ExplorePanel({
   vendorsLocked = false,
 }: {
   cat: HubCat;
+  onCatChange: (cat: HubCat) => void;
   query: string;
   venueView: VenueHubView;
   onVenueViewChange: (view: VenueHubView) => void;
@@ -24,6 +27,11 @@ export default function ExplorePanel({
 }) {
   const showVenues = cat === 'venue' || cat === 'alle';
   const goToVenue = () => onSwitchTab('explore', 'venue');
+  // The filter bar drops in under each sub-view's own header (Discover for
+  // venues, top of the grid for vendors) instead of being pinned to the top.
+  const categoryBar = (
+    <CategoryFilterBar cat={cat} onCatChange={onCatChange} vendorsLocked={vendorsLocked} />
+  );
 
   if (showVenues && cat !== 'alle') {
     return (
@@ -36,6 +44,7 @@ export default function ExplorePanel({
           searchQuery: query,
           category: cat,
           showHint: false,
+          categoryBar,
         }}
       />
     );
@@ -54,6 +63,7 @@ export default function ExplorePanel({
               searchQuery: query,
               category: 'venue',
               showHint: false,
+              categoryBar,
             }}
           />
         </section>
@@ -68,9 +78,12 @@ export default function ExplorePanel({
   }
 
   return (
-    <Suppliers
-      onNavigate={onNavigate}
-      hub={{ cat, query, showHint: false, locked: vendorsLocked, onGoToVenue: goToVenue }}
-    />
+    <div className="space-y-6">
+      {categoryBar}
+      <Suppliers
+        onNavigate={onNavigate}
+        hub={{ cat, query, showHint: false, locked: vendorsLocked, onGoToVenue: goToVenue }}
+      />
+    </div>
   );
 }

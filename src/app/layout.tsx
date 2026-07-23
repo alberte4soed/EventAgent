@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, Fraunces, Hanken_Grotesk, Inter } from "next/font/google";
+import { Cormorant_Garamond, EB_Garamond, Fraunces, Hanken_Grotesk, Inter } from "next/font/google";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -25,6 +25,13 @@ const hanken = Hanken_Grotesk({
   subsets: ["latin"],
 });
 
+// Kalas wordmark (corner logo).
+const ebGaramond = EB_Garamond({
+  variable: "--font-wordmark",
+  subsets: ["latin"],
+  weight: ["500", "700"],
+});
+
 export const metadata: Metadata = {
   title: "Kalas — plan the wedding, skip the stress",
   description:
@@ -37,7 +44,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${fraunces.variable} ${inter.variable} ${cormorant.variable} ${hanken.variable} h-full antialiased`}>
+    <html lang="en" className={`${fraunces.variable} ${inter.variable} ${cormorant.variable} ${hanken.variable} ${ebGaramond.variable} h-full antialiased`}>
       <body className="flex min-h-screen flex-col bg-cream font-[family-name:var(--font-inter)] text-ink">
         {children}
       </body>
