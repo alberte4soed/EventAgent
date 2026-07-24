@@ -3,6 +3,33 @@
    Use {name} placeholders for interpolation via t(str, { name }). */
 
 export const EN: Record<string, string> = {
+  // ── Ava's onboarding walkthrough ────────────────────────────────────
+  'Så er I inde — velkommen! Lad mig vise jer rundt. Det korte af det lange: I behøver ikke lede efter knapper. Skriv til mig her, så åbner jeg den rigtige side og laver arbejdet.':
+    "You're in — welcome! Let me show you around. The short version: you don't need to hunt for buttons. Write to me here and I'll open the right page and do the work.",
+  'Det her er leverandører. Her udforsker I steder og folk, gemmer favoritter på jeres shortlist, og ser hvem I har booket. Prøv at bede mig om noget — jeg søger på nettet og lægger rigtige steder på tavlen.':
+    "This is vendors. Here you explore places and people, save favourites to your shortlist, and see who you've booked. Try asking me for something — I search the web and put real places on the board.",
+  'Budgettet. Jeg fordeler det på kategorier og siger til, før I rammer loftet. I kan trække i det selv — eller bare bede mig om at ændre det.':
+    'The budget. I split it across categories and warn you before you hit the ceiling. You can drag it around yourself — or just ask me to change it.',
+  'Gæstelisten. Importér fra CSV eller tilføj dem enkeltvis — jeg holder styr på svar, plus-ens og kostbehov undervejs. I kan også bare spørge mig om status.':
+    'The guest list. Import from CSV or add them one by one — I keep track of replies, plus-ones and dietary needs along the way. You can also just ask me for the status.',
+  'Tidslinjen lægger jeg baglæns fra jeres dato, så I altid ved hvad der haster. Spørg mig endelig.':
+    'I lay the timeline out backwards from your date, so you always know what is urgent. Do ask me.',
+  'Og her lander svarene. Når jeg har skrevet til et sted, samler jeg tråden, trækker prisen ud af mailen og lægger et forslag til svar klar — I skal bare godkende.':
+    "And this is where replies land. Once I've written to a place, I gather the thread, pull the price out of the email and have a suggested reply ready — you just approve it.",
+  'Der er mere når I når dertil: jeres bryllupsside, invitationer, ønskeliste, bordplan og bryllupsrejse. Bed mig om at åbne en af dem, når I er klar.':
+    "There's more when you get there: your wedding site, invitations, registry, seating plan and honeymoon. Ask me to open any of them when you're ready.",
+  'Det var rundturen. Hvordan vil I helst arbejde? I kan altid skifte oppe i hjørnet.':
+    "That's the tour. How would you rather work? You can always switch up in the corner.",
+  'Find et bryllupssted i {city} til {guests} gæster': 'Find a wedding venue in {city} for {guests} guests',
+  'Sæt budgettet for mad og drikke til {foodBudget} kr': 'Set the food and drink budget to {foodBudget} kr',
+  'Hvem mangler at svare på invitationen?': 'Who still needs to reply to the invitation?',
+  'Hvad bør vi have på plads inden {dateHint}?': 'What should we have in place before {dateHint}?',
+  'Hjælp os videre — hvad mangler vi at få på plads?': 'Help us move forward — what do we still need to sort out?',
+  'Prøv: “{prompt}”': 'Try: “{prompt}”',
+  'Spring guiden over': 'Skip the guide',
+  'Bliv i chatten': 'Stay in chat',
+  'Skift til klassisk': 'Switch to classic',
+
   // ── Navigation ──────────────────────────────────────────────────────
   'Hjem': 'Home',
   'Ava': 'Ava',
@@ -479,7 +506,6 @@ export const EN: Record<string, string> = {
   'Alt er booket — hvor er I dygtige. 🤍': "Everything's booked — well done. 🤍",
   'Jeres hjemmeside (kommer snart)': 'Your website (coming soon)',
   '{who} venter på linket': '{who} awaiting the link',
-  'Gæstelisten': 'The guest list',
   'Kopieret!': 'Copied!',
   'Kopiér link': 'Copy link',
   'Tilpas →': 'Customize →',
@@ -678,39 +704,8 @@ export const EN: Record<string, string> = {
   'Japan': 'Japan',
   'USA': 'USA',
 
-  // ── Guided tour ─────────────────────────────────────────────────────
-  'Spring over': 'Skip',
   'Kom i gang': 'Get started',
-  'Rundvisning': 'Tour',
-  'Jeres overblik': 'Your overview',
-  'Alt der venter på et svar samles her — godkend, afvis eller spørg Ava til råds.':
-    'Everything waiting on an answer gathers here — approve, decline or ask Ava for advice.',
-  'Planen, i rækkefølge': 'The plan, in order',
-  'Ava sekvenserer opgaverne baglæns fra jeres dato, så I altid kender næste skridt.':
-    'Ava sequences the tasks backwards from your date, so you always know the next step.',
-  'Find jeres stil': 'Find your style',
-  'Swipe billeder I elsker — Ava former venues og leverandører efter jeres æstetik.':
-    'Swipe photos you love — Ava shapes venues and vendors around your aesthetic.',
-  'Jeres drømmested': 'Your dream place',
-  'Swipe eller fortæl Ava hvad I drømmer om — så finder hun rigtige steder med priser.':
-    'Swipe or tell Ava what you dream of — she’ll find real places with prices.',
-  'Hele holdet': 'The whole team',
-  'Fotograf, blomster, musik og mere — Ava kontakter dem med jeres brief.':
-    'Photographer, flowers, music and more — Ava contacts them with your brief.',
-  'Styr på pengene': 'Money under control',
-  'Ava fordeler budgettet og siger til, før I rammer loftet.':
-    'Ava splits the budget and warns you before you hit the ceiling.',
-  'Tilføj gæster, og lad Ava sende invitationer og holde styr på RSVP.':
-    'Add guests and let Ava send invitations and keep track of RSVPs.',
   'Jeres bryllupsside': 'Your wedding site',
-  'Vælg et tema og publicér på minutter — navne, dato og billeder er klar.':
-    'Pick a theme and publish in minutes — names, date and photos are ready.',
-  'Send invitationerne': 'Send the invitations',
-  'Ava skriver ordlyden, I godkender — digitalt eller som fysisk tryk.':
-    'Ava writes the wording, you approve — digital or physical print.',
-  'Byg jeres ønskeliste': 'Build your registry',
-  'Saml ønsker fra hele nettet — gæsterne reserverer med ét klik.':
-    'Collect wishes from across the web — guests reserve with one click.',
 
   // ── i18n audit batch (screens + chrome) ─────────────────────────────
   '+ Egne farver': '+ Custom colors',
@@ -892,7 +887,6 @@ export const EN: Record<string, string> = {
   'Lad Ava skrive ordlyden': 'Let Ava write the wording',
   'Levering 10–14 dage': 'Delivery 10–14 days',
   'Live forhåndsvisning': 'Live preview',
-  'Luk guide': 'Close guide',
   'Lås Ava-designeren op': 'Unlock the Ava designer',
   'Lås op · {price} kr': 'Unlock · {price} kr',
   'Mangler svar': 'Awaiting reply',
@@ -1220,55 +1214,27 @@ export const EN: Record<string, string> = {
   '{n} venues på listen': '{n} venues on the list',
 
   // ── Timeline + onboarding hints ────────────────────────────────────
-  'Alt i den rigtige rækkefølge': 'Everything in the right order',
-  'Ava har fordelt — juster hvad I vil': 'Ava has allocated — adjust what you like',
-  'Ava har gjort klar til jer': 'Ava has things ready for you',
-  'Ava kender jeres dato, budget og stil. Prøv: "Hvad bør vi booke inden næste måned?" eller "Hvad koster musik til 120 gæster?" — hun svarer med jer i tankerne.': 'Ava knows your date, budget and style. Try: "What should we book before next month?" or "What does music for 120 guests cost?" — she answers with you in mind.',
-  'Ava sekvenserer opgaverne baglæns fra jeres dato. Grønne punkter er klaret — Ava klarer dem automatisk, I beslutter de vigtige.': 'Ava sequences tasks backwards from your date. Green items are done — Ava handles those automatically, you decide the important ones.',
   'Book fotograf': 'Book photographer',
   'Book venue': 'Book venue',
   'Bordplan & menu låst': 'Seating & menu locked',
   'Brudekjole & jakkesæt': 'Wedding dress & suit',
-  'Byg jeres bordplan': 'Build your seating plan',
   'Endelig prøvepasning': 'Final fitting',
   'Florist & dekoration': 'Florist & decoration',
   'Færdige': 'Done',
   'Godt klaret. Ava har opdateret jeres fremdrift.': 'Well done. Ava has updated your progress.',
   'Handlinger for \'{title}\'': "Actions for '{title}'",
-  'Her samler vi alt hvad der venter på jeres svar — godkend, afvis eller spørg Ava om råd. Det tager sjældent mere end fem minutter at rydde listen.': 'Everything waiting on your reply gathers here — approve, decline or ask Ava. Clearing the list rarely takes more than five minutes.',
-  'Importer fra CSV eller tilføj manuelt. Ava sender invitationer, tracker RSVP og minder automatisk om svar — I ser status live.': 'Import from CSV or add manually. Ava sends invitations, tracks RSVPs and nudges for replies — you see status live.',
   'Invitationer sendt': 'Invitations sent',
   'Jeres dag': 'Your day',
-  'Jeres personlige assistent': 'Your personal assistant',
   'Kage & dessert': 'Cake & dessert',
   'Kommende': 'Upcoming',
   'Koordinering med leverandører': 'Vendor coordination',
-  'Lad Ava skrive — I godkender': 'Let Ava write — you approve',
-  'Live på under 2 minutter': 'Live in under 2 minutes',
   'Markér \'{title}\' som færdig': "Mark '{title}' as done",
   'Markér \'{title}\' som ikke færdig': "Mark '{title}' as not done",
   'Musik / DJ / band': 'Music / DJ / band',
-  'Pengene er jeres råderum': 'Money is your room to manoeuvre',
-  'Prøv Ava nu': 'Try Ava now',
   'Save-the-dates': 'Save-the-dates',
-  'Se fordelingen': 'See the allocation',
-  'Se hvad der venter': 'See what’s next',
-  'Se temaerne': 'See the themes',
-  'Stil hende et spørgsmål': 'Ask her a question',
   'Sæt budget & gæsteliste': 'Set budget & guest list',
-  'Tilføj borde, vælg form og flyt gæsterne rundt. Ava kan foreslå en placering baseret på relationer og kostbehov — I godkender.': 'Add tables, pick a shape and move guests around. Ava can suggest seating from relationships and dietary needs — you approve.',
-  'Tilføj folk — Ava klarer resten': 'Add people — Ava handles the rest',
-  'Tilføj første gæst': 'Add your first guest',
-  'Træk og slip dine gæster på plads': 'Drag and drop your guests into place',
-  'Træk skyderne for at ændre fordelingen. Ava advarer, hvis I er ved at ramme loftet, og hjælper med at finde besparelser, hvis I ønsker det.': 'Drag the sliders to change the split. Ava warns you if you’re about to hit the ceiling, and helps find savings if you want.',
-  'Udforsk venues og leverandører, gem dem på shortlisten, følg Ava\'s henvendelser i indbakken og hold styr på hvem I har booket.': "Explore venues and vendors, save them to the shortlist, follow Ava's outreach in the inbox and track who you've booked.",
   'Vielsesattest & jura': 'Marriage licence & paperwork',
-  'Vis mig oversigten': 'Show me the overview',
-  'Vælg design, og lad Ava generere ordlyden baseret på dato, sted og tone. Juster frit — send digitalt eller bestil fysisk tryk.': 'Choose a design and let Ava generate the wording from date, place and tone. Edit freely — send digitally or order print.',
-  'Vælg et design': 'Choose a design',
-  'Vælg et tema og justér farverne — Ava har allerede hentet navne, dato og billeder fra jeres moodboard. Publicér med ét klik.': 'Pick a theme and tweak the colours — Ava already pulled names, date and photos from your moodboard. Publish with one click.',
   'Ændr dato for \'{title}\'': "Change date for '{title}'",
-  'Ét sted til hele holdet': 'One place for the whole team',
 
   // ── Gap fill (FAQ, tour, budget, invites, palettes) ─────────────────
   '1 uge siden': '1 week ago',

@@ -8,7 +8,6 @@ import {
 import { useWedding } from '../useWedding';
 import type { NavigateTarget } from '../lib/hub-nav';
 import { navigateToHub } from '../lib/hub-nav';
-import OnboardingHint from '../OnboardingHint';
 import { useLang } from '../i18n';
 import { daysUntilWedding } from '@/lib/wedding-date';
 import type { HubCat } from './team/shared';
@@ -386,8 +385,6 @@ export default function Home({ onNavigate }: { onNavigate: (s: NavigateTarget) =
       <p className="pb-4 text-center text-[13px] text-[#a6b0aa]">
         {t('Planlagt med omtanke af {names}, guidet af Ava.', { names: coupleLabel })}
       </p>
-
-      <OnboardingHint id="home" />
     </div>
   );
 }

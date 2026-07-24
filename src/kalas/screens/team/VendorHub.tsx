@@ -3,7 +3,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useWedding } from '../../useWedding';
 import { useLang } from '../../i18n';
-import OnboardingHint from '../../OnboardingHint';
 import type { NavigateTarget } from '../../lib/hub-nav';
 import type { VenueHubView } from '../Venues';
 import HubTabBar from './HubTabBar';
@@ -120,8 +119,6 @@ export default function VendorHub({ onNavigate }: { onNavigate?: (s: NavigateTar
         )}
         {tab === 'booked' && <BookedPanel onSwitchTab={onSwitchTab} />}
       </div>
-
-      <OnboardingHint id="team" />
     </div>
   );
 }

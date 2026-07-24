@@ -63,6 +63,11 @@ export const CATEGORY_META: Record<
     emoji: "📋",
     prompt: "Find wedding planners near our venue.",
   },
+  accommodation: {
+    label: "Accommodation",
+    emoji: "🛏️",
+    prompt: "Find hotels and accommodation for our guests near our venue.",
+  },
   other: {
     label: "Vendor",
     emoji: "✨",

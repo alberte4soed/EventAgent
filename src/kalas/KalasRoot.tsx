@@ -7,7 +7,7 @@ import { useCallback, useState } from 'react';
 import { AnimatePresence, MotionConfig } from 'motion/react';
 import Shell, { type ScreenId } from './Shell';
 import ChatShell from './ChatShell';
-import GuidedTour from './GuidedTour';
+import { WALKTHROUGH_KEY } from './walkthrough';
 import { KalasProvider, useKalas } from './store';
 import { WeddingProvider, useWedding } from './useWedding';
 import { LanguageProvider, type Lang } from './i18n';
@@ -64,12 +64,16 @@ function AppInner() {
     if (saved === 'ava' || saved === 'inspiration') return 'home';
     return migrateSavedScreen(saved) || 'home';
   });
-  // One-time welcome tour, armed by onboarding completion (or `?tour=1` so it
-  // can be replayed on demand from the real app).
-  const [showTour, setShowTour] = useState(() => {
+  // Ava's one-time walkthrough, armed by onboarding completion (or `?walkthrough=1`
+  // so it can be replayed on demand). It runs inside the chat, so it forces chat
+  // mode until the couple picks a mode at the end.
+  const [walkthroughActive, setWalkthroughActive] = useState(() => {
     try {
-      if (sessionStorage.getItem('kalas_tour') === '1') return true;
-      return new URLSearchParams(window.location.search).get('tour') === '1';
+      if (new URLSearchParams(window.location.search).get('walkthrough') === '1') {
+        localStorage.setItem(WALKTHROUGH_KEY, '0');
+        return true;
+      }
+      return localStorage.getItem(WALKTHROUGH_KEY) !== null;
     } catch { return false; }
   });
 
@@ -105,11 +109,16 @@ function AppInner() {
     setStageTick((t) => t + 1);
   }, []);
 
-  const finishTour = () => {
-    try { sessionStorage.removeItem('kalas_tour'); } catch { /* ignore */ }
-    setShowTour(false);
-    navigate('home');
-  };
+  // End of the walkthrough: the couple's mode choice is the real one from here.
+  const finishWalkthrough = useCallback((mode: 'chat' | 'classic') => {
+    try { localStorage.removeItem(WALKTHROUGH_KEY); } catch { /* ignore */ }
+    setWalkthroughActive(false);
+    toggleChatMode(mode === 'chat');
+    if (mode === 'classic') {
+      sessionStorage.setItem('kalas_screen', 'home');
+      setScreen('home');
+    }
+  }, [toggleChatMode]);
 
   type AppScreen = Exclude<ScreenId, 'ava'>;
   const screens: Record<AppScreen, React.ReactNode> = {
@@ -128,7 +137,9 @@ function AppInner() {
 
   const activeScreen = screen === 'ava' ? 'home' : screen;
 
-  if (chatMode) {
+  // The walkthrough lives in the chat, so it pins the app to chat mode until
+  // the couple makes their choice on the last step.
+  if (chatMode || walkthroughActive) {
     return (
       <ChatShell
         current={activeScreen}
@@ -137,12 +148,15 @@ function AppInner() {
         stageSignal={stageTick}
         pendingCount={pendingCount}
         inboxBadge={inboxBadge}
+        hideModeToggle={walkthroughActive}
         chat={
           <Ava
             onNavigate={navigate}
             onUiAction={applyUiAction}
             uiMode="chat"
             variant="drawer"
+            walkthroughActive={walkthroughActive}
+            onWalkthroughFinish={finishWalkthrough}
           />
         }
       >
@@ -152,25 +166,17 @@ function AppInner() {
   }
 
   return (
-    <>
-      <Shell
-        current={activeScreen}
-        onNavigate={navigate}
-        pendingCount={pendingCount}
-        inboxBadge={inboxBadge}
-        chatMode={false}
-        onChatModeChange={toggleChatMode}
-      >
-        <AnimatePresence mode="wait">
-          <div key={activeScreen}>{screens[activeScreen as AppScreen]}</div>
-        </AnimatePresence>
-      </Shell>
-
-      <AnimatePresence>
-        {showTour && (
-          <GuidedTour key="guided-tour" onNavigate={navigate} onFinish={finishTour} />
-        )}
+    <Shell
+      current={activeScreen}
+      onNavigate={navigate}
+      pendingCount={pendingCount}
+      inboxBadge={inboxBadge}
+      chatMode={false}
+      onChatModeChange={toggleChatMode}
+    >
+      <AnimatePresence mode="wait">
+        <div key={activeScreen}>{screens[activeScreen as AppScreen]}</div>
       </AnimatePresence>
-    </>
+    </Shell>
   );
 }

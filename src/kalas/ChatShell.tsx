@@ -25,6 +25,7 @@ export default function ChatShell({
   stageSignal,
   pendingCount = 0,
   inboxBadge = 0,
+  hideModeToggle = false,
   chat,
   children,
 }: {
@@ -35,6 +36,8 @@ export default function ChatShell({
   stageSignal: number;
   pendingCount?: number;
   inboxBadge?: number;
+  /** Hidden during the walkthrough — the couple chooses their mode at the end. */
+  hideModeToggle?: boolean;
   chat: React.ReactNode;
   children: React.ReactNode;
 }) {
@@ -108,7 +111,7 @@ export default function ChatShell({
               <span className="lg:hidden"><Wordmark /></span>
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              <ModeToggle chatMode onChange={onChatModeChange} />
+              {!hideModeToggle && <ModeToggle chatMode onChange={onChatModeChange} />}
               <a
                 href="/settings"
                 aria-label={t('Indstillinger')}

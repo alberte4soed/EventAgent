@@ -22,7 +22,10 @@ export interface AgentChat {
   messages: ChatMessageRow[];
   agentStatus: string | null;
   eventId: string | null;
-  sendMessage: (text: string, ctx?: { contextReplyId?: string }) => Promise<void>;
+  sendMessage: (
+    text: string,
+    ctx?: { contextReplyId?: string; kickoff?: boolean }
+  ) => Promise<void>;
   setMessages: Dispatch<SetStateAction<ChatMessageRow[]>>;
 }
 
@@ -50,7 +53,7 @@ export function useAgentChat({
   }, [onUiAction]);
 
   const sendMessage = useCallback(
-    async (text: string, ctx?: { contextReplyId?: string }) => {
+    async (text: string, ctx?: { contextReplyId?: string; kickoff?: boolean }) => {
       const trimmed = text.trim();
       if (!trimmed || agentStatus !== null) return;
 
@@ -75,6 +78,7 @@ export function useAgentChat({
             message: trimmed,
             contextReplyId: ctx?.contextReplyId,
             uiMode,
+            kickoff: ctx?.kickoff,
           }),
         });
         if (!res.ok || !res.body) {

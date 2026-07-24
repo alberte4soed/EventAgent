@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { runAgentTurn } from "@/lib/gemini/agent";
-import { CHAT_MODE_CONTEXT } from "@/lib/gemini/prompts";
+import { CHAT_MODE_CONTEXT, ONBOARDING_KICKOFF_CONTEXT } from "@/lib/gemini/prompts";
 import { logAgentError } from "@/lib/gemini/log";
 import type {
   ChatMessageRow,
@@ -72,11 +72,13 @@ export async function POST(request: NextRequest) {
   } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { eventId, message, contextReplyId, uiMode } = (await request.json()) as {
+  const { eventId, message, contextReplyId, uiMode, kickoff } = (await request.json()) as {
     eventId?: string;
     message?: string;
     contextReplyId?: string;
     uiMode?: "chat" | "classic";
+    /** First turn after the onboarding walkthrough — drive the plan forward. */
+    kickoff?: boolean;
   };
   if (!message?.trim()) {
     return Response.json({ error: "message is required" }, { status: 400 });
@@ -133,6 +135,7 @@ export async function POST(request: NextRequest) {
   const extraContext = [
     languageDirective,
     uiMode === "chat" ? CHAT_MODE_CONTEXT : undefined,
+    kickoff ? ONBOARDING_KICKOFF_CONTEXT : undefined,
     replyContext,
   ]
     .filter(Boolean)

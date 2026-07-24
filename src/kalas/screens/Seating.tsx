@@ -2,7 +2,6 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { Plus, X, Minus, Check, ChevronDown, Trash2, Sparkles, GripVertical } from 'lucide-react';
 import { Eyebrow, Pill, Chip, cn } from '../ui';
-import OnboardingHint from '../OnboardingHint';
 import { useLang } from '../i18n';
 import { useWedding } from '../useWedding';
 
@@ -423,8 +422,6 @@ export default function Seating() {
           {dragGuest.name}
         </div>
       )}
-
-      <OnboardingHint id="seating" />
     </div>
   );
 }

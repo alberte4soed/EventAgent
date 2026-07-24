@@ -12,7 +12,6 @@ import {
 } from '../lib/budget-style';
 import { Eyebrow, Chip, cn } from '../ui';
 import AnimateNumber from '../AnimateNumber';
-import OnboardingHint from '../OnboardingHint';
 import { useWedding } from '../useWedding';
 import { useLang } from '../i18n';
 import { navigateToHub, type NavigateTarget } from '../lib/hub-nav';
@@ -777,7 +776,6 @@ export default function Budget({ onNavigate }: { onNavigate?: (s: NavigateTarget
         .kalas-date::-webkit-datetime-edit-year-field { color: #314523; }
         .kalas-date::-webkit-calendar-picker-indicator { filter: invert(19%) sepia(18%) saturate(1200%) hue-rotate(60deg); }
       `}</style>
-      <OnboardingHint id="budget" />
     </div>
   );
 }

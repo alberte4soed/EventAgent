@@ -118,6 +118,23 @@ page; when you touch budget/guests/website/registry data, open that page so
 the user watches it update live. If the user asks to see something ("vis
 budgettet"), that alone is a show_page call plus a one-line answer.`;
 
+/**
+ * Appended on the first turn after the onboarding walkthrough, when the couple
+ * has chosen to keep planning in chat. They have just been shown around and
+ * have almost nothing filled in — the job is to start closing real gaps.
+ */
+export const ONBOARDING_KICKOFF_CONTEXT = `ONBOARDING KICKOFF — the couple has
+just finished the walkthrough and asked you to take it from here.
+Start by calling get_planning_overview so you know what actually exists.
+Then pick the single biggest gap and work it, in journey order: venue
+exploration first (it anchors everything else), then budget, then guests,
+then vendors and invitations. Do not summarise the whole plan back to them
+and do not ask a list of questions — ask ONE concrete question about that
+one gap, and use show_page to put the matching page on the stage while you
+ask. If you can make progress without asking (searching venues near their
+city, seeding a budget split from their total), do that first and tell them
+what you did in one sentence.`;
+
 /** What to research per vendor category, beyond the shared basics. */
 const CATEGORY_BRIEFS: Record<string, { noun: string; asks: string }> = {
   venue: {

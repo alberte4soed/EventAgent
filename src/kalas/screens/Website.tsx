@@ -7,7 +7,6 @@ import {
 } from 'lucide-react';
 import { IMAGES as IMG, guests } from '../data';
 import { Eyebrow, cn } from '../ui';
-import OnboardingHint from '../OnboardingHint';
 import { useWedding, type Couple } from '../useWedding';
 import { SiteRenderer } from '../site/SiteRenderer';
 import {
@@ -957,8 +956,6 @@ export default function Website() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      <OnboardingHint id="website" />
     </div>
   );
 }
