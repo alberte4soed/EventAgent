@@ -8,7 +8,7 @@ import { AnimatePresence, MotionConfig } from 'motion/react';
 import { type ScreenId } from './Shell';
 import Onboarding, { type FormState, toOnboardingPayload } from './screens/Onboarding';
 import { LanguageProvider, useLang, type Lang } from './i18n';
-import { markAllHintsSeen } from './OnboardingHint';
+import { WALKTHROUGH_KEY } from './walkthrough';
 
 export default function KalasOnboardingRoot({ initialLang = 'da' }: { initialLang?: Lang }) {
   return (
@@ -44,11 +44,16 @@ function OnboardingShell() {
         // /home's server gate will bounce back here if nothing stuck.
       }
     }
-    // Start the app on Home and play the one-time guided tour. Suppress the
-    // individual per-page hints up front so they don't collide with the tour.
-    markAllHintsSeen();
+    // Hand off into chat mode with Ava's conversational walkthrough armed at
+    // step 0 — she takes it from here, narrating the app and letting the couple
+    // try real prompts. localStorage (not session) so a reload resumes it.
+    try {
+      localStorage.setItem('kalas_chat_mode', '1');
+      localStorage.setItem(WALKTHROUGH_KEY, '0');
+    } catch {
+      // Private mode: they just land in whatever mode they were in, no tour.
+    }
     sessionStorage.setItem('kalas_screen', 'home');
-    sessionStorage.setItem('kalas_tour', '1');
     window.location.assign('/home');
   };
 

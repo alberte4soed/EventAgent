@@ -6,7 +6,6 @@ export type BatchScreen = "team";
 
 /** UI category chip id used on the Suppliers page. */
 export type SupplierCatFilter =
-  | "alle"
   | "fotografi"
   | "video"
   | "blomster"
@@ -30,6 +29,7 @@ const BATCH_LABEL_DA: Record<VendorCategory, string> = {
   musician: "{n} musikere lagt på jeres board — se dem",
   caterer: "{n} catering-leverandører lagt på jeres board — se dem",
   planner: "{n} planlæggere lagt på jeres board — se dem",
+  accommodation: "{n} overnatningssteder lagt på jeres board — se dem",
   other: "{n} leverandører lagt på jeres board — se dem",
 };
 
@@ -40,6 +40,7 @@ const BATCH_LABEL_EN: Record<VendorCategory, string> = {
   musician: "{n} musicians added to your board — see them",
   caterer: "{n} caterers added to your board — see them",
   planner: "{n} planners added to your board — see them",
+  accommodation: "{n} places to stay added to your board — see them",
   other: "{n} vendors added to your board — see them",
 };
 
@@ -62,12 +63,12 @@ export function batchHubTab(category: VendorCategory): HubTab {
 
 export function batchHubCat(category: VendorCategory): HubCat {
   if (category === "venue") return "venue";
-  const filter = batchSupplierFilter(category);
-  return (filter ?? "alle") as HubCat;
+  if (category === "accommodation") return "overnatning";
+  return batchSupplierFilter(category) ?? "fotografi";
 }
 
 export function batchSupplierFilter(category: VendorCategory): SupplierCatFilter | null {
-  return SUPPLIER_CAT[category] ?? (category === "venue" ? null : "alle");
+  return SUPPLIER_CAT[category] ?? null;
 }
 
 export function batchLabel(category: VendorCategory, lang: "da" | "en", count: number): string {

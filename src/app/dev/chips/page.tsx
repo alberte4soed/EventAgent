@@ -5,7 +5,7 @@ import CategoryFilterBar from '@/kalas/screens/team/CategoryFilterBar';
 import type { HubCat } from '@/kalas/screens/team/shared';
 
 export default function DevChipsPage() {
-  const [cat, setCat] = useState<HubCat>('alle');
+  const [cat, setCat] = useState<HubCat>('venue');
   const [locked, setLocked] = useState(false);
 
   return (

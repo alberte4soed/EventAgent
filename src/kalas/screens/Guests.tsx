@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Plus, Upload, Utensils, Send, Users, Clock, CheckCheck, ChevronRight, Trash2, Search, X, Check, Link2, Mail, Phone, Pencil } from 'lucide-react';
 import { Pill, Chip, cn } from '../ui';
 import AnimateNumber from '../AnimateNumber';
-import OnboardingHint from '../OnboardingHint';
 import { useLang } from '../i18n';
 import { useWedding } from '../useWedding';
 import type { GuestRow as GuestRecord, RsvpStatus } from '@/lib/db/types';
@@ -266,8 +265,6 @@ export default function Guests() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      <OnboardingHint id="guests" />
     </div>
   );
 }

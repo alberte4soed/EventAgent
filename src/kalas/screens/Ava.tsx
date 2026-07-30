@@ -3,16 +3,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { Send, Paperclip, MapPin, Copy, Check, X } from 'lucide-react';
-import { useKalas } from '../store';
 import { useWedding } from '../useWedding';
 import { cn } from '../ui';
 import { useLang } from '../i18n';
 import type { NavigateTarget } from '../lib/hub-nav';
 import { navigateToHub } from '../lib/hub-nav';
-import OnboardingHint from '../OnboardingHint';
 import { createClient } from '@/lib/supabase/client';
 import { useAgentChat } from '@/lib/hooks/useAgentChat';
-import type { ChatMessageRow, ReplyProposalRow, EmailDraftRow, VenueRow, VendorCategory } from '@/lib/db/types';
+import type { AgentUiAction, ChatMessageRow, ReplyProposalRow, EmailDraftRow, VenueRow, VendorCategory } from '@/lib/db/types';
 import {
   batchCategory,
   batchHubCat,
@@ -20,20 +18,39 @@ import {
   batchLabel,
   batchSupplierFilter,
 } from '@/lib/vendor-batch';
-
-const SUGGESTIONS = ['Find venues til os', 'Hvad mangler vi at booke?', 'Skriv til fotografer'];
+import { useWalkthrough } from '../useWalkthrough';
+import WalkthroughChips from '../WalkthroughChips';
+import type { WalkthroughParams } from '../walkthrough';
 
 export default function Ava({
   onNavigate,
   onClose,
+  onUiAction,
+  uiMode = 'classic',
   variant = 'page',
+  walkthroughActive = false,
+  onWalkthroughFinish,
 }: {
   onNavigate?: (s: NavigateTarget) => void;
   onClose?: () => void;
+  /** Applies agent-driven client actions (page navigation) as they stream in. */
+  onUiAction?: (action: AgentUiAction) => void;
+  uiMode?: 'chat' | 'classic';
   variant?: 'page' | 'drawer';
+  /** Runs Ava's post-onboarding walkthrough inside this chat. */
+  walkthroughActive?: boolean;
+  onWalkthroughFinish?: (mode: 'chat' | 'classic') => void;
 }) {
   const { loading, event, couple } = useWedding();
   const { t } = useLang();
+
+  // The walkthrough runs inside the chat, which needs a wedding to attach to.
+  // If there is none, release the flag rather than pinning them in chat mode
+  // with the mode toggle hidden and no way to finish.
+  const stuck = walkthroughActive && !loading && !event;
+  useEffect(() => {
+    if (stuck) onWalkthroughFinish?.('chat');
+  }, [stuck, onWalkthroughFinish]);
 
   const shellClass = variant === 'drawer'
     ? 'flex h-full flex-col'
@@ -68,9 +85,32 @@ export default function Ava({
       coupleA={couple.a}
       onNavigate={onNavigate}
       onClose={onClose}
+      onUiAction={onUiAction}
+      uiMode={uiMode}
       variant={variant}
+      walkthroughActive={walkthroughActive}
+      onWalkthroughFinish={onWalkthroughFinish}
     />
   );
+}
+
+/** Placeholders for the walkthrough's try-prompts, from the couple's own answers. */
+function walkthroughParams(
+  event: { location: string | null; date_hint: string | null } | null,
+  couple: { guests: number; budgetTotal: number; dateLabel: string },
+): Partial<WalkthroughParams> {
+  const p: Partial<WalkthroughParams> = {};
+  if (event?.location) p.city = event.location;
+  if (couple.guests > 0) p.guests = couple.guests;
+  if (couple.budgetTotal > 0) {
+    // ~30 % of the total is the usual food-and-drink share; round to 5.000 kr
+    // so the suggested prompt reads like something a person would type.
+    const food = Math.round((couple.budgetTotal * 0.3) / 5_000) * 5_000;
+    if (food > 0) p.foodBudget = food.toLocaleString('da-DK');
+  }
+  const when = event?.date_hint || couple.dateLabel;
+  if (when) p.dateHint = when;
+  return p;
 }
 
 function AvaChat({
@@ -78,24 +118,36 @@ function AvaChat({
   coupleA,
   onNavigate,
   onClose,
+  onUiAction,
+  uiMode,
   variant,
+  walkthroughActive,
+  onWalkthroughFinish,
 }: {
   eventId: string;
   coupleA: string;
   onNavigate?: (s: NavigateTarget) => void;
   onClose?: () => void;
+  onUiAction?: (action: AgentUiAction) => void;
+  uiMode: 'chat' | 'classic';
   variant: 'page' | 'drawer';
+  walkthroughActive?: boolean;
+  onWalkthroughFinish?: (mode: 'chat' | 'classic') => void;
 }) {
   const supabase = useMemo(() => createClient(), []);
-  const { clearAvaBadge } = useKalas();
-  const { refresh, venues } = useWedding();
+  const { refresh, venues, event, couple } = useWedding();
   const { messages, agentStatus, sendMessage, setMessages } = useAgentChat({
     initialEventId: eventId,
     onTurnComplete: () => void refresh(),
+    onUiAction,
+    uiMode,
   });
   const { t } = useLang();
   const [draft, setDraft] = useState('');
   const endRef = useRef<HTMLDivElement>(null);
+  // The history load replaces the message array wholesale, so the walkthrough
+  // must wait for it — otherwise its bubbles get wiped on arrival.
+  const [historyLoaded, setHistoryLoaded] = useState(false);
 
   // Load the real chat history, then subscribe for live agent/cron messages.
   useEffect(() => {
@@ -106,7 +158,9 @@ function AvaChat({
         .select('*')
         .eq('event_id', eventId)
         .order('created_at', { ascending: true });
-      if (!cancelled && data) setMessages(data as ChatMessageRow[]);
+      if (cancelled) return;
+      if (data) setMessages(data as ChatMessageRow[]);
+      setHistoryLoaded(true);
     })();
     const channel = supabase
       .channel(`ava-${eventId}`)
@@ -139,8 +193,18 @@ function AvaChat({
     };
   }, [supabase, eventId, setMessages]);
 
-  useEffect(() => { clearAvaBadge(); }, [clearAvaBadge]);
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, agentStatus]);
+  const wt = useWalkthrough({
+    active: Boolean(walkthroughActive),
+    historyLoaded,
+    params: useMemo(() => walkthroughParams(event, couple), [event, couple]),
+    agentStatus,
+    onNavigate,
+    sendMessage,
+    setMessages,
+    onFinish: (mode) => onWalkthroughFinish?.(mode),
+  });
+
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, agentStatus, wt.step]);
 
   const visible = messages.filter((m) => m.role === 'user' || m.role === 'assistant');
 
@@ -149,13 +213,12 @@ function AvaChat({
       'flex flex-col',
       variant === 'drawer' ? 'h-full px-4' : 'mx-auto h-[calc(100dvh-130px)] max-w-2xl px-5 lg:h-screen',
     )}>
-      <header className="flex items-center gap-3 border-b border-[#d9ded9] py-4">
+      <header className="flex shrink-0 items-center gap-3 py-4">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#173c32]">
           <span className="font-serif text-[1.3rem] leading-none text-white">K</span>
         </div>
         <div className="min-w-0 flex-1">
           <div className="font-serif text-[1.15rem] text-[#173c32]">Ava</div>
-          <div className="text-[0.72rem] text-[#236b53]">{t('● Online · jeres bryllupsplanlægger')}</div>
         </div>
         {onClose && (
           <button
@@ -169,24 +232,23 @@ function AvaChat({
         )}
       </header>
 
-      <div className="hide-scrollbar flex-1 space-y-4 overflow-y-auto py-5">
-        {visible.map((m) => (
-          <Bubble key={m.id} msg={m} onNavigate={onNavigate} venues={venues} onRefresh={refresh} />
-        ))}
-        {agentStatus && <TypingDots label={agentStatus} />}
-        <div ref={endRef} />
+      <div className="relative min-h-0 flex-1">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-10 bg-gradient-to-b from-[#f5f3ee] to-transparent"
+        />
+        <div className="hide-scrollbar h-full space-y-4 overflow-y-auto py-5">
+          {visible.map((m) => (
+            <Bubble key={m.id} msg={m} onNavigate={onNavigate} venues={venues} onRefresh={refresh} />
+          ))}
+          {agentStatus && <TypingDots label={agentStatus} />}
+          {!agentStatus && wt.step && <WalkthroughChips wt={wt} />}
+          <div ref={endRef} />
+        </div>
       </div>
 
       <div className="border-t border-[#d9ded9] pb-3 pt-2">
-        <div className="mb-3 flex flex-wrap gap-2">
-          {SUGGESTIONS.map((s) => (
-            <button key={s} onClick={() => sendMessage(t(s))} disabled={agentStatus !== null}
-              className="rounded-full rule bg-card px-3.5 py-2 text-[0.8rem] text-ink-soft transition-colors hover:bg-shell cursor-pointer disabled:opacity-50">
-              {t(s)}
-            </button>
-          ))}
-        </div>
-        <form onSubmit={(e) => { e.preventDefault(); const msg = draft; setDraft(''); void sendMessage(msg); }}
+        <form onSubmit={(e) => { e.preventDefault(); const msg = draft; setDraft(''); wt.armAutoAdvance(); void sendMessage(msg); }}
           className="flex items-center gap-2 rounded-full rule bg-card px-2 py-2">
           <button type="button" aria-label={t('Vedhæft fil')} disabled
             className="flex h-10 w-10 items-center justify-center rounded-full text-faint cursor-not-allowed">
@@ -202,7 +264,6 @@ function AvaChat({
           </button>
         </form>
       </div>
-      {variant === 'page' && <OnboardingHint id="ava" />}
     </div>
   );
 }

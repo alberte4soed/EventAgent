@@ -8,7 +8,6 @@ import {
 import { TODAY, timeline as MOCK_TIMELINE } from '../data';
 import { useWedding } from '../useWedding';
 import { cn } from '../ui';
-import OnboardingHint from '../OnboardingHint';
 import { useLang } from '../i18n';
 
 const AVA_CELEBRATION = 'Godt klaret. Ava har opdateret jeres fremdrift.';
@@ -332,8 +331,6 @@ export default function Planning() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      <OnboardingHint id="planning" />
     </div>
   );
 }

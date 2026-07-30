@@ -3,16 +3,18 @@
 /* Authenticated Kalas app. Mounted at /home via next/dynamic with ssr:false,
    so sessionStorage/window access in the screens is safe. Onboarding lives
    on its own Next route (/onboarding) — no phase state here. */
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { AnimatePresence, MotionConfig } from 'motion/react';
 import Shell, { type ScreenId } from './Shell';
-import GuidedTour from './GuidedTour';
+import ChatShell from './ChatShell';
+import { WALKTHROUGH_KEY } from './walkthrough';
 import { KalasProvider, useKalas } from './store';
 import { WeddingProvider, useWedding } from './useWedding';
 import { LanguageProvider, type Lang } from './i18n';
 import Home from './screens/Home';
 import Ava from './screens/Ava';
-import { migrateSavedScreen, resolveScreenNavigation, type NavigateTarget } from './lib/hub-nav';
+import type { AgentUiAction } from '@/lib/db/types';
+import { agentActionToScreen, migrateSavedScreen, resolveScreenNavigation, type NavigateTarget } from './lib/hub-nav';
 import { isLegacyHubScreen } from './screens/team/shared';
 import VendorHub from './screens/team/VendorHub';
 import Planning from './screens/Planning';
@@ -23,6 +25,7 @@ import Invites from './screens/Invites';
 import Seating from './screens/Seating';
 import Registry from './screens/Registry';
 import Inbox from './screens/Inbox';
+import Honeymoon from './screens/Honeymoon';
 
 export default function KalasRoot({ initialLang = 'da' }: { initialLang?: Lang }) {
   return (
@@ -41,11 +44,16 @@ export default function KalasRoot({ initialLang = 'da' }: { initialLang?: Lang }
 }
 
 function AppInner() {
-  const { pendingCount, avaBadge } = useKalas();
+  const { pendingCount } = useKalas();
   const { replies } = useWedding();
   const inboxBadge = replies.filter((r) => !r.read_at).length;
-  const [avaOpen, setAvaOpen] = useState(false);
   const [hubTick, setHubTick] = useState(0);
+  // Chat mode: collapsed icon-rail + Ava-driven stage. Sticky across visits.
+  const [chatMode, setChatMode] = useState(() => {
+    try { return localStorage.getItem('kalas_chat_mode') === '1'; } catch { return false; }
+  });
+  // Bumped on every agent-driven navigation (ChatShell flips mobile to stage).
+  const [stageTick, setStageTick] = useState(0);
   const [screen, setScreen] = useState<ScreenId>(() => {
     // Returning from the website Stripe checkout → land on the builder,
     // which reads and strips the query param itself.
@@ -56,35 +64,61 @@ function AppInner() {
     if (saved === 'ava' || saved === 'inspiration') return 'home';
     return migrateSavedScreen(saved) || 'home';
   });
-  // One-time welcome tour, armed by onboarding completion (or `?tour=1` so it
-  // can be replayed on demand from the real app).
-  const [showTour, setShowTour] = useState(() => {
+  // Ava's one-time walkthrough, armed by onboarding completion (or `?walkthrough=1`
+  // so it can be replayed on demand). It runs inside the chat, so it forces chat
+  // mode until the couple picks a mode at the end.
+  const [walkthroughActive, setWalkthroughActive] = useState(() => {
     try {
-      if (sessionStorage.getItem('kalas_tour') === '1') return true;
-      return new URLSearchParams(window.location.search).get('tour') === '1';
+      if (new URLSearchParams(window.location.search).get('walkthrough') === '1') {
+        localStorage.setItem(WALKTHROUGH_KEY, '0');
+        return true;
+      }
+      return localStorage.getItem(WALKTHROUGH_KEY) !== null;
     } catch { return false; }
   });
 
+  const toggleChatMode = useCallback((on: boolean) => {
+    setChatMode(on);
+    try { localStorage.setItem('kalas_chat_mode', on ? '1' : '0'); } catch { /* ignore */ }
+  }, []);
+
   const navigate = (s: NavigateTarget) => {
     if (s === 'ava') {
-      setAvaOpen(true);
+      // In-page “talk to Ava” CTAs enter chat mode.
+      toggleChatMode(true);
       return;
     }
     const hadDeepLink = isLegacyHubScreen(s)
       || Boolean(sessionStorage.getItem('kalas_hub_tab') || sessionStorage.getItem('kalas_hub_cat'));
     const target = resolveScreenNavigation(s);
     if (target === 'team' && hadDeepLink) setHubTick((t) => t + 1);
-    setAvaOpen(false);
     sessionStorage.setItem('kalas_screen', target);
     setScreen(target);
+    // Chat mode: any navigation should surface the stage on mobile too.
+    if (chatMode) setStageTick((t) => t + 1);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const finishTour = () => {
-    try { sessionStorage.removeItem('kalas_tour'); } catch { /* ignore */ }
-    setShowTour(false);
-    navigate('home');
-  };
+  // Agent-fired navigation (streamed `ui` frames).
+  const applyUiAction = useCallback((action: AgentUiAction) => {
+    if (action.kind !== 'navigate') return;
+    const target = agentActionToScreen(action);
+    if (target === 'team') setHubTick((t) => t + 1);
+    sessionStorage.setItem('kalas_screen', target);
+    setScreen(target);
+    setStageTick((t) => t + 1);
+  }, []);
+
+  // End of the walkthrough: the couple's mode choice is the real one from here.
+  const finishWalkthrough = useCallback((mode: 'chat' | 'classic') => {
+    try { localStorage.removeItem(WALKTHROUGH_KEY); } catch { /* ignore */ }
+    setWalkthroughActive(false);
+    toggleChatMode(mode === 'chat');
+    if (mode === 'classic') {
+      sessionStorage.setItem('kalas_screen', 'home');
+      setScreen('home');
+    }
+  }, [toggleChatMode]);
 
   type AppScreen = Exclude<ScreenId, 'ava'>;
   const screens: Record<AppScreen, React.ReactNode> = {
@@ -98,38 +132,51 @@ function AppInner() {
     registry:    <Registry onNavigate={navigate} />,
     invites:     <Invites />,
     seating:     <Seating />,
+    honeymoon:   <Honeymoon onNavigate={navigate} />,
   };
 
   const activeScreen = screen === 'ava' ? 'home' : screen;
 
-  return (
-    <>
-      <Shell
+  // The walkthrough lives in the chat, so it pins the app to chat mode until
+  // the couple makes their choice on the last step.
+  if (chatMode || walkthroughActive) {
+    return (
+      <ChatShell
         current={activeScreen}
         onNavigate={navigate}
+        onChatModeChange={toggleChatMode}
+        stageSignal={stageTick}
         pendingCount={pendingCount}
         inboxBadge={inboxBadge}
-        avaBadge={avaBadge}
-        avaOpen={avaOpen}
-        onAvaOpen={() => setAvaOpen(true)}
-        avaDrawer={
+        hideModeToggle={walkthroughActive}
+        chat={
           <Ava
             onNavigate={navigate}
-            onClose={() => setAvaOpen(false)}
+            onUiAction={applyUiAction}
+            uiMode="chat"
             variant="drawer"
+            walkthroughActive={walkthroughActive}
+            onWalkthroughFinish={finishWalkthrough}
           />
         }
       >
-        <AnimatePresence mode="wait">
-          <div key={activeScreen}>{screens[activeScreen as AppScreen]}</div>
-        </AnimatePresence>
-      </Shell>
+        {screens[activeScreen as AppScreen]}
+      </ChatShell>
+    );
+  }
 
-      <AnimatePresence>
-        {showTour && (
-          <GuidedTour key="guided-tour" onNavigate={navigate} onFinish={finishTour} />
-        )}
+  return (
+    <Shell
+      current={activeScreen}
+      onNavigate={navigate}
+      pendingCount={pendingCount}
+      inboxBadge={inboxBadge}
+      chatMode={false}
+      onChatModeChange={toggleChatMode}
+    >
+      <AnimatePresence mode="wait">
+        <div key={activeScreen}>{screens[activeScreen as AppScreen]}</div>
       </AnimatePresence>
-    </>
+    </Shell>
   );
 }

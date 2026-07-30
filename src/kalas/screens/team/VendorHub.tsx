@@ -2,24 +2,27 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { useWedding } from '../../useWedding';
-import OnboardingHint from '../../OnboardingHint';
+import { useLang } from '../../i18n';
 import type { NavigateTarget } from '../../lib/hub-nav';
 import type { VenueHubView } from '../Venues';
 import HubTabBar from './HubTabBar';
+import CategoryFilterBar from './CategoryFilterBar';
 import ExplorePanel from './ExplorePanel';
 import ShortlistPanel from './ShortlistPanel';
 import BookedPanel from './BookedPanel';
+import LocationChip from './LocationChip';
+import { effectiveLocation } from '../../lib/location';
 import {
   hubBadges,
   readHubDeepLink,
   resolveDefaultTab,
-  venueLockedIn,
   type HubCat,
   type HubTab,
 } from './shared';
 
 export default function VendorHub({ onNavigate }: { onNavigate?: (s: NavigateTarget) => void }) {
   const { venues, outbound, replies, event, loading } = useWedding();
+  const { t } = useLang();
 
   const deepLink = useMemo(() => readHubDeepLink(), []);
 
@@ -27,7 +30,7 @@ export default function VendorHub({ onNavigate }: { onNavigate?: (s: NavigateTar
     if (deepLink.tab) return deepLink.tab;
     return resolveDefaultTab(venues, outbound, replies, event?.chosen_venue_id);
   });
-  const [cat, setCat] = useState<HubCat>(deepLink.cat ?? 'alle');
+  const [cat, setCat] = useState<HubCat>(deepLink.cat ?? 'venue');
   const [venueView, setVenueView] = useState<VenueHubView>(
     deepLink.tab === 'shortlist' ? 'list' : 'discover',
   );
@@ -37,10 +40,12 @@ export default function VendorHub({ onNavigate }: { onNavigate?: (s: NavigateTar
     [venues, outbound, replies, event?.chosen_venue_id],
   );
 
-  // Non-venue categories stay locked until a venue is locked in from the shortlist.
+  // Non-venue categories unlock once the couple has a location — from the venue
+  // they chose, or the one they set by hand on the venue page. Vendors are all
+  // local to that spot, so the location is what gates finding them.
   const vendorsLocked = useMemo(
-    () => !venueLockedIn(venues, event?.chosen_venue_id),
-    [venues, event?.chosen_venue_id],
+    () => !effectiveLocation(event, venues),
+    [event, venues],
   );
 
   const onSwitchTab = useCallback((next: HubTab, nextCat?: HubCat) => {
@@ -68,42 +73,52 @@ export default function VendorHub({ onNavigate }: { onNavigate?: (s: NavigateTar
   }
 
   return (
-    <div className="min-h-full">
-      <HubTabBar tab={tab} badges={badges} onChange={onTabChange} />
-
-      <div className="px-6 py-8 sm:px-9 lg:px-12">
-        {/* The category filter now lives under each panel's own header
-            (ExplorePanel → Discover/Suppliers, ShortlistPanel → "Trin 2"). */}
+    <div className="flex min-w-0 flex-1 flex-col gap-6 px-6 py-8 sm:px-9 lg:px-12">
+      {/* Header — same pattern as Honeymoon: title first, tabs underneath. */}
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          {tab === 'explore' && (
-            <ExplorePanel
-              cat={cat}
-              onCatChange={setCat}
-              query=""
-              venueView={venueView}
-              onVenueViewChange={setVenueView}
-              onNavigate={onNavigate}
-              onSwitchTab={onSwitchTab}
-              vendorsLocked={vendorsLocked}
-            />
-          )}
-          {tab === 'shortlist' && (
-            <ShortlistPanel
-              cat={cat}
-              onCatChange={setCat}
-              query=""
-              venueView={venueView}
-              onVenueViewChange={setVenueView}
-              onNavigate={onNavigate}
-              onSwitchTab={onSwitchTab}
-              vendorsLocked={vendorsLocked}
-            />
-          )}
-          {tab === 'booked' && <BookedPanel onSwitchTab={onSwitchTab} />}
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#8a9079]">{t('Planlægning')}</p>
+          <h1 className="mt-1 font-serif text-[clamp(2rem,4vw,2.4rem)] leading-[1.1] tracking-[-0.02em] text-[#314523]">
+            {t('Venue & leverandører')}
+          </h1>
+          <p className="mt-1 max-w-xl text-[13px] text-[#6c7561]">
+            {t('Find jeres venue og leverandører, gem favoritter, og hold styr på hvem I har booket.')}
+          </p>
         </div>
+        <LocationChip className="shrink-0" />
       </div>
 
-      <OnboardingHint id="team" />
+      <HubTabBar tab={tab} badges={badges} onChange={onTabChange} />
+
+      {/* Category chips live on the page chrome (under tabs), not under panel titles. */}
+      {tab !== 'booked' && (
+        <CategoryFilterBar cat={cat} onCatChange={setCat} vendorsLocked={vendorsLocked} />
+      )}
+
+      <div>
+        {tab === 'explore' && (
+          <ExplorePanel
+            cat={cat}
+            query=""
+            venueView={venueView}
+            onVenueViewChange={setVenueView}
+            onNavigate={onNavigate}
+            onSwitchTab={onSwitchTab}
+          />
+        )}
+        {tab === 'shortlist' && (
+          <ShortlistPanel
+            cat={cat}
+            query=""
+            venueView={venueView}
+            onVenueViewChange={setVenueView}
+            onNavigate={onNavigate}
+            onSwitchTab={onSwitchTab}
+            vendorsLocked={vendorsLocked}
+          />
+        )}
+        {tab === 'booked' && <BookedPanel onSwitchTab={onSwitchTab} />}
+      </div>
     </div>
   );
 }

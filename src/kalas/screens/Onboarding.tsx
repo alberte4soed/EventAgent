@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import dynamic from 'next/dynamic';
 import {
@@ -9,11 +9,9 @@ import type { ScreenId } from '../Shell';
 import { cn } from '../ui';
 import { useLang } from '../i18n';
 import type { DestinationSuggestion } from '@/app/api/onboarding/destinations/route';
-import type { OnboardingVenueSuggestion } from '@/app/api/onboarding/venues/route';
 import { Lightbox } from '../onboarding/Lightbox';
 
 const WeddingDatePicker = dynamic(() => import('../onboarding/WeddingDatePicker'), { ssr: false });
-const VenueSwipeStep = dynamic(() => import('../onboarding/VenueSwipeStep'), { ssr: false });
 
 const DestinationGlobe = dynamic(() => import('../onboarding/DestinationGlobe'), {
   ssr: false,
@@ -40,8 +38,6 @@ export type FormState = {
   guestBand: string;    // '' | GUEST_BANDS key
   budgetAmount: number;
   budgetPrivate: boolean;
-  likedVenues: OnboardingVenueSuggestion[];
-  venueSwipeDone: boolean;
   partnerEmail: string;
 };
 
@@ -50,7 +46,6 @@ export const EMPTY_FORM: FormState = {
   location: '', lovedDestinations: [],
   dateChoice: '', exactDate: '',
   guestBand: '', budgetAmount: 200_000, budgetPrivate: false,
-  likedVenues: [], venueSwipeDone: false,
   partnerEmail: '',
 };
 
@@ -109,7 +104,6 @@ export function toOnboardingPayload(form: FormState) {
     loved_destinations: form.lovedDestinations,
     guest_band: form.guestBand || null,
     budget: buildBudget(form),
-    liked_venues: form.likedVenues,
     partner_email: form.partnerEmail.trim() || null,
   };
 }
@@ -121,9 +115,9 @@ const inputCls = 'w-full rounded-2xl border border-[var(--color-line-strong)] bg
 /* ══════════════════════════════════════════════════════════════════════
    MAIN EXPORT — centered, traditional step flow (no chat pane)
 ══════════════════════════════════════════════════════════════════════ */
-const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 5;
 
-const STEP_LABELS = ['Jeres historie', 'Destination', 'Datoen', 'Omfang', 'Venues', 'Partner'] as const;
+const STEP_LABELS = ['Jeres historie', 'Destination', 'Datoen', 'Omfang', 'Partner'] as const;
 
 const wonderInputCls =
   'h-[62px] w-full rounded-[14px] border bg-[#fffdf7] px-[18px] text-base text-[#23351f] placeholder:text-[#637067] transition-shadow focus:outline-none';
@@ -139,12 +133,6 @@ export default function Onboarding({ onEnter }: { onEnter: (form: FormState, s?:
   const setField = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
 
-  const handleVenueLike = useCallback(
-    (v: OnboardingVenueSuggestion) => setForm((f) => ({ ...f, likedVenues: [...f.likedVenues, v] })),
-    [],
-  );
-  const handleVenueSwipeComplete = useCallback(() => setField('venueSwipeDone', true), []);
-
   const go = (next: number) => {
     if (next >= TOTAL_STEPS) {
       onEnter(form, 'home');
@@ -159,8 +147,7 @@ export default function Onboarding({ onEnter }: { onEnter: (form: FormState, s?:
     (step === 1 && Boolean(form.location.trim())) ||
     (step === 2 && (form.dateChoice === 'exact' ? Boolean(form.exactDate) : Boolean(form.dateChoice))) ||
     (step === 3 && Boolean(form.guestBand)) ||
-    (step === 4 && form.venueSwipeDone) ||
-    step === 5;
+    step === 4;
 
   return (
     <div className="flex min-h-screen flex-col bg-[#f4f1ea] text-[#18372f]">
@@ -179,10 +166,10 @@ export default function Onboarding({ onEnter }: { onEnter: (form: FormState, s?:
 
       <div className={cn(
         'flex flex-1 flex-col px-6 lg:px-14',
-        step === 1 || step === 4 ? 'py-3 lg:py-4' : 'gap-8 py-8 lg:flex-row lg:gap-[52px] lg:py-[42px]',
+        step === 1 ? 'py-3 lg:py-4' : 'gap-8 py-8 lg:flex-row lg:gap-[52px] lg:py-[42px]',
       )}>
-        {step !== 1 && step !== 4 && <ContextPanel step={step} t={t} />}
-        <div className={cn('flex min-w-0 flex-1 flex-col py-2', (step === 1 || step === 4) ? 'justify-start' : 'justify-center')}>
+        {step !== 1 && <ContextPanel step={step} t={t} />}
+        <div className={cn('flex min-w-0 flex-1 flex-col py-2', step === 1 ? 'justify-start' : 'justify-center')}>
           <AnimatePresence mode="wait" custom={dir}>
             <motion.div
               key={step}
@@ -191,20 +178,13 @@ export default function Onboarding({ onEnter }: { onEnter: (form: FormState, s?:
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: dir * -28 }}
               transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-              className={cn('mx-auto w-full', (step === 1 || step === 4) ? 'max-w-none' : 'max-w-[680px]')}
+              className={cn('mx-auto w-full', step === 1 ? 'max-w-none' : 'max-w-[680px]')}
             >
               {step === 0 && <NamesStep form={form} set={set} onNext={() => canAdvance && go(1)} />}
               {step === 1 && <DestinationStep form={form} setField={setField} />}
               {step === 2 && <DateStep form={form} setField={setField} />}
               {step === 3 && <ScopeStep form={form} setField={setField} />}
-              {step === 4 && (
-                <VenueSwipeStep
-                  form={form}
-                  onLike={handleVenueLike}
-                  onSwipeComplete={handleVenueSwipeComplete}
-                />
-              )}
-              {step === 5 && <PartnerStep form={form} set={set} />}
+              {step === 4 && <PartnerStep form={form} set={set} />}
             </motion.div>
           </AnimatePresence>
         </div>
@@ -283,7 +263,7 @@ const CONTEXT_PANEL_COPY: Record<number, { eyebrow: string; title: string; sub: 
   0: {
     eyebrow: 'En omtænksom start',
     title: 'Lad os gøre det til jeres.',
-    sub: 'Seks korte trin hjælper Ava med at skræddersy venues, opgaver og anbefalinger til jeres bryllup.',
+    sub: 'Fem korte trin hjælper Ava med at skræddersy venues, opgaver og anbefalinger til jeres bryllup.',
   },
   2: {
     eyebrow: 'Datoen',
@@ -296,11 +276,6 @@ const CONTEXT_PANEL_COPY: Record<number, { eyebrow: string; title: string; sub: 
     sub: 'Et pejlemærke er nok — Ava bruger det til venues, budget og tidslinje.',
   },
   4: {
-    eyebrow: 'Venues',
-    title: 'Find jeres stil gennem steder.',
-    sub: 'Swipe rigtige venues — Ava lærer hvad der føles som jer.',
-  },
-  5: {
     eyebrow: 'Sammen om det',
     title: 'Giv partneren adgang',
     sub: 'I deler samme plan — ingen duplikerede lister eller beskedkopiering. Valgfrit.',
@@ -1013,7 +988,7 @@ function ScopeStep({ form, setField }: {
 }
 
 /* ══════════════════════════════════════════════════════════════════════
-   STEP 6 — PARTNER
+   STEP 5 — PARTNER
 ══════════════════════════════════════════════════════════════════════ */
 function PartnerStep({ form, set }: { form: FormState; set: any }) {
   const { t } = useLang();

@@ -35,6 +35,40 @@ export interface EventRow {
 
 export type MessageRole = "user" | "assistant" | "system" | "tool";
 
+// ── Agent-driven client navigation ──────────────────────────────────────
+
+/** Pages the agent can pull up on the user's screen via the show_page tool. */
+export const AGENT_PAGES = [
+  "home",
+  "vendors",
+  "inbox",
+  "planning",
+  "budget",
+  "guests",
+  "website",
+  "registry",
+  "invites",
+  "seating",
+] as const;
+export type AgentPage = (typeof AGENT_PAGES)[number];
+
+export function isAgentPage(value: unknown): value is AgentPage {
+  return typeof value === "string" && (AGENT_PAGES as readonly string[]).includes(value);
+}
+
+/**
+ * A client-side action the agent fires mid-turn. Streamed to the app as an
+ * SSE `ui` frame from /api/chat; the client applies it (navigates the stage
+ * in chat mode, or the main area behind the Ava drawer in classic mode).
+ */
+export interface AgentUiAction {
+  kind: "navigate";
+  page: AgentPage;
+  /** Deep-link into the vendor hub when page is "vendors". */
+  vendor_category?: VendorCategory;
+  hub_tab?: "explore" | "shortlist" | "booked";
+}
+
 /** Rich-block payloads rendered inline in the chat. */
 export type MessagePayload =
   | { kind: "venue_batch"; venue_ids: string[]; category?: VendorCategory }
@@ -62,6 +96,7 @@ export type VendorCategory =
   | "musician"
   | "caterer"
   | "planner"
+  | "accommodation"
   | "other";
 
 export interface VenueReview {
@@ -303,6 +338,8 @@ export interface BudgetItemRow {
   actual_cost: number;
   notes: string | null;
   reminder_at: string | null;
+  icon: string | null;
+  color: string | null;
   sort: number;
   created_at: string;
 }
@@ -376,6 +413,23 @@ export interface MoodboardItemRow {
   image_url: string | null;
   storage_path: string | null;
   note: string | null;
+  created_at: string;
+}
+
+export type HoneymoonSaveKind = "destination" | "hotel" | "idea";
+
+export interface HoneymoonSaveRow {
+  id: string;
+  event_id: string;
+  user_id: string;
+  kind: HoneymoonSaveKind;
+  name: string;
+  location: string | null;
+  blurb: string | null;
+  image_url: string | null;
+  place_id: string | null;
+  rating: number | null;
+  meta: Record<string, unknown>;
   created_at: string;
 }
 

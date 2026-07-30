@@ -11,7 +11,6 @@ import { Eyebrow, cn } from '../../ui';
 import type { NavigateTarget } from '../../lib/hub-nav';
 import type { HubCat, HubTab } from './shared';
 import { matchesHubCat, matchesHubSearch } from './shared';
-import CategoryFilterBar from './CategoryFilterBar';
 import type { VenueRow } from '@/lib/db/types';
 
 const CAT_LABEL: Record<string, string> = {
@@ -26,7 +25,6 @@ const CAT_LABEL: Record<string, string> = {
 
 export default function ShortlistPanel({
   cat,
-  onCatChange,
   query,
   venueView,
   onVenueViewChange,
@@ -35,7 +33,6 @@ export default function ShortlistPanel({
   vendorsLocked = false,
 }: {
   cat: HubCat;
-  onCatChange: (cat: HubCat) => void;
   query: string;
   venueView: VenueHubView;
   onVenueViewChange: (view: VenueHubView) => void;
@@ -54,14 +51,8 @@ export default function ShortlistPanel({
 
   const likedVenues = liked.filter((v) => v.category === 'venue');
   const likedVendors = liked.filter((v) => v.category !== 'venue');
-  const showVenueList = cat === 'venue' || cat === 'alle';
+  const showVenueList = cat === 'venue';
   const showVendorList = cat !== 'venue';
-  // The venue list carries its own "Trin 2" header; the category bar drops in
-  // beneath it there. Everywhere else in the shortlist it sits at the top.
-  const venueListShown = showVenueList && likedVenues.length > 0;
-  const categoryBar = (
-    <CategoryFilterBar cat={cat} onCatChange={onCatChange} vendorsLocked={vendorsLocked} />
-  );
 
   if (venueView === 'review' && showVenueList) {
     return (
@@ -81,8 +72,6 @@ export default function ShortlistPanel({
 
   return (
     <div className="space-y-10">
-      {!venueListShown && categoryBar}
-
       {vendorsLocked && showVenueList && likedVenues.length > 0 && (
         <div className="flex items-start gap-3 rounded-[18px] border border-[#d8d4c7] bg-[#f0ede5] px-5 py-4">
           <Lock size={14} className="mt-0.5 shrink-0 text-[#6c7561]" />
@@ -103,7 +92,6 @@ export default function ShortlistPanel({
             searchQuery: query,
             category: cat,
             showHint: false,
-            categoryBar,
           }}
         />
       )}
@@ -113,6 +101,7 @@ export default function ShortlistPanel({
           items={likedVendors}
           contacted={sentIds}
           locked={vendorsLocked}
+          exploreCat={cat}
           onExplore={(c) => onSwitchTab('explore', c)}
         />
       )}
@@ -122,7 +111,7 @@ export default function ShortlistPanel({
           <p className="font-serif text-[1.3rem] italic text-ink-soft">{t('Ingen favoritter endnu')}</p>
           <button
             type="button"
-            onClick={() => onSwitchTab('explore', cat === 'alle' ? 'venue' : cat)}
+            onClick={() => onSwitchTab('explore', cat)}
             className="mt-4 inline-flex h-8 items-center gap-1.5 rounded-full bg-[#314523] px-3 text-xs font-semibold text-[#f7f5ef] hover:opacity-90 transition-colors cursor-pointer"
           >
             {cat === 'venue' ? t('Udforsk venues') : t('Udforsk leverandører')}
@@ -139,11 +128,13 @@ function VendorShortlist({
   items,
   contacted,
   locked = false,
+  exploreCat,
   onExplore,
 }: {
   items: VenueRow[];
   contacted: Set<string>;
   locked?: boolean;
+  exploreCat: HubCat;
   onExplore: (cat: HubCat) => void;
 }) {
   const { refresh } = useWedding();
@@ -255,7 +246,7 @@ function VendorShortlist({
       </div>
       <button
         type="button"
-        onClick={() => onExplore('alle')}
+        onClick={() => onExplore(exploreCat)}
         className={cn(
           'mt-6 flex h-11 w-full items-center justify-center gap-2 rounded-[18px] border border-[#d8d4c7] bg-[#fcfbf7] px-5',
           'text-sm text-[#314523] hover:bg-[#f7f5ef] transition-colors cursor-pointer',

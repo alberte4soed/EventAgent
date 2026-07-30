@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useRef, useState, type Dispatch, type SetStateAction } from "react";
-import type { ChatMessageRow } from "@/lib/db/types";
+import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import type { AgentUiAction, ChatMessageRow } from "@/lib/db/types";
 
 interface Options {
   initialEventId: string | null;
@@ -10,6 +10,10 @@ interface Options {
   onEventCreated?: (eventId: string) => void;
   /** Fired after a turn's stream completes (refresh venues/drafts, etc.). */
   onTurnComplete?: () => void;
+  /** Fired when the agent drives the client mid-turn (page navigation). */
+  onUiAction?: (action: AgentUiAction) => void;
+  /** Which interface the user is in — the agent navigates more proactively in chat mode. */
+  uiMode?: "chat" | "classic";
   /** Rewrite the browser URL when a new event id arrives (workspace only). */
   syncUrl?: boolean;
 }
@@ -18,7 +22,10 @@ export interface AgentChat {
   messages: ChatMessageRow[];
   agentStatus: string | null;
   eventId: string | null;
-  sendMessage: (text: string, ctx?: { contextReplyId?: string }) => Promise<void>;
+  sendMessage: (
+    text: string,
+    ctx?: { contextReplyId?: string; kickoff?: boolean }
+  ) => Promise<void>;
   setMessages: Dispatch<SetStateAction<ChatMessageRow[]>>;
 }
 
@@ -32,14 +39,21 @@ export function useAgentChat({
   initialMessages = [],
   onEventCreated,
   onTurnComplete,
+  onUiAction,
+  uiMode = "classic",
   syncUrl = false,
 }: Options): AgentChat {
   const [messages, setMessages] = useState<ChatMessageRow[]>(initialMessages);
   const [agentStatus, setAgentStatus] = useState<string | null>(null);
   const eventIdRef = useRef<string | null>(initialEventId);
+  // Ref so a new callback identity never invalidates sendMessage mid-stream.
+  const onUiActionRef = useRef(onUiAction);
+  useEffect(() => {
+    onUiActionRef.current = onUiAction;
+  }, [onUiAction]);
 
   const sendMessage = useCallback(
-    async (text: string, ctx?: { contextReplyId?: string }) => {
+    async (text: string, ctx?: { contextReplyId?: string; kickoff?: boolean }) => {
       const trimmed = text.trim();
       if (!trimmed || agentStatus !== null) return;
 
@@ -63,6 +77,8 @@ export function useAgentChat({
             eventId: eventIdRef.current ?? undefined,
             message: trimmed,
             contextReplyId: ctx?.contextReplyId,
+            uiMode,
+            kickoff: ctx?.kickoff,
           }),
         });
         if (!res.ok || !res.body) {
@@ -96,6 +112,8 @@ export function useAgentChat({
               onEventCreated?.(parsed.eventId);
             } else if (name === "status") {
               setAgentStatus(parsed.status);
+            } else if (name === "ui") {
+              onUiActionRef.current?.(parsed as AgentUiAction);
             } else if (name === "user_message") {
               const saved = parsed as ChatMessageRow;
               setMessages((m) => {
@@ -132,7 +150,7 @@ export function useAgentChat({
         setAgentStatus(null);
       }
     },
-    [agentStatus, onEventCreated, onTurnComplete, syncUrl]
+    [agentStatus, onEventCreated, onTurnComplete, syncUrl, uiMode]
   );
 
   return { messages, agentStatus, eventId: eventIdRef.current, sendMessage, setMessages };

@@ -1,6 +1,5 @@
-/* Shared app state so screens tell the same story: timeline progress,
-   approval queue, and Ava's unread badge all live here instead of in
-   per-screen local state. */
+/* Shared app state so screens tell the same story: timeline progress
+   and the approval queue live here instead of in per-screen local state. */
 import * as React from 'react';
 import { createContext, useContext, useMemo, useState } from 'react';
 import { timeline, queue, type Task } from './data';
@@ -21,10 +20,6 @@ type KalasStore = {
   handleQueueItem: (id: string, status: QueueStatus) => void;
   undoQueueItem: (id: string) => void;
   pendingCount: number;
-
-  avaBadge: number;
-  clearAvaBadge: () => void;
-
 };
 
 const Ctx = createContext<KalasStore | null>(null);
@@ -33,7 +28,6 @@ export function KalasProvider({ children }: { children: React.ReactNode }) {
   const [tasks, setTasks] = useState<Task[]>(timeline);
   const [doneIds, setDoneIds] = useState<Set<string>>(() => new Set(ORIG_DONE));
   const [queueHandled, setQueueHandled] = useState<Record<string, QueueStatus>>({});
-  const [avaBadge, setAvaBadge] = useState(2);
 
   const toggleDone = (id: string): boolean => {
     const nowDone = !doneIds.has(id);
@@ -65,8 +59,7 @@ export function KalasProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<KalasStore>(() => ({
     tasks, setTasks, doneIds, toggleDone, resetTimeline,
     queueHandled, handleQueueItem, undoQueueItem, pendingCount,
-    avaBadge, clearAvaBadge: () => setAvaBadge(0),
-  }), [tasks, doneIds, queueHandled, avaBadge]);
+  }), [tasks, doneIds, queueHandled, pendingCount]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
