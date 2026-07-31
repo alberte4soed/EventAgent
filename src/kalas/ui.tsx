@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { motion } from 'motion/react';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Check } from 'lucide-react';
 import { IMAGES } from './data';
 import { useLang } from './i18n';
 
@@ -130,6 +130,53 @@ export function Chip({
     </span>
   );
 }
+
+/* ── Task check dot ──────────────────────────────────────────────────────
+   The circle used by every completable row (Tidslinje, Tjekliste, Home).
+   Non-interactive on purpose: Home wraps whole rows in a <button>, so it can
+   only reuse the visual — nesting a button inside a button is invalid. */
+export function CheckDot({ done, icon, className }: { done: boolean; icon?: React.ReactNode; className?: string }) {
+  return (
+    <span
+      className={cn(
+        'flex size-7 shrink-0 items-center justify-center rounded-full',
+        done ? 'bg-[#314523] text-[#f7f5ef]' : 'border-2 border-[#c4bfae] bg-transparent',
+        className,
+      )}
+    >
+      {icon ?? (done && <Check size={14} strokeWidth={2.5} />)}
+    </span>
+  );
+}
+
+/* ── Toggleable task checkbox ────────────────────────────────────────────── */
+export function TaskCheckbox({ done, label, onToggle }: { done: boolean; label: string; onToggle: () => void }) {
+  const { t } = useLang();
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      role="checkbox"
+      aria-checked={done}
+      aria-label={done ? t("Markér '{title}' som ikke færdig", { title: label }) : t("Markér '{title}' som færdig", { title: label })}
+      className="shrink-0 cursor-pointer transition-transform hover:scale-105"
+    >
+      <CheckDot done={done} />
+    </button>
+  );
+}
+
+/** Row background + border for a task's status. */
+export function taskRowTone(status: 'done' | 'overdue' | 'default') {
+  return status === 'done'
+    ? 'border-[#d3dcc4] bg-[#eef1e6]'
+    : status === 'overdue'
+      ? 'border-[#e8d5c8] bg-[#faf4ef]'
+      : 'border-[#e4e0d4] bg-[#f7f5ef]';
+}
+
+/** Label styling for a completed task. */
+export const doneLabelClass = 'text-[#59634f] line-through decoration-[#59634f]/40';
 
 /* ── Preview note ────────────────────────────────────────────────────────
    Marks a design-only screen: the layout is real, but nothing here is saved

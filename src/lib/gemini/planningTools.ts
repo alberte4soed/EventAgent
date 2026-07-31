@@ -162,8 +162,17 @@ export const planningFunctionDeclarations: FunctionDeclaration[] = [
   },
   {
     name: "list_tasks",
-    description: "The couple's planning timeline tasks with ids, due dates and done state.",
-    parameters: { type: Type.OBJECT, properties: {} },
+    description:
+      "The couple's planning tasks with ids, due dates and done state. Defaults to the big dated milestones; pass kind='check' for the granular checklist (~70 items, grouped by area).",
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        kind: {
+          type: Type.STRING,
+          description: "'milestone' (default) or 'check'",
+        },
+      },
+    },
   },
   {
     name: "add_tasks",
@@ -308,7 +317,7 @@ export async function execPlanningTool(
     case "remove_guest":
       return execRemoveGuest(supabase, event, args);
     case "list_tasks":
-      return execListTasks(supabase, event);
+      return execListTasks(supabase, event, args);
     case "add_tasks":
       return execAddTasks(supabase, event, args);
     case "update_task":
@@ -396,7 +405,7 @@ async function execPlanningOverview(
       supabase.from("venues").select("id, name, category, swipe_status, booked_at").eq("event_id", event.id),
       supabase.from("budget_items").select("category, label, planned_amount, paid_amount").eq("event_id", event.id),
       supabase.from("guests").select("rsvp, plus_one").eq("event_id", event.id),
-      supabase.from("timeline_tasks").select("title, due_date, done").eq("event_id", event.id),
+      supabase.from("timeline_tasks").select("title, due_date, done, category, kind").eq("event_id", event.id),
       supabase.from("registry_items").select("id").eq("event_id", event.id),
       supabase.from("registry_claims").select("id").eq("event_id", event.id),
       supabase.from("email_replies").select("id, read_at, quote_status").eq("event_id", event.id),
@@ -420,12 +429,23 @@ async function execPlanningOverview(
 
   const budget = (budgetQ.data ?? []) as Pick<BudgetItemRow, "category" | "label" | "planned_amount" | "paid_amount">[];
   const guests = (guestsQ.data ?? []) as Pick<GuestRow, "rsvp" | "plus_one">[];
-  const tasks = (tasksQ.data ?? []) as Pick<TimelineTaskRow, "title" | "due_date" | "done">[];
+  const allTasks = (tasksQ.data ?? []) as Pick<TimelineTaskRow, "title" | "due_date" | "done" | "category" | "kind">[];
+  // Two levels of detail live in this table — report them apart, or the
+  // ~70 seeded checklist items swamp the milestone numbers Ava reasons about.
+  const tasks = allTasks.filter((t) => t.kind !== "check");
+  const checks = allTasks.filter((t) => t.kind === "check");
   const today = new Date().toISOString().slice(0, 10);
   const upcoming = tasks
     .filter((t) => !t.done && t.due_date)
     .sort((a, b) => (a.due_date! < b.due_date! ? -1 : 1))
     .slice(0, 5);
+  const checksByArea: Record<string, { total: number; done: number }> = {};
+  for (const c of checks) {
+    const area = c.category ?? "ovrigt";
+    const bucket = (checksByArea[area] ??= { total: 0, done: 0 });
+    bucket.total += 1;
+    if (c.done) bucket.done += 1;
+  }
 
   const replies = repliesQ.data ?? [];
   const designs = designsQ.data ?? [];
@@ -467,6 +487,11 @@ async function execPlanningOverview(
       done: tasks.filter((t) => t.done).length,
       overdue: tasks.filter((t) => !t.done && t.due_date && t.due_date < today).length,
       next_up: upcoming.map((t) => ({ title: t.title, due_date: t.due_date })),
+    },
+    checklist: {
+      total: checks.length,
+      done: checks.filter((t) => t.done).length,
+      by_area: checksByArea,
     },
     registry: {
       items: (registryQ.data ?? []).length,
@@ -774,16 +799,20 @@ async function execRemoveGuest(
 
 async function execListTasks(
   supabase: SupabaseClient,
-  event: EventRow
+  event: EventRow,
+  args: Record<string, unknown> = {}
 ): Promise<Record<string, unknown>> {
+  // Default to milestones: listing all ~95 rows would flood the context.
+  const kind = str(args.kind) === "check" ? "check" : "milestone";
   const { data, error } = await supabase
     .from("timeline_tasks")
-    .select("id, title, due_date, done, category")
+    .select("id, title, due_date, done, category, kind")
     .eq("event_id", event.id)
+    .eq("kind", kind)
     .order("sort")
     .order("due_date");
   if (error) throw new Error(error.message);
-  return { count: (data ?? []).length, tasks: data ?? [] };
+  return { kind, count: (data ?? []).length, tasks: data ?? [] };
 }
 
 async function execAddTasks(

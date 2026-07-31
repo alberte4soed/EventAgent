@@ -22,7 +22,7 @@ export type NavItem = { id: ScreenId; label: string; icon: LucideIcon; group: 'm
 
 export const NAV: NavItem[] = [
   { id: 'home',        label: 'Hjem',          icon: Home,          group: 'main' },
-  { id: 'planning',    label: 'Tidslinje',     icon: ListChecks,    group: 'main' },
+  { id: 'planning',    label: 'Tidslinje & tjekliste', icon: ListChecks, group: 'main' },
   { id: 'inbox',       label: 'Inbox',         icon: Inbox,         group: 'main' },
   { id: 'team',        label: 'Venue & leverandører', icon: UsersRound,  group: 'plan' },
   { id: 'budget',      label: 'Budget',        icon: Wallet,        group: 'plan' },

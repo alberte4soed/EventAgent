@@ -393,6 +393,9 @@ export interface GuestRow {
   created_at: string;
 }
 
+/** Two levels of detail in the same table — see 0020_task_kind.sql. */
+export type TaskKind = "milestone" | "check";
+
 export interface TimelineTaskRow {
   id: string;
   event_id: string;
@@ -400,7 +403,10 @@ export interface TimelineTaskRow {
   title: string;
   due_date: string | null;
   done: boolean;
+  /** Milestones: the 'wedding_day' sentinel. Checks: the area id. */
   category: string | null;
+  /** Optional so a client running ahead of the migration still parses rows. */
+  kind?: TaskKind | null;
   sort: number;
   created_at: string;
 }

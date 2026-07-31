@@ -31,6 +31,7 @@ import type {
   ReplyProposalRow,
   SeatingPlanRow,
   TimelineTaskRow,
+  TaskKind,
   VendorCategory,
   VenueRow,
   WeddingSiteRow,
@@ -102,10 +103,12 @@ interface WeddingData {
   updateGuest: (id: string, patch: Partial<GuestRow>) => Promise<void>;
   deleteGuest: (id: string) => Promise<void>;
 
-  addTask: (task: { title: string; due_date?: string | null; category?: string | null; sort?: number; done?: boolean }) => Promise<TimelineTaskRow | null>;
+  addTask: (task: { title: string; due_date?: string | null; category?: string | null; kind?: TaskKind; sort?: number; done?: boolean }) => Promise<TimelineTaskRow | null>;
   updateTask: (id: string, patch: Partial<TimelineTaskRow>) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
-  seedTasks: (tasks: { title: string; due_date?: string | null; category?: string | null; done?: boolean; sort?: number }[]) => Promise<void>;
+  seedTasks: (tasks: { title: string; due_date?: string | null; category?: string | null; kind?: TaskKind; done?: boolean; sort?: number }[]) => Promise<void>;
+  /** Delete every task of one kind in a single round-trip (used by Nulstil). */
+  clearTasks: (kind: TaskKind) => Promise<void>;
 
   addMoodboardItem: (item: { image_key?: string | null; image_url?: string | null; note?: string | null }) => Promise<MoodboardItemRow | null>;
   removeMoodboardItem: (id: string) => Promise<void>;
@@ -445,7 +448,7 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
   );
 
   const addTask = useCallback(
-    async (task: { title: string; due_date?: string | null; category?: string | null; sort?: number; done?: boolean }) => {
+    async (task: { title: string; due_date?: string | null; category?: string | null; kind?: TaskKind; sort?: number; done?: boolean }) => {
       if (!eventId || !userId) return null;
       const { data } = await supabase
         .from("timeline_tasks")
@@ -455,6 +458,7 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
           title: task.title,
           due_date: task.due_date ?? null,
           category: task.category ?? null,
+          kind: task.kind ?? "milestone",
           sort: task.sort ?? 0,
           done: task.done ?? false,
         })
@@ -483,7 +487,7 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
   );
 
   const seedTasks = useCallback(
-    async (tasks: { title: string; due_date?: string | null; category?: string | null; done?: boolean; sort?: number }[]) => {
+    async (tasks: { title: string; due_date?: string | null; category?: string | null; kind?: TaskKind; done?: boolean; sort?: number }[]) => {
       if (!eventId || !userId || tasks.length === 0) return;
       const rows = tasks.map((t, i) => ({
         event_id: eventId,
@@ -491,6 +495,7 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
         title: t.title,
         due_date: t.due_date ?? null,
         category: t.category ?? null,
+        kind: t.kind ?? "milestone",
         done: t.done ?? false,
         sort: t.sort ?? i,
       }));
@@ -498,6 +503,15 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
       if (data) setTimelineTasks((prev) => (data as TimelineTaskRow[]).reduce((acc, r) => upsertById(acc, r), prev));
     },
     [supabase, eventId, userId]
+  );
+
+  const clearTasks = useCallback(
+    async (kind: TaskKind) => {
+      if (!eventId) return;
+      await supabase.from("timeline_tasks").delete().eq("event_id", eventId).eq("kind", kind);
+      setTimelineTasks((rows) => rows.filter((r) => (r.kind === "check" ? "check" : "milestone") !== kind));
+    },
+    [supabase, eventId]
   );
 
   const addMoodboardItem = useCallback(
@@ -887,6 +901,7 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
       updateTask,
       deleteTask,
       seedTasks,
+      clearTasks,
       addMoodboardItem,
       removeMoodboardItem,
       saveSite,
@@ -904,7 +919,7 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
       inviteOrders, inviteDesigns, invitations, journey, budgetItems, guests, timelineTasks,
       moodboardItems, weddingSite, seatingPlan, registryItems, registryClaims, honeymoonSaves,
       websiteDesigns, sitePhotos, websiteOrders, load, updateEvent, saveBudgetItem,
-      deleteBudgetItem, addGuest, updateGuest, deleteGuest, addTask, updateTask, deleteTask, seedTasks,
+      deleteBudgetItem, addGuest, updateGuest, deleteGuest, addTask, updateTask, deleteTask, seedTasks, clearTasks,
       addMoodboardItem, removeMoodboardItem, saveSite, saveSeating,
       addRegistryItem, updateRegistryItem, deleteRegistryItem,
       addHoneymoonSave, removeHoneymoonSave, setHoneymoonBooked, saveInvitation,

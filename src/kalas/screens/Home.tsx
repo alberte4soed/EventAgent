@@ -3,8 +3,9 @@
 import { useMemo } from 'react';
 import { motion } from 'motion/react';
 import {
-  Check, MapPin, Flower2, Music, Camera, UtensilsCrossed,
+  MapPin, Flower2, Music, Camera, UtensilsCrossed,
 } from 'lucide-react';
+import { CheckDot, taskRowTone, doneLabelClass } from '../ui';
 import { useWedding } from '../useWedding';
 import type { NavigateTarget } from '../lib/hub-nav';
 import { navigateToHub } from '../lib/hub-nav';
@@ -407,23 +408,13 @@ function ChecklistRow({
     <button
       type="button"
       onClick={onClick}
-      className={`flex w-full items-center gap-4 rounded-[18px] border px-5 py-4 text-left transition-colors hover:opacity-95 ${
-        done
-          ? 'border-[#d3dcc4] bg-[#eef1e6]'
-          : 'border-[#e4e0d4] bg-[#f7f5ef]'
-      }`}
+      className={`flex w-full items-center gap-4 rounded-[18px] border px-5 py-4 text-left transition-colors hover:opacity-95 ${taskRowTone(
+        done ? 'done' : 'default',
+      )}`}
     >
+      <CheckDot done={done} />
       <span
-        className={`flex size-7 shrink-0 items-center justify-center rounded-full ${
-          done ? 'bg-[#314523] text-[#f7f5ef]' : 'border-2 border-[#c4bfae] bg-transparent'
-        }`}
-      >
-        {done && <Check size={14} strokeWidth={2.5} />}
-      </span>
-      <span
-        className={`flex-1 text-base font-semibold ${
-          done ? 'text-[#59634f] line-through decoration-[#59634f]/40' : 'text-[#314523]'
-        }`}
+        className={`flex-1 text-base font-semibold ${done ? doneLabelClass : 'text-[#314523]'}`}
       >
         {label}
       </span>
