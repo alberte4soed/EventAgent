@@ -49,6 +49,8 @@ export const AGENT_PAGES = [
   "registry",
   "invites",
   "seating",
+  "honeymoon",
+  "nygift",
 ] as const;
 export type AgentPage = (typeof AGENT_PAGES)[number];
 
@@ -136,6 +138,11 @@ export interface VenueRow {
   category: VendorCategory;
   booked_at: string | null;
   venue_research: VenueResearchProfile | null;
+  /** The couple's own rating, 1–5. `reviews` above is read-only Google data. */
+  own_rating: number | null;
+  own_review: string | null;
+  own_reviewed_at: string | null;
+  own_recommend: boolean | null;
   created_at: string;
 }
 
@@ -513,6 +520,9 @@ export interface RegistryItemRow {
   price_cents: number | null;
   currency: string;
   quantity: number;
+  /** "Ønskes mest" — sorts to the top on both surfaces. Optional so a client
+   *  running ahead of migration 0022 still parses rows. */
+  favourite?: boolean | null;
   sort: number;
   created_at: string;
 }
@@ -526,5 +536,50 @@ export interface RegistryClaimRow {
   guest_email: string | null;
   message: string | null;
   quantity: number;
+  created_at: string;
+}
+
+// ── Nygift: after the wedding ───────────────────────────────────────────
+
+export type ThankMethod = "kort" | "besked" | "personligt" | "ringet";
+
+/**
+ * The couple's annotations on the thank-you list. Sparse — a row exists only
+ * once they touch an entry. The list itself is derived from guests +
+ * registry_claims; see src/kalas/screens/nygift/thanks.ts.
+ */
+export interface ThankYouRow {
+  id: string;
+  event_id: string;
+  user_id: string;
+  /** 'guest:<uuid>' | 'claim:<uuid>' | 'manual:<uuid>' */
+  subject_key: string;
+  /** Denormalized display name, so the row survives the guest being deleted. */
+  label: string;
+  gift: string | null;
+  thanked_at: string | null;
+  method: ThankMethod | null;
+  note: string | null;
+  created_at: string;
+}
+
+export type AlbumPhotoStatus = "visible" | "hidden";
+
+/** A photo a guest uploaded after the wedding. Couple-private. */
+export interface AlbumPhotoRow {
+  id: string;
+  event_id: string;
+  /** The couple, for RLS — guests have no auth.users id. */
+  user_id: string;
+  storage_path: string;
+  uploader_name: string | null;
+  guest_id: string | null;
+  caption: string | null;
+  status: AlbumPhotoStatus;
+  favorite: boolean;
+  bytes: number | null;
+  width: number | null;
+  height: number | null;
+  uploader_hash: string | null;
   created_at: string;
 }

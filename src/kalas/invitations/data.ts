@@ -37,17 +37,20 @@ export function phraseDate(iso: string, style: DateStyle, language: Language): s
     return `${dd}.${mm}.${year}`;
   }
 
+  // Non-breaking spaces bind the month to its year and the weekday to its
+  // separator. Without them a long Danish date wrapping inside a 280px card
+  // strands "2026" on its own line and leaves "·" dangling at a line end.
   if (language === 'da') {
     const weekday = d.toLocaleDateString('da-DK', { weekday: 'long' });
     const wd = weekday.charAt(0).toUpperCase() + weekday.slice(1);
-    if (style === 'roman') return `Den ${day}. ${MONTHS_DA[month]} ${year}`;
-    return `${wd} · den ${day}. ${MONTHS_DA[month]} ${year}`; // longformal
+    if (style === 'roman') return `Den ${day}. ${MONTHS_DA[month]} ${year}`;
+    return `${wd} · den ${day}. ${MONTHS_DA[month]} ${year}`; // longformal
   }
 
   const weekday = d.toLocaleDateString('en-GB', { weekday: 'long' });
   const monthName = d.toLocaleDateString('en-GB', { month: 'long' });
-  if (style === 'roman') return `The ${ordinal(day)} of ${monthName} ${year}`;
-  return `${weekday} · the ${ordinal(day)} of ${monthName} ${year}`; // longformal
+  if (style === 'roman') return `The ${ordinal(day)} of ${monthName} ${year}`;
+  return `${weekday} · the ${ordinal(day)} of ${monthName} ${year}`; // longformal
 }
 
 interface DefaultCopy {

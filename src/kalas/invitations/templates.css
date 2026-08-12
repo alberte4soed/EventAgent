@@ -1,9 +1,22 @@
 /* ═══════════════════════════════════════════════════════════════════════
    Invitation templates — ported 1:1 from invitationer-final.html.
    Every rule is namespaced under `.kinv` so the exact values never collide
-   with the app's Tailwind/global classes. Declarations are byte-identical to
-   the source; only the selector prefix and keyframe names changed
-   (breathe/shine/tw → kinv-breathe/kinv-shine/kinv-tw). DO NOT tokenize.
+   with the app's Tailwind/global classes. Declarations follow the source,
+   with the selector prefix and keyframe names changed (breathe/shine/tw →
+   kinv-breathe/kinv-shine/kinv-tw). DO NOT tokenize.
+
+   Deviation from the source: the name sizes on the stacked-name templates
+   (t3, t6, t8, t9, t10, t19, t21, t23, t24, t25, t26) were raised. Stacking
+   the couple over several lines leaves one short word as the widest line, so
+   the source sizes filled only 37-52% of the card and the names read smaller
+   than the date beneath them. Sizes now target ~68% fill, matching the
+   single-line templates that were already right.
+
+   Sizes are capped by the longest name that must still fit, not by the demo
+   names: a long Danish double name (Christoffer / Emilie-Katrine) has to stay
+   inside the card. t6 Bauhaus is left at the source size for exactly that
+   reason. Known gap: t2 Noir Editorial overflows with such a name at its
+   original 50px — pre-existing, needs auto-fitting rather than a flat size.
    ═══════════════════════════════════════════════════════════════════════ */
 
 @media (prefers-reduced-motion:reduce){.kinv *{animation:none!important;transition:none!important}}
@@ -76,7 +89,7 @@
 .kinv .t3 .frame::before{content:"";position:absolute;inset:4px;border:1px solid #cdbf9e}
 .kinv .t3 .card{color:#4a422c;font-family:"Cormorant Garamond",serif}
 .kinv .t3 .lbl{color:#a2926c}
-.kinv .t3 .nm{font-family:"Cinzel";font-weight:500;font-size:21px;letter-spacing:.1em;line-height:1.5;color:#463d27;margin:14px 0}
+.kinv .t3 .nm{font-family:"Cinzel";font-weight:500;font-size:29px;letter-spacing:.1em;line-height:1.5;color:#463d27;margin:14px 0}
 .kinv .t3 .amp{font-family:"Cormorant Garamond";font-style:italic;font-size:22px;color:#a2926c}
 .kinv .t3 .when{color:#7a6f4e;margin-top:10px}
 
@@ -136,7 +149,7 @@
 .kinv .t8 .tl{top:-6px;left:-10px}
 .kinv .t8 .br{bottom:-8px;right:-12px;transform:rotate(180deg)}
 .kinv .t8 .lbl-s{color:#7d9070;position:relative;z-index:2}
-.kinv .t8 .nm{font-family:"Cormorant Garamond";font-weight:500;font-size:31px;line-height:1.06;color:#38472f;margin:14px 0 2px;position:relative;z-index:2}
+.kinv .t8 .nm{font-family:"Cormorant Garamond";font-weight:500;font-size:41px;line-height:1.06;color:#38472f;margin:14px 0 2px;position:relative;z-index:2}
 .kinv .t8 .amp{font-family:"Pinyon Script";font-size:28px;color:#8aa07a;position:relative;z-index:2}
 .kinv .t8 .body{font-style:italic;font-size:16px;color:#54614d;margin-top:16px;position:relative;z-index:2}
 .kinv .t8 .when{color:#5a6b50;margin-top:18px;position:relative;z-index:2}
@@ -146,7 +159,7 @@
 .kinv .t9 .tpl{overflow:hidden}
 .kinv .t9 .fit{justify-content:flex-start;padding-bottom:0}
 .kinv .t9 .lbl-s{color:#9aa07a}
-.kinv .t9 .nm{font-family:"Cormorant Garamond";font-weight:500;font-size:32px;line-height:1.05;color:#494a37;margin:14px 0 2px}
+.kinv .t9 .nm{font-family:"Cormorant Garamond";font-weight:500;font-size:42px;line-height:1.05;color:#494a37;margin:14px 0 2px}
 .kinv .t9 .amp{font-family:"Pinyon Script";font-size:28px;color:#b3a05a}
 .kinv .t9 .when{color:#7c7d5d;margin-top:16px}
 .kinv .t9 .meadow{position:absolute;left:0;right:0;bottom:0;height:120px}
@@ -158,7 +171,7 @@
 .kinv .t10 .e1{top:-8px;right:-8px}
 .kinv .t10 .e2{bottom:-12px;left:-12px;transform:rotate(180deg)}
 .kinv .t10 .lbl-s{color:#8f8360}
-.kinv .t10 .nm{font-family:"Cormorant Garamond";font-weight:500;font-style:italic;font-size:29px;line-height:1.1;color:#413b2c;margin:14px 0 2px}
+.kinv .t10 .nm{font-family:"Cormorant Garamond";font-weight:500;font-style:italic;font-size:44px;line-height:1.1;color:#413b2c;margin:14px 0 2px}
 .kinv .t10 .amp{font-family:"Cormorant Garamond";font-size:20px;color:#93693f}
 .kinv .t10 .when{color:#736a4e;margin-top:16px}
 
@@ -169,7 +182,7 @@
 .kinv .t11 .arch::-webkit-scrollbar{width:0}
 .kinv .t11 .archfit{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:56px 28px 40px;color:#f6e9db;font-family:"Cormorant Garamond",serif}
 .kinv .t11 .lbl-s{color:#f1cdb6}
-.kinv .t11 .nm{font-family:"Fraunces";font-weight:400;font-style:italic;font-size:38px;line-height:1;margin:16px 0 4px}
+.kinv .t11 .nm{font-family:"Fraunces";font-weight:400;font-style:italic;font-size:46px;line-height:1;margin:16px 0 4px}
 .kinv .t11 .amp{font-family:"Fraunces";font-style:italic;font-size:21px;color:#f1cdb6}
 .kinv .t11 .sun{width:32px;height:32px;border-radius:50%;border:1px solid #f1cdb6;margin:18px 0;position:relative}
 .kinv .t11 .sun::after{content:"";position:absolute;inset:6px;border-radius:50%;background:#f1cdb6;opacity:.5}
@@ -280,7 +293,7 @@
 .kinv .t19 .cardfit{padding:32px}
 .kinv .t19 .card{background:#fbfcfe;border:1px solid #b9cbdd;padding:38px 24px;color:#2f4a68;font-family:"Cormorant Garamond",serif}
 .kinv .t19 .lbl-s{color:#6f8bab}
-.kinv .t19 .nm{font-family:"Playfair Display";font-size:25px;line-height:1.2;margin:12px 0;color:#28405c}
+.kinv .t19 .nm{font-family:"Playfair Display";font-size:44px;line-height:1.2;margin:12px 0;color:#28405c}
 .kinv .t19 .amp{font-style:italic;font-family:"Cormorant Garamond";font-size:22px;color:#6f8bab}
 .kinv .t19 .when{color:#4a678a;margin-top:12px}
 
@@ -298,7 +311,7 @@
 /* ===== T21 Linea (minimal) ===== */
 .kinv .t21{background:#f7f6f4;color:#1a1815;font-family:"Jost",sans-serif}
 .kinv .t21 .lbl-s{color:#a09a90}
-.kinv .t21 .nm{font-family:"Jost";font-weight:500;font-size:29px;letter-spacing:.02em;line-height:1.2;color:#1a1815;margin:18px 0}
+.kinv .t21 .nm{font-family:"Jost";font-weight:500;font-size:33px;letter-spacing:.02em;line-height:1.2;color:#1a1815;margin:18px 0}
 .kinv .t21 .amp{font-weight:300;font-size:16px;color:#b0a89c;display:block;margin:8px 0}
 .kinv .t21 .rule{width:44px;height:1px;background:#1a1815;margin:8px auto 18px}
 .kinv .t21 .when{color:#6a655c}
@@ -314,7 +327,7 @@
 /* ===== T23 Corail ===== */
 .kinv .t23{background:linear-gradient(165deg,#f98d6b,#ef6b52 60%,#e0533f);color:#fff3ec;font-family:"Cormorant Garamond",serif}
 .kinv .t23 .lbl-s{color:#ffd8c8}
-.kinv .t23 .nm{font-family:"Fraunces";font-weight:400;font-style:italic;font-size:37px;line-height:1;margin:16px 0 4px;color:#fff3ec}
+.kinv .t23 .nm{font-family:"Fraunces";font-weight:400;font-style:italic;font-size:46px;line-height:1;margin:16px 0 4px;color:#fff3ec}
 .kinv .t23 .amp{font-family:"Fraunces";font-style:italic;font-size:20px;color:#ffd0bd}
 .kinv .t23 .ring{width:34px;height:34px;border-radius:50%;border:1px solid #ffd0bd;margin:18px 0;position:relative}
 .kinv .t23 .ring::after{content:"";position:absolute;inset:6px;border-radius:50%;background:#ffd0bd;opacity:.5}
@@ -327,7 +340,7 @@
 .kinv .t24 .lt{top:-6px;left:-8px}
 .kinv .t24 .rb{bottom:-8px;right:-10px;transform:rotate(180deg)}
 .kinv .t24 .lbl-s{color:#9b8fb8}
-.kinv .t24 .nm{font-family:"Cormorant Garamond";font-weight:500;font-size:32px;line-height:1.05;color:#4a4460;margin:14px 0 2px}
+.kinv .t24 .nm{font-family:"Cormorant Garamond";font-weight:500;font-size:42px;line-height:1.05;color:#4a4460;margin:14px 0 2px}
 .kinv .t24 .amp{font-family:"Pinyon Script";font-size:28px;color:#8f7fb0}
 .kinv .t24 .when{color:#6f668a;margin-top:16px}
 
@@ -337,7 +350,7 @@
 .kinv .t25 .seal::after{content:"";position:absolute;inset:7px;border-radius:50%;border:1px solid rgba(230,200,140,.4)}
 .kinv .t25 .seal span{font-family:"Pinyon Script";font-size:24px;color:#e6c88c}
 .kinv .t25 .lbl{color:#9a8a6a}
-.kinv .t25 .nm{font-family:"Cinzel";font-weight:500;font-size:19px;letter-spacing:.1em;line-height:1.5;color:#4a4030;margin:14px 0}
+.kinv .t25 .nm{font-family:"Cinzel";font-weight:500;font-size:29px;letter-spacing:.1em;line-height:1.5;color:#4a4030;margin:14px 0}
 .kinv .t25 .amp{font-family:"Cormorant Garamond";font-style:italic;font-size:22px;color:#9a8a6a}
 .kinv .t25 .when{color:#7a6f54;margin-top:10px}
 
@@ -349,6 +362,6 @@
 .kinv .t26 .et{top:-12px;right:-10px}
 .kinv .t26 .eb{bottom:-12px;left:-10px;transform:rotate(180deg)}
 .kinv .t26 .lbl-s{color:#7f9382;position:relative;z-index:2}
-.kinv .t26 .nm{font-family:"Cormorant Garamond";font-weight:500;font-size:31px;line-height:1.06;color:#374a3d;margin:14px 0 2px;position:relative;z-index:2}
+.kinv .t26 .nm{font-family:"Cormorant Garamond";font-weight:500;font-size:50px;line-height:1.06;color:#374a3d;margin:14px 0 2px;position:relative;z-index:2}
 .kinv .t26 .amp{font-family:"Pinyon Script";font-size:28px;color:#8aa08f;position:relative;z-index:2}
 .kinv .t26 .when{color:#586b5d;margin-top:18px;position:relative;z-index:2}

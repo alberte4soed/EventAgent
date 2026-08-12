@@ -6,7 +6,7 @@ import {
   Wallet, Users, Globe, Mail, ListChecks, LayoutDashboard,
   LayoutGrid, X, Settings, Gift, PanelLeftClose, PanelLeft,
   LogOut, UserPlus, Inbox,
-  Sparkles, Plane,
+  Sparkles, Plane, HeartHandshake,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { couple } from './data';
@@ -16,7 +16,8 @@ import { SignOutButton } from '@/components/auth/SignOutButton';
 
 export type ScreenId =
   | 'home' | 'ava' | 'team' | 'inbox'
-  | 'budget' | 'guests' | 'website' | 'registry' | 'invites' | 'planning' | 'seating' | 'honeymoon';
+  | 'budget' | 'guests' | 'website' | 'registry' | 'invites' | 'planning' | 'seating' | 'honeymoon'
+  | 'nygift';
 
 export type NavItem = { id: ScreenId; label: string; icon: LucideIcon; group: 'main' | 'plan' };
 
@@ -32,6 +33,7 @@ export const NAV: NavItem[] = [
   { id: 'invites',     label: 'Invitationer',  icon: Mail,          group: 'plan' },
   { id: 'seating',     label: 'Bordplan',      icon: LayoutDashboard, group: 'plan' },
   { id: 'honeymoon',   label: 'Bryllupsrejse', icon: Plane,         group: 'plan' },
+  { id: 'nygift',      label: 'Nygift',        icon: HeartHandshake, group: 'plan' },
 ];
 
 const MOBILE_TABS: ScreenId[] = ['home', 'planning', 'inbox'];

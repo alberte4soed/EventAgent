@@ -4,10 +4,10 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ListChecks, CheckSquare } from 'lucide-react';
 import { useWedding } from '../useWedding';
 import { cn } from '../ui';
+import type { ScreenId } from '../Shell';
 import { useLang } from '../i18n';
 import TimelineTab, { defaultMilestones } from './planning/TimelineTab';
 import ChecklistTab from './planning/ChecklistTab';
-import { defaultChecklist } from './planning/checklist-data';
 import { isMilestone, isCheck, readPlanTab, writePlanTab, type PlanTab } from './planning/shared';
 
 const AVA_CELEBRATION = 'Godt klaret. Ava har opdateret jeres fremdrift.';
@@ -16,31 +16,27 @@ const AVA_CELEBRATION = 'Godt klaret. Ava har opdateret jeres fremdrift.';
      Tidslinje — the ~14 big, date-anchored milestones
      Tjekliste — the many small to-dos, grouped by area
    See 0020_task_kind.sql for why `kind` (not `category`) separates them. */
-export default function Planning() {
+export default function Planning({ onNavigate }: { onNavigate?: (s: ScreenId) => void }) {
   const { t } = useLang();
   const { loading, couple, timelineTasks, seedTasks } = useWedding();
   const [tab, setTab] = useState<PlanTab>(() => readPlanTab());
   const [celebration, setCelebration] = useState<{ title: string; msg: string } | null>(null);
   const seededMilestonesRef = useRef(false);
-  const seededChecklistRef = useRef(false);
 
   const milestones = timelineTasks.filter(isMilestone);
   const checks = timelineTasks.filter(isCheck);
 
-  // Both seeds are gated on the wedding date so nothing lands on a half-created
-  // event during onboarding. Separate refs — one shared ref would let the first
-  // seed block the second.
+  // Only the timeline seeds from here, and only once there is a date: every
+  // milestone is placed relative to the wedding day. The checklist is dateless,
+  // so it seeds itself from ChecklistTab when the tab is opened — gating it on
+  // a date the couple has not set yet is what left the list empty.
   useEffect(() => {
     if (loading || !couple.dateISO) return;
     if (!seededMilestonesRef.current && milestones.length === 0) {
       seededMilestonesRef.current = true;
       void seedTasks(defaultMilestones(couple.dateISO));
     }
-    if (!seededChecklistRef.current && checks.length === 0) {
-      seededChecklistRef.current = true;
-      void seedTasks(defaultChecklist());
-    }
-  }, [loading, couple.dateISO, milestones.length, checks.length, seedTasks]);
+  }, [loading, couple.dateISO, milestones.length, seedTasks]);
 
   function selectTab(next: PlanTab) {
     setTab(next);
@@ -102,7 +98,7 @@ export default function Planning() {
       <AnimatePresence mode="wait">
         {tab === 'tidslinje'
           ? <TimelineTab key="tidslinje" onCelebrate={celebrate} />
-          : <ChecklistTab key="tjekliste" onCelebrate={celebrate} />}
+          : <ChecklistTab key="tjekliste" onCelebrate={celebrate} onNavigate={onNavigate} />}
       </AnimatePresence>
 
       {/* celebration toast */}

@@ -6,12 +6,11 @@
 
 import { useState } from 'react';
 import type { TemplateProps } from '../types';
+import { VenueLines, Stack } from '../lines';
 
 const compactMono = (a: string, b: string) =>
   `${(a.trim()[0] ?? '').toUpperCase()}&${(b.trim()[0] ?? '').toUpperCase()}`;
 
-const venueLine = (venue: string, detail?: string) =>
-  [venue, detail].filter(Boolean).join(' · ');
 
 /* ── T1 Sceau (tap to open) ─────────────────────────────────────────── */
 export function Sceau({ data, onRsvp }: TemplateProps) {
@@ -31,7 +30,7 @@ export function Sceau({ data, onRsvp }: TemplateProps) {
         <div className="rule" />
         {data.introLines.map((ln, i) => <div className="ln" key={i}>{ln}</div>)}
         <div className="lbl dt">{data.displayDate}</div>
-        <div className="ln" style={{ fontStyle: 'normal', marginTop: 12 }}>{venueLine(data.venue, data.venueDetail)}</div>
+        <div className="ln" style={{ fontStyle: 'normal', marginTop: 12 }}><VenueLines venue={data.venue} detail={data.venueDetail} /></div>
         <button className="btn" onClick={(e) => { e.stopPropagation(); onRsvp?.(); }}>
           {data.rsvpLabel || (da ? 'Bekræft deltagelse' : 'RSVP')}
         </button>
@@ -48,7 +47,7 @@ export function Ivoire({ data }: TemplateProps) {
       <div className="cardfit"><div className="card">
         <div className="lbl">{data.label}</div>
         <div className="nm">{data.partnerA}<br />&amp;<br />{data.partnerB}</div>
-        <div className="when">{data.displayDate}<br />{venueLine(data.venue, data.venueDetail)}</div>
+        <div className="when">{data.displayDate}<br /><VenueLines venue={data.venue} detail={data.venueDetail} /></div>
       </div></div>
     </div>
   );
@@ -56,13 +55,12 @@ export function Ivoire({ data }: TemplateProps) {
 
 /* ── T4 Bleu Poudré ─────────────────────────────────────────────────── */
 export function BleuPoudre({ data }: TemplateProps) {
-  const secondLine = [data.time, data.venue].filter(Boolean).join(' · ');
   return (
     <div className="t4 tpl"><div className="fit">
       <div className="crest"><span>{compactMono(data.partnerA, data.partnerB)}</span></div>
       <div className="lbl-s">{data.label}</div>
       <div className="nm">{data.partnerA}<span className="amp"> &amp; </span>{data.partnerB}</div>
-      <div className="when">{data.displayDate}<br />{secondLine}{data.venueDetail ? <><br />{data.venueDetail}</> : null}</div>
+      <div className="when"><Stack parts={[data.displayDate, data.time, data.venue, data.venueDetail]} /></div>
     </div></div>
   );
 }
@@ -74,7 +72,7 @@ export function Cachet({ data }: TemplateProps) {
       <div className="seal"><span>{data.monogram}</span></div>
       <div className="lbl">{data.label}</div>
       <div className="nm">{data.partnerA}<br /><span className="amp">&amp;</span><br />{data.partnerB}</div>
-      <div className="when">{data.displayDate}<br />{venueLine(data.venue, data.venueDetail)}</div>
+      <div className="when">{data.displayDate}<br /><VenueLines venue={data.venue} detail={data.venueDetail} /></div>
     </div></div>
   );
 }
@@ -107,7 +105,7 @@ export function Lettre({ data, onRsvp }: TemplateProps) {
         <div className="rule" />
         {data.introLines.map((ln, i) => <div className="ln" key={i}>{ln}</div>)}
         <div className="dt">{data.displayDate}</div>
-        <div className="ln" style={{ fontStyle: 'normal', marginTop: 12 }}>{venueLine(data.venue, data.venueDetail)}</div>
+        <div className="ln" style={{ fontStyle: 'normal', marginTop: 12 }}><VenueLines venue={data.venue} detail={data.venueDetail} /></div>
         <button className="btn" onClick={(e) => { e.stopPropagation(); onRsvp?.(); }}>
           {data.rsvpLabel || (da ? 'Bekræft deltagelse' : 'RSVP')}
         </button>

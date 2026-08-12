@@ -110,7 +110,7 @@ export interface PlaceResult {
    real lodging.
    ────────────────────────────────────────────────────────────────────────── */
 
-/** Types that are never a wedding/event venue — hard-reject on any of these. */
+/** Types that on their own mean "not a wedding venue" — see isPlausibleVenue. */
 const NON_VENUE_TYPES = new Set<string>([
   // Civic / government / offices
   "local_government_office", "city_hall", "courthouse", "embassy", "police",
@@ -150,6 +150,34 @@ const NON_VENUE_TYPES = new Set<string>([
   "movie_theater", "shopping_center",
 ]);
 
+/**
+ * Types that positively mark a place as somewhere a wedding could happen.
+ * Google stacks types, so a real venue routinely carries a disqualifying tag
+ * alongside a qualifying one — an estate with a farm shop is tagged `store`,
+ * an event space with a café is tagged `cafe`. Deliberately excludes generic
+ * hospitality (`restaurant`, `bar`): those must stand on their own.
+ */
+const VENUE_TYPES = new Set<string>([
+  // Purpose-built event space
+  "event_venue", "banquet_hall", "wedding_venue", "convention_center",
+  "conference_center", "community_center", "cultural_center", "auditorium",
+  "concert_hall", "performing_arts_theater", "opera_house",
+  // Culture & heritage
+  "museum", "art_gallery", "historical_landmark", "historical_place",
+  "cultural_landmark", "monument", "tourist_attraction", "observation_deck",
+  // Outdoors
+  "park", "garden", "botanical_garden", "national_park", "state_park",
+  "beach", "marina", "golf_course", "country_club",
+  // Country & wine
+  "winery", "vineyard", "farm", "farmstay", "ranch",
+  // Places you can also sleep
+  "hotel", "resort_hotel", "lodging", "bed_and_breakfast", "guest_house",
+  "inn", "cottage", "motel",
+  // Ceremony
+  "church", "chapel", "place_of_worship", "monastery", "synagogue", "mosque",
+  "hindu_temple", "wedding_chapel",
+]);
+
 /** Lodging types — what an accommodation search should keep. */
 const LODGING_TYPES = new Set<string>([
   "hotel", "resort_hotel", "motel", "bed_and_breakfast", "guest_house",
@@ -166,16 +194,20 @@ function placeTypeTokens(place: Pick<PlaceResult, "primaryType" | "types">): str
 }
 
 /**
- * True when a place could plausibly host a wedding/event. Google's typing is
- * imperfect, so we only *reject* on an unambiguous non-venue type rather than
- * requiring an allowlist (real venues carry wildly varied types — event_venue,
- * banquet_hall, hotel, tourist_attraction, park, winery, church, farm…).
- * When a place has no type data at all we keep it (best-effort, verified by name).
+ * True when a place could plausibly host a wedding/event.
+ *
+ * A disqualifying type only disqualifies a place that shows no venue signal of
+ * its own. Rejecting on any negative tag threw out real venues, because Google
+ * stacks types: BaneGaarden is `event_venue` AND `cafe`; Paradehuset is
+ * `garden` AND `store`. A plain coffee shop has no positive tag, so it still
+ * goes. When a place has no type data at all we keep it (best-effort, already
+ * verified by name).
  */
 export function isPlausibleVenue(place: Pick<PlaceResult, "primaryType" | "types">): boolean {
   const tokens = placeTypeTokens(place);
   if (tokens.length === 0) return true;
-  return !tokens.some((t) => NON_VENUE_TYPES.has(t));
+  if (!tokens.some((t) => NON_VENUE_TYPES.has(t))) return true;
+  return tokens.some((t) => VENUE_TYPES.has(t));
 }
 
 /** True when a place is real lodging (for the accommodation search). */

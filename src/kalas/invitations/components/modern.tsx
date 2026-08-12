@@ -3,26 +3,29 @@
 /* Moderne & minimal — Noir Éditorial, Bauhaus, Parisienne. */
 
 import type { TemplateProps } from '../types';
+import { Stack, joinTight, fitNameSize } from '../lines';
 
 const up = (s: string) => s.toUpperCase();
-const join = (parts: (string | undefined)[], sep: string) => parts.filter(Boolean).join(sep);
 
 /* ── T2 Noir Éditorial ──────────────────────────────────────────────── */
 export function NoirEditorial({ data }: TemplateProps) {
   const da = data.language === 'da';
+  // 50px holds a 7-character name inside the card; anything longer has to
+  // come down or it runs off the edge.
+  const size = fitNameSize(50, data.partnerA, data.partnerB, 7);
   return (
     <div className="t2 tpl"><div className="fit">
       <div className="top">{data.label}</div>
       <div className="mid">
-        <div className="big">{up(data.partnerA)}</div>
+        <div className="big" style={{ fontSize: size }}>{up(data.partnerA)}</div>
         <div className="amp">{da ? 'og' : 'and'}</div>
-        <div className="big">{up(data.partnerB)}</div>
+        <div className="big" style={{ fontSize: size }}>{up(data.partnerB)}</div>
       </div>
       <div className="meta">
         <hr />
         <div><div className="kk">{da ? 'Dato' : 'Date'}</div><div className="vv">{data.displayDate}</div></div>
         <hr />
-        <div><div className="kk">{da ? 'Sted' : 'Location'}</div><div className="vv">{join([data.venue, data.venueDetail], ' · ')}</div></div>
+        <div><div className="kk">{da ? 'Sted' : 'Location'}</div><div className="vv">{joinTight([data.venue, data.venueDetail])}</div></div>
         <hr />
       </div>
       <div className="foot" style={{ marginTop: 26 }}>R.S.V.P · <b>{data.rsvpLabel || data.venueDetail || data.venue}</b></div>
@@ -39,7 +42,7 @@ export function Bauhaus({ data }: TemplateProps) {
         <div className="big">{up(data.partnerA)}</div>
         <div className="amp">&amp;</div>
         <div className="big">{up(data.partnerB)}</div>
-        <div className="when">{join([data.displayDate, join([data.venue, data.venueDetail], ' · ')], ' — ')}</div>
+        <div className="when"><Stack parts={[data.displayDate, data.venue, data.venueDetail]} /></div>
       </div>
     </div></div>
   );
@@ -52,7 +55,7 @@ export function Linea({ data }: TemplateProps) {
       <div className="lbl-s">{data.label}</div>
       <div className="nm">{up(data.partnerA)}<span className="amp">&amp;</span>{up(data.partnerB)}</div>
       <div className="rule" />
-      <div className="when">{join([data.displayDate, join([data.venue, data.venueDetail], ' · ')], ' · ')}</div>
+      <div className="when"><Stack parts={[data.displayDate, data.venue, data.venueDetail]} /></div>
     </div></div>
   );
 }
@@ -63,7 +66,7 @@ export function Atelier({ data }: TemplateProps) {
     <div className="t22 tpl"><div className="fit">
       <div className="lbl-s">{data.label}</div>
       <div className="big">{data.partnerA}<span className="amp">&amp;</span>{data.partnerB}</div>
-      <div className="when">{join([data.displayDate, join([data.venue, data.venueDetail], ' · ')], ' — ')}</div>
+      <div className="when"><Stack parts={[data.displayDate, data.venue, data.venueDetail]} /></div>
     </div></div>
   );
 }
@@ -82,7 +85,7 @@ export function Parisienne({ data }: TemplateProps) {
       <div className="nm">{data.partnerA}<br />&amp; {data.partnerB}</div>
       {data.introLines[0] ? <div className="sub">{data.introLines[0]}</div> : null}
       <div className="rule" />
-      <div className="when">{join([data.displayDate, join([data.venue, data.venueDetail], ' · ')], ' · ')}</div>
+      <div className="when"><Stack parts={[data.displayDate, data.venue, data.venueDetail]} /></div>
     </div></div>
   );
 }

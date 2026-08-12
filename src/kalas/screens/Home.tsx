@@ -12,7 +12,7 @@ import { navigateToHub } from '../lib/hub-nav';
 import { useLang } from '../i18n';
 import { daysUntilWedding } from '@/lib/wedding-date';
 import type { HubCat } from './team/shared';
-import { IMAGES } from '../data';
+import HeroPhoto from './home/HeroPhoto';
 
 const HERO_IMG =
   'https://cdn.wonder.so/images/019d9110-e1f2-74f3-85e8-c89f82be5a63/6d0cada0901a800c9f43a2cf68a9d52f6cf2620687565337240b2d069d261834.jpg';
@@ -187,12 +187,7 @@ export default function Home({ onNavigate }: { onNavigate: (s: NavigateTarget) =
         className="flex flex-col gap-7"
       >
         <div className="flex w-full flex-col gap-8 rounded-[28px] border border-[#d8d4c7] bg-[#ece9df] p-7 lg:flex-row">
-          <div
-            className="h-[240px] w-full shrink-0 rounded-[22px] border-[6px] border-[#f8f6f0] bg-cover bg-center shadow-[0_16px_40px_rgba(49,69,35,0.18)] lg:h-[300px] lg:w-[380px]"
-            style={{ backgroundImage: `url('${HERO_IMG}'), url('${IMAGES.portrait}')` }}
-            role="img"
-            aria-label={coupleLabel}
-          />
+          <HeroPhoto fallback={HERO_IMG} alt={coupleLabel} />
           <div className="flex flex-1 flex-col justify-center gap-4">
             <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#8a9079]">
               {t('Brylluppet for')}

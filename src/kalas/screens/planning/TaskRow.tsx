@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Trash2, MoreHorizontal, CalendarDays, CornerDownRight } from 'lucide-react';
+import { Trash2, MoreHorizontal, CalendarDays, CornerDownRight, Pencil } from 'lucide-react';
 import { cn, TaskCheckbox, taskRowTone, doneLabelClass } from '../../ui';
 import { useLang } from '../../i18n';
 import { formatDate, statusOf, statusLabel, daysDiff } from './shared';
@@ -17,9 +17,9 @@ export type DisplayTask = {
 
 /** One completable row, shared by both tabs. The menu entries differ:
  *  the checklist is append-only (int `sort`, no fractional insert), so it
- *  passes no `onInsertAfter`. */
+ *  passes no `onInsertAfter`; the timeline passes no `onRename`. */
 export default function TaskRow({
-  task, deleteLabel, menuOpen, onMenu, onCloseMenu, onToggle, onDelete, onInsertAfter, onDateChange,
+  task, deleteLabel, menuOpen, onMenu, onCloseMenu, onToggle, onDelete, onInsertAfter, onRename, onDateChange,
 }: {
   task: DisplayTask;
   deleteLabel: string;
@@ -29,6 +29,7 @@ export default function TaskRow({
   onToggle: () => void;
   onDelete: () => void;
   onInsertAfter?: () => void;
+  onRename?: () => void;
   onDateChange: (dateISO: string) => void;
 }) {
   const { t } = useLang();
@@ -112,6 +113,12 @@ export default function TaskRow({
                   <button type="button" onClick={onInsertAfter}
                     className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm text-[#314523] transition-colors hover:bg-[#f0ede5] cursor-pointer">
                     <CornerDownRight size={14} className="text-[#6c7561]" /> {t('Indsæt under')}
+                  </button>
+                )}
+                {onRename && (
+                  <button type="button" onClick={onRename}
+                    className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm text-[#314523] transition-colors hover:bg-[#f0ede5] cursor-pointer">
+                    <Pencil size={14} className="text-[#6c7561]" /> {t('Omdøb punkt')}
                   </button>
                 )}
                 <button type="button" onClick={onDelete}

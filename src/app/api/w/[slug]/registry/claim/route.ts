@@ -1,11 +1,13 @@
 import { NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { claimedCount } from "@/kalas/registry/gifts";
 import type { RegistryItemRow, WeddingSiteRow } from "@/lib/db/types";
 
 /**
  * POST /api/w/[slug]/registry/claim — a guest reserves a registry gift.
  * Service role: validates the item belongs to this site and isn't already fully
- * claimed, then records the claim (couple sees it; giver stays anonymous in UI).
+ * claimed, then records the claim. The couple sees the guest's name and message
+ * on their registry screen; other guests only ever see that it is taken.
  */
 export async function POST(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -26,9 +28,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const item = itemRow as RegistryItemRow | null;
   if (!item) return Response.json({ error: "Item not found" }, { status: 404 });
 
-  const { count } = await admin
-    .from("registry_claims").select("id", { count: "exact", head: true }).eq("item_id", item.id);
-  if ((count ?? 0) >= item.quantity) {
+  // Sum `quantity`, don't count rows: both UIs sum, and the two only agree
+  // while every claim happens to be for one. See claimedCount in
+  // src/kalas/registry/gifts.ts.
+  const { data: claimRows } = await admin
+    .from("registry_claims").select("quantity").eq("item_id", item.id);
+  const taken = claimedCount((claimRows as { quantity: number | null }[] | null) ?? []);
+  if (taken >= item.quantity) {
     return Response.json({ error: "fully_claimed" }, { status: 409 });
   }
 

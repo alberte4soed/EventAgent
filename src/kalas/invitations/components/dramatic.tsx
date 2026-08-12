@@ -6,12 +6,11 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { TemplateProps } from '../types';
+import { VenueLines, Stack } from '../lines';
 import { Countdown } from '../Countdown';
 
 const compactMono = (a: string, b: string) =>
   `${(a.trim()[0] ?? '').toUpperCase()}&${(b.trim()[0] ?? '').toUpperCase()}`;
-const venueLine = (venue: string, detail?: string) => [venue, detail].filter(Boolean).join(' · ');
-const join = (parts: (string | undefined)[], sep: string) => parts.filter(Boolean).join(sep);
 const up = (s: string) => s.toUpperCase();
 
 /* ── T14 Minuit (countdown) ─────────────────────────────────────────── */
@@ -82,7 +81,7 @@ export function Deco({ data }: TemplateProps) {
           <div className="nm">{up(data.partnerA)}</div>
           <div className="amp">&amp;</div>
           <div className="nm">{up(data.partnerB)}</div>
-          <div className="ln lbl-s" style={{ color: '#c8bd8f' }}>{data.displayDate}<br />{join([venueLine(data.venue, data.venueDetail), data.time], ' · ')}</div>
+          <div className="ln lbl-s" style={{ color: '#c8bd8f' }}><Stack parts={[data.displayDate, data.venue, data.venueDetail, data.time]} /></div>
         </div>
       </div>
     </div>
@@ -97,7 +96,7 @@ export function Emeraude({ data }: TemplateProps) {
       <div className="cardfit"><div className="card">
         <div className="lbl">{data.label}</div>
         <div className="nm">{data.partnerA}<span className="amp"> &amp; </span>{data.partnerB}</div>
-        <div className="when">{data.displayDate}<br />{venueLine(data.venue, data.venueDetail)}</div>
+        <div className="when">{data.displayDate}<br /><VenueLines venue={data.venue} detail={data.venueDetail} /></div>
       </div></div>
     </div>
   );
@@ -111,7 +110,7 @@ export function Champagne({ data }: TemplateProps) {
       <div className="mono">{compactMono(data.partnerA, data.partnerB)}</div>
       <div className="lbl-s">{data.label}</div>
       <div className="nm">{data.partnerA}<span className="amp"> &amp; </span>{data.partnerB}</div>
-      <div className="when">{data.displayDate}<br />{venueLine(data.venue, data.venueDetail)}</div>
+      <div className="when">{data.displayDate}<br /><VenueLines venue={data.venue} detail={data.venueDetail} /></div>
     </div></div></div>
   );
 }
@@ -129,7 +128,7 @@ export function Marbre({ data }: TemplateProps) {
         <div className="foil">{compactMono(data.partnerA, data.partnerB)}</div>
         <div className="lbl-s">{data.label}</div>
         <div className="nm">{data.partnerA}<span className="amp"> &amp; </span>{data.partnerB}</div>
-        <div className="when">{data.displayDate}<br />{venueLine(data.venue, data.venueDetail)}</div>
+        <div className="when">{data.displayDate}<br /><VenueLines venue={data.venue} detail={data.venueDetail} /></div>
       </div>
     </div>
   );

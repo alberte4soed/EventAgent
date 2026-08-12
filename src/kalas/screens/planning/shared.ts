@@ -1,7 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 import {
   Building2, Church, UtensilsCrossed, Shirt, Mail, Scale, PartyPopper,
-  HeartHandshake, CircleDashed,
+  HeartHandshake, CircleDashed, Wallet, Camera, Users, CalendarClock,
 } from 'lucide-react';
 import { TODAY } from '../../data';
 import type { TaskKind, TimelineTaskRow } from '@/lib/db/types';
@@ -21,6 +21,13 @@ export function writePlanTab(tab: PlanTab) {
   if (typeof window !== 'undefined') sessionStorage.setItem(PLAN_TAB_KEY, tab);
 }
 
+/** Marks that one event has been topped up with the newest default items.
+ *  Kept client-side on purpose: it must not resurrect items the couple has
+ *  deliberately deleted, and it is not worth a column. */
+export function topUpKey(eventId: string): string {
+  return `kalas_checklist_topup_${eventId}`;
+}
+
 /* ── Kind ─────────────────────────────────────────────────────────────── */
 
 /** Never trust the column: a client running ahead of migration 0020 sees
@@ -36,19 +43,24 @@ export const isCheck = (row: Pick<TimelineTaskRow, 'kind'>) => kindOf(row) === '
 /* ── Checklist areas ──────────────────────────────────────────────────── */
 
 export type ChecklistArea =
-  | 'venue' | 'ceremoni' | 'mad' | 'stil' | 'papir' | 'jura' | 'dagen' | 'efter' | 'ovrigt';
+  | 'okonomi' | 'venue' | 'ceremoni' | 'mad' | 'stil' | 'foto' | 'papir'
+  | 'gaester' | 'jura' | 'optil' | 'dagen' | 'efter' | 'ovrigt';
 
 /** Ids are stable ASCII — they are stored in the DB, so they must never be
  *  Danish labels with æ/ø/å. The label lives here so it stays translatable.
  *  Order is the render order on the Tjekliste tab: roughly the order a couple
  *  meets the work, ending with what happens after the wedding. */
 export const CHECKLIST_AREAS: { id: ChecklistArea; label: string; Icon: LucideIcon }[] = [
+  { id: 'okonomi', label: 'Økonomi & budget', Icon: Wallet },
   { id: 'venue', label: 'Sted & overnatning', Icon: Building2 },
   { id: 'ceremoni', label: 'Ceremoni & vielse', Icon: Church },
   { id: 'mad', label: 'Mad & drikke', Icon: UtensilsCrossed },
   { id: 'stil', label: 'Tøj & styling', Icon: Shirt },
+  { id: 'foto', label: 'Foto & film', Icon: Camera },
   { id: 'papir', label: 'Papir & invitationer', Icon: Mail },
+  { id: 'gaester', label: 'Gæster & bordplan', Icon: Users },
   { id: 'jura', label: 'Jura & praktik', Icon: Scale },
+  { id: 'optil', label: 'Op til dagen', Icon: CalendarClock },
   { id: 'dagen', label: 'Dagen selv', Icon: PartyPopper },
   { id: 'efter', label: 'Efter brylluppet', Icon: HeartHandshake },
   { id: 'ovrigt', label: 'Øvrigt', Icon: CircleDashed },
@@ -62,6 +74,51 @@ export function areaOf(row: Pick<TimelineTaskRow, 'category'>): ChecklistArea {
 
 export function areaLabel(id: ChecklistArea): string {
   return CHECKLIST_AREAS.find((a) => a.id === id)?.label ?? 'Øvrigt';
+}
+
+/* ── Which areas are unfolded ─────────────────────────────────────────── */
+
+const OPEN_AREAS_KEY = 'kalas_checklist_open';
+
+/** Split out from `readOpenAreas` so the parsing is testable without a DOM.
+ *  Unknown ids are dropped: a value stored before an area was renamed must
+ *  not resurrect a group that no longer exists. */
+export function parseOpenAreas(raw: string | null): Set<ChecklistArea> {
+  if (!raw) return new Set();
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return new Set();
+    return new Set(
+      parsed.filter((id): id is ChecklistArea => typeof id === 'string' && AREA_IDS.has(id)),
+    );
+  } catch {
+    return new Set();
+  }
+}
+
+export function serializeOpenAreas(open: Set<ChecklistArea>): string {
+  return JSON.stringify([...open]);
+}
+
+/** Empty means every area is folded away — the deliberate starting point, so
+ *  all 12 groups fit on one screen instead of 205 rows. sessionStorage, like
+ *  the tab choice: view state, not a preference worth keeping for good. */
+export function readOpenAreas(): Set<ChecklistArea> {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    return parseOpenAreas(sessionStorage.getItem(OPEN_AREAS_KEY));
+  } catch {
+    return new Set();
+  }
+}
+
+export function writeOpenAreas(open: Set<ChecklistArea>) {
+  if (typeof window === 'undefined') return;
+  try {
+    sessionStorage.setItem(OPEN_AREAS_KEY, serializeOpenAreas(open));
+  } catch {
+    /* private mode or quota — folding just stops being remembered */
+  }
 }
 
 /** Groups check rows by area, preserving CHECKLIST_AREAS order. Areas with no

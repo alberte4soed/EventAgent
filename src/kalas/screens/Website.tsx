@@ -683,8 +683,10 @@ export default function Website() {
                 <p className="text-[0.84rem] text-muted leading-relaxed">
                   {t('Gæsterne får en knap til at uploade egne billeder. Alle billeder samles i jeres private galleri.')}
                 </p>
+                {/* The upload link used to be shown here as {domain}.kalas.dk/del
+                    — a URL that never existed. Ships with the album in Nygift. */}
                 <div className="mt-3 rule rounded-xl bg-shell px-4 py-3 text-[0.78rem] text-muted">
-                  {t('Upload-link:')} <span className="font-mono text-ink">{domain}.kalas.dk/del</span>
+                  {t('Gæstealbummet bor under Nygift — det åbner snart.')}
                 </div>
               </SectionCard>
             </div>
@@ -831,10 +833,12 @@ export default function Website() {
               <section className="rule rounded-2xl bg-card p-6">
                 <p className="font-serif text-[1.15rem] text-ink mb-4">{t('Statistik')}</p>
                 <div className="grid grid-cols-3 gap-px overflow-hidden rounded-xl rule bg-[var(--color-line)]">
+                  {/* Only real numbers. There is no analytics anywhere in the
+                      app, so page views cannot be shown honestly. */}
                   {[
-                    { label: t('Sidevisninger'),   value: published ? '34' : '—' },
+                    { label: t('Gæster inviteret'), value: published ? String(guests.length) : '—' },
                     { label: t('RSVP modtaget'),   value: published ? String(guests.filter((g) => g.rsvp !== 'afventer').length) : '—' },
-                    { label: t('Billeder delt'),   value: published ? '7'  : '—' },
+                    { label: t('Siger ja'),        value: published ? String(guests.filter((g) => g.rsvp === 'ja').length) : '—' },
                   ].map(({ label, value }) => (
                     <div key={label} className="bg-card px-4 py-5 text-center">
                       <div className="font-serif text-[1.6rem] text-ink">{value}</div>

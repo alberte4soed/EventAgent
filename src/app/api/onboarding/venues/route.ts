@@ -2,8 +2,7 @@ import { NextRequest } from "next/server";
 import { Type, type Schema } from "@google/genai";
 import { createClient } from "@/lib/supabase/server";
 import { getGemini, GEMINI_MODEL } from "@/lib/gemini/client";
-import { VENUE_EXTRACTION_PROMPT } from "@/lib/gemini/prompts";
-import { venueListSchema, type ExtractedVenue } from "@/lib/gemini/schemas";
+import { type ExtractedVenue } from "@/lib/gemini/schemas";
 import {
   cacheGet,
   cacheSet,
@@ -20,6 +19,11 @@ import {
  * Gemini researches real wedding venues for the couple's destination and guest
  * count; Google Places verifies each pick and supplies photos + ratings.
  */
+
+// Two Gemini calls plus a batch of Places lookups. Netlify ignores this (see
+// cron/poll-replies), which is exactly why the Places work below runs in
+// parallel — the whole route has to fit inside a 10s function budget.
+export const maxDuration = 60;
 
 export interface OnboardingVenueSuggestion {
   id: string;
@@ -145,8 +149,10 @@ ${args.budget ? `Budget: ${args.budget} DKK.` : ""}
 
 ${DIVERSITY_BRIEF}
 
-Report each venue's name, distinct atmosphere/vibe, why it fits, address if visible, capacity and price hints.
-Only include places that genuinely host weddings; skip ordinary hotels, restaurants and non-venues even to reach the count.`;
+Only include places that genuinely host weddings; skip ordinary hotels, restaurants and non-venues even to reach the count.
+
+Return ONLY a JSON array — no prose, no markdown fence. Each element:
+{"name":string,"description":string|null,"why_fit":string|null,"address":string|null,"capacity":string|null,"price_hint":string|null}`;
 
   const grounded = await ai.models.generateContent({
     model: GEMINI_MODEL,
@@ -156,19 +162,39 @@ Only include places that genuinely host weddings; skip ordinary hotels, restaura
   const notes = grounded.text?.trim();
   if (!notes) return [];
 
-  const extraction = await ai.models.generateContent({
-    model: GEMINI_MODEL,
-    contents: VENUE_EXTRACTION_PROMPT(notes),
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: venueListSchema,
-    },
-  });
-  const parsed = JSON.parse(extraction.text ?? "{}") as { venues?: ExtractedVenue[] };
-  return (parsed.venues ?? []).filter((v) => v.name?.trim()).slice(0, TARGET + 4);
+  // The search tool cannot be combined with responseSchema, so the model is
+  // asked for JSON in prose and we parse it. This used to be a second Gemini
+  // call, which pushed the route past the function timeout — the couple then
+  // saw "kunne ikke finde venues her" every time. On a parse failure the
+  // caller falls through to the structured path.
+  const json = notes.match(/\[[\s\S]*\]/)?.[0];
+  if (!json) return [];
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(json);
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(parsed)) return [];
+  return (parsed as ExtractedVenue[])
+    .filter((v) => typeof v?.name === "string" && v.name.trim())
+    .slice(0, TARGET + 4);
 }
 
+/** Best-effort — resolves to null rather than throwing, so one bad candidate
+ *  cannot reject the Promise.all that enriches the whole batch. */
 async function enrich(
+  extracted: ExtractedVenue,
+  destination: string
+): Promise<OnboardingVenueSuggestion | null> {
+  try {
+    return await enrichOrThrow(extracted, destination);
+  } catch {
+    return null;
+  }
+}
+
+async function enrichOrThrow(
   extracted: ExtractedVenue,
   destination: string
 ): Promise<OnboardingVenueSuggestion | null> {
@@ -257,14 +283,19 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // Enrich every candidate at once. Serially this was ~1.5s per candidate —
+  // 20s+ on top of the Gemini calls, past the platform's function timeout, so
+  // the couple only ever saw "kunne ikke finde venues her". Order is preserved
+  // by resolving the whole array before picking.
+  const enriched = await Promise.all(extracted.map((item) => enrich(item, destination)));
+
   const seenPlaces = new Set<string>();
   const venues: OnboardingVenueSuggestion[] = [];
-  for (const item of extracted) {
+  for (const venue of enriched) {
     if (venues.length >= TARGET) break;
-    const enriched = await enrich(item, destination);
-    if (!enriched || seenPlaces.has(enriched.place_id!)) continue;
-    seenPlaces.add(enriched.place_id!);
-    venues.push(enriched);
+    if (!venue || seenPlaces.has(venue.place_id!)) continue;
+    seenPlaces.add(venue.place_id!);
+    venues.push(venue);
   }
 
   if (venues.length > 0) await cacheSet(key, venues);

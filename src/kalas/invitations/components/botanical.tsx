@@ -4,9 +4,8 @@
    SVG signature graphics copied verbatim from the source. */
 
 import type { TemplateProps } from '../types';
+import { VenueLines, Stack } from '../lines';
 
-const venueLine = (venue: string, detail?: string) => [venue, detail].filter(Boolean).join(' · ');
-const join = (parts: (string | undefined)[], sep: string) => parts.filter(Boolean).join(sep);
 
 function MultiLine({ lines }: { lines: string[] }) {
   return <>{lines.map((ln, i) => <span key={i}>{i > 0 ? <br /> : null}{ln}</span>)}</>;
@@ -43,7 +42,7 @@ export function Jardin({ data }: TemplateProps) {
       <div className="lbl-s">{data.label}</div>
       <div className="nm">{data.partnerA}<br />&amp; {data.partnerB}</div>
       {data.introLines.length ? <div className="body"><MultiLine lines={data.introLines} /></div> : null}
-      <div className="when">{join([data.displayDate, data.time], ' · ')}<br />{venueLine(data.venue, data.venueDetail)}</div>
+      <div className="when"><Stack parts={[data.displayDate, data.time, data.venue, data.venueDetail]} /></div>
     </div></div></div>
   );
 }
@@ -54,7 +53,7 @@ export function Prairie({ data }: TemplateProps) {
     <div className="t9 tpl"><div className="fit">
       <div className="lbl-s">{data.label}</div>
       <div className="nm">{data.partnerA}<br />&amp; {data.partnerB}</div>
-      <div className="when">{data.displayDate}<br />{venueLine(data.venue, data.venueDetail)}</div>
+      <div className="when">{data.displayDate}<br /><VenueLines venue={data.venue} detail={data.venueDetail} /></div>
       <svg className="meadow" viewBox="0 0 280 120" preserveAspectRatio="none">
         <g stroke="#9aa07a" strokeWidth="1.2" fill="none">
           <path d="M22 120C20 90 26 80 24 60" /><path d="M52 120C54 88 48 78 52 58" />
@@ -77,7 +76,7 @@ export function Gravure({ data }: TemplateProps) {
       <Eng cls="e2" />
       <div className="lbl-s">{data.label}</div>
       <div className="nm">{data.partnerA}<br />&amp; {data.partnerB}</div>
-      <div className="when">{data.displayDate}<br />{venueLine(data.venue, data.venueDetail)}</div>
+      <div className="when">{data.displayDate}<br /><VenueLines venue={data.venue} detail={data.venueDetail} /></div>
     </div></div>
   );
 }
@@ -103,7 +102,7 @@ export function Eucalyptus({ data }: TemplateProps) {
       <Euc cls="eb" />
       <div className="lbl-s">{data.label}</div>
       <div className="nm">{data.partnerA}<br /><span className="amp">&amp;</span><br />{data.partnerB}</div>
-      <div className="when">{data.displayDate}<br />{venueLine(data.venue, data.venueDetail)}</div>
+      <div className="when">{data.displayDate}<br /><VenueLines venue={data.venue} detail={data.venueDetail} /></div>
     </div></div></div>
   );
 }
@@ -116,7 +115,7 @@ export function Toile({ data }: TemplateProps) {
       <div className="cardfit"><div className="card">
         <div className="lbl-s">{data.label}</div>
         <div className="nm">{data.partnerA}<br /><span className="amp">&amp;</span><br />{data.partnerB}</div>
-        <div className="when">{data.displayDate}<br />{venueLine(data.venue, data.venueDetail)}</div>
+        <div className="when">{data.displayDate}<br /><VenueLines venue={data.venue} detail={data.venueDetail} /></div>
       </div></div>
     </div>
   );

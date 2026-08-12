@@ -27,6 +27,8 @@ import type {
   OutboundEmailRow,
   ProfileRow,
   RegistryClaimRow,
+  ThankYouRow,
+  ThankMethod,
   RegistryItemRow,
   ReplyProposalRow,
   SeatingPlanRow,
@@ -79,6 +81,17 @@ interface WeddingData {
   seatingPlan: SeatingPlanRow | null;
   registryItems: RegistryItemRow[];
   registryClaims: RegistryClaimRow[];
+  thankYous: ThankYouRow[];
+  /** The couple's own rating of a vendor they booked. */
+  saveVenueReview: (
+    venueId: string,
+    patch: { own_rating?: number | null; own_review?: string | null; own_recommend?: boolean | null }
+  ) => Promise<void>;
+  /** Upserts the couple's annotation for one person on the thank-you list. */
+  saveThankYou: (
+    subjectKey: string,
+    patch: { label: string; gift?: string | null; thanked_at?: string | null; method?: ThankMethod | null; note?: string | null }
+  ) => Promise<void>;
   /** The couple's favourited honeymoon destinations, hotels and ideas. */
   honeymoonSaves: HoneymoonSaveRow[];
   /** All generations, newest first; the active one drives the live site. */
@@ -106,9 +119,11 @@ interface WeddingData {
   addTask: (task: { title: string; due_date?: string | null; category?: string | null; kind?: TaskKind; sort?: number; done?: boolean }) => Promise<TimelineTaskRow | null>;
   updateTask: (id: string, patch: Partial<TimelineTaskRow>) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
-  seedTasks: (tasks: { title: string; due_date?: string | null; category?: string | null; kind?: TaskKind; done?: boolean; sort?: number }[]) => Promise<void>;
-  /** Delete every task of one kind in a single round-trip (used by Nulstil). */
-  clearTasks: (kind: TaskKind) => Promise<void>;
+  /** Resolves to null on success, or the error message when the write failed. */
+  seedTasks: (tasks: { title: string; due_date?: string | null; category?: string | null; kind?: TaskKind; done?: boolean; sort?: number }[]) => Promise<string | null>;
+  /** Delete every task of one kind in a single round-trip (used by Nulstil).
+   *  Resolves to null on success, or the error message when the delete failed. */
+  clearTasks: (kind: TaskKind) => Promise<string | null>;
 
   addMoodboardItem: (item: { image_key?: string | null; image_url?: string | null; note?: string | null }) => Promise<MoodboardItemRow | null>;
   removeMoodboardItem: (id: string) => Promise<void>;
@@ -235,6 +250,7 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
   const [seatingPlan, setSeatingPlan] = useState<SeatingPlanRow | null>(null);
   const [registryItems, setRegistryItems] = useState<RegistryItemRow[]>([]);
   const [registryClaims, setRegistryClaims] = useState<RegistryClaimRow[]>([]);
+  const [thankYous, setThankYous] = useState<ThankYouRow[]>([]);
   const [honeymoonSaves, setHoneymoonSaves] = useState<HoneymoonSaveRow[]>([]);
   const [websiteDesigns, setWebsiteDesigns] = useState<WebsiteDesignRow[]>([]);
   const [sitePhotos, setSitePhotos] = useState<SitePhotoRow[]>([]);
@@ -277,7 +293,7 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
     setEvent(ev);
 
     if (ev) {
-      const [v, d, o, r, at, p, io, idz, bi, g, tt, mb, ws, sp, ri, rc, wd, sph, wo, inv, hs] = await Promise.all([
+      const [v, d, o, r, at, p, io, idz, bi, g, tt, mb, ws, sp, ri, rc, wd, sph, wo, inv, hs, ty] = await Promise.all([
         supabase.from("venues").select("*").eq("event_id", ev.id).order("created_at"),
         supabase.from("email_drafts").select("*").eq("event_id", ev.id),
         supabase.from("outbound_emails").select("*").eq("event_id", ev.id).order("created_at"),
@@ -299,6 +315,7 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
         supabase.from("website_orders").select("*").eq("event_id", ev.id).order("created_at", { ascending: false }),
         supabase.from("invitations").select("*").eq("event_id", ev.id).order("created_at", { ascending: false }),
         supabase.from("honeymoon_saves").select("*").eq("event_id", ev.id).order("created_at", { ascending: false }),
+        supabase.from("thank_yous").select("*").eq("event_id", ev.id).order("created_at"),
       ]);
       setVenues((v.data ?? []) as VenueRow[]);
       setDrafts((d.data ?? []) as EmailDraftRow[]);
@@ -316,6 +333,7 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
       setSeatingPlan((sp.data as SeatingPlanRow | null) ?? null);
       setRegistryItems((ri.data ?? []) as RegistryItemRow[]);
       setRegistryClaims((rc.data ?? []) as RegistryClaimRow[]);
+      setThankYous((ty.data ?? []) as ThankYouRow[]);
       setWebsiteDesigns((wd.data ?? []) as WebsiteDesignRow[]);
       setSitePhotos((sph.data ?? []) as SitePhotoRow[]);
       setWebsiteOrders((wo.data ?? []) as WebsiteOrderRow[]);
@@ -486,9 +504,15 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
     [supabase]
   );
 
+  /**
+   * Returns null on success, else the error message. The checklist seeds ~200
+   * rows in one go and used to fail silently — an empty list and a failed
+   * insert looked identical, so the caller needs to be able to tell them apart.
+   */
   const seedTasks = useCallback(
     async (tasks: { title: string; due_date?: string | null; category?: string | null; kind?: TaskKind; done?: boolean; sort?: number }[]) => {
-      if (!eventId || !userId || tasks.length === 0) return;
+      if (!eventId || !userId) return "Brylluppet er ikke indlæst endnu.";
+      if (tasks.length === 0) return null;
       const rows = tasks.map((t, i) => ({
         event_id: eventId,
         user_id: userId,
@@ -499,17 +523,67 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
         done: t.done ?? false,
         sort: t.sort ?? i,
       }));
-      const { data } = await supabase.from("timeline_tasks").insert(rows).select();
+      const { data, error } = await supabase.from("timeline_tasks").insert(rows).select();
+      if (error) return error.message;
       if (data) setTimelineTasks((prev) => (data as TimelineTaskRow[]).reduce((acc, r) => upsertById(acc, r), prev));
+      return null;
     },
     [supabase, eventId, userId]
   );
 
+  /**
+   * Writes straight to `venues` through the RLS client — deliberately NOT via
+   * /api/venues/[venueId], whose PATCH only accepts { booked } and carries
+   * venue-exclusivity side effects we do not want here.
+   */
+  const saveVenueReview = useCallback(
+    async (
+      venueId: string,
+      patch: { own_rating?: number | null; own_review?: string | null; own_recommend?: boolean | null }
+    ) => {
+      const { data } = await supabase
+        .from("venues")
+        .update({ ...patch, own_reviewed_at: new Date().toISOString() })
+        .eq("id", venueId)
+        .select()
+        .single();
+      if (data) setVenues((rows) => upsertById(rows, data as VenueRow));
+    },
+    [supabase]
+  );
+
+  /**
+   * The thank-you list is derived from guests + registry_claims; this stores
+   * only the couple's own annotations, keyed by subject_key so a row is
+   * created the first time they touch someone and updated after that.
+   */
+  const saveThankYou = useCallback(
+    async (
+      subjectKey: string,
+      patch: { label: string; gift?: string | null; thanked_at?: string | null; method?: ThankMethod | null; note?: string | null }
+    ) => {
+      if (!eventId || !userId) return;
+      const { data } = await supabase
+        .from("thank_yous")
+        .upsert(
+          { event_id: eventId, user_id: userId, subject_key: subjectKey, ...patch },
+          { onConflict: "event_id,subject_key" }
+        )
+        .select()
+        .single();
+      if (data) setThankYous((rows) => upsertById(rows, data as ThankYouRow));
+    },
+    [supabase, eventId, userId]
+  );
+
+  /** Returns null on success, else the error message — see `seedTasks`. */
   const clearTasks = useCallback(
     async (kind: TaskKind) => {
-      if (!eventId) return;
-      await supabase.from("timeline_tasks").delete().eq("event_id", eventId).eq("kind", kind);
+      if (!eventId) return "Brylluppet er ikke indlæst endnu.";
+      const { error } = await supabase.from("timeline_tasks").delete().eq("event_id", eventId).eq("kind", kind);
+      if (error) return error.message;
       setTimelineTasks((rows) => rows.filter((r) => (r.kind === "check" ? "check" : "milestone") !== kind));
+      return null;
     },
     [supabase, eventId]
   );
@@ -768,6 +842,14 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
       )
       .on(
         "postgres_changes",
+        { event: "*", schema: "public", table: "thank_yous", filter: `event_id=eq.${eventId}` },
+        (p) =>
+          p.eventType === "DELETE"
+            ? setThankYous((rows) => removeById(rows, (p.old as { id: string }).id))
+            : setThankYous((rows) => upsertById(rows, p.new as ThankYouRow))
+      )
+      .on(
+        "postgres_changes",
         { event: "*", schema: "public", table: "moodboard_items", filter: `event_id=eq.${eventId}` },
         (p) =>
           p.eventType === "DELETE"
@@ -884,6 +966,9 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
       seatingPlan,
       registryItems,
       registryClaims,
+      thankYous,
+      saveThankYou,
+      saveVenueReview,
       honeymoonSaves,
       websiteDesigns,
       websiteDesign: websiteDesigns.find((d) => d.active) ?? null,
@@ -918,6 +1003,7 @@ export function WeddingProvider({ children }: { children: React.ReactNode }) {
       loading, event, profile, email, venues, drafts, outbound, replies, attachments, proposals,
       inviteOrders, inviteDesigns, invitations, journey, budgetItems, guests, timelineTasks,
       moodboardItems, weddingSite, seatingPlan, registryItems, registryClaims, honeymoonSaves,
+      thankYous, saveThankYou, saveVenueReview,
       websiteDesigns, sitePhotos, websiteOrders, load, updateEvent, saveBudgetItem,
       deleteBudgetItem, addGuest, updateGuest, deleteGuest, addTask, updateTask, deleteTask, seedTasks, clearTasks,
       addMoodboardItem, removeMoodboardItem, saveSite, saveSeating,

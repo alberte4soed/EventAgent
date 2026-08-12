@@ -9,6 +9,8 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { LanguageProvider, useLang } from "@/kalas/i18n";
 import { SiteRenderer } from "@/kalas/site/SiteRenderer";
+import GiftCard from "@/kalas/registry/GiftCard";
+import { sortGifts } from "@/kalas/registry/gifts";
 import type { SiteConfig } from "@/kalas/site/config";
 import type { SiteDesign } from "@/kalas/site/design";
 import type { RegistryItemRow, AppLanguage } from "@/lib/db/types";
@@ -114,37 +116,36 @@ function HtmlSite({ html, couple, hideBranding, registryItems, claimedByItem, on
           platform-substituted URLs — see src/lib/website/sanitize.ts. */}
       <div id="kalas-site" ref={rootRef} dangerouslySetInnerHTML={{ __html: html }} />
 
+      {/* Same GiftCard as the couple's screen, but in `inherit` tone: the model
+          picks this site's palette, so the card borrows it rather than
+          importing the app's cream. */}
       {registryEl && registryItems.length > 0 && createPortal(
-        <div style={{ display: "grid", gap: "1rem", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))" }}>
-          {registryItems.map((it) => {
+        <div style={{ display: "grid", gap: "1rem", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))" }}>
+          {sortGifts(registryItems).map((it) => {
             const left = Math.max(0, it.quantity - (claimedByItem[it.id] ?? 0));
             return (
-              <div key={it.id} style={{ border: "1px solid rgba(0,0,0,0.12)", borderRadius: "0.75rem", overflow: "hidden", background: "rgba(255,255,255,0.6)" }}>
-                {it.image_url && <img src={it.image_url} alt="" style={{ width: "100%", height: "9rem", objectFit: "cover" }} />}
-                <div style={{ padding: "0.9rem" }}>
-                  <p style={{ fontWeight: 600 }}>{it.title}</p>
-                  <p style={{ fontSize: "0.85rem", opacity: 0.7 }}>
-                    {it.price_cents != null ? `${(it.price_cents / 100).toLocaleString("da-DK")} ${it.currency}` : ""}
-                    {it.store_name ? ` · ${it.store_name}` : ""}
-                  </p>
-                  <div style={{ marginTop: "0.6rem", display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+              <GiftCard
+                key={it.id}
+                item={it}
+                reserved={left <= 0}
+                tone="inherit"
+                footer={
+                  <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                    {left > 0 ? (
+                      <button onClick={() => onClaim(it)}
+                        style={{ fontSize: "0.75rem", fontWeight: 600, borderRadius: "999px", padding: "0.35rem 0.85rem", background: "rgba(0,0,0,0.85)", color: "#fff", cursor: "pointer" }}>
+                        {t("Reservér gave")}
+                      </button>
+                    ) : null}
                     {it.product_url && (
                       <a href={it.product_url} target="_blank" rel="noopener noreferrer"
-                        style={{ fontSize: "0.75rem", border: "1px solid rgba(0,0,0,0.25)", borderRadius: "999px", padding: "0.3rem 0.8rem" }}>
+                        style={{ fontSize: "0.75rem", border: "1px solid rgba(0,0,0,0.25)", borderRadius: "999px", padding: "0.35rem 0.85rem" }}>
                         {t("Se hos {store}", { store: it.store_name || t("butik") })}
                       </a>
                     )}
-                    {left > 0 ? (
-                      <button onClick={() => onClaim(it)}
-                        style={{ fontSize: "0.75rem", fontWeight: 600, borderRadius: "999px", padding: "0.3rem 0.8rem", background: "rgba(0,0,0,0.85)", color: "#fff", cursor: "pointer" }}>
-                        {t("Reservér gave")}
-                      </button>
-                    ) : (
-                      <span style={{ fontSize: "0.75rem", opacity: 0.6 }}>{t("Reserveret")}</span>
-                    )}
                   </div>
-                </div>
-              </div>
+                }
+              />
             );
           })}
         </div>,
@@ -349,7 +350,9 @@ function ClaimModal({ slug, item, onClose }: { slug: string; item: RegistryItemR
         <div className="p-8 text-center">
           <p className="text-[2rem]">🎁</p>
           <h2 className="mt-3 font-serif text-[1.3rem] text-ink">{t("Tak — gaven er reserveret")}</h2>
-          <p className="mt-2 text-[0.88rem] text-ink-soft">{t("Brudeparret får besked. De ved ikke hvem, før dagen.")}</p>
+          {/* The couple's registry screen shows the name and the message, so
+              promising anonymity here was simply untrue. */}
+          <p className="mt-2 text-[0.88rem] text-ink-soft">{t("Brudeparret får besked, og de andre gæster kan se at den er taget.")}</p>
           <button onClick={onClose} className="mt-5 rounded-full bg-ink px-6 py-2.5 text-[0.82rem] font-medium text-canvas cursor-pointer">{t("Luk")}</button>
         </div>
       ) : (

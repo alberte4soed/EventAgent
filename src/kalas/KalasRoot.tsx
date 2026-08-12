@@ -26,6 +26,7 @@ import Seating from './screens/Seating';
 import Registry from './screens/Registry';
 import Inbox from './screens/Inbox';
 import Honeymoon from './screens/Honeymoon';
+import Nygift from './screens/Nygift';
 
 export default function KalasRoot({ initialLang = 'da' }: { initialLang?: Lang }) {
   return (
@@ -125,7 +126,7 @@ function AppInner() {
     home:        <Home onNavigate={navigate} />,
     team:        <VendorHub key={hubTick} onNavigate={navigate} />,
     inbox:       <Inbox onNavigate={navigate} />,
-    planning:    <Planning />,
+    planning:    <Planning onNavigate={navigate} />,
     budget:      <Budget onNavigate={navigate} />,
     guests:      <Guests />,
     website:     <Website />,
@@ -133,6 +134,7 @@ function AppInner() {
     invites:     <Invites />,
     seating:     <Seating />,
     honeymoon:   <Honeymoon onNavigate={navigate} />,
+    nygift:      <Nygift onNavigate={navigate} />,
   };
 
   const activeScreen = screen === 'ava' ? 'home' : screen;

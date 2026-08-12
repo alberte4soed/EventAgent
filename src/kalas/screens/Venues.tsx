@@ -632,6 +632,9 @@ function DiscoverView({
   const [results, setResults] = useState<OnboardingVenueSuggestion[]>([]);
   const [resultsLoading, setResultsLoading] = useState(false);
   const [resultsFailed, setResultsFailed] = useState(false);
+  /** Why the search failed, when we know. A silent generic message made a
+   *  function timeout indistinguishable from "this town has no venues". */
+  const [resultsError, setResultsError] = useState<string | null>(null);
   const seenVenues = useRef<Record<string, OnboardingVenueSuggestion[]>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
   const [justSaved, setJustSaved] = useState<Set<string>>(new Set());
@@ -682,6 +685,7 @@ function DiscoverView({
   const searchVenues = async (dest: string) => {
     setDestination(dest);
     setResultsFailed(false);
+    setResultsError(null);
     scrollToResults();
     const hit = seenVenues.current[dest];
     if (hit) { setResults(hit); return; }
@@ -697,13 +701,14 @@ function DiscoverView({
           lang,
         }),
       });
-      if (!res.ok) throw new Error(String(res.status));
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = (await res.json()) as { venues?: OnboardingVenueSuggestion[] };
       const list = data.venues ?? [];
       if (list.length === 0) { setResultsFailed(true); return; }
       seenVenues.current[dest] = list;
       setResults(list);
-    } catch {
+    } catch (err) {
+      setResultsError(err instanceof Error ? err.message : String(err));
       setResultsFailed(true);
     } finally {
       setResultsLoading(false);
@@ -962,6 +967,9 @@ function DiscoverView({
             ) : resultsFailed ? (
               <div className="rounded-2xl border border-[#e4e0d4] bg-[#fcfbf7] p-8 text-center">
                 <p className="text-[0.9rem] text-ink-soft">{t('Kunne ikke finde venues her.')}</p>
+                {resultsError && (
+                  <p className="mt-1.5 text-[0.75rem] text-[#9a9686]">{resultsError}</p>
+                )}
                 <button
                   type="button"
                   onClick={() => void searchVenues(destination)}

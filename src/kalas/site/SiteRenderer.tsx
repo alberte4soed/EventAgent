@@ -10,6 +10,8 @@
 
 import { IMAGES } from '../data';
 import { useLang } from '../i18n';
+import GiftCard from '../registry/GiftCard';
+import { sortGifts } from '../registry/gifts';
 import type { SiteConfig } from './config';
 import { mergeSections, type SiteDesign, type DesignSection } from './design';
 import { fontStack } from './fonts';
@@ -141,9 +143,8 @@ export function SiteRenderer({
         if (!config.giftsText && registryItems.length === 0 && !config.giftsUrl) return null;
         body = (
           <GiftsSection
-            s={s} config={config} tone={tone} display={display} hairline={hairline}
-            radius={RADIUS[shape.radius]} btn={btn} registryItems={registryItems}
-            claimedByItem={claimedByItem} onClaim={onClaim} t={t}
+            s={s} config={config} tone={tone} display={display} btn={btn}
+            registryItems={registryItems} claimedByItem={claimedByItem} onClaim={onClaim} t={t}
           />
         );
         break;
@@ -495,9 +496,9 @@ function GallerySection({ s, images, radius }: { s: DesignSection; images: strin
   );
 }
 
-function GiftsSection({ s, config, tone, display, hairline, radius, btn, registryItems, claimedByItem, onClaim, t }: {
+function GiftsSection({ s, config, tone, display, btn, registryItems, claimedByItem, onClaim, t }: {
   s: DesignSection; config: SiteConfig; tone: Tone; display: React.CSSProperties;
-  hairline: string; radius: string; btn: (e?: React.CSSProperties) => React.CSSProperties;
+  btn: (e?: React.CSSProperties) => React.CSSProperties;
   registryItems: RegistryItemRow[]; claimedByItem: Record<string, number>;
   onClaim?: (item: RegistryItemRow) => void;
   t: (s: string, p?: Record<string, string | number>) => string;
@@ -506,41 +507,38 @@ function GiftsSection({ s, config, tone, display, hairline, radius, btn, registr
   return (
     <>
       {config.giftsText && <p className="mx-auto mb-8 max-w-xl text-center text-[0.98rem] leading-relaxed opacity-80">{config.giftsText}</p>}
+      {/* Both variants now show the same GiftCard — the point of the redesign
+          is that the couple's screen and the guest's page look alike. `list`
+          only narrows it to one column. Tone is inherited so the card takes
+          this site's palette rather than the app's. */}
       {registryItems.length > 0 && (
-        <div className={list ? 'mx-auto max-w-xl space-y-3' : 'grid gap-4 sm:grid-cols-2'}>
-          {registryItems.map((it) => {
+        <div className={list ? 'mx-auto max-w-sm space-y-4' : 'grid gap-4 grid-cols-2 lg:grid-cols-3'}>
+          {sortGifts(registryItems).map((it) => {
             const claimed = claimedByItem[it.id] ?? 0;
             const left = Math.max(0, it.quantity - claimed);
             return (
-              <div key={it.id} className={list ? 'flex items-center gap-4 px-5 py-4' : 'overflow-hidden'} style={{ border: hairline, borderRadius: radius }}>
-                {it.image_url && (
-                  list
-                    ? <img src={it.image_url} alt="" className="h-16 w-16 shrink-0 object-cover" style={{ borderRadius: radius }} />
-                    : <img src={it.image_url} alt="" className="h-40 w-full object-cover" />
-                )}
-                <div className={list ? 'min-w-0 flex-1' : 'p-4'}>
-                  <p style={{ ...display, fontSize: '1.05rem' }}>{it.title}</p>
-                  <span className="text-[0.85rem] opacity-70">
-                    {it.price_cents != null ? `${(it.price_cents / 100).toLocaleString('da-DK')} ${it.currency}` : ''}
-                    {it.store_name ? ` · ${it.store_name}` : ''}
-                  </span>
-                  <div className="mt-3 flex items-center gap-2">
+              <GiftCard
+                key={it.id}
+                item={it}
+                reserved={left <= 0}
+                tone="inherit"
+                titleStyle={display}
+                footer={
+                  <div className="flex flex-wrap items-center gap-2">
+                    {left > 0 && (
+                      <button onClick={() => onClaim?.(it)} className="px-3.5 py-1.5 text-[0.72rem] font-semibold" style={btn()}>
+                        {t('Reservér gave')}
+                      </button>
+                    )}
                     {it.product_url && (
                       <a href={it.product_url} target="_blank" rel="noopener noreferrer"
                         className="px-3.5 py-1.5 text-[0.72rem] font-medium" style={{ border: `1px solid ${tone.text}25`, borderRadius: '999px' }}>
                         {t('Se hos {store}', { store: it.store_name || t('butik') })}
                       </a>
                     )}
-                    {left > 0 ? (
-                      <button onClick={() => onClaim?.(it)} className="px-3.5 py-1.5 text-[0.72rem] font-semibold" style={btn()}>
-                        {t('Reservér gave')}
-                      </button>
-                    ) : (
-                      <span className="text-[0.72rem] font-medium opacity-60">{t('Reserveret')}</span>
-                    )}
                   </div>
-                </div>
-              </div>
+                }
+              />
             );
           })}
         </div>

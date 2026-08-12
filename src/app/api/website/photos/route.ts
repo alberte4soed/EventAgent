@@ -85,6 +85,12 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: `Max ${MAX_PHOTOS} billeder — slet nogle først` }, { status: 429 });
   }
 
+  // Only one hero per event — same rule the PATCH route enforces. Uploading
+  // straight to 'hero' (the home screen does) would otherwise leave two.
+  if (role === "hero") {
+    await supabase.from("site_photos").update({ role: "gallery" }).eq("event_id", eventId).eq("role", "hero");
+  }
+
   const id = crypto.randomUUID();
   const storagePath = `${user.id}/${eventId}/${id}.${ext}`;
   const admin = createAdminClient();

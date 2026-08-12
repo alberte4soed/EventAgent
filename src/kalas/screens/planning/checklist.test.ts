@@ -1,14 +1,18 @@
 import { describe, it, expect } from 'vitest';
 import { timeline as MOCK_TIMELINE } from '../../data';
-import { DEFAULT_CHECKLIST, defaultChecklist } from './checklist-data';
-import { CHECKLIST_AREAS, kindOf, areaOf, groupByArea, nextSort, statusOf } from './shared';
+import { EN } from '../../strings';
+import { DEFAULT_CHECKLIST, defaultChecklist, missingChecklistItems } from './checklist-data';
+import {
+  CHECKLIST_AREAS, kindOf, areaOf, groupByArea, nextSort, statusOf,
+  parseOpenAreas, serializeOpenAreas, type ChecklistArea,
+} from './shared';
 
 const AREA_IDS = new Set(CHECKLIST_AREAS.map((a) => a.id));
 
 describe('DEFAULT_CHECKLIST', () => {
   it('holds a usable number of items', () => {
-    expect(DEFAULT_CHECKLIST.length).toBeGreaterThanOrEqual(100);
-    expect(DEFAULT_CHECKLIST.length).toBeLessThanOrEqual(160);
+    expect(DEFAULT_CHECKLIST.length).toBeGreaterThanOrEqual(180);
+    expect(DEFAULT_CHECKLIST.length).toBeLessThanOrEqual(260);
   });
 
   it('covers every area with a meaningful block', () => {
@@ -38,6 +42,17 @@ describe('DEFAULT_CHECKLIST', () => {
     for (const item of DEFAULT_CHECKLIST) expect(AREA_IDS.has(item.area)).toBe(true);
   });
 
+  it('translates every title and area label', () => {
+    // TaskRow renders stored titles through t(), so a missing entry shows up
+    // as Danish text inside an otherwise English list.
+    for (const item of DEFAULT_CHECKLIST) {
+      expect(EN[item.title], `"${item.title}" has no English translation`).toBeTruthy();
+    }
+    for (const { label } of CHECKLIST_AREAS) {
+      expect(EN[label], `area label "${label}" has no English translation`).toBeTruthy();
+    }
+  });
+
   it('seeds dateless check rows with contiguous sort values', () => {
     const seeded = defaultChecklist();
     expect(seeded).toHaveLength(DEFAULT_CHECKLIST.length);
@@ -47,6 +62,28 @@ describe('DEFAULT_CHECKLIST', () => {
       expect(row.done).toBe(false);
       expect(row.sort).toBe(i);
     });
+  });
+});
+
+describe('missingChecklistItems', () => {
+  it('returns nothing when the couple already has the full list', () => {
+    const existing = defaultChecklist().map((r) => ({ title: r.title, sort: r.sort }));
+    expect(missingChecklistItems(existing)).toEqual([]);
+  });
+
+  it('returns only the titles the couple is missing, appended after their rows', () => {
+    const existing = defaultChecklist()
+      .slice(0, 5)
+      .map((r) => ({ title: r.title, sort: r.sort }))
+      .concat([{ title: 'Noget vi selv fandt på', sort: 42 }]);
+    const missing = missingChecklistItems(existing);
+
+    expect(missing).toHaveLength(DEFAULT_CHECKLIST.length - 5);
+    expect(missing.map((r) => r.title)).not.toContain(DEFAULT_CHECKLIST[0].title);
+    // Their own item survives — it is simply not part of the defaults.
+    expect(missing.map((r) => r.title)).not.toContain('Noget vi selv fandt på');
+    expect(missing[0].sort).toBe(43);
+    expect(missing.every((r) => r.kind === 'check' && r.due_date === null)).toBe(true);
   });
 });
 
@@ -91,6 +128,31 @@ describe('groupByArea', () => {
     expect(groups).toHaveLength(1);
     expect(groups[0].area).toBe('ovrigt');
     expect(groups[0].items).toHaveLength(2);
+  });
+});
+
+describe('open areas', () => {
+  it('round-trips a set of areas', () => {
+    const open = new Set<ChecklistArea>(['mad', 'jura']);
+    expect(parseOpenAreas(serializeOpenAreas(open))).toEqual(open);
+  });
+
+  it('starts empty — every area folded away', () => {
+    expect(parseOpenAreas(null)).toEqual(new Set());
+    expect(parseOpenAreas('')).toEqual(new Set());
+    expect(serializeOpenAreas(new Set())).toBe('[]');
+  });
+
+  it('survives a value that is not an area list', () => {
+    expect(parseOpenAreas('not json')).toEqual(new Set());
+    expect(parseOpenAreas('{"mad":true}')).toEqual(new Set());
+    expect(parseOpenAreas('[1, null]')).toEqual(new Set());
+  });
+
+  it('drops ids that are no longer areas', () => {
+    // A session stored before an area was renamed must not reopen a group
+    // that CHECKLIST_AREAS no longer knows about.
+    expect(parseOpenAreas('["mad","ikke-et-omraade"]')).toEqual(new Set(['mad']));
   });
 });
 
