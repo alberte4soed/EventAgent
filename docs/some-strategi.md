@@ -245,6 +245,51 @@ Et par, der frier juleaften 2026, er en august-2028-kunde.
 
 ---
 
+## 2b. Nul-budget-rækkefølgen
+
+Med nul kroner er det ikke platformvalget, der afgør noget. Det afgør, hvad vi betaler med
+i stedet: **vores timer og selve produktet.** Det ændrer rækkefølgen mere end kanalerne.
+
+**August–november bygger vi. December–februar høster vi.** Med penge kunne vi springe
+direkte ind i januar og købe opmærksomhed. Det kan vi ikke — så vi skal have bygget noget
+inden, der virker uden penge, når vinduet åbner: et indholdslager, et leverandørnetværk og
+Danmarks første tal for planlægningstid.
+
+*Prøver vi at "lancere" nu og køre på i seks måneder, brænder vi ud i oktober og står
+tomhændet i januar. Det er den mest almindelige måde at dø på uden budget.*
+
+**De tre kanaler, der leverer uden kroner:**
+
+1. **Facebook-grupperne** — de første 20 brugere ligger her, i denne måned. Den eneste
+   kanal, hvor efterspørgslen findes *i dag*, gratis, og hvor folk bogstaveligt skriver
+   "nogen der kender et venue i Nordsjælland til 90?".
+2. **Instagram Reels** — den eneste gratis kolde rækkevidde, der findes. Bygger langsomt og
+   forrentes, og derfor skal den starte nu og ikke i december.
+3. **Direkte DM'er** — 10 om ugen, håndskrevne, til fotografer og venues. Ikke marketing,
+   men relationsarbejde, og den ene ting ingen konkurrent kan kopiere ved at kaste penge
+   efter den.
+
+**De to vækstmotorer, der er kodearbejde og ikke marketingarbejde**, er vigtigere end noget
+opslag de næste tre måneder: **"Lavet med Kalas" som klikbart link** i footeren på
+bryllupshjemmesiden (200-350 eksponeringer pr. bryllup over for præcis den demografi, hvor
+de næste brudepar sidder), og **et delbart resultatkort** efter venue-runden (*"Du sendte 12
+forespørgsler på 6 minutter og fik 8 svar på 14 timer"* — folk deler tal om sig selv, de
+deler ikke reklamer). Begge dele er en eftermiddags arbejde i kodebasen og leverer
+distribution, der skalerer med brugere i stedet for med vores timer.
+
+**Ugen, konkret — 6 timer:** søndag aften 60 min batchoptagelse · man/ons/tor 3 × 20 min
+klip og post · 60 min i Facebook-grupperne · 45 min til 10 personlige DM'er · 15 min dagligt
+til kommentarer.
+
+**Ingen kroner og ingen timer på:** logorunder · en brandfilm · en influencer · annoncer før
+ét organisk opslag har 100 delinger · en separat leverandørkonto · et "velkommen til vores
+profil"-opslag. Og ikke Meta Verified endnu, selvom klikbare Reel-links er fristende — det
+er en test til januar.
+
+Produktionsdetaljerne ligger i [`indholdsplan.md`](./indholdsplan.md).
+
+---
+
 ## 3. Kanalprioritering
 
 Præmis: **én person, ~6 timer om ugen.** Det betyder to kanaler lavet ordentligt, to
