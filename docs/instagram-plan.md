@@ -64,17 +64,19 @@ Prioriteret: `@kalas.dk` → `@kalas.app` → `@fåkalas` (uden bogstavtricks:
 
 ### Bio — tre varianter
 
-**A. Ventelisten (anbefalet nu)**
+**A. Ventelisten (anbefalet nu)** — 145 tegn af 150
 ```
-Bryllupsplanlægning uden 100 mails.
+Bryllupsplanlægning uden 100 mails 💌
 Fortæl agenten om jeres dag → den skriver
 til lokationerne og samler tilbuddene.
-🇩🇰 Gratis i beta ↓
+På dansk · gratis i beta ↓
 ```
+Kortere udgave, hvis der skal være luft til en linje mere (125 tegn):
+*"Fortæl agenten om jeres dag → den henter tilbuddene hjem."*
 
 **B. Problemet først** — hvis A ikke konverterer efter 2 uger
 ```
-I skal ikke rykke for tilbud igen.
+I skal ikke rykke for tilbud igen 🤍
 Kalas kontakter alle lokationerne på én gang
 og sammenligner svarene for jer.
 Kom med i beta ↓
@@ -83,13 +85,40 @@ Kom med i beta ↓
 **C. Undersøgelsen** — brug den de uger, hvor skemaet er hovedkampagnen
 ```
 Vi måler, hvad bryllupsplanlægning
-egentlig koster i timer i Danmark 📊
+egentlig koster i timer i Danmark 🌿
 — og bygger agenten, der fjerner arbejdet.
 Svar på 6 min. + vind 500 kr. ↓
 ```
 
 Skriv linjeskiftene i Notes-appen og indsæt dem — IG's redigeringsfelt spiser
-dem ofte. Ingen emoji-spam: max to, og de skal betyde noget.
+dem ofte.
+
+### Emoji — hvad der passer til paletten
+
+Én emoji pr. bio, aldrig to i træk. Den skal betyde noget i sætningen, ikke
+pynte. Kriteriet er farve: bioen står på ivory (`#f5f3ee`) ved siden af et
+profilbillede i skovgrøn, så gule og røde emoji skriger.
+
+| Emoji | Hvornår | Hvorfor den virker |
+|---|---|---|
+| 💌 | Bio A, alt om forespørgsler og tilbud | Beskriver præcis det, produktet gør — og den er dæmpet rosa, ikke gul |
+| 🤍 | Bio B, varme/venteliste | Matcher den ivory palette bogstaveligt. Diskret, voksen |
+| 🌿 | Bio C, tal og research | Ligger tæt på sage `#8a9079`. Blødgør en ellers tør sætning |
+| 🕊️ | Alternativ til 🤍 | Grå-hvid, bryllupskonnotation uden kliché |
+| ✦ ✧ · → ↓ | Overalt | Ikke emoji, men typografi — arver tekstfarven og kan aldrig kollidere med paletten. Brug dem til struktur |
+
+**Undgå:**
+
+- 🇩🇰 — flaget er blåt og rødt midt i en grøn/ivory profil, og det bliver til en
+  farveklat i lille format. Skriv **"på dansk"** i stedet: det siger det samme
+  og fylder ikke mere.
+- 👇 — kraftig gul, det mest brugte og mest oversete tegn på Instagram. `↓`
+  arver tekstfarven og ser redigeret ud.
+- 💍 💐 — hver anden bryllupskonto har dem. De signalerer "endnu et
+  bryllupsværktøj", præcis den kasse Kalas skal ud af.
+- 🎉 🥳 — ligger tæt på navnet *kalas*, men trækker mod børnefødselsdag og
+  billig fest. Gem festvinklen til det opslag, hvor den bærer en pointe.
+- ✨ — betyder ingenting og står allerede i hver anden AI-profil.
 
 ### Link i bio
 
