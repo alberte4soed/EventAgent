@@ -1,263 +1,279 @@
 # Social-strategi — Kalas (Facebook, Instagram, TikTok)
 
 **Skrevet:** august 2026 · **Gælder:** aug 2026 – aug 2027
-**Formål:** to ting på én gang — skaffe de ≥150 svar til markedsundersøgelsen
-(`docs/markedsundersoegelse.md`) og bygge den venteliste, der skal konvertere,
-når forlovelsessæsonen rammer i december.
+**Status:** appen er klar til de første brugere. CTA er »prøv den«, ikke »skriv dig op«.
+
+**Budskabet i én linje:**
+
+> **Vælg med øjnene. Vi tager resten.**
 
 ---
 
 ## 0. Den korte version
 
-1. **Kør ikke tre strategier.** Kør ét indholdsmaskineri med tre roller:
-   TikTok skaffer rækkevidde, Instagram bygger tillid, Facebook konverterer.
-2. **Sælg ikke AI. Sælg arbejdet der forsvinder.** "Vi skriver til alle
-   lokationerne for jer og samler tilbuddene" slår "AI-drevet bryllupsplanlægger"
-   hver gang. AI er en krog, ikke et løfte.
-3. **Det vindende format er skærmoptagelser af agenten der arbejder.**
-   Konkurrenterne (bryllup.dk, Pinterest, æstetiske Reels) ejer allerede *pænt*.
-   Ingen ejer *arbejdet er gjort*.
-4. **Timingen er hele spillet.** Fra nu til 1. december bygger du publikum og
-   data. Fra 24. december til 14. februar høster du. 60-70 % af årets
-   annoncebudget skal ligge i det vindue.
-5. **Facebook-grupperne er din billigste kanal og din farligste.** De virker
-   kun, hvis du optræder som stifter der giver noget væk — ikke som brand.
+1. **Sælg valget, ikke maskineriet.** Parret skal se smukke lokationer og swipe.
+   At vi derefter skriver mails, henter tilbud og trækker priser ud, er *pointen* —
+   men det er ikke det, der skal fylde i indholdet. Det nævnes i én linje til sidst.
+2. **Lokationerne er indholdet.** Det mest delbare, gemte og kommenterede indhold,
+   I kan lave, er smukke danske bryllupslokationer med pris og gæsteantal. Det er
+   samtidig en produktdemo. De to ting er heldigvis det samme.
+3. **Kør ikke tre strategier.** Ét indholdsmaskineri, tre roller: TikTok skaffer
+   rækkevidde, Instagram bygger tillid, Facebook konverterer.
+4. **Appen er åben — så bed folk om at bruge den.** Hvert opslag ender ét sted:
+   opret jeres bryllup. Skemaet til markedsundersøgelsen er nu sekundært og kører
+   kun på hvert fjerde opslag.
+5. **Timingen er hele spillet.** Nu til 1. december bygges publikum og de første
+   rigtige brugerhistorier. 24. dec – 14. feb er forlovelsessæsonen: 60-70 % af
+   årets annoncebudget hører hjemme der.
 
 ---
 
-## 1. Sådan er teamet sat op
+## 1. Positioneringen — og hvad vi holder op med at sige
+
+Det er den vigtigste beslutning i hele dokumentet.
+
+| Sig ikke | Sig i stedet |
+|---|---|
+| »Ava sender personlige mails til alle de venues, du har liket« | »Peg på dem, I kan lide. Så hører I fra dem.« |
+| »Agenten udtrækker priser fra svarene automatisk« | »Tilbuddene ligger samlet ét sted, når I vender tilbage.« |
+| »AI-drevet bryllupsplanlægning med function calling« | »Bryllupsplanlægning, hvor I bare vælger.« |
+| Rørdiagram over processen | Fem smukke lokationer og en tommelfinger, der swiper |
+
+**Hvorfor:** processen er sælgerens stolthed, ikke køberens interesse. Parret vil
+se det sted, de skal giftes. Arbejdet bagved er en *lettelse*, ikke en *funktion* —
+og en lettelse formidles bedst ved at vise, hvor lidt de skal gøre. Ikke ved at
+vise, hvor meget vi gør.
+
+**Reglen for alt indhold:** 80 % af sekunderne skal vise noget, parret gerne vil
+kigge på. De sidste 20 % må vise, hvad der sker, når de har valgt.
+
+**Undtagelsen:** leverandørindhold (søjle 4) må gerne gå i maskinrummet — dér
+*er* processen pointen, fordi leverandøren skal forstå, hvorfor forespørgslerne
+fra Kalas er bedre end dem, de plejer at få.
+
+---
+
+## 2. Sådan er teamet sat op
 
 Fem roller. Er I én person, er det fem hatte og fem faste tidsrum i kalenderen.
 
-| Rolle | Ejer | Ugentlig kerneopgave | Måles på |
-|---|---|---|---|
-| **Strateg** | dig | Ugentligt 30-min. review: ét tal pr. kanal | Cost per venteliste-tilmelding |
-| **Indhold/kreativ** | dig + evt. freelancer | 5-7 videoer om ugen fra ét optagelsesbatch | Hook rate (3-sek. visninger / visninger) |
-| **Paid media** | dig | Én Meta-kampagne, ugentlig kreativ-udskiftning | CPL, CAC |
-| **Community & partnerskaber** | dig | Grupper, leverandører, mikro-creators | Delinger + henvisningstrafik |
-| **Analyse** | dig | "Hvor hørte du om os?" ved tilmelding | Kanalfordeling, ærligt målt |
+| Rolle | Ugentlig kerneopgave | Måles på |
+|---|---|---|
+| **Strateg** | 30-min. review: ét tal pr. kanal | Cost per oprettet bryllup |
+| **Indhold/kreativ** | 5-7 videoer fra ét optagelsesbatch | Hook rate (3-sek. visninger / visninger) |
+| **Paid media** | Én Meta-kampagne, ugentlig kreativ-udskiftning | CPL, CAC |
+| **Community & partnerskaber** | Grupper, leverandører, mikro-creators | Delinger + henvisningstrafik |
+| **Analyse** | »Hvor hørte du om os?« ved oprettelse | Kanalfordeling, ærligt målt |
 
 ---
 
-## 2. Hvem taler vi til
+## 3. Hvem taler vi til
 
 | Segment | Hvem | Hvor | Hvad de skal gøre nu |
 |---|---|---|---|
-| **A. Nyforlovede** (0-3 mdr.) | 28-38 år, primært kvinder, netop sagt ja | TikTok + Instagram | Skriv jer på ventelisten |
-| **B. Planlægger nu** (bryllup om 6-18 mdr.) | 30-40 år, midt i leverandørhelvedet | Facebook-grupper + Instagram | Udfyld skemaet, prøv Kalas |
-| **C. Nygifte** (0-24 mdr. siden) | Har hele forløbet bag sig | Facebook-grupper | Udfyld skemaet (data), lever UGC |
-| **D. Leverandører** | Venues, fotografer, catering | Facebook + Instagram + LinkedIn | Del skemaet, bliv tidlig partner |
+| **A. Nyforlovede** (0-3 mdr.) | 28-38 år, netop sagt ja | TikTok + Instagram | **Opret jeres bryllup** |
+| **B. Planlægger nu** (6-18 mdr. til dagen) | Midt i lokationsjagten | Facebook-grupper + Instagram | **Opret jeres bryllup** |
+| **C. Nygifte** (0-24 mdr. siden) | Har forløbet bag sig | Facebook-grupper | Udfyld skemaet, lever UGC |
+| **D. Leverandører** | Venues, fotografer, catering | Facebook + Instagram + LinkedIn | Bliv tidlig partner, del indholdet |
 
-Segment D er undervurderet: én venue-ejer der deler jeres opslag, rammer
-2-5.000 par der allerede er i købsmodus. Det er gratis distribution, og det
-er samtidig den tosidede historie, Innofounder skal se.
+Segment D er stadig undervurderet: én venue-ejer der deler et opslag, rammer
+2-5.000 par i købsmodus. Gratis distribution — og den tosidede historie,
+Innofounder skal se.
 
 ---
 
-## 3. Kanalroller — hvad hver platform faktisk er til
+## 4. Kanalroller
 
 ### Facebook — distribution og konvertering
 
-Det er her de danske par *rent faktisk* er, når de planlægger. Grupperne på
-10-40.000 medlemmer er landets største bryllupsforum, og Meta Ads Manager kører
-både FB og IG fra samme kampagne.
-
-**Tre ting, i prioriteret rækkefølge:**
-
-1. **Grupperne (0 kr., højeste afkast).** Find 10-15 grupper: "Bryllup 2027",
-   "Bryllupsplanlægning Danmark", regionale grupper, køb-og-salg-grupper.
-   Spørg admin om lov *først* — ét afslag koster ingenting, ét ban koster gruppen.
-   Optræd som person: "Jeg hedder [navn], jeg bygger et værktøj og mangler at
-   vide, hvor lang tid det egentlig tager jer. 6 minutter, lodtrækning om 500 kr."
-   Og — det vigtigste — **kom tilbage med resultaterne**. Den opfølgning er det
-   opslag, der giver jer troværdighed i den gruppe for altid.
-2. **Betalt trafik (Meta Ads).** Se afsnit 6. Lead-formularer til skema og
-   venteliste, retargeting af alle der har set 50 % af en video.
-3. **Siden selv.** 3 opslag om ugen. Lav prioritet — siden er en
-   troværdighedstjek-side, ikke en kanal. Den skal se levende ud, ikke vinde.
+1. **Grupperne (0 kr., højeste afkast).** 10-15 danske bryllupsgrupper på
+   10-40.000 medlemmer. Spørg admin først. Optræd som person, ikke brand.
+   Det opslag, der virker i grupper nu, er **lokationslister**: »5 lokationer på
+   Fyn til under 100.000 kr. for 80 gæster« — konkret hjælp, ingen salgstale,
+   og en enkelt linje til sidst om, at man kan få tilbud hjem via Kalas.
+2. **Betalt trafik.** Se afsnit 7. Konverteringer til oprettet bryllup.
+   Retargeting af alle, der har set 50 % af en video.
+3. **Siden selv.** Tre opslag om ugen. Lav prioritet — det er en
+   troværdighedstjek-side, ikke en kanal.
 
 ### Instagram — tillid, æstetik og partnerskaber
 
-Bryllup er et visuelt køb. Instagram er hvor parret tjekker, om I er ægte,
-inden de skriver sig op.
-
-- **Reels** (4-5/uge): samme råmateriale som TikTok, klippet om, **uden
-  TikTok-vandmærke** (vandmærkede videoer bliver nedprioriteret).
-- **Grid**: bevis, ikke stemning. Skærmbilleder af rigtige tilbud (anonymiseret),
-  før/efter-budgetter, rigtige par.
-- **Stories dagligt**: byg-i-offentlighed. Polls ("hvor mange venues skrev I til?")
-  er både indhold og gratis research.
-- **DM-tragt**: "Skriv VENUE i en DM, så sender jeg vores tjekliste til
-  lokationsjagt." Det er den bedste organiske lead-mekanik på IG lige nu.
-- **Mikro-creators** (5-30k følgere, danske bryllupskonti): 5-10 stykker,
-  bytte-aftale — gratis Kalas + 500-1.500 kr. Bed om en **serie**
-  ("min planlægningsdagbog, del 1-4"), aldrig ét enkelt reklameopslag.
+- **Reels** (4-5/uge): lokationer, swipe, rigtige par. Samme råmateriale som
+  TikTok, klippet om, **uden vandmærke**.
+- **Grid = lokationer.** Gitteret skal se ud som en samling af steder, man gerne
+  vil giftes. Ikke som en softwarekonto.
+- **Stories dagligt:** »Højre eller venstre?« på en lokation ad gangen. Det er
+  både indhold, research og en direkte demo af, hvad appen gør.
+- **DM-tragt:** »Skriv LOKATION i en DM, så sender jeg fem steder, der matcher
+  jeres antal og budget.« Det er produktet, leveret manuelt — og den bedste
+  organiske lead-mekanik, I kan få.
+- **5-10 mikro-creators** (5-30k følgere): gratis Kalas + 500-1.500 kr.
+  Bed om en serie, ikke ét opslag.
 
 ### TikTok — rækkevidde og efterspørgsel
 
-Billigste rækkevidde i Danmark og det eneste sted, hvor en konto uden følgere
-kan ramme 100.000 mennesker på en uge. Til gengæld lavere købsintention, så
-TikTok skal **skabe** efterspørgslen, ikke lukke den.
-
-- **Organisk først. Ingen annoncekroner før tre kroge virker organisk.**
-- 5-7 videoer om ugen, 15-40 sekunder, lodret, undertekster altid.
-- Krogen skal ligge i **de første 1,5 sekunder** og være en smerte eller et tal
-  — ikke et brandnavn.
-- Prisgennemsigtighed er guld i Norden: "Det samme bryllup, 5 lokationer,
-  5 priser" holder folk til ende.
-- Når en organisk video virker: **Spark Ads** på præcis den video. Aldrig en
-  nyproduceret annonce.
+- **Organisk først.** Ingen annoncekroner før tre kroge virker gratis.
+- 5-7 videoer/uge, 15-40 sek., lodret, undertekster altid.
+- Krogen i **de første 1,5 sekunder** — et sted, en pris eller et valg.
+  Aldrig et brandnavn, aldrig en forklaring.
+- **Formatet der bærer TikTok:** »Swipe med os« — fem lokationer, pris og
+  gæsteantal på hver, seeren vælger i kommentarerne.
+- Virker en video: **Spark Ads** på præcis den video.
 
 ---
 
-## 4. Indholdssøjler
-
-Fire søjler, ét optagelsesbatch om ugen, klippet ud i alle tre kanaler.
+## 5. Indholdssøjler
 
 | Søjle | Andel | Hvad det er | Hvorfor |
 |---|---|---|---|
-| **1. Agenten arbejder** | 40 % | Skærmoptagelser: Ava søger, skriver til 14 venues, tilbud tikker ind | Det eneste ingen konkurrent kan kopiere |
-| **2. Tal og sandheder** | 20 % | Jeres egne undersøgelsestal: timer, svarrater, ghosting | Gør jer til kilden, ikke en annonce |
-| **3. Leverandørsiden** | 15 % | Venue-ejere fortæller hvad de svarer på og hvorfor de ghoster | Deles af leverandører = gratis distribution |
-| **4. Rigtige par** | 25 % | UGC, planlægningsdagbøger, før/efter-budget | Beviser at det er ægte mennesker |
+| **1. Lokationerne** | 45 % | Smukke danske venues med pris og antal. »Swipe med os«, regionale lister, »hvilken vælger du?« | Gemmes, deles, kommenteres — og er en demo uden at være det |
+| **2. Det der sker, når I har valgt** | 20 % | Kort payoff: »I pegede på fire. Her er de fire tilbud.« Aldrig en gennemgang | Beviser løftet uden at forklare maskinen |
+| **3. Rigtige par og leverandører** | 20 % | UGC, planlægningsdagbøger, venue-ejere der fortæller hvad de svarer på | Troværdighed + gratis distribution fra leverandører |
+| **4. Tal og sandheder** | 15 % | Priser, timer, svarrater — jeres egne, når undersøgelsen er talt op | Gør jer til kilden, ikke til en annonce |
 
-**Produktionsrytme:** én optagedag om ugen (2-3 timer) → 6-8 råklip →
-klip til TikTok + Reels + FB. Ét batch dækker en uge på alle tre kanaler.
-
----
-
-## 5. Kroge der skal testes først
-
-Skriv 20, test 10, behold de 3 der virker. Start med disse:
-
-1. "Vi skrev til 14 lokationer. 4 svarede. Sådan fik vi 11 tilbud på tre dage."
-2. "Det dyreste ved et bryllup er ikke maden. Det er de tilbud, I aldrig fik hentet."
-3. "POV: I har lige sagt ja. Her er de 47 mails, der venter på jer."
-4. "Det samme bryllup. Fem lokationer. Fem priser." *(prisgennemsigtighed)*
-5. "Hvor mange timer tager det at planlægge et dansk bryllup? Ingen har målt det. Det gjorde vi."
-6. "Venue-ejer: 'Vi svarer ikke på forespørgsler uden dato og gæsteantal.'"
-7. "Jeg lod en agent skrive til 20 bryllupslokationer, mens jeg sov."
-8. "Tre ting jeg ville gøre anderledes, hvis jeg skulle planlægge mit bryllup igen."
-9. "En bryllupsplanlægger koster 8-30.000 kr. Her er hvad hun faktisk laver."
-10. "64 % af leverandørerne bliver ghostet. Derfor bliver I ghostet tilbage."
-
-**Test kun én variabel ad gangen:** samme video, tre forskellige første
-sekunder. Det er krogen der afgør alt andet.
+**Produktion:** én optagedag om ugen. Vigtigste ændring: **I skal bruge tid på at
+skaffe billeder af lokationer, I har lov til at bruge.** Skriv til 20 venues, tilbyd
+kreditering og et link — de fleste siger ja, fordi det er gratis eksponering.
+Det er nu en fast ugentlig opgave, ikke en engangsting.
 
 ---
 
-## 6. Betalt annoncering
+## 6. Kroge der skal testes først
 
-### Budgettrin — vælg ét
+1. »Swipe med: fem bryllupslokationer på Sjælland til 80 gæster.«
+2. »Tre lokationer under 100.000 kr. Hvilken vælger du?«
+3. »Du skal bare pege. Så hører du fra dem.«
+4. »Højre eller venstre?«
+5. »Sådan finder I jeres lokation uden at åbne en eneste mail.«
+6. »Den her koster [X] for 80 gæster. Gæt de andre fire.«
+7. »Jeg pegede på fire lokationer i går. I dag ligger der fire tilbud.«
+8. »Fem lokationer i Jylland, ingen af dem på bryllup.dk.«
+9. »Venue-ejer: ›Vi svarer ikke på forespørgsler uden dato og gæsteantal.‹«
+10. »Tre ting jeg ville gøre anderledes, hvis jeg skulle giftes igen.«
+
+**Test kun én variabel ad gangen:** samme video, tre forskellige første sekunder.
+
+---
+
+## 7. Betalt annoncering
+
+### Budgettrin
 
 | Trin | Månedligt | Hvad det køber | Hvornår |
 |---|---|---|---|
 | **0 kr.** | 0 | Grupper, creators på bytte, organisk TikTok | Nu, hvis kassen er tom |
-| **Test** | 3.000-5.000 kr. | Meta lead-ads til skema + venteliste, 3-5 kreativer | Sep-nov |
+| **Test** | 3.000-5.000 kr. | Meta-konverteringer til oprettet bryllup, 3-5 kreativer | Sep-nov |
 | **Sæson** | 15.000-25.000 kr. | Fuld tragt + retargeting + Spark Ads | 20. dec - 14. feb |
 
-### Meta-opsætning (holdt bevidst simpel)
+### Meta-opsætning
 
-- **Én kampagne, ét mål.** Leads (instant form) til skemaet, konverteringer til
-  ventelisten. Bland dem ikke.
+- **Én kampagne, ét mål: oprettet bryllup.** Nu hvor appen er åben, er der ingen
+  grund til at optimere mod en mellemstation.
 - **Bred målgruppe + Advantage+.** DK, 25-40. Er `Livsbegivenheder > Nyforlovet`
-  stadig tilgængelig på kontoen, så læg den ind som ét adsæt — Meta har beskåret
-  listen løbende. Ellers kør bredt: algoritmen finder dem hurtigere end du gør,
-  når kreativet er skarpt.
-- **Kreativ mængde slår målretningspræcision.** 5 kreativer ind om ugen,
-  slå de to dårligste fra.
-- **Retargeting** (kør fra dag 1, koster næsten intet): alle der har set 50 %
-  af en video, besøgt sitet, eller interageret med IG/FB de sidste 180 dage.
+  tilgængelig på kontoen, så læg den ind som ét adsæt — Meta har beskåret listen
+  løbende. Ellers bredt: algoritmen finder dem hurtigere end du gør.
+- **Kreativet er lokationer.** En annonce, der viser fem smukke steder, slår en
+  annonce, der forklarer et produkt. Hver gang, i denne kategori.
+- **Retargeting fra dag 1:** alle der har set 50 % af en video, besøgt sitet
+  eller interageret de sidste 180 dage.
 
-### Realistiske danske benchmarks (planlægningstal, ikke løfter)
+### Benchmarks (planlægningstal, ikke løfter)
 
 | Måltal | Forventet spænd |
 |---|---|
 | Meta CPM, DK | 25-60 kr. |
 | Meta CTR | 1-2 % |
+| Pris pr. oprettet bryllup (kold trafik) | 40-120 kr. |
 | Pris pr. skemabesvarelse (med gavekort-lodtrækning) | 8-25 kr. |
-| Pris pr. venteliste-tilmelding | 15-40 kr. |
 | TikTok CPM, DK | 15-35 kr. |
 
-**Konsekvens:** de 150 skemabesvarelser koster **2.000-4.000 kr. i annoncer**,
-hvis grupperne leverer halvdelen gratis. Det er en overkommelig regning for det
-vigtigste bilag i Innofounder-ansøgningen.
+**Pris pr. oprettet bryllup er nu jeres eneste vigtige tal.** Alt andet er
+mellemregning.
 
 ### TikTok Ads
 
-Vent. Ingen kroner før tre organiske videoer klarer sig. Derefter kun **Spark
-Ads** på egne vindere, 100-200 kr./dag, og kun i sæsonvinduet.
+Vent. Kun Spark Ads på egne organiske vindere, 100-200 kr./dag, i sæsonvinduet.
 
 ---
 
-## 7. Kalenderen — det vigtigste afsnit
+## 8. De første brugere
 
-Bryllupsmarkedet har to toppe: **forlovelser i julen/nytår/valentin**, og
-**bookinger i januar-marts** for sommeren efter. Alt indhold skal bygges op mod
-det vindue.
+Appen er åben, men den er ny. Første kohorte skal behandles som en kohorte,
+ikke som trafik.
+
+- **Sæt et loft, og sig det højt:** »Vi tager de første 50 par ind.« Det er
+  ærligt (I *skal* kunne følge med), det gør en ny app til et privilegium
+  frem for en risiko, og det giver jer en grund til at skrive »kun X pladser
+  tilbage« senere. Vil I ikke sætte loftet, så drop mekanikken helt —
+  et falsk loft er værre end intet.
+- **Tal med hvert eneste af de første 50 par.** Én besked når de opretter,
+  én når tilbuddene er kommet. Det er både support, research og kilden til
+  al UGC de næste seks måneder.
+- **Bed om det ene bevis, I mangler:** et skærmbillede af tilbuddene, de fik
+  hjem. Det er det mest overbevisende indhold, der findes, og I kan ikke
+  producere det selv.
+- **Vær åben om, at det er tidligt.** »Vi er nye, vi svarer personligt, og
+  hvis noget ikke virker, retter vi det samme dag« er en styrke i en
+  kategori, hvor alternativet er et katalog fra 2011.
+
+---
+
+## 9. Kalenderen
 
 | Periode | Fase | Fokus | Budget |
 |---|---|---|---|
-| **20. aug - 30. sep** | Fundament | Skemaet ud i grupperne, konti sat op, første 20 videoer, 5 creators kontaktet | 0-3.000 kr. |
-| **Okt - nov** | Maskineriet kører | 5-7 videoer/uge, leverandørpartnerskaber, retargeting-publikum bygges | 3.000-5.000 kr./md. |
-| **Nov - dec** | Data bliver PR | Offentliggør undersøgelsen: *"Danmarks første tal for bryllupsplanlægning"* → presse, LinkedIn, alle tre kanaler | 0 kr. (earned) |
-| **24. dec - 14. feb** | **Høst** | Forlovelsessæson. "Lige blevet forlovet? Her er det første, I skal gøre." Retarget alle fra efteråret | **60-70 % af årsbudgettet** |
+| **20. aug - 30. sep** | De første 50 par | Lokationsindhold, grupper, første brugere ind og talt med | 0-3.000 kr. |
+| **Okt - nov** | Maskineriet kører | 5-7 videoer/uge, leverandørpartnerskaber, første UGC | 3.000-5.000 kr./md. |
+| **Midt november** | Data bliver PR | Undersøgelsen offentliggøres: »Danmarks første tal for bryllupsplanlægning« | 0 kr. (earned) |
+| **24. dec - 14. feb** | **Høst** | Forlovelsessæson. »Lige blevet forlovet? Se, hvor I kan blive gift.« | **60-70 % af året** |
 | **Mar - maj** | Booking | Leverandørsiden, tilbudssammenligning, budgetindhold | Moderat |
-| **Jun - aug** | Høst af UGC | Rigtige bryllupper, rigtige par, lavt forbrug | Lavt |
-
-**Undersøgelsen som PR-aktiv:** når tallene ligger der, er de en nyhed, ingen
-andre har. Dansk erhvervs- og livsstilspresse, brancheblade og LinkedIn tager
-den slags. Det er den billigste rækkevidde, I kan få, og den lander lige før
-forlovelsessæsonen. Planlæg udgivelsen til **midt november**.
+| **Jun - aug** | UGC-høst | Rigtige bryllupper fra de første par | Lavt |
 
 ---
 
-## 8. Måling
+## 10. Måling
 
-Platformenes egne tal lyver efter samtykke-reglerne. Brug dem til at optimere
-kreativet, ikke til at afgøre hvad der virker.
-
-**Den ærlige måling:** ét felt ved tilmelding — *"Hvor hørte du om os?"* med
-5 valgmuligheder. Det er sandheden.
+Platformenes egne tal lyver efter samtykke-reglerne. Den ærlige måling er ét
+felt ved oprettelse: **»Hvor hørte du om os?«**
 
 | Niveau | Måltal | Følges |
 |---|---|---|
 | Rækkevidde | Hook rate (3-sek. / visninger). Under 20 % = krogen er død | Dagligt |
-| Interesse | Profilbesøg, DM'er, gemte opslag | Ugentligt |
-| Lead | Ventelistetilmeldinger, skemabesvarelser + pris pr. stk. | Ugentligt |
-| Aktivering | Andel der opretter en begivenhed og kører første søgning | Ugentligt |
-| Sandhed | "Hvor hørte du om os?" | Månedligt |
+| Interesse | Gemte opslag, DM'er, profilbesøg | Ugentligt |
+| **Konvertering** | **Oprettede bryllupper + pris pr. stk.** | **Ugentligt** |
+| Aktivering | Andel der nåede fra oprettelse til første udsendte forespørgsel | Ugentligt |
+| Værdi | Antal tilbud hentet hjem pr. par | Månedligt |
+| Sandhed | »Hvor hørte du om os?« | Månedligt |
 
-Brug UTM på alt (`?utm_source=tiktok&utm_medium=organic&utm_campaign=venue-hook`).
-Send altid til jeres egen side — ikke til Linktree.
-
----
-
-## 9. Faldgruber
-
-- **Sælg ikke "AI-bryllupsplanlægger".** 90 % af par *overvejer* AI, men de
-  køber en løst opgave. Nævn kun AI, når det er selve krogen.
-- **Genbrug ikke vandmærkede TikToks på Reels.** De bliver nedprioriteret.
-- **Spam ikke grupperne.** Ét brandopslag uden tilladelse koster jer gruppen
-  permanent — og de grupper er uerstattelige.
-- **Køb ikke følgere, kør ikke "side-likes"-kampagner.** Følgere er ikke
-  ventelistetilmeldinger.
-- **Lov ikke priser, I ikke kender.** "Spar 40 % af tiden" må først bruges,
-  når regnestykket i markedsundersøgelsens afsnit 6 er kørt på egne data.
-- **Skaler ikke betalt før organisk beviser en krog.** At betale for at
-  distribuere en video ingen ser frivilligt, er den dyreste måde at lære det på.
-- **Lav ikke tre indholdskalendere.** Ét batch, tre klip.
+**Aktiveringstallet er det nye vigtigste tal.** Et par, der opretter og ikke
+sender en eneste forespørgsel, er ikke en bruger — det er en advarsel om, at
+løftet i annoncen ikke matchede det første skærmbillede i appen.
 
 ---
 
-## 10. De næste 30 dage
+## 11. Faldgruber
+
+- **Forklar ikke processen.** Vis valget. Er du i tvivl, så klip forklaringen ud.
+- **Sælg ikke »AI-bryllupsplanlægger«.** Sælg lokationerne og lettelsen.
+- **Brug ikke lokationsbilleder uden tilladelse.** Skriv til dem, tilbyd
+  kreditering. Ét vredt venue kan koste jer branchen.
+- **Navngiv aldrig en venue sammen med en pris, I har fået privat.** Anonymisér.
+- **Spam ikke grupperne.** Ét brandopslag uden admins tilladelse koster gruppen permanent.
+- **Skalér ikke betalt, før organisk beviser en krog.**
+- **Lov ikke tal, I ikke har målt.** »Spar 40 % af tiden« venter på egne data.
+- **Sæt ikke et falsk loft.** 50 pladser skal være 50 pladser.
+
+---
+
+## 12. De næste 30 dage
 
 | Uge | Opgaver |
 |---|---|
-| **1** | Konti + bio + UTM'er på plads. Skema klar i Typeform. Liste over 15 FB-grupper og 10 mikro-creators. Skriv til admins. |
-| **2** | Første optagedag: 8 klip i søjle 1 (agenten arbejder). Skemaet ud i de første 5 grupper. Test 3 kroge på TikTok. |
-| **3** | Meta-testkampagne, 150 kr./dag, lead-ads til skemaet. 5 creators kontaktet. Retargeting-publikum oprettet. |
-| **4** | Læs tallene: hvilken krog har hook rate over 25 %? Skalér den, dræb resten. Første leverandørinterview optaget. |
+| **1** | Profiler + UTM'er. Skriv til 20 venues om billedtilladelse. Liste over 15 FB-grupper. Første lokationsopslag ude. |
+| **2** | Optagedag: 8 klip, heraf 5 lokationsklip. Lokationslister ud i de første fem grupper. Test tre kroge på TikTok. |
+| **3** | Meta-testkampagne, 150 kr./dag, mål: oprettet bryllup. Fem creators kontaktet. Tal med hvert par, der er kommet ind. |
+| **4** | Hvilken krog har hook rate over 25 %? Skalér den. Bed de første par om skærmbilleder af deres tilbud. |
 
-**Succeskriterier efter 30 dage:** 75+ skemabesvarelser, 3 validerede kroge,
-2 creators i gang, pris pr. lead under 30 kr., 1.000+ i retargeting-publikum.
+**Succeskriterier efter 30 dage:** 50 oprettede bryllupper, 3 validerede kroge,
+pris pr. oprettelse under 120 kr., 10 venues med billedtilladelse, 3 par der har
+sagt ja til at blive filmet.
