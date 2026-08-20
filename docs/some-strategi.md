@@ -226,11 +226,33 @@ Alternativer til annoncer: *"Ét ja fra jer — svar fra dem alle."* ·
 
 ### De to fund, der styrer alt andet
 
-**① Feltet er tomt.** Danmarks største bryllupskonto på Instagram (@bryllupdk) har
-~7.600 følgere. Nummer to (@bryllupsklar.dk) har 257 følgere og 9 opslag. Svenske
-@brollops.guiden har 29.000. **Der er ingen etableret dansk spiller at slå — kun en
-plads at tage.** Vi kan realistisk blive Danmarks største bryllupskonto på 12-18
-måneder med disciplineret indsats. Vinduet lukker, når nogen opdager det.
+**① Instagram-feltet er lille — men det er ikke det samme som tomt.**
+Det danske bryllups-Instagram topper omkring 11.000 følgere (@bryllupsfotograf og
+@brudebutikken.dk deler førstepladsen). @bryllupdk har ~7.600, @bryllupsklar.dk har 257.
+Svenske @brollops.guiden har 28-29.000.
+
+> **Korrigeret 14. august 2026 efter verifikationsrunde.** Den oprindelige læsning —
+> "der er ingen etableret dansk spiller at slå" — er for optimistisk på to måder:
+>
+> - **Der findes mindst syv gratis danske planlægningsværktøjer** med gæsteliste,
+>   budget, tjeklister og leverandørkatalog: begivenheden.dk, bryllupsplaner.dk
+>   (1.306 lokationer), gobryllup.dk, bryllupsportaler.dk, bryllupsmagi.dk,
+>   dk-bryllup.dk, purewedding.dk. **Vores differentiering kan ikke være "værktøjet"
+>   — det findes gratis flere steder. Den skal ligge i afsendelsen og svarene.**
+> - **Et lavt loft forklarer de lave følgertal lige så godt som et ledigt felt.**
+>   Brug derfor aldrig følgertal som succeskriterium.
+>
+> Og den største danske stemme i kategorien er **ikke** på Instagram: brude-influenceren
+> @fierose.dk har ~88.000 følgere på **TikTok** — otte gange hele det danske
+> Instagram-felt tilsammen.
+>
+> Ingen dansk eller nordisk AI-bryllupsplanlægger fundet. Behandl det som *ikke fundet*,
+> ikke som *findes ikke* — en nystartet konkurrent uden SEO-fodaftryk ville være usynlig.
+
+**Alle konkurrenttal i dette dokument er andenhånds.** To researchrunder er begge blevet
+blokeret fra instagram.com, facebook.com og bryllup.dk. At tallene matcher på tværs af
+runderne er ikke bekræftelse — det er den samme søgeindeksering læst to gange.
+**Punkt A og B kræver et menneske med en browser i 20 minutter.**
 
 **② Vi køber ikke kunder i august.** August er 18,8 % af vielserne, men tæt på 0 %
 af kundeanskaffelsen. Forlovelserne klumper sig i jul/nytår/Valentins,
@@ -531,12 +553,17 @@ konto" er ikke indhold.
 
 ### To værktøjer, vi bruger fra dag ét
 
-- **Trial Reels** — udgives kun til ikke-følgere, ligger privat, giver tal efter 24 timer.
-  **2 om ugen som ren hook-research.** Efter 6 uger har vi 12 datapunkter på, hvilken
-  framing af Kalas fremmede reagerer på. Det er det billigste rigtige svar, vi kan købe.
-- **Broadcast channel "Kalas Brudepar 2027"** — opret ved ~1.000-2.000 følgere. 2-3
-  beskeder/uge. Formålet er ikke rækkevidde, det er **retention gennem en 12-18 måneders
-  planlægningsrejse**. Det er faktisk et bedre match til vores produkt end feedet er.
+> **Rettet 14. august 2026 — de to krav stod byttet om i den oprindelige plan.**
+
+- **Broadcast channel "Kalas Brudepar 2027"** — **intet følgerkrav.** Alle professionelle
+  konti kan oprette en i understøttede regioner (kravet var 10.000 i 2023 og er siden
+  fjernet). Kan altså oprettes fra dag ét. 2-3 beskeder/uge. Formålet er ikke rækkevidde,
+  det er **retention gennem en 12-18 måneders planlægningsrejse** — et bedre match til
+  vores produkt end feedet er.
+- **Trial Reels** — **kræver 1.000 følgere.** Vi kan derfor ikke bruge dem fra dag ét, og
+  hook-research må i starten ske ved almindelig udgivelse. Reels udgives til ikke-følgere
+  i 72 timer, før egne følgere ser dem. Sæt 2/uge i gang, **så snart vi passerer 1.000** —
+  formentlig måned 3-4.
 
 ---
 

@@ -280,6 +280,12 @@ end-to-end, uden at ét eneste rigtigt venue nogensinde bliver kontaktet.
 
 ### 2.7 Trial Reels — gratis hook-research
 
+> ⚠️ **Rettet 14. august 2026: Trial Reels kræver 1.000 følgere.** De kan ikke bruges fra
+> dag ét, som planen oprindeligt sagde. Kør testene nedenfor som **almindelige opslag**
+> indtil da — et Reel går alligevel til ikke-følgere i de første 72 timer — og skift til
+> Trial Reels, når kontoen passerer 1.000. (Broadcast channels har derimod *intet*
+> følgerkrav og kan oprettes med det samme; de to krav stod byttet om.)
+
 Samme video, samme lyd, samme sluttekst. Kun frame 1-teksten og den første talte sætning
 ændres. **2 om ugen.** Aflæs 3-sekunders-retention og sends per reach — ikke likes.
 
@@ -552,10 +558,18 @@ introduktion — captionen skal selv bære den.
 
 | Sæt | Tags | Bruges til |
 |---|---|---|
-| **A · Standard** | `#bryllup #bryllupsplanlægning #forlovet #bryllup2027 #bryllupidanmark` | Holdning, generelle demoer, alt i tvivl |
+| **A · Standard** | `#bryllup #bryllupsplanlægning #forlovet #bryllupsvenue #bryllupidanmark` | Holdning, generelle demoer, alt i tvivl |
 | **B · Venue** | `#bryllupsvenue #bryllup #bryllupslokale #bryllupsplanlægning #bryllupidanmark` | Alt hvor venue eller mailflowet er emnet |
 | **C · Tal og budget** | `#bryllupsbudget #bryllup #bryllupsplanlægning #bryllupstips #forlovet` | Alt med et kronebeløb i første linje |
-| **D · Sæson og region** | `#bryllup2027 #bryllupssæson #bryllupidanmark #bryllup #[region]` | Femte plads udskiftes: `#nordsjælland`, `#fyn`, `#aarhus`, `#københavn` |
+| **D · Sæson og region** | `#bryllupssæson #bryllupidanmark #bryllup #bryllupsvenue #[region]` | Femte plads udskiftes: `#nordsjælland`, `#fyn`, `#aarhus`, `#københavn` |
+
+> ⚠️ **`#bryllup2027` er fjernet fra begge sæt.** Verifikationsrunden fandt **ingen spor
+> af tagget overhovedet** — hverken i hashtag-databaser eller indeksering. Med et loft på
+> fem tags er et årstalstag uden publikum 20 % af tagbudgettet brugt på ingenting.
+> Genovervej det i løbet af 2027, hvis tagget begynder at få volumen.
+>
+> Bemærk også: **`#bryllup` er ikke kun dansk** — ordet er også norsk, så tagget deles
+> med et norsk publikum. Det er en lille gratis nordisk bonus, ikke et problem.
 | **E · Leverandør og udland** | `#bryllupsleverandør #bryllup #bryllupsvenue #bryllupsplanlægning #bryllupidanmark` | Ved destination byttes første tag til `#destinationsbryllup` |
 
 ### 4.4 Stories
