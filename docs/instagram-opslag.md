@@ -1,421 +1,398 @@
 # De første Instagram-opslag — Kalas
 
 **Dækker:** profilopsætning + de første 12 opslag (uge 1-4) + Stories-plan.
-**Bygger på:** `docs/marketing-strategi-social.md` (søjler, kroge, kalender).
-**Skrevet:** august 2026.
+**Bygger på:** `docs/marketing-strategi-social.md`.
+**Status:** appen er åben. Alle CTA'er går til **opret jeres bryllup** — ikke til en venteliste.
 
-> **Bemærk om CTA.** Appen har ingen venteliste-side — landingssidens knap går
-> direkte til `/login` (Google-login). Indtil der findes en venteliste, roterer
-> opslagene mellem to CTA'er:
-> **(A) skemaet** (Typeform, gavekort-lodtrækning) og **(B) "prøv den"** (login).
-> **Byg en `/venteliste`-side med ét felt + "Hvor hørte du om os?"** — den er
-> forudsætningen for at måle noget som helst. Det er en dags arbejde og det
-> vigtigste stykke marketinginfrastruktur, I mangler.
+**Budskabet, hele vejen igennem:**
+
+> **Vælg med øjnene. Vi tager resten.**
+
+Parret skal se lokationer og pege. At vi bagefter skriver til dem, henter tilbud
+hjem og samler priserne, nævnes i én linje til sidst — aldrig som opslagets emne.
+Er du i tvivl om et opslag: **klip forklaringen ud, og vis stedet.**
 
 ---
 
-## 1. Profilen — skal stå før første opslag
+## 0. Det der skal på plads i uge 1: billeder
 
-**Navn (søgefeltet):** `Kalas · Bryllupsplanlægning`
-Navnefeltet er søgbart på Instagram. "Kalas" alene bliver ikke fundet af nogen,
-der søger på "bryllup".
+Fem af de tolv opslag er lokationsopslag. Det kræver billeder, I har lov til
+at bruge. Det er nu en **fast ugentlig opgave**, ikke en engangsting.
+
+**Skriv til 20 venues. De fleste siger ja — det er gratis eksponering for dem:**
+
+```
+Emne: Må vi vise [Lokation] frem på vores Instagram?
+
+Hej [navn],
+
+Vi hedder Kalas og hjælper par med at finde deres bryllupslokation. Vi laver
+opslag med danske lokationer — billede, gæsteantal og prisniveau — og vi vil
+rigtig gerne have jer med.
+
+I bliver krediteret med navn og tag, og vi linker til jer. Vi bruger kun de
+billeder, I selv sender, og vi skriver ikke priser, I ikke vil have offentligt.
+
+Må vi det?
+
+[navn], Kalas
+```
+
+**Regler:** kreditér altid, tag altid, og skriv aldrig en pris, I har fået i et
+privat tilbud. Prisniveau (»fra 60.000 kr. for 80 gæster«) kun med lokationens
+udtrykkelige ja.
+
+---
+
+## 1. Profilen
+
+**Navn (søgbart felt):** `Kalas · Bryllupslokationer`
+Navnefeltet er søgbart. Skriv det, folk søger efter — ikke firmanavnet alene.
 
 **Bio:**
 
 ```
-Din bryllupsplanlægger, der rent faktisk laver arbejdet
-Vi skriver til lokationerne. I vælger imellem tilbuddene.
-🇩🇰 Bygget i Danmark · gratis at prøve
-↓ Tjeklisten til lokationsjagt
+Find jeres bryllupslokation ved at pege på den
+I vælger stederne. Vi henter tilbuddene hjem.
+🇩🇰 Gratis · vi tager de første 50 par ind
+↓ Se lokationer, der matcher jer
 ```
 
-**Link:** jeres egen side med UTM — `kalas.dk/?utm_source=instagram&utm_medium=bio`.
-Ikke Linktree. Skal I have to links, så lav en simpel `/start`-side med to knapper.
+**Link:** `kalas.dk/?utm_source=instagram&utm_medium=bio` — jeres egen side, ikke Linktree.
 
-**Highlights (lav dem tomme nu, fyld dem op undervejs):**
-`Sådan virker det` · `Rigtige tilbud` · `Lokationer` · `Undersøgelsen` · `Om os`
+**Highlights:** `Lokationer` · `Sjælland` · `Jylland` · `Fyn` · `Sådan virker det` · `Om os`
+De fire første er dem, folk faktisk klikker på.
 
-**Profilbillede:** logomærket på forest green (`#314523`) — ikke et ansigt.
-Skal kunne læses i 32 px.
+**Profilbillede:** logomærket på forest green (`#314523`). Skal kunne læses i 32 px.
 
-**De første 9 felter er jeres forside.** Folk dømmer profilen på gitteret, ikke
-på ét opslag. Rækkefølgen nedenfor er lagt, så de første ni felter skifter
-mellem bevis (skærmbilleder), tal (tekstfelter) og mennesker.
+**De første ni felter er jeres forside.** Rækkefølgen nedenfor er lagt, så gitteret
+ligner en samling af steder, man gerne vil giftes — ikke en softwarekonto.
 
 ---
 
 ## 2. Opslagene
 
-Format: **R** = Reel · **K** = Karrusel · **O** = Enkeltopslag.
-Alt Reels-materiale genbruges på TikTok — men eksportér **uden vandmærke**.
+**R** = Reel · **K** = Karrusel. Alt Reels-materiale genbruges på TikTok,
+eksporteret **uden vandmærke**.
 
 ---
 
 ### Opslag 1 · R · Lanceringen
 
-**Søjle:** Agenten arbejder · **CTA:** B (prøv den)
+**Søjle:** Lokationerne · **CTA:** opret jeres bryllup
 
-**Første billede (0,0-1,5 sek.), tekst på skærmen:**
-> Vi skrev til 14 bryllupslokationer. 4 svarede.
+**Første billede (0,0-1,5 sek.):**
+> Swipe med: fem bryllupslokationer på Sjælland til 80 gæster
 
-**Optagelse (25-35 sek.):**
-1. Skærmoptagelse: du skriver i chatten *"Bryllup i Nordsjælland, 80 gæster, august 2027"*
-2. Ava finder lokationer — kortene tikker ind
-3. Swipe gennem fire venues (højre, højre, venstre, højre)
-4. Godkend mailen — én knap
-5. Klip til indbakken: svar der kommer ind, priser trukket ud
-6. Sidste billede: **"11 tilbud. 3 dage. Nul telefonopkald."**
+**Optagelse (20-30 sek.):**
+Fem lokationer, ét klip hver, 3-4 sekunder pr. sted. Navn, gæsteantal og
+prisniveau i et diskret hjørne. Tommelfingeren swiper i billedet.
+Sidste billede, to linjer, intet andet: **»Peg på dem, I kan lide.
+Så hører I fra dem.«**
+
+Ingen skærmoptagelse af mails. Ingen forklaring. Kun steder.
 
 **Tekst:**
 ```
-Vi skrev til 14 bryllupslokationer, da vi selv skulle giftes. 4 svarede.
+Fem steder på Sjælland, hvor I kan være 80 til bords.
 
-Det er ikke fordi de andre var uhøflige. Det er fordi en venue får 30-50
-forespørgsler om ugen i sæsonen, og de fleste af dem mangler dato,
-gæsteantal eller budget. Så de bliver liggende.
+Sådan her ser det ud at lede efter en lokation i Kalas: I får stederne
+vist ét ad gangen, og I swiper. Højre på dem, I kan lide.
 
-Kalas skriver forespørgslen færdig — dato, antal, budget, det hele — og
-sender den til alle dem, I har sagt ja til. Ét klik. Så samler den svarene
-og trækker priserne ud, efterhånden som de kommer ind.
+Så tager vi kontakten. I får tilbuddene hjem, samlet ét sted, uden at
+skrive en eneste mail.
 
-I skal ikke skrive 14 mails. I skal vælge mellem 11 tilbud.
+Hvilken af de fem ville I vælge? 👀
 
-Prøv den gratis — link i bio 🌿
+Gratis at prøve — link i bio 🌿
 
-#bryllup2027 #bryllupsplanlægning #bryllupslokation #forlovet #danskbryllup
+📍 [Lokation 1-5, krediteret]
+
+#bryllupslokation #bryllup2027 #bryllupsplanlægning #forlovet #danskbryllup
 ```
 
 ---
 
-### Opslag 2 · K · Forespørgslen der bliver besvaret
+### Opslag 2 · K · Prislisten der ikke findes
 
-**Søjle:** Leverandørsiden · **CTA:** B · **Deles af leverandører — det er pointen**
+**Søjle:** Lokationerne · **CTA:** opret jeres bryllup · **Del i FB-grupperne**
 
 **7 felter:**
-1. *"Sådan ser den forespørgsel ud, en venue faktisk svarer på"*
-2. **Den dårlige:** »Hej, hvad koster det at holde bryllup hos jer? Mvh Anna« → *Svarrate: lav*
-3. **Den gode:** dato · 80 gæster · budget 130.000 · overnatning til 20 · ønsker vielse udenfor
-4. *Median svartid fra danske venues: 11 timer. De bedste svarer på under 8 minutter — hvis de kan svare.*
-5. *64 % af leverandørerne oplever, at over 40 % af forespørgslerne aldrig bliver besvaret tilbage.*
-6. *Detaljerede forespørgsler får svar i op mod 85 % af tilfældene.*
-7. *Kalas skriver den detaljerede version for jer. Én gang. Til alle.*
+1. *5 bryllupslokationer til under 100.000 kr. — for 80 gæster*
+2.-6. Ét sted pr. felt: stort billede, navn, landsdel, gæsteantal, prisniveau
+7. *Vil I have tilbud fra dem alle fem? Det tager to minutter. Link i bio.*
 
 **Tekst:**
 ```
-Leverandører ghoster ikke jer. De ghoster forespørgsler, de ikke kan svare på.
+Der findes ikke en prisliste i den her branche. Priserne findes kun i de
+tilbud, I selv henter hjem — og medianparret henter tre.
 
-Uden dato kan de ikke tjekke kalenderen. Uden gæsteantal kan de ikke regne
-på det. Uden budget ved de ikke, om det overhovedet giver mening. Så bliver
-mailen liggende til "senere", og senere kommer aldrig.
+Her er fem steder, der kan rumme 80 gæster for under 100.000 kr. Gem
+opslaget, inden gæstelisten skal skæres igen.
 
-Gem den her, inden I skriver den næste mail. Og er du selv leverandør —
-hvad er det ene, du ønsker, folk altid skrev? Skriv det i kommentarerne,
-jeg samler dem.
+Vil I have tilbud fra dem alle fem, kan I sætte det i gang på to minutter:
+I peger, vi skriver.
 
-#bryllupslokation #bryllupsleverandør #bryllup2027 #bryllupsplanlægning #danskbryllup
+📍 [krediteringer]
+
+#bryllupslokation #bryllupsbudget #bryllup2027 #bryllupsplanlægning #danskbryllup
 ```
 
 ---
 
-### Opslag 3 · R · Prisgennemsigtighed
+### Opslag 3 · R · Vi åbner
 
-**Søjle:** Agenten arbejder / Tal · **CTA:** A (skemaet)
+**Søjle:** Det der sker, når I har valgt · **CTA:** opret jeres bryllup
 
 **Første billede:**
-> Det samme bryllup. Fem lokationer. Fem priser.
+> Vi tager de første 50 par ind.
 
-**Optagelse (30-40 sek.):** samme brief (80 gæster, august, Sjælland) sendt til
-fem venues. Vis de fem tilbud side om side — **anonymiseret**, prisen synlig.
-Slut på spændet: *"Laveste til højeste: X kr. i forskel. Samme dag. Samme antal."*
-
-> ⚠️ **Anonymisér altid.** Navngiv aldrig en venue med en pris, I har fået
-> tilsendt privat. Skriv »Venue A-E« og få tilladelse, hvis I vil navngive.
-> Det her opslag kan koste jer branchen, hvis I gør det forkert.
+**Optagelse (25-35 sek.):** dig, til kamera, kort. Så tre klip fra appen:
+lokationskortene, swipet, og — én enkelt gang, i to sekunder —
+tilbuddene der ligger samlet. Slut på dig igen.
 
 **Tekst:**
 ```
-Fem lokationer. Samme dato, samme 80 gæster, samme ønsker. Prisforskellen
-var [X] kroner.
+Kalas er åben. Vi tager de første 50 par ind.
 
-Det er ikke fordi den dyreste snyder. Det er fordi der ikke findes en
-prisliste i den her branche — priserne findes kun i de tilbud, I selv
-henter hjem. Og medianparret henter tre.
+Det virker sådan her: I fortæller, hvad I skal holde — dato, antal, budget.
+I får lokationer vist ét ad gangen og swiper på dem, I kan lide.
 
-Hvis I henter ti i stedet for tre, uden at det koster jer mere tid, er der
-penge i det. Det er hele idéen.
+Resten er vores. Vi skriver til dem, I pegede på, og henter tilbuddene hjem,
+så de ligger samlet, når I har tid til at kigge.
 
-Vi er ved at kortlægge, hvad danske bryllupper faktisk koster og tager af
-tid — der findes ingen danske tal. 6 minutter, og vi trækker lod om et
-gavekort på 500 kr. Link i bio.
+Vi er nye, og vi svarer personligt. Virker noget ikke, retter vi det samme
+dag — derfor er der 50 pladser og ikke 500.
 
-#bryllupsbudget #bryllup2027 #bryllupsplanlægning #bryllupslokation #danskbryllup
+Link i bio 🌿
+
+#bryllup2027 #forlovet #bryllupsplanlægning #bryllupslokation #danskbryllup
+```
+
+> Sæt kun loftet, hvis I mener det. 50 pladser skal være 50 pladser — et falsk
+> loft er værre end intet loft.
+
+---
+
+### Opslag 4 · K · Højre eller venstre
+
+**Søjle:** Lokationerne · **CTA:** kommentar + link i bio · **Bygget til rækkevidde**
+
+**7 felter:** seks lokationer, ét pr. felt, nummereret. Sidste felt:
+*»Hvilke tre ville I vælge? Skriv numrene.«*
+
+**Tekst:**
+```
+Seks steder. I må vælge tre.
+
+Skriv numrene i kommentarerne — vi er nysgerrige efter, om der er et mønster
+i, hvad danske par går efter. (Der plejer at være et.)
+
+Og skulle I have lyst til tilbud fra jeres tre: det er præcis sådan, Kalas
+virker. I peger, vi skriver.
+
+📍 [krediteringer]
+
+#bryllupslokation #bryllup2027 #forlovet #bryllupsplanlægning #danskbryllup
 ```
 
 ---
 
-### Opslag 4 · O · Undersøgelsen
+### Opslag 5 · R · Beviset
 
-**Søjle:** Tal og sandheder · **CTA:** A · **Det opslag I deler i alle grupperne**
-
-**Billede:** ren tekstplakat på cremefarvet baggrund, forest green type:
-> **Hvor lang tid tager det
-> at planlægge et dansk bryllup?**
-> Det ved ingen. Vi er ved at måle det.
-
-**Tekst:**
-```
-Der findes ikke ét dansk tal for, hvor mange timer der går med at planlægge
-et bryllup. Ikke ét. De tal, alle citerer, er amerikanske, syv år gamle og
-bygget på en enkelt spørgeundersøgelse.
-
-Så vi laver det selv. Vi mangler 150 danske par:
-
-· er I blevet gift inden for de sidste to år, kan I svare på, hvad det tog
-· planlægger I lige nu, kan I svare på, hvad der irriterer jer mest
-
-6 minutter. I er anonyme. Vi trækker lod om et gavekort på 500 kr.
-
-Og vi lægger resultaterne op her, når de er talt op — det bliver de første
-danske tal på området, og de kommer til at ligge frit tilgængeligt.
-
-Link i bio. Del gerne med et par, I kender 🌿
-
-#bryllup2027 #nygift #bryllupsplanlægning #danskbryllup #forlovet
-```
-
----
-
-### Opslag 5 · R · POV-krogen
-
-**Søjle:** Agenten arbejder · **CTA:** B
+**Søjle:** Det der sker, når I har valgt · **CTA:** opret jeres bryllup
 
 **Første billede:**
-> POV: I har lige sagt ja. Her er de 47 mails, der venter.
+> Jeg pegede på fire lokationer i går. I dag ligger der fire tilbud.
 
-**Optagelse (20-30 sek.):** hurtigt klip — en indbakke der fyldes op, kalenderen,
-regnearket, tre faner med venues. Så: stilhed. Klip til Kalas-chatten. Ét svar.
-Slut: *"Eller også kan I bare fortælle, hvad I gerne vil have."*
+**Optagelse (15-25 sek.):** Kort. Fire venue-kort, swipe, swipe, swipe, swipe →
+klip → oversigten med fire tilbud og fire priser (anonymiseret).
+**Maks. fem sekunder på oversigten.** Payoffet skal føles som en lettelse,
+ikke som en produktgennemgang.
 
 **Tekst:**
 ```
-Ingen fortæller jer, at det at blive forlovet er det samme som at få et
-projektlederjob oveni det, I allerede laver.
+Fire steder, jeg kunne lide. Fire tilbud, uden at jeg skrev til nogen.
 
-13-14 leverandører skal findes, kontaktes, sammenlignes og bookes. Det
-meste af arbejdet er ikke svært — det er bare mails, opfølgning og
-regneark. Og det er præcis den slags, der ikke burde koste jer jeres
-fredag aften.
+Det er hele idéen. I bruger tiden på at vælge — det sjove — og slipper for
+mails, opfølgning og de tre uger, hvor man ikke kan huske, hvem man har
+rykket.
 
-Fortæl Kalas, hvad I gerne vil have. Så laver den den kedelige halvdel.
+Link i bio 🌿
 
-#forlovet #bryllup2027 #vibliverGift #bryllupsplanlægning #danskbryllup
+#bryllupsplanlægning #bryllup2027 #forlovet #bryllupslokation #danskbryllup
 ```
 
 ---
 
-### Opslag 6 · K · Tjeklisten (DM-magneten)
+### Opslag 6 · K · DM-magneten
 
-**Søjle:** Rigtige par / service · **CTA:** DM-mekanik
+**Søjle:** Lokationerne · **CTA:** DM-nøgleord LOKATION
 
-**9 felter — spørgsmål I skal stille en venue, før I booker:**
-1. *9 spørgsmål I skal stille en lokation, før I skriver under*
-2. Hvad er minimumsforbruget — og gælder det også i lavsæsonen?
-3. Må vi selv vælge catering, eller er I bundet til deres?
-4. Hvad koster det, hvis I bliver 20 gæster flere? Og 20 færre?
-5. Hvor mange timer har vi lokalet? Hvad koster en time mere?
-6. Er der overnatning — og til hvor mange?
-7. Hvad er afbestillingsfristen, og hvor meget af depositummet er tabt?
-8. Hvem rydder op, og er det med i prisen?
-9. Hvad er der ellers booket den weekend?
+**6 felter:** fire lokationer der matcher ét konkret sæt kriterier
+(»80 gæster · Fyn · august · under 120.000«), plus et første felt der viser
+kriterierne og et sidste felt med DM-opfordringen.
 
 **Tekst:**
 ```
-De ni spørgsmål, der afgør, om tilbuddet holder.
+Fortæl mig, hvad I skal holde, så finder jeg stederne.
 
-Det er sjældent grundprisen, der vælter budgettet. Det er minimumsforbrug,
-timepriser efter midnat og den catering, I ikke selv måtte vælge.
+Skriv LOKATION i en DM med tre ting: antal gæster, landsdel og budget.
+Så sender jeg fem steder tilbage, der rent faktisk matcher — ikke en liste
+med hundrede.
 
-Skriv **VENUE** i en DM, så sender jeg hele tjeklisten som PDF — også de
-spørgsmål, der ikke var plads til her.
+Det er gratis, og I skal ikke oprette noget for at få dem.
 
-Gem opslaget, inden I skriver til den næste lokation.
-
-#bryllupslokation #bryllupsbudget #bryllup2027 #bryllupsplanlægning #forlovet
+#bryllupslokation #bryllup2027 #forlovet #bryllupsplanlægning #danskbryllup
 ```
 
-> **Opsætning:** Instagram-automatisering (eller manuelt de første uger) på
-> nøgleordet VENUE. Svarmail med PDF'en + én linje: *"Skal jeg hente tilbud
-> hjem for jer? Kalas gør det gratis — [link]"*. Det er jeres bedste
-> organiske lead-mekanik.
+> **Opsætning:** automatisering (eller manuelt de første uger) på LOKATION.
+> Svar med fem steder + én linje: *»Vil I have tilbud fra dem? Så henter vi
+> dem hjem — [link]«*. Det er produktet, leveret i hånden, og den bedste
+> organiske lead-mekanik I kan få.
 
 ---
 
-### Opslag 7 · R · Mød Ava
+### Opslag 7 · R · Hvorfor vi bygger det
 
-**Søjle:** Agenten arbejder · **CTA:** B
+**Søjle:** Rigtige par · **CTA:** opret jeres bryllup · **Ansigt på**
 
 **Første billede:**
-> Jeg lod en agent skrive til 20 lokationer, mens jeg sov.
+> Vi bookede ikke den lokation, vi helst ville have.
 
-**Optagelse (30 sek.):** skærmoptagelse i ét take — chatten, søgningen, swipet,
-godkendelsen. Ingen musik under de første tre sekunder; lad klikket og
-tastelyden bære. Undertekster på hele vejen.
+**Optagelse (35-45 sek.):** dig, håndholdt, intet manuskript. Den ægte historie.
 
 **Tekst:**
 ```
-Hun hedder Ava. Hun er ikke en chatbot, der svarer på spørgsmål — hun laver
-opgaverne.
-
-Hun søger efter lokationer, der matcher jeres dato, antal og budget. Hun
-skriver forespørgslen. I godkender den én gang, så sender hun en personlig
-udgave til alle dem, I har sagt ja til. Når svarene kommer ind, læser hun
-dem og trækker priserne ud i en oversigt.
-
-I bestemmer stadig alt. I skal bare ikke skrive mailene.
-
-Gratis at prøve — link i bio.
-
-#bryllupsplanlægning #bryllup2027 #forlovet #danskbryllup #bryllupslokation
-```
-
----
-
-### Opslag 8 · K · Hvad et dansk bryllup koster
-
-**Søjle:** Tal og sandheder · **CTA:** A · **Gemmes og deles — planlæg til høj rækkevidde**
-
-**6 felter, tal fra Danmarks Statistik og brancheopgørelser:**
-1. *Hvad koster et dansk bryllup i 2026?*
-2. **112.000-149.000 kr.** — gennemsnitligt budget
-3. **745-1.000 kr. pr. gæst** — derfor flytter gæstelisten mere end noget andet
-4. **32.624 par** blev gift i Danmark sidste år. **18,8 %** af dem i august
-5. **Over 70 %** bliver gift på en lørdag — derfor er lørdage dyrest
-6. *Kilde: Danmarks Statistik og brancheopgørelser 2026. De danske tal for tidsforbrug findes ikke endnu — dem er vi ved at måle.*
-
-**Tekst:**
-```
-Prisen pr. gæst er det tal, der styrer alt andet.
-
-745-1.000 kr. pr. hoved betyder, at ti gæster mere er 7-10.000 kr. mere.
-Det er ofte den beslutning, der reelt afgør budgettet — ikke om I vælger
-den ene fotograf frem for den anden.
-
-Og fordi 70 % gifter sig om lørdagen i sommermånederne, betaler I også for
-at ville det samme som alle andre. En fredag i maj er et andet regnestykke.
-
-Gem den til næste gang gæstelisten skal skæres.
-
-Kilde: Danmarks Statistik. Tallene for tidsforbrug findes ikke på dansk —
-dem måler vi lige nu, og I kan hjælpe: link i bio.
-
-#bryllupsbudget #bryllup2027 #bryllupsplanlægning #danskbryllup #forlovet
-```
-
----
-
-### Opslag 9 · R · Hvorfor vi bygger det
-
-**Søjle:** Rigtige par · **CTA:** A · **Ansigt på — dét felt mangler i gitteret**
-
-**Første billede:**
-> Jeg byggede det her, fordi vi selv gav op halvvejs.
-
-**Optagelse (35-45 sek.):** dig, til kamera, håndholdt, ingen manuskript-stemme.
-Fortæl den ægte historie: hvad I selv gik i stå med, og hvornår I tænkte
-"det her burde nogen have lavet".
-
-**Tekst:**
-```
-Det, der væltede det for os, var ikke de store beslutninger. Det var
-opfølgningen.
+Vi bookede ikke den lokation, vi helst ville have. Vi bookede den, der
+svarede først.
 
 Vi skrev til lokationerne. Halvdelen svarede aldrig. Vi kunne ikke huske,
-hvem vi havde rykket, og hvem vi ikke havde. Til sidst bookede vi den
-første, der svarede ordentligt — ikke den, vi helst ville have.
+hvem vi havde rykket, og til sidst tog vi den, der lå i indbakken en
+tirsdag aften.
 
-Kalas er bygget til det problem, og kun det: at få hentet svarene hjem, så
-I vælger mellem noget rigtigt i stedet for mellem dem, der tilfældigvis
-svarede.
+Kalas er bygget til det: at I får svar fra alle dem, I pegede på — så I
+vælger mellem noget rigtigt.
 
-Vi er ved at samle danske tal på, hvor meget tid det egentlig tager. Vil I
-hjælpe, tager det 6 minutter — link i bio.
+Link i bio 🌿
 
 #bryllupsplanlægning #forlovet #bryllup2027 #danskbryllup #iværksætter
 ```
 
 ---
 
-### Opslag 10 · R · Ghosting-tallet
+### Opslag 8 · K · Hvad et dansk bryllup koster
 
-**Søjle:** Leverandørsiden · **CTA:** A
+**Søjle:** Tal og sandheder · **CTA:** opret jeres bryllup + skemaet
+
+**6 felter:**
+1. *Hvad koster et dansk bryllup i 2026?*
+2. **112.000-149.000 kr.** gennemsnitligt budget
+3. **745-1.000 kr. pr. gæst** — derfor flytter gæstelisten mest
+4. **32.624 par** blev gift sidste år · **18,8 %** i august
+5. **Over 70 %** gifter sig på en lørdag — derfor er lørdage dyrest
+6. *Kilde: Danmarks Statistik og brancheopgørelser 2026*
+
+**Tekst:**
+```
+Prisen pr. gæst er det tal, der styrer alt andet.
+
+745-1.000 kr. pr. hoved betyder, at ti gæster mere er 7-10.000 kr. mere.
+Det er ofte den beslutning, der afgør budgettet — ikke valget mellem to
+fotografer.
+
+Og fordi 70 % gifter sig om lørdagen om sommeren, betaler I også for at
+ville det samme som alle andre. En fredag i maj er et andet regnestykke.
+
+Gem den til næste gang gæstelisten skal skæres.
+
+Kilde: Danmarks Statistik. Tallene for tidsforbrug findes ikke på dansk —
+dem er vi ved at måle, og I kan hjælpe: link i bio.
+
+#bryllupsbudget #bryllup2027 #bryllupsplanlægning #danskbryllup #forlovet
+```
+
+---
+
+### Opslag 9 · R · De steder ingen viser jer
+
+**Søjle:** Lokationerne · **CTA:** opret jeres bryllup
 
 **Første billede:**
-> 64 % af bryllupsleverandørerne bliver selv ghostet.
+> Fem bryllupslokationer i Jylland, I ikke har set før.
 
-**Optagelse:** tal på skærmen, klippet stramt. Eller — bedre — klip fra et
-interview med en venue-ejer, hvis I har fået et i kassen.
+**Optagelse (20-30 sek.):** samme format som opslag 1, ny landsdel.
+Vælg bevidst steder, der ikke ligger øverst på de store portaler —
+det er hele værdien.
 
 **Tekst:**
 ```
-Vi taler altid om de leverandører, der ikke svarer. Sjældent om den anden
-vej: 64 % af dem oplever, at over 40 % af de forespørgsler, de bruger tid
-på at besvare, aldrig får et svar tilbage.
+Fem steder i Jylland, der ikke ligger øverst nogen steder.
 
-Begge sider bruger timer på at skrive ud i ingenting. Det er ikke uhøflighed
-— det er et system, hvor ingen af parterne har overblik.
+Det er en af de mærkelige ting ved bryllupsbranchen: de lokationer, I får
+vist, er dem, der betaler for at blive vist. Ikke dem, der passer til jer.
 
-Er du leverandør, vil jeg gerne høre din version. Jeg har lavet et kort
-skema (4 minutter) — svarene bliver til de første danske tal på området,
-og de kommer til at ligge frit fremme. Skriv til mig, så sender jeg det.
+Vi søger efter dem, der matcher jeres dato, antal og budget — også dem
+uden markedsføringsbudget.
 
-#bryllupsleverandør #bryllupslokation #bryllupsfotograf #bryllup2027 #danskbryllup
+Gem opslaget. Og skal I have tilbud fra dem, tager det to minutter.
+
+📍 [krediteringer]
+
+#bryllupslokation #bryllupjylland #bryllup2027 #forlovet #danskbryllup
 ```
 
 ---
 
-### Opslag 11 · K · Før og efter budgettet
+### Opslag 10 · K · Venue-ejeren
 
-**Søjle:** Rigtige par · **CTA:** B
+**Søjle:** Leverandørsiden · **CTA:** opret jeres bryllup · **Deles af leverandører**
 
-**5 felter:** samme bryllup, to budgetter — det første udkast mod det, der
-faktisk holdt. Vis hvilke poster der flyttede sig og hvorfor
-(gæsteantal, ugedag, drikkevarer, transport).
+> Det her er det ene sted, hvor processen *må* fylde — leverandøren skal
+> forstå, hvorfor en forespørgsel fra Kalas er bedre end dem, de plejer at få.
+
+**6 felter:**
+1. *Sådan ser den forespørgsel ud, en lokation faktisk svarer på*
+2. **Den dårlige:** »Hej, hvad koster det at holde bryllup hos jer?«
+3. **Den gode:** dato · 80 gæster · budget 130.000 · overnatning til 20
+4. Median svartid: **11 timer**. De bedste svarer på under 8 minutter
+5. **64 %** af leverandørerne oplever, at over 40 % af forespørgslerne aldrig besvares tilbage
+6. *Når I peger på et sted i Kalas, sendes den gode version. Hver gang.*
 
 **Tekst:**
 ```
-Det første budget holder aldrig. Det interessante er, hvor det knækker.
+Leverandører ghoster ikke jer. De ghoster forespørgsler, de ikke kan svare på.
 
-Her er de samme 80 gæster, før og efter. Det, der flyttede sig mest, var
-ikke lokationen — det var drikkevarer, transport til gæsterne og de
-"småting", ingen havde sat tal på.
+Uden dato kan de ikke tjekke kalenderen. Uden gæsteantal kan de ikke regne
+på det. Så bliver mailen liggende til "senere", og senere kommer aldrig.
 
-Læg posterne ind fra starten, også dem I ikke kender priserne på endnu.
-En tom linje med et gæt er bedre end ingen linje.
+Er du selv leverandør: hvad er det ene, du ønsker, folk altid skrev? Skriv
+det i kommentarerne — jeg samler dem og laver et opslag ud af det.
 
-#bryllupsbudget #bryllup2027 #bryllupsplanlægning #forlovet #danskbryllup
+#bryllupslokation #bryllupsleverandør #bryllup2027 #bryllupsplanlægning #danskbryllup
 ```
 
 ---
 
-### Opslag 12 · R · Nygift ser tilbage
+### Opslag 11 · R · Nygift ser tilbage
 
-**Søjle:** Rigtige par · **CTA:** A · **Første UGC-opslag — brug et rigtigt par**
+**Søjle:** Rigtige par · **CTA:** skemaet · **Første UGC**
 
 **Første billede:**
 > Tre ting jeg ville gøre anderledes.
 
-**Optagelse:** et nygift par til kamera, 40 sek. Ingen manuskript. Er I ikke
-kommet dertil endnu, så optag din egen version — men mærk den ærligt.
+**Optagelse (40 sek.):** et nygift par til kamera, intet manuskript.
+Har I ingen endnu, så optag din egen — men mærk den ærligt.
 
 **Tekst:**
 ```
-"Book lokationen først, og alt andet bagefter." "Vi skulle have hentet flere
-tilbud." "Vi brugte tre måneder på ting, ingen gæster lagde mærke til."
+"Book lokationen først." "Vi skulle have set flere steder." "Vi brugte tre
+måneder på ting, ingen gæster lagde mærke til."
 
-Det er de tre svar, vi hører oftest. Og de to første er noget, man kan gøre
-noget ved — hvis man ikke skal bruge en hel weekend på at skrive mails.
+Det er de tre svar, vi hører oftest. De to første handler om det samme:
+at man kun nåede at se de steder, man havde overskud til at skrive til.
 
-Er I lige blevet gift, vil vi meget gerne høre jeres version: 6 minutter,
+Er I lige blevet gift, vil vi gerne høre jeres version — 6 minutter,
 anonymt, og vi trækker lod om 500 kr. Link i bio.
 
 #nygift #bryllup2026 #bryllupsplanlægning #danskbryllup #brudepar
@@ -423,66 +400,89 @@ anonymt, og vi trækker lod om 500 kr. Link i bio.
 
 ---
 
-## 3. Rytme og rækkefølge
+### Opslag 12 · R · Den evergreen
 
-| Uge | Man | Ons | Fre | Søn |
-|---|---|---|---|---|
-| **1** | 1 (R) | 2 (K) | 3 (R) | 4 (O) |
-| **2** | 5 (R) | 6 (K) | 7 (R) | — |
-| **3** | 8 (K) | 9 (R) | 10 (R) | — |
-| **4** | 11 (K) | 12 (R) | *bedste opslag genindspillet* | — |
+**Søjle:** Lokationerne · **CTA:** opret jeres bryllup
 
-**Bedste tidspunkter i DK:** hverdage 11-13 og 19-21, søndag 10-12.
-Test det selv efter fire uger — jeres publikum slår enhver tommelfingerregel.
+**Første billede:**
+> Sådan finder I jeres lokation uden at åbne en eneste mail.
 
-**Fordeling:** 7 Reels, 4 karruseller, 1 enkeltopslag. Reels skaffer nye
-mennesker, karruseller bliver gemt og delt, tekstplakater bliver skærmklippet
-ind i Facebook-grupperne. Alle tre skal være der.
+**Optagelse (25 sek.):** den strammeste udgave af opslag 1. Tre lokationer,
+tre swipes, én linje til sidst. Det her er den video, I kommer til at køre
+som annonce hele vinteren — brug de bedste billeder, I har fået tilladelse til.
+
+**Tekst:**
+```
+Man skal se mange steder, før man ved, hvad man vil have. Problemet er
+ikke at kigge — det er de mails, der følger med.
+
+Så lad os tage dem. I ser stederne og peger. Vi skriver, henter tilbuddene
+hjem og lægger dem samlet, så I kan sammenligne dem på ét skærmbillede.
+
+Vi tager stadig de første 50 par ind. Link i bio 🌿
+
+#bryllupslokation #bryllup2027 #forlovet #bryllupsplanlægning #danskbryllup
+```
 
 ---
 
-## 4. Stories — hver dag, lav produktionsværdi
+## 3. Rytme
 
-Stories er hvor tilliden bygges. Ingen redigering, ingen musik, bare vær der.
+| Uge | Man | Ons | Fre | Søn |
+|---|---|---|---|---|
+| **1** | 1 (R) | 2 (K) | 3 (R) | 4 (K) |
+| **2** | 5 (R) | 6 (K) | 7 (R) | — |
+| **3** | 8 (K) | 9 (R) | 10 (K) | — |
+| **4** | 11 (R) | 12 (R) | *bedste opslag genindspillet* | — |
+
+**Fordeling:** 7 Reels, 5 karruseller. Seks af de tolv opslag er rene
+lokationsopslag — det er med vilje. **Bedste tidspunkter i DK:**
+hverdage 11-13 og 19-21, søndag 10-12.
+
+---
+
+## 4. Stories — hver dag
 
 | Dag | Indhold |
 |---|---|
-| **Man** | Ugens plan: "I denne uge skriver Kalas til 40 lokationer for tre par" |
-| **Tir** | Poll: *"Hvor mange venues skrev I til?"* 1-3 / 4-6 / 7+ — svarene er gratis research |
-| **Ons** | Bag om dagens opslag: hvorfor tallet overraskede jer |
-| **Tor** | Spørgsmålsboks: *"Hvad sidder I fast i lige nu?"* → besvar tre i næste story |
-| **Fre** | Skærmoptagelse: én rigtig ting agenten lavede i dag |
-| **Lør/søn** | Genopslag af ugens bedste opslag + link til skemaet |
+| **Man** | Ét sted. »Højre eller venstre?« med poll. Det er både indhold og demo |
+| **Tir** | Poll: »Hvor mange steder har I set på?« 1-3 / 4-6 / 7+ |
+| **Ons** | Bag om dagens opslag — hvad der overraskede jer ved stedet |
+| **Tor** | Spørgsmålsboks: »Hvor skal I giftes — og hvad mangler I?« Svar tre |
+| **Fre** | Ét rigtigt tilbud, der kom hjem i dag (anonymiseret, med parrets ja) |
+| **Weekend** | Genopslag af ugens bedste + »X af 50 pladser tilbage« |
 
-**Gem alt der virker i Highlights med det samme.** Stories forsvinder efter et
-døgn; highlights er det, nye besøgende ser først.
+Mandagens »højre eller venstre« er den vigtigste. Den er billig at lave,
+den får svar, og den træner folk i præcis den bevægelse, appen bygger på.
 
 ---
 
 ## 5. Sådan skriver vi
 
 **Gør:**
-- Skriv som et menneske, der har prøvet det. Første linje skal være en påstand eller et tal.
-- Konkrete tal frem for adjektiver. »11 tilbud på tre dage« slår »hurtigt og nemt«.
-- Korte afsnit, luft imellem. Instagram klipper efter to linjer — så det vigtigste først.
-- Ét spørgsmål i slutningen af hvert andet opslag. Kommentarer er det, der bærer rækkevidden.
-- 5-8 hashtags, relevante, ikke en mur.
+- Start med stedet eller valget. Aldrig med produktet.
+- Ét spørgsmål i hvert andet opslag — kommentarer bærer rækkevidden.
+- Kreditér og tag lokationerne. Det er både ordentligt og gratis distribution.
+- Korte afsnit. Instagram klipper efter to linjer.
+- 5-8 relevante hashtags.
 
 **Lad være:**
-- Emoji-tæpper. Ét, i slutningen, hvis det passer.
-- »Revolutionerende AI-drevet platform«. Sælg opgaven, ikke teknologien.
-- At navngive en venue sammen med en pris, I har fået privat. Anonymisér, eller spørg om lov.
-- At love tal, I ikke har målt. »Spar 40 % af tiden« venter på jeres egne data.
-- Vandmærkede TikToks. Eksportér rent, klip om til 4:5 eller 9:16.
+- Forklare processen. Én linje til sidst, ikke mere.
+- Skrive »AI«, »agent« eller »automatisk« i teksten. Vis lettelsen i stedet.
+- Vise skærmoptagelser af indbakker og mails. Det er vores arbejde, ikke deres.
+- Bruge lokationsbilleder uden skriftlig tilladelse.
+- Nævne en pris fra et privat tilbud sammen med et navn.
+- Love tal, I ikke har målt.
 
 ---
 
-## 6. Før I trykker på udgiv
+## 6. Før I trykker udgiv
 
-- [ ] `/venteliste`-side med "Hvor hørte du om os?" — ellers kan I ikke måle noget
-- [ ] UTM'er på alle links i bio og i Stories
+- [ ] Billedtilladelse fra mindst 10 lokationer — ellers kan uge 1 ikke køre
+- [ ] »Hvor hørte du om os?« som felt ved oprettelse i appen
+- [ ] UTM'er på alle links i bio og Stories
 - [ ] Undertekster brændt ind på alle Reels (85 % ser uden lyd)
-- [ ] Coverbilleder til Reels, så gitteret hænger sammen
-- [ ] DM-nøgleordet VENUE sat op og PDF'en klar
-- [ ] Alle priser i opslag 3 og 11 anonymiseret
+- [ ] DM-nøgleordet LOKATION sat op
+- [ ] Alle priser anonymiseret eller godkendt af lokationen
+- [ ] Beslut jer: er der 50 pladser, eller er der ikke? Halve løsninger dur ikke
 - [ ] Opslag 1-4 planlagt i forvejen, så uge 1 ikke afhænger af overskud
