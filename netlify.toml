@@ -6,5 +6,18 @@
   # Pinned to the version the build is verified against locally.
   NODE_VERSION = "24"
 
+  # Next inlines every NEXT_PUBLIC_* value into the client bundle — that is
+  # what the prefix is for — so Netlify's secrets scanner finds them in the
+  # build output and stops the deploy. Listing them here says "public by
+  # design", which is true of all five: a URL, a price, a logo path, and the
+  # Supabase anon key, which is meant for the browser and is worth nothing
+  # without the RLS policies behind it.
+  #
+  # Never add a server-only key to this list. SUPABASE_SERVICE_ROLE_KEY,
+  # GOOGLE_CLIENT_SECRET, TOKEN_ENCRYPTION_KEY, STRIPE_SECRET_KEY and
+  # CRON_SECRET reaching the bundle is a real leak, and the failed build is
+  # the alarm — do not silence it.
+  SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_APP_URL,NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_ANON_KEY,NEXT_PUBLIC_KALAS_LOGO_URL,NEXT_PUBLIC_WEBSITE_PRICE_DKK"
+
 [[plugins]]
   package = "@netlify/plugin-nextjs"

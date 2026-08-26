@@ -35,11 +35,11 @@ describe("isPlausibleEmail", () => {
 
 describe("inviteUrl", () => {
   it("joins without doubling the slash", () => {
-    expect(inviteUrl("https://getkalas.netlify.app/", "abc")).toBe(
-      "https://getkalas.netlify.app/invite/abc",
+    expect(inviteUrl("https://example.test/", "abc")).toBe(
+      "https://example.test/invite/abc",
     );
-    expect(inviteUrl("https://getkalas.netlify.app", "abc")).toBe(
-      "https://getkalas.netlify.app/invite/abc",
+    expect(inviteUrl("https://example.test", "abc")).toBe(
+      "https://example.test/invite/abc",
     );
   });
 });
