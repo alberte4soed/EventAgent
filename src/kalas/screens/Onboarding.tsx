@@ -5,8 +5,10 @@ import {
   Check, ArrowLeft, ArrowRight, MapPin, Heart, Lock, Star, X, Search, Expand,
 } from 'lucide-react';
 import { GUEST_BANDS, type OnboardingDate } from '@/lib/onboarding';
-import type { ScreenId } from '../Shell';
+import { isPlausibleEmail } from '@/lib/invites/email';
+import { Wordmark, type ScreenId } from '../Shell';
 import { cn } from '../ui';
+import WeddingRings from '../icons/WeddingRings';
 import { useLang } from '../i18n';
 import type { DestinationSuggestion } from '@/app/api/onboarding/destinations/route';
 import { Lightbox } from '../onboarding/Lightbox';
@@ -120,7 +122,7 @@ const TOTAL_STEPS = 5;
 const STEP_LABELS = ['Jeres historie', 'Destination', 'Datoen', 'Omfang', 'Partner'] as const;
 
 const wonderInputCls =
-  'h-[62px] w-full rounded-[14px] border bg-[#fffdf7] px-[18px] text-base text-[#23351f] placeholder:text-[#637067] transition-shadow focus:outline-none';
+  'h-[62px] w-full rounded-[14px] border bg-card px-[18px] text-base text-ink placeholder:text-muted transition-shadow focus:outline-none';
 
 export default function Onboarding({ onEnter }: { onEnter: (form: FormState, s?: ScreenId) => void }) {
   const { t, lang, setLang } = useLang();
@@ -150,7 +152,7 @@ export default function Onboarding({ onEnter }: { onEnter: (form: FormState, s?:
     step === 4;
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#f4f1ea] text-[#18372f]">
+    <div className="flex min-h-screen flex-col bg-canvas text-ink">
       <OnboardingHeader
         step={step}
         stepLabel={t(STEP_LABELS[step])}
@@ -158,8 +160,8 @@ export default function Onboarding({ onEnter }: { onEnter: (form: FormState, s?:
         onLang={setLang}
         t={t}
       />
-      <div className="flex justify-end border-b border-[#d8d5ca] px-6 pb-3 sm:hidden">
-        <div className="flex h-10 items-center rounded-full border border-[#c9c8be] bg-[#ebe8df] p-1">
+      <div className="flex justify-end border-b border-line px-6 pb-3 sm:hidden">
+        <div className="flex h-10 items-center rounded-full border border-line-strong bg-shell p-1">
           <LangPill lang={lang} onLang={setLang} />
         </div>
       </div>
@@ -208,31 +210,28 @@ function OnboardingHeader({
 }) {
   const progress = ((step + 1) / TOTAL_STEPS) * 100;
   return (
-    <header className="flex h-[92px] shrink-0 items-center gap-6 border-b border-[#d8d5ca] px-6 lg:gap-8 lg:px-14">
-      <span
-        className="w-[120px] shrink-0 font-serif text-3xl font-semibold tracking-[-0.8px] text-[#173c32] lg:w-[220px]"
-        style={{ fontFamily: 'var(--font-logo)' }}
-      >
-        kalas
+    <header className="flex h-[92px] shrink-0 items-center gap-6 border-b border-line px-6 lg:gap-8 lg:px-14">
+      <span className="w-[120px] shrink-0 lg:w-[220px]">
+        <Wordmark />
       </span>
       <div className="flex min-w-0 flex-1 flex-col gap-[9px]">
         <div className="flex items-center justify-between gap-3">
-          <span className="truncate text-xs font-semibold uppercase tracking-[0.16em] text-[#173c32]">
+          <span className="truncate text-xs font-semibold uppercase tracking-[0.16em] text-ink">
             {stepLabel}
           </span>
-          <span className="shrink-0 text-[13px] font-medium text-[#5f6d65]">
+          <span className="shrink-0 text-[13px] font-medium text-muted">
             {t('Trin {a} af {b}', { a: step + 1, b: TOTAL_STEPS })}
           </span>
         </div>
-        <div className="h-1.5 overflow-hidden rounded-full bg-[#ded9c8]">
+        <div className="h-1.5 overflow-hidden rounded-full bg-line">
           <motion.div
-            className="h-full rounded-full bg-[#b34e37]"
+            className="h-full rounded-full bg-terracotta"
             animate={{ width: `${progress}%` }}
             transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
           />
         </div>
       </div>
-      <div className="hidden h-11 shrink-0 items-center rounded-full border border-[#c9c8be] bg-[#ebe8df] p-1 sm:flex">
+      <div className="hidden h-11 shrink-0 items-center rounded-full border border-line-strong bg-shell p-1 sm:flex">
         <LangPill lang={lang} onLang={onLang} />
       </div>
     </header>
@@ -249,7 +248,7 @@ function LangPill({ lang, onLang }: { lang: 'da' | 'en'; onLang: (l: 'da' | 'en'
           onClick={() => onLang(l)}
           className={cn(
             'min-w-[72px] rounded-full px-4 py-2 text-sm font-medium transition-colors cursor-pointer',
-            lang === l ? 'bg-[#173c32] font-semibold text-[#fffdf7] shadow-[0px_3px_10px_rgba(23,60,50,0.16)]' : 'text-[#526158]',
+            lang === l ? 'bg-ink font-semibold text-card shadow-[0px_3px_10px_rgba(49,69,35,0.16)]' : 'text-muted',
           )}
         >
           {l === 'da' ? 'Dansk' : 'English'}
@@ -288,26 +287,26 @@ function ContextPanel({ step, t }: { step: number; t: (s: string) => string }) {
   const benefits = [t('Anbefalinger formet omkring jer'), t('Ændr ethvert svar senere')];
 
   return (
-    <aside className="hidden w-full max-w-[430px] shrink-0 flex-col justify-between rounded-3xl bg-[#173c32] p-[38px] shadow-[0px_18px_50px_rgba(23,60,50,0.16)] lg:flex lg:min-h-[620px]">
+    <aside className="hidden w-full max-w-[430px] shrink-0 flex-col justify-between rounded-3xl bg-ink p-[38px] shadow-[0px_18px_50px_rgba(49,69,35,0.16)] lg:flex lg:min-h-[620px]">
       <div className="flex flex-col gap-6">
-        <div className="flex h-[52px] w-[52px] items-center justify-center rounded-full bg-[#b34e37]">
-          <Heart size={22} className="text-[#fffdf7]" />
+        <div className="flex h-[52px] w-[52px] items-center justify-center rounded-full bg-terracotta">
+          <WeddingRings size={22} className="text-card" />
         </div>
         <div className="flex flex-col gap-3.5">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#b8ccc3]">{t(panel.eyebrow)}</p>
-          <h2 className="max-w-[330px] font-serif text-[clamp(2rem,4vw,2.875rem)] leading-[1.05] tracking-[-0.03em] text-[#fffdf7]">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-sage-tint">{t(panel.eyebrow)}</p>
+          <h2 className="max-w-[330px] font-serif text-[clamp(2rem,4vw,2.875rem)] leading-[1.05] tracking-[-0.03em] text-card">
             {t(panel.title)}
           </h2>
-          <p className="max-w-[320px] text-base leading-[1.65] text-[#d8e2dd]">{t(panel.sub)}</p>
+          <p className="max-w-[320px] text-base leading-[1.65] text-sage-tint">{t(panel.sub)}</p>
         </div>
       </div>
       <div className="mt-10 flex flex-col gap-3.5">
         {benefits.map((line) => (
           <div key={line} className="flex items-center gap-3">
             <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/10">
-              <Check size={14} className="text-[#e8a18f]" />
+              <Check size={14} className="text-terracotta-tint" />
             </div>
-            <span className="text-sm text-[#d8e2dd]">{line}</span>
+            <span className="text-sm text-sage-tint">{line}</span>
           </div>
         ))}
       </div>
@@ -321,17 +320,17 @@ function OnboardingFooter({
   onBack?: () => void; onNext?: () => void; nextLabel: string; nextDisabled?: boolean; t: (s: string) => string;
 }) {
   return (
-    <footer className="flex shrink-0 flex-col gap-4 border-t border-[#d8d5ca] px-6 py-5 sm:flex-row sm:items-center sm:gap-6 lg:px-14 lg:py-[22px]">
+    <footer className="flex shrink-0 flex-col gap-4 border-t border-line px-6 py-5 sm:flex-row sm:items-center sm:gap-6 lg:px-14 lg:py-[22px]">
       <div className="min-w-0 flex-1">
-        <p className="text-[13px] font-semibold text-[#30463c]">{t('Ca. 3 minutter at gennemføre')}</p>
-        <p className="text-xs text-[#69766e]">{t('Jeres svar gemmes undervejs.')}</p>
+        <p className="text-[13px] font-semibold text-ink-soft">{t('Ca. 3 minutter at gennemføre')}</p>
+        <p className="text-xs text-muted">{t('Jeres svar gemmes undervejs.')}</p>
       </div>
       <div className="flex w-full shrink-0 items-center justify-end gap-3 sm:w-[390px]">
         {onBack && (
           <button
             type="button"
             onClick={onBack}
-            className="flex h-[50px] items-center gap-2 rounded-xl px-[18px] text-sm font-semibold text-[#536259] transition-colors hover:text-[#173c32] cursor-pointer"
+            className="flex h-[50px] items-center gap-2 rounded-xl px-[18px] text-sm font-semibold text-muted transition-colors hover:text-ink cursor-pointer"
           >
             <ArrowLeft size={16} /> {t('Tilbage')}
           </button>
@@ -344,8 +343,8 @@ function OnboardingFooter({
             className={cn(
               'flex h-[52px] flex-1 items-center justify-center gap-2.5 rounded-[14px] px-6 text-[15px] font-bold transition-opacity cursor-pointer sm:flex-initial sm:min-w-[200px]',
               nextDisabled
-                ? 'cursor-not-allowed bg-[#ded9c8] text-[#8a8f87]'
-                : 'bg-[#b34e37] text-[#fffdf7] shadow-[0px_8px_22px_rgba(179,78,55,0.24)] hover:opacity-95',
+                ? 'cursor-not-allowed bg-line text-faint'
+                : 'bg-terracotta text-card shadow-[0px_8px_22px_rgba(179,78,55,0.24)] hover:opacity-95',
             )}
           >
             {nextLabel} {!nextDisabled && <ArrowRight size={17} />}
@@ -402,28 +401,28 @@ function NamesStep({ form, set, onNext }: { form: FormState; set: any; onNext: (
     cn(
       wonderInputCls,
       active
-        ? 'border-2 border-[#173c32] shadow-[0px_0px_0px_4px_rgba(123,142,85,0.18)]'
-        : 'border border-[#c9ccc4]',
+        ? 'border-2 border-ink shadow-[0px_0px_0px_4px_rgba(122,144,104,0.18)]'
+        : 'border border-line-strong',
     );
 
   return (
     <div className="flex flex-col gap-[34px]">
       <div className="flex flex-col gap-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#6c755e]">
+        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted">
           {t('Velkommen til Kalas')}
         </p>
-        <h1 className="flex flex-wrap items-baseline gap-x-3.5 font-serif text-[clamp(2.5rem,6vw,3.625rem)] leading-[1.04] tracking-[-0.03em] text-[#23351f]">
+        <h1 className="flex flex-wrap items-baseline gap-x-3.5 font-serif text-[clamp(2.5rem,6vw,3.625rem)] leading-[1.04] tracking-[-0.03em] text-ink">
           <span>{t('Hvem skal')}</span>
           <span className="italic">{t('giftes?')}</span>
         </h1>
-        <p className="max-w-[560px] text-[17px] leading-[1.6] text-[#56645b]">
+        <p className="max-w-[560px] text-[17px] leading-[1.6] text-muted">
           {t('Fortæl os hvad vi skal kalde jer begge. Ava bruger fornavne, så planlægningen føles personlig fra første skridt.')}
         </p>
       </div>
 
       <div className="flex w-full flex-col gap-4 sm:flex-row">
         <label className="flex flex-1 flex-col gap-[9px]">
-          <span className="text-xs font-bold uppercase tracking-[0.16em] text-[#39493f]">{t('Dit fornavn')}</span>
+          <span className="text-xs font-bold uppercase tracking-[0.16em] text-ink-soft">{t('Dit fornavn')}</span>
           <input
             value={form.nameA}
             onChange={set('nameA')}
@@ -436,7 +435,7 @@ function NamesStep({ form, set, onNext }: { form: FormState; set: any; onNext: (
           />
         </label>
         <label className="flex flex-1 flex-col gap-[9px]">
-          <span className="text-xs font-bold uppercase tracking-[0.16em] text-[#39493f]">{t('Partners fornavn')}</span>
+          <span className="text-xs font-bold uppercase tracking-[0.16em] text-ink-soft">{t('Partners fornavn')}</span>
           <input
             value={form.nameB}
             onChange={set('nameB')}
@@ -450,8 +449,8 @@ function NamesStep({ form, set, onNext }: { form: FormState; set: any; onNext: (
       </div>
 
       <div className="flex items-center gap-[9px]">
-        <Lock size={15} className="shrink-0 text-[#66746c]" />
-        <p className="text-[13px] text-[#66746c]">{t('Bruges kun til at personliggøre jeres planlægningsrum.')}</p>
+        <Lock size={15} className="shrink-0 text-muted" />
+        <p className="text-[13px] text-muted">{t('Bruges kun til at personliggøre jeres planlægningsrum.')}</p>
       </div>
     </div>
   );
@@ -525,16 +524,16 @@ function DestinationStep({ form, setField }: {
         <div className={cn('relative w-full overflow-hidden rounded-3xl', GLOBE_H)}>
           <DestinationGlobe selectedCountry={country} onCountryPick={pickCountry} />
 
-          <div className="absolute inset-x-0 top-0 z-10 bg-gradient-to-b from-[#f4f1ea]/96 via-[#f4f1ea]/78 to-transparent px-5 pb-16 pt-4 sm:px-7 sm:pt-5">
+          <div className="absolute inset-x-0 top-0 z-10 bg-gradient-to-b from-canvas/96 via-canvas/78 to-transparent px-5 pb-16 pt-4 sm:px-7 sm:pt-5">
             <div className="flex items-start justify-between gap-4">
               <div className="pointer-events-none min-w-0 flex-1">
-                <p className="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-[#6c755e]">
+                <p className="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-muted">
                   {t('Destination')}
                 </p>
-                <h2 className="mt-2 font-serif text-[clamp(1.75rem,4.5vw,2.5rem)] leading-[1.05] tracking-[-0.03em] text-[#23351f]">
+                <h2 className="mt-2 font-serif text-[clamp(1.75rem,4.5vw,2.5rem)] leading-[1.05] tracking-[-0.03em] text-ink">
                   {t('Hvor i')} <span className="italic">{t('verden?')}</span>
                 </h2>
-                <p className="mt-2 max-w-lg text-[0.9rem] leading-relaxed text-[#56645b] sm:text-[0.95rem]">
+                <p className="mt-2 max-w-lg text-[0.9rem] leading-relaxed text-muted sm:text-[0.95rem]">
                   {t('Drej og zoom på kloden, og tryk på et land — så henter vi de største byer og smukkeste bryllupsdestinationer.')}
                 </p>
               </div>
@@ -543,7 +542,7 @@ function DestinationStep({ form, setField }: {
                   <button
                     type="button"
                     onClick={() => setCustom(false)}
-                    className="text-[0.78rem] font-medium text-[#56645b] underline-offset-2 transition-colors hover:text-[#23351f] hover:underline cursor-pointer"
+                    className="text-[0.78rem] font-medium text-muted underline-offset-2 transition-colors hover:text-ink hover:underline cursor-pointer"
                   >
                     {t('Tilbage til kloden')}
                   </button>
@@ -551,7 +550,7 @@ function DestinationStep({ form, setField }: {
                   <button
                     type="button"
                     onClick={() => setCustom(true)}
-                    className="rounded-full border border-[#c9ccc4] bg-[#fffdf7]/90 px-4 py-2 text-[0.78rem] font-semibold text-[#39493f] shadow-sm transition-colors hover:border-[#173c32] hover:text-[#173c32] cursor-pointer"
+                    className="rounded-full border border-line-strong bg-card/90 px-4 py-2 text-[0.78rem] font-semibold text-ink-soft shadow-sm transition-colors hover:border-ink hover:text-ink cursor-pointer"
                   >
                     {t('Skriv selv')}
                   </button>
@@ -570,7 +569,7 @@ function DestinationStep({ form, setField }: {
                     value={form.location}
                     onChange={(e) => setField('location', e.target.value)}
                     placeholder={t('f.eks. Odense · Sydfyn · jeres sommerhusby')}
-                    className={cn(wonderInputCls, 'border border-[#c9ccc4] shadow-[0px_0px_0px_4px_rgba(123,142,85,0.12)] focus:border-2 focus:border-[#173c32]')}
+                    className={cn(wonderInputCls, 'border border-line-strong shadow-[0px_0px_0px_4px_rgba(122,144,104,0.12)] focus:border-2 focus:border-ink')}
                     autoFocus
                   />
                 </motion.div>
@@ -608,7 +607,7 @@ function DestinationStep({ form, setField }: {
             exit={{ x: '100%' }}
             transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
             className={cn(
-              'fixed right-0 z-40 flex w-[min(420px,100vw)] flex-col border-l border-[var(--color-line-strong)] bg-card shadow-[-16px_0_48px_rgba(23,60,50,0.2)]',
+              'fixed right-0 z-40 flex w-[min(420px,100vw)] flex-col border-l border-[var(--color-line-strong)] bg-card shadow-[-16px_0_48px_rgba(49,69,35,0.2)]',
               DRAWER_TOP,
               DRAWER_BOTTOM,
             )}
@@ -777,7 +776,7 @@ function DestinationCard({ s, country, selected, loved, onChoose, onToggleLove, 
   return (
     <div className={cn(
       'group relative overflow-hidden rounded-2xl border transition-colors',
-      selected ? 'border-ink shadow-[0px_6px_18px_rgba(23,60,50,0.12)]' : 'border-[var(--color-line)] hover:border-[var(--color-line-strong)]',
+      selected ? 'border-ink shadow-[0px_6px_18px_rgba(49,69,35,0.12)]' : 'border-[var(--color-line)] hover:border-[var(--color-line-strong)]',
     )}>
       <button type="button" onClick={onChoose} className="block w-full text-left cursor-pointer">
         {s.photo ? (
@@ -823,7 +822,7 @@ function DestinationCard({ s, country, selected, loved, onChoose, onToggleLove, 
             type="button"
             onClick={(e) => { e.stopPropagation(); onExpand(); }}
             aria-label={t('Forstør billede')}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-[#fffdf7]/90 text-ink-soft shadow-sm transition-colors hover:text-ink cursor-pointer"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-card/90 text-ink-soft shadow-sm transition-colors hover:text-ink cursor-pointer"
           >
             <Expand size={15} />
           </button>
@@ -835,7 +834,7 @@ function DestinationCard({ s, country, selected, loved, onChoose, onToggleLove, 
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
             aria-label={t('Søg på Google')}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-[#fffdf7]/90 text-ink-soft shadow-sm transition-colors hover:text-ink"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-card/90 text-ink-soft shadow-sm transition-colors hover:text-ink"
           >
             <Search size={15} />
           </a>
@@ -847,7 +846,7 @@ function DestinationCard({ s, country, selected, loved, onChoose, onToggleLove, 
           aria-pressed={loved}
           className={cn(
             'flex h-8 w-8 items-center justify-center rounded-full shadow-sm transition-all cursor-pointer',
-            loved ? 'bg-clay text-white scale-105' : 'bg-[#fffdf7]/90 text-ink-soft hover:text-clay',
+            loved ? 'bg-clay text-white scale-105' : 'bg-card/90 text-ink-soft hover:text-clay',
           )}
         >
           <Heart size={15} className={loved ? 'fill-current' : undefined} />
@@ -889,7 +888,7 @@ function DateStep({ form, setField }: {
             exit={{ opacity: 0, y: 8 }}
             transition={{ duration: 0.22 }}
           >
-            <p className="mt-6 text-xs font-bold uppercase tracking-[0.16em] text-[#39493f]">{t('Vælg jeres dato')}</p>
+            <p className="mt-6 text-xs font-bold uppercase tracking-[0.16em] text-ink-soft">{t('Vælg jeres dato')}</p>
             <WeddingDatePicker
               value={form.exactDate}
               onChange={(iso) => setField('exactDate', iso)}
@@ -969,7 +968,7 @@ function ScopeStep({ form, setField }: {
               type="checkbox"
               checked={form.budgetPrivate}
               onChange={(e) => setField('budgetPrivate', e.target.checked)}
-              className="h-4 w-4 rounded border-[var(--color-line-strong)] text-[#173c32] focus:ring-[#7b8e55]"
+              className="h-4 w-4 rounded border-[var(--color-line-strong)] text-ink focus:ring-sage-strong"
             />
             {t('Vil helst ikke sige')}
           </label>
@@ -991,33 +990,75 @@ function ScopeStep({ form, setField }: {
    STEP 5 — PARTNER
 ══════════════════════════════════════════════════════════════════════ */
 function PartnerStep({ form, set }: { form: FormState; set: any }) {
-  const { t } = useLang();
-  const [sent, setSent] = useState(false);
+  const { t, lang } = useLang();
+  const [state, setState] = useState<'idle' | 'sending' | 'sent'>('idle');
+  const [error, setError] = useState<string | null>(null);
   const nameB = form.nameB || t('din partner');
+  const valid = isPlausibleEmail(form.partnerEmail);
+
+  /* Ava really sends this one — from her own mailbox, before the event row
+     exists, so the invite is minted against the user and adopted later. */
+  async function send() {
+    if (!valid || state === 'sending') return;
+    setState('sending');
+    setError(null);
+    try {
+      const res = await fetch('/api/partner/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: form.partnerEmail.trim(),
+          inviter_name: form.nameA.trim(),
+          partner_name: form.nameB.trim(),
+          language: lang,
+        }),
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        setState('idle');
+        setError(
+          data.error === 'invalid_email' ? t('Tjek e-mailadressen.')
+          : data.error === 'own_address' ? t('Det er din egen adresse.')
+          : t('Invitationen kunne ikke sendes. Prøv igen.'),
+        );
+        return;
+      }
+      setState('sent');
+    } catch {
+      setState('idle');
+      setError(t('Invitationen kunne ikke sendes. Prøv igen.'));
+    }
+  }
+
+  const sent = state === 'sent';
 
   return (
     <div>
-      <StepHead eyebrow="Sammen om det" title={t('Giv {name} adgang', { name: nameB })}
-        sub="I deler samme plan — ingen duplikerede lister eller beskedkopiering. Valgfrit." />
+      <StepHead eyebrow="Sammen om det" title={t('Giv {name} besked', { name: nameB })}
+        sub="Ava sender invitationen, så din partner kan oprette sin egen konto. Fælles adgang til planen er på vej. Valgfrit." />
       <Field label={t('{name}s e-mail', { name: nameB })}>
         <div className="flex gap-2">
           <input type="email" value={form.partnerEmail} onChange={set('partnerEmail')}
-            placeholder="partner@email.dk" className={cn(inputCls, 'flex-1')} disabled={sent} />
-          <button onClick={() => form.partnerEmail.includes('@') && setSent(true)}
-            disabled={sent || !form.partnerEmail.includes('@')}
+            placeholder="partner@email.dk" className={cn(inputCls, 'flex-1')} disabled={sent || state === 'sending'} />
+          <button onClick={send} disabled={sent || state === 'sending' || !valid}
             className={cn('rounded-2xl px-5 py-3.5 text-[0.88rem] font-medium shrink-0 transition-colors cursor-pointer',
               sent ? 'bg-sage-tint text-ink cursor-default'
-                   : form.partnerEmail.includes('@') ? 'bg-ink text-canvas hover:bg-ink/90'
+                   : state === 'sending' ? 'bg-shell text-muted cursor-wait'
+                   : valid ? 'bg-ink text-canvas hover:bg-ink/90'
                    : 'bg-shell text-muted cursor-not-allowed')}>
-            {sent ? <><Check size={14} className="inline mr-1" />{t('Sendt')}</> : t('Send')}
+            {sent ? <><Check size={14} className="inline mr-1" />{t('Sendt')}</>
+                  : state === 'sending' ? t('Sender…') : t('Send')}
           </button>
         </div>
       </Field>
+      {error && (
+        <p className="mt-3 text-[0.82rem] text-terracotta">{error}</p>
+      )}
       <AnimatePresence>
         {sent && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-4 rounded-2xl bg-sage-tint p-4">
             <p className="text-[0.88rem] text-ink leading-relaxed">
-              {t('Invitation sendt til {email}. {name} får et link til at oprette adgang.', { email: form.partnerEmail, name: nameB })}
+              {t('Ava har sendt invitationen til {email}. {name} kan oprette sin egen konto — fælles adgang til planen er på vej.', { email: form.partnerEmail, name: nameB })}
             </p>
           </motion.div>
         )}

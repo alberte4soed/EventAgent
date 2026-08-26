@@ -6,9 +6,10 @@ import {
   Wallet, Users, Globe, Mail, ListChecks, LayoutDashboard,
   LayoutGrid, X, Settings, Gift, PanelLeftClose, PanelLeft,
   LogOut, UserPlus, Inbox,
-  Sparkles, Plane, HeartHandshake,
+  Sparkles, Plane,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import WeddingRings from './icons/WeddingRings';
 import { couple } from './data';
 import { cn } from './ui';
 import { useLang } from './i18n';
@@ -33,7 +34,7 @@ export const NAV: NavItem[] = [
   { id: 'invites',     label: 'Invitationer',  icon: Mail,          group: 'plan' },
   { id: 'seating',     label: 'Bordplan',      icon: LayoutDashboard, group: 'plan' },
   { id: 'honeymoon',   label: 'Bryllupsrejse', icon: Plane,         group: 'plan' },
-  { id: 'nygift',      label: 'Nygift',        icon: HeartHandshake, group: 'plan' },
+  { id: 'nygift',      label: 'Nygift',        icon: WeddingRings,  group: 'plan' },
 ];
 
 const MOBILE_TABS: ScreenId[] = ['home', 'planning', 'inbox'];

@@ -1,6 +1,6 @@
 import { useState, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Upload, Utensils, Send, Users, Clock, CheckCheck, ChevronRight, Trash2, Search, X, Check, Link2, Mail, Phone, Pencil } from 'lucide-react';
+import { Plus, Upload, Send, Users, Clock, CheckCheck, ChevronRight, Trash2, Search, X, Check, Link2, Mail, Phone, Pencil } from 'lucide-react';
 import { Pill, Chip, cn } from '../ui';
 import AnimateNumber from '../AnimateNumber';
 import { useLang } from '../i18n';
@@ -109,11 +109,6 @@ export default function Guests() {
         <Ring value={rsvpStats.afventer} total={rsvpStats.invited} label={t('Mangler svar')} color="var(--color-line-strong)" track />
         <Ring value={rsvpStats.nej}      total={rsvpStats.invited} label={t('Afbud')}        color="var(--color-clay)" />
       </div>
-
-      <p className="mt-6 flex items-center gap-2 text-[0.82rem] text-muted">
-        <Utensils size={13} className="text-sage" />
-        {t('Ava sender catering {n} kuverter — opdateres automatisk.', { n: rsvpStats.ja })}
-      </p>
 
       {/* Section tabs */}
       <div className="mt-10 flex gap-1 border-b border-[var(--color-line)]">
