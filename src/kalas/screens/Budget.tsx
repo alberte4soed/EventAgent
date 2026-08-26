@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Plus, X, ChevronDown, ArrowRight, Check, Pencil, Bell, StickyNote, Sparkles } from 'lucide-react';
+import { motion } from 'motion/react';
+import { Plus, X, Pencil, Bell, StickyNote, Sparkles } from 'lucide-react';
 import BudgetContractPanel from './BudgetContractPanel';
 import { budgetLines, type BudgetLine } from '../data';
 import {
@@ -15,6 +15,7 @@ import AnimateNumber from '../AnimateNumber';
 import { useWedding } from '../useWedding';
 import { useLang } from '../i18n';
 import { navigateToHub, type NavigateTarget } from '../lib/hub-nav';
+import { estimatedTotal, estimatedLines } from './budget/estimate';
 import type { HubCat } from './team/shared';
 
 const isCustomLine = (id: string) => id.startsWith('custom-');
@@ -26,18 +27,10 @@ const BUDGET_TO_HUBCAT: Record<string, HubCat> = {
   florals: 'blomster', music: 'musik', attire: 'beauty',
 };
 
-/* ── Benchmark fordeling (dansk gennemsnit) ──────────────────────────── */
-const BENCHMARK_DIST = [
-  { label: 'Venue & leje',         pct: 33, id: 'venue'    },
-  { label: 'Mad & drikke',         pct: 27, id: 'catering' },
-  { label: 'Foto & film',          pct: 11, id: 'photo'    },
-  { label: 'Blomster & dekoration',pct:  9, id: 'florals'  },
-  { label: 'Tøj & beauty',         pct:  8, id: 'attire'   },
-  { label: 'Musik & underholdning',pct:  7, id: 'music'    },
-  { label: 'Invitationer & andet', pct:  5, id: 'misc'     },
-];
-
-const DK_AVG_PER_GUEST = 1850; // kr pr gæst, dansk gennemsnit
+/** Events whose opening budget has been claimed for insertion. Module scope,
+ *  not a ref: navigating away unmounts the screen, and a fresh ref would start
+ *  a second batch of the same seven rows while the first is still in flight. */
+const seeding = new Set<string>();
 
 const kr = (n: number) => new Intl.NumberFormat('da-DK').format(Math.round(n));
 
@@ -57,16 +50,12 @@ function daysUntil(dateStr: string): number | null {
 
 export default function Budget({ onNavigate }: { onNavigate?: (s: NavigateTarget) => void }) {
   const { t } = useLang();
-  const { couple, event, budgetItems, saveBudgetItem, deleteBudgetItem, updateEvent } = useWedding();
-  const [estimatorDone, setEstimatorDone] = useState(false);
-  const [estimatorOpen, setEstimatorOpen] = useState(false);
-  const [estGuests, setEstGuests] = useState(couple.guests);
-  const [estTotal,  setEstTotal]  = useState(couple.budgetTotal);
+  const { loading, couple, event, budgetItems, saveBudgetItem, deleteBudgetItem } = useWedding();
 
-  const dkSuggested = Math.round(estGuests * DK_AVG_PER_GUEST / 10000) * 10000;
-  const diff = estTotal - dkSuggested;
-
-  const total = couple.budgetTotal || estTotal;
+  // What the estimate is built on. Their own figure wins; a headcount is the
+  // fallback. Zero means we know neither, and nothing is guessed.
+  const estimate = estimatedTotal(couple.budgetTotal, couple.guests);
+  const total = couple.budgetTotal || estimate;
   const [lines, setLines] = useState<BudgetLine[]>(budgetLines);
   const [amounts, setAmounts] = useState<Record<string, number>>(
     () => Object.fromEntries(budgetLines.map((b) => [b.id, Math.round((total * b.pct) / 100)])),
@@ -111,16 +100,39 @@ export default function Budget({ onNavigate }: { onNavigate?: (s: NavigateTarget
     setPaids(Object.fromEntries(budgetItems.map((i) => [i.category, i.paid_amount])));
     setNoteById(Object.fromEntries(budgetItems.map((i) => [i.category, i.notes ?? ''])));
     setReminderById(Object.fromEntries(budgetItems.map((i) => [i.category, i.reminder_at ?? ''])));
-    setEstimatorDone(true);
   }, [budgetItems]);
+
+  /* The budget is laid out on arrival rather than behind a form. Same shape as
+     the checklist's self-seed: a module-scope claim keyed by event, so leaving
+     the screen mid-insert cannot start a second batch.
+
+     Deliberately does not write back to the event — the old estimator saved its
+     guesses into `budget` and `guest_count`, which overwrote what the couple
+     had actually told us with a number derived from it. */
+  /* One claim guards all three write paths below. `budget_items` only lands a
+     moment after the insert, so without it the auto-seed and a slider dragged
+     in that gap would both write the same seven rows. */
+  const claimSeed = () => {
+    if (!event || seeding.has(event.id)) return false;
+    seeding.add(event.id);
+    return true;
+  };
+
+  useEffect(() => {
+    if (loading || !event || budgetItems.length > 0 || estimate <= 0) return;
+    if (!claimSeed()) return;
+    const id = event.id;
+    void Promise.all(estimatedLines(estimate).map((l) => saveBudgetItem(l)))
+      .catch(() => seeding.delete(id));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, event, budgetItems.length, estimate, saveBudgetItem]);
 
   // First mutation while nothing is persisted seeds the whole current list, so
   // budget_items becomes authoritative in one batch (no partial state that the
-  // reconcile above would then treat as "the only categories").
-  const seededRef = useRef(false);
+  // reconcile above would then treat as "the only categories"). Only reachable
+  // when the estimate could not be worked out — otherwise the effect got there.
   const seedAll = async (ls: BudgetLine[], amts: Record<string, number>) => {
-    if (seededRef.current) return;
-    seededRef.current = true;
+    if (!claimSeed()) return;
     await Promise.all(
       ls.map((l, idx) =>
         saveBudgetItem({
@@ -150,8 +162,7 @@ export default function Budget({ onNavigate }: { onNavigate?: (s: NavigateTarget
     patch: { actual_cost?: number; paid_amount?: number; notes?: string | null; reminder_at?: string | null },
   ) => {
     const line = lines.find((l) => l.id === id);
-    if (budgetItems.length === 0 && !seededRef.current) {
-      seededRef.current = true;
+    if (budgetItems.length === 0 && claimSeed()) {
       void Promise.all(
         lines.map((l, idx) =>
           saveBudgetItem({
@@ -174,26 +185,6 @@ export default function Budget({ onNavigate }: { onNavigate?: (s: NavigateTarget
     onNavigate('team');
   };
 
-  async function applyEstimate() {
-    const newAmounts = Object.fromEntries(
-      BENCHMARK_DIST.map((d) => [d.id, Math.round((estTotal * d.pct) / 100)])
-    );
-    // Merge so custom categories the couple added keep their amounts.
-    setAmounts((prev) => ({ ...prev, ...newAmounts }));
-    setEstimatorDone(true);
-    setEstimatorOpen(false);
-    seededRef.current = true; // the benchmark set below becomes the persisted base
-    await updateEvent({ budget: String(estTotal), guest_count: estGuests });
-    await Promise.all(
-      BENCHMARK_DIST.map((d) => {
-        const std = budgetLines.find((l) => l.id === d.id);
-        return saveBudgetItem({
-          category: d.id, label: d.label, planned_amount: newAmounts[d.id],
-          icon: std?.icon, color: std?.color, sort: BENCHMARK_DIST.indexOf(d),
-        });
-      })
-    );
-  }
   const [addingNew, setAddingNew] = useState(false);
   const [newLabel, setNewLabel] = useState('');
   const [newIcon, setNewIcon] = useState<BudgetIconId>('sparkles');
@@ -310,86 +301,21 @@ export default function Budget({ onNavigate }: { onNavigate?: (s: NavigateTarget
           {t('Budget')}
         </h1>
         <p className="mt-1.5 max-w-xl text-[13px] leading-relaxed text-[#6c7561]">
-          {t('Hold styr på hvad brylluppet koster — og hvad I har tilbage.')}
+          {total > 0
+            ? t('Fordelingen er lagt ud fra det I har fortalt — træk i den, så den passer jer.')
+            : t('Hold styr på hvad brylluppet koster — og hvad I har tilbage.')}
         </p>
-      </div>
-
-      {/* ── Budget estimator ──────────────────────────────────────────── */}
-      <div className="rule rounded-2xl overflow-hidden">
-        <button onClick={() => setEstimatorOpen(v => !v)}
-          className="w-full flex items-center justify-between px-6 py-4 bg-card hover:bg-shell transition-colors cursor-pointer">
-          <div className="flex items-center gap-3">
-            <span className="flex items-center gap-2 font-serif text-[1.05rem] text-ink">
-              {estimatorDone ? <>{t('Budget estimeret')} <Check size={15} className="text-success" /></> : t('Estimér jeres budget')}
-            </span>
-            {!estimatorDone && (
-              <span className="rounded-full bg-sage-tint px-2.5 py-0.5 text-[0.6rem] font-bold uppercase tracking-[0.14em] text-ink">
-                {t('Ava anbefaler')}
-              </span>
-            )}
-          </div>
-          <motion.span animate={{ rotate: estimatorOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
-            <ChevronDown size={16} className="text-muted" />
-          </motion.span>
-        </button>
-
-        <AnimatePresence initial={false}>
-          {estimatorOpen && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.28, ease: [0.22,1,0.36,1] }}
-              className="overflow-hidden"
-            >
-              <div className="px-6 pb-6 pt-2 rule-t space-y-6">
-                {/* Inputs */}
-                <div className="grid sm:grid-cols-2 gap-6">
-                  <div>
-                    <label className="eyebrow block mb-3">{t('Antal gæster')}</label>
-                    <div className="flex items-baseline gap-3">
-                      <span className="font-serif text-[2rem] text-ink tabular-nums w-14">{estGuests}</span>
-                      <input type="range" min={20} max={300} step={5} value={estGuests}
-                        onChange={e => setEstGuests(Number(e.target.value))}
-                        className="kalas-range flex-1" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="eyebrow block mb-3">{t('Samlet budget')}</label>
-                    <div className="flex items-center gap-2 rule rounded-xl bg-shell px-4 py-2.5">
-                      <input type="number" value={estTotal} step={5000} min={0}
-                        onChange={e => setEstTotal(Math.max(0, Number(e.target.value)))}
-                        className="flex-1 bg-transparent font-serif text-[1.3rem] text-ink focus:outline-none tabular-nums w-0 min-w-0"
-                      />
-                      <span className="text-[0.8rem] text-muted shrink-0">kr</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Dansk gennemsnit */}
-                <div className={cn('rounded-xl px-4 py-3 text-[0.82rem] leading-relaxed',
-                  diff > 20000 ? 'bg-sage-tint text-ink' : diff < -20000 ? 'bg-[#f9edea] text-red-800' : 'bg-shell text-ink')}>
-                  {diff > 20000
-                    ? t('Dansk gennemsnit for {guests} gæster er {avg} kr — I er {diff} over. God buffer til uforudsete udgifter.', { guests: estGuests, avg: kr(dkSuggested), diff: kr(diff) })
-                    : diff < -20000
-                    ? t('Dansk gennemsnit for {guests} gæster er {avg} kr — I er {diff} under. Ava vil prioritere hårdt.', { guests: estGuests, avg: kr(dkSuggested), diff: kr(Math.abs(diff)) })
-                    : t('Dansk gennemsnit for {guests} gæster er {avg} kr — I er tæt på gennemsnittet. God balance.', { guests: estGuests, avg: kr(dkSuggested) })
-                  }
-                </div>
-
-                <button onClick={applyEstimate}
-                  className="flex h-8 items-center gap-1.5 rounded-full bg-ink px-3 text-xs font-semibold uppercase tracking-[0.12em] text-canvas hover:bg-ink/80 transition-colors cursor-pointer">
-                  {t('Fordel budgettet automatisk')} <ArrowRight size={13} />
-                </button>
-                <p className="text-[0.72rem] text-muted -mt-2">
-                  {t('Fordelingen lander i kategorierne nedenfor — I kan justere alt bagefter.')}
-                </p>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* Nothing to estimate from. A split of zero would just be seven empty
+            rows pretending to be a plan. */}
+        {total === 0 && (
+          <p className="mt-2 text-[13px] leading-relaxed text-[#8a7d5c]">
+            {t('Sæt et beløb eller et gæsteantal, så regner vi en fordeling ud.')}
+          </p>
+        )}
       </div>
 
       {/* Totals strip */}
-      <div className="mt-10 grid gap-px overflow-hidden rounded-3xl rule bg-[var(--color-line)] sm:grid-cols-3">
+      <div className="grid gap-px overflow-hidden rounded-3xl rule bg-[var(--color-line)] sm:grid-cols-3">
         <Stat label="Samlet budget" value={total} tone="total" />
         <Stat label="Fordelt" value={allocated} tone="allocated" />
         <Stat label={remaining < 0 ? 'Over budget' : 'Tilbage at fordele'} value={Math.abs(remaining)} tone={remaining < 0 ? 'over' : 'remaining'} />
