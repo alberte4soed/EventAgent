@@ -100,6 +100,20 @@ html {
   outline-offset: 2px;
 }
 
+/* Opt a field out of the ring above and let its wrapper carry it instead. For
+   a bare input inside a rounded shell — the chat composer — the ring on the
+   input is a hard rectangle cutting across the pill; on the wrapper it follows
+   the shape. `:has(:focus-visible)` keeps this keyboard-only, like the rule it
+   replaces. Unlayered for the same reason: it has to beat the utilities too. */
+.theme-kalas .focus-shell :focus-visible {
+  outline: none;
+}
+
+.theme-kalas .focus-shell:has(:focus-visible) {
+  outline: 2px solid var(--color-sage-strong);
+  outline-offset: 2px;
+}
+
 /* ── Kalas utilities (names unique — safe globally) ───────────────────── */
 
 /* Hairline rules — the Aesop signature. Never a heavy shadowed box.      */

@@ -249,7 +249,7 @@ function AvaChat({
 
       <div className="border-t border-[#d9ded9] pb-3 pt-2">
         <form onSubmit={(e) => { e.preventDefault(); const msg = draft; setDraft(''); wt.armAutoAdvance(); void sendMessage(msg); }}
-          className="flex items-center gap-2 rounded-full rule bg-card px-2 py-2">
+          className="focus-shell flex items-center gap-2 rounded-full rule bg-card px-2 py-2">
           <button type="button" aria-label={t('Vedhæft fil')} disabled
             className="flex h-10 w-10 items-center justify-center rounded-full text-faint cursor-not-allowed">
             <Paperclip size={17} />
