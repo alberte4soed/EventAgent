@@ -2,5 +2,9 @@
   command = "npm run build"
   publish = ".next"
 
+[build.environment]
+  # Pinned to the version the build is verified against locally.
+  NODE_VERSION = "24"
+
 [[plugins]]
   package = "@netlify/plugin-nextjs"
