@@ -78,7 +78,7 @@ export async function getPlatformAccessToken(): Promise<string> {
   } catch (err) {
     if (err instanceof GmailNotConnectedError) {
       console.error(
-        "[platform-gmail] OUTREACH MAILBOX GRANT REVOKED — reconnect via /api/admin/gmail/connect"
+        `[platform-gmail] OUTREACH MAILBOX GRANT UNUSABLE (${err.message}) — reconnect via /api/admin/gmail/connect`
       );
     }
     throw err;

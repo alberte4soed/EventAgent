@@ -92,6 +92,9 @@ export async function exchangeCode(code: string): Promise<TokenResponse> {
  * Exchange an encrypted refresh token for a fresh access token.
  * Throws GmailNotConnectedError on invalid_grant (revoked).
  */
+/** Google's vocabulary for "that grant is gone — reconnect". */
+const DEAD_GRANT_ERRORS = new Set(["invalid_grant", "unauthorized_client", "invalid_client"]);
+
 export async function refreshAccessToken(refreshTokenEnc: string): Promise<TokenResponse> {
   const res = await fetch(TOKEN_URL, {
     method: "POST",
@@ -105,8 +108,21 @@ export async function refreshAccessToken(refreshTokenEnc: string): Promise<Token
   });
   const tokens = (await res.json()) as TokenResponse;
   if (!res.ok || tokens.error) {
-    if (tokens.error === "invalid_grant") {
-      throw new GmailNotConnectedError("Mailbox access was revoked — reconnect it");
+    // Google has several ways of saying "this grant can no longer be
+    // redeemed", and they mean the same thing to us: someone has to reconnect
+    // the mailbox. invalid_grant is a revoked or expired refresh token — a
+    // consent screen still in Testing expires them after 7 days.
+    // unauthorized_client and invalid_client are the OAuth client itself
+    // being unable to redeem it: deleted, recreated, or its secret rotated.
+    //
+    // The distinction that matters is not which one, but that none of them
+    // improve on a retry. Falling through to a generic Error made the caller
+    // return a 500 and the couple read "try again" — advice that could never
+    // work — instead of the 503 that says the mailbox needs reconnecting.
+    if (tokens.error && DEAD_GRANT_ERRORS.has(tokens.error)) {
+      throw new GmailNotConnectedError(
+        `Mailbox access was refused (${tokens.error}) — reconnect it`
+      );
     }
     throw new Error(
       `Token refresh failed: ${tokens.error_description ?? tokens.error ?? res.status}`
