@@ -2,18 +2,48 @@ import * as React from 'react';
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { RotateCcw, Plus, Search, X } from 'lucide-react';
-import { TODAY, timeline as MOCK_TIMELINE } from '../../data';
+import { timeline as MOCK_TIMELINE } from '../../data';
 import { useWedding } from '../../useWedding';
 import { cn } from '../../ui';
 import { useLang } from '../../i18n';
-import TaskRow, { type DisplayTask } from './TaskRow';
+import type { DisplayTask } from './TaskRow';
+import TimelineSpine, { type RowActions } from './TimelineSpine';
 import AddRow from './AddRow';
-import { isMilestone, nextSort, type Filter, FILTER_LABELS } from './shared';
+import {
+  isMilestone, isCheck, onTimeline, areaOf, nextSort, buildTimelineBands, todayISO, daysDiff,
+  type Filter, FILTER_LABELS, CHECKLIST_AREAS,
+} from './shared';
 
 // The mock timeline is a proven default plan anchored on its own wedding day.
 // We re-anchor every milestone onto the couple's real date, preserving the
 // relative lead times (book venue ~12 months out, invitations ~3 weeks, …).
 const MOCK_WED_MS = new Date(MOCK_TIMELINE[MOCK_TIMELINE.length - 1].dateISO).getTime();
+
+
+/**
+ * Which checklist area each milestone belongs to, so it heads that area's block
+ * on the Tjekliste tab — the big decision first, the small print under it.
+ *
+ * "Jeres dag" is deliberately absent: it keeps the 'wedding_day' sentinel that
+ * drives the "Dagen" status, and it is the wedding itself rather than a task in
+ * an area. `category` can only carry one of the two meanings, and this is the
+ * one row where the sentinel wins. See migration 0023 for the backfill.
+ */
+const MILESTONE_AREA: Record<string, string> = {
+  'Sæt budget & gæsteliste': 'okonomi',
+  'Book venue': 'venue',
+  'Save-the-dates': 'papir',
+  'Book fotograf': 'foto',
+  'Brudekjole & jakkesæt': 'stil',
+  'Florist & dekoration': 'stil',
+  'Musik / DJ / band': 'dagen',
+  'Kage & dessert': 'mad',
+  'Vielsesattest & jura': 'jura',
+  'Endelig prøvepasning': 'stil',
+  'Bordplan & menu låst': 'gaester',
+  'Invitationer sendt': 'papir',
+  'Koordinering med leverandører': 'optil',
+};
 
 export function defaultMilestones(weddingISO: string) {
   const wed = new Date(weddingISO).getTime();
@@ -22,7 +52,7 @@ export function defaultMilestones(weddingISO: string) {
     return {
       title: t.title,
       due_date: new Date(wed + offset).toISOString().slice(0, 10),
-      category: i === MOCK_TIMELINE.length - 1 ? 'wedding_day' : null,
+      category: i === MOCK_TIMELINE.length - 1 ? 'wedding_day' : MILESTONE_AREA[t.title] ?? null,
       kind: 'milestone' as const,
       done: false,
       sort: i,
@@ -31,11 +61,13 @@ export function defaultMilestones(weddingISO: string) {
 }
 
 export default function TimelineTab({ onCelebrate }: { onCelebrate: (title: string) => void }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
+  const locale = lang === 'en' ? 'en-US' : 'da-DK';
+  const monthLabel = (monthISO: string) =>
+    new Date(`${monthISO}T12:00:00`).toLocaleDateString(locale, { month: 'long', year: 'numeric' });
   const { couple, timelineTasks, addTask, updateTask, deleteTask, seedTasks, clearTasks } = useWedding();
-  const daysUntil = couple.dateISO
-    ? Math.max(0, Math.round((new Date(couple.dateISO).getTime() - TODAY.getTime()) / 86400000))
-    : 0;
+  const today = todayISO();
+  const daysUntil = couple.dateISO ? Math.max(0, daysDiff(couple.dateISO, today)) : 0;
 
   const [filter, setFilter] = useState<Filter>('alle');
   const [query, setQuery] = useState('');
@@ -52,17 +84,26 @@ export default function TimelineTab({ onCelebrate }: { onCelebrate: (title: stri
     return () => clearTimeout(timer);
   }, [confirmReset]);
 
-  const rows = timelineTasks.filter(isMilestone);
+  // The milestones, plus any checklist item the couple has dated — giving a
+  // check a date is how you put it in the calendar.
+  const rows = timelineTasks.filter(onTimeline);
+  const milestones = timelineTasks.filter(isMilestone);
 
   // Dated milestones first (chronologically), undated ones last by sort — an
   // undated row must never be pinned to the wedding date.
-  const tasks: DisplayTask[] = rows
+  const tasks: (DisplayTask & { visiting: boolean; overdue: boolean })[] = rows
     .map((r) => ({
       id: r.id,
       title: r.title,
       dateISO: r.due_date,
       done: r.done,
       weddingDay: r.category === 'wedding_day',
+      // A check keeps its area icon here, so the milestones still read as the
+      // spine rather than the two blurring into one list.
+      Icon: isCheck(r) ? CHECKLIST_AREAS.find((a) => a.id === areaOf(r))?.Icon : undefined,
+      visiting: isCheck(r),
+      // Read on the spine's day marker, where there is no room for a word.
+      overdue: !r.done && r.due_date != null && r.category !== 'wedding_day' && r.due_date < today,
     }))
     .sort((a, b) => {
       if (a.dateISO && b.dateISO) return a.dateISO.localeCompare(b.dateISO);
@@ -86,6 +127,25 @@ export default function TimelineTab({ onCelebrate }: { onCelebrate: (title: stri
     return true;
   });
 
+  // Only a dated task has a place on the spine; the rest wait in their own
+  // tray. Bands are built from what is *visible*, so filtering to "færdige"
+  // shows the months those tasks fall in, not an outline of the whole plan.
+  const dated = visible.filter((x) => x.dateISO !== null);
+  const undated = visible.filter((x) => x.dateISO === null);
+  const bands = buildTimelineBands(dated, today);
+
+  /* The timeline and the checklist share these rows, so what the menu offers
+     depends on where a row lives: a visiting check comes off the spine by
+     losing its date, a milestone is deleted outright. */
+  function rowActions(task: (typeof tasks)[number]): RowActions {
+    return task.visiting
+      ? { onClearDate: () => { setMenuId(null); void updateTask(task.id, { due_date: null }); } }
+      : {
+          onDelete: () => { setMenuId(null); void deleteTask(task.id); },
+          onInsertAfter: () => openAdd(task.id),
+        };
+  }
+
   function handleToggle(task: DisplayTask) {
     const nowDone = !task.done;
     void updateTask(task.id, { done: nowDone });
@@ -104,7 +164,9 @@ export default function TimelineTab({ onCelebrate }: { onCelebrate: (title: stri
 
   function commitAdd() {
     if (!newTitle.trim()) { setAddingAfter(null); return; }
-    void addTask({ title: newTitle.trim(), due_date: newDate, kind: 'milestone', sort: nextSort(rows) });
+    // nextSort over the milestones only — the checklist runs its own 0-204
+    // series, and a new milestone must not inherit a number from it.
+    void addTask({ title: newTitle.trim(), due_date: newDate, kind: 'milestone', sort: nextSort(milestones) });
     setAddingAfter(null);
   }
 
@@ -122,16 +184,16 @@ export default function TimelineTab({ onCelebrate }: { onCelebrate: (title: stri
     <motion.section
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col gap-5 rounded-[28px] border border-[#d8d4c7] bg-[#fcfbf7] p-7"
+      className="flex flex-col gap-5 rounded-[28px] border border-line bg-card p-7"
     >
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <p className="text-sm text-[#6c7561]">
+        <p className="text-sm text-muted">
           {couple.dateISO
-            ? t('{days} dage til dagen · milepælene frem til brylluppet.', { days: daysUntil })
-            : t('Milepælene frem til brylluppet.')}
+            ? t('{days} dage til dagen · alt med en dato frem til brylluppet.', { days: daysUntil })
+            : t('Alt med en dato frem til brylluppet.')}
         </p>
         <div className="flex flex-wrap items-center gap-2.5">
-          <p className="shrink-0 text-sm font-bold text-[#8a9079]">
+          <p className="shrink-0 text-sm font-bold text-sage">
             {t('{done} af {total} klaret', { done, total: tasks.length })}
           </p>
           <button
@@ -139,7 +201,7 @@ export default function TimelineTab({ onCelebrate }: { onCelebrate: (title: stri
             onClick={handleReset}
             className={cn(
               'flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-semibold transition-colors cursor-pointer',
-              confirmReset ? 'bg-[#b34e37] text-white' : 'border border-[#d9ded9] bg-white text-[#314523]',
+              confirmReset ? 'bg-terracotta text-canvas' : 'border border-line bg-card text-ink',
             )}
           >
             <RotateCcw size={13} />
@@ -148,7 +210,7 @@ export default function TimelineTab({ onCelebrate }: { onCelebrate: (title: stri
           <button
             type="button"
             onClick={() => openAdd('bottom')}
-            className="flex h-8 items-center gap-1.5 rounded-full bg-[#173c32] px-3 text-xs font-semibold text-white cursor-pointer"
+            className="flex h-8 items-center gap-1.5 rounded-full bg-ink px-3 text-xs font-semibold text-canvas cursor-pointer"
           >
             <Plus size={13} />
             {t('Tilføj milepæl')}
@@ -158,18 +220,18 @@ export default function TimelineTab({ onCelebrate }: { onCelebrate: (title: stri
 
       {/* Search + filters */}
       <div className="flex flex-wrap items-center gap-2">
-        <div className="flex h-11 w-full items-center gap-2.5 rounded-[14px] border border-[#e4e0d4] bg-[#f7f5ef] px-4 sm:w-[260px]">
-          <Search size={15} className="shrink-0 text-[#9a9686]" />
+        <div className="flex h-11 w-full items-center gap-2.5 rounded-[14px] border border-line bg-shell px-4 sm:w-[260px]">
+          <Search size={15} className="shrink-0 text-faint" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t('Søg i milepæle')}
             aria-label={t('Søg i milepæle')}
-            className="min-w-0 flex-1 bg-transparent text-sm text-[#314523] placeholder:text-[#9a9686] focus:outline-none"
+            className="min-w-0 flex-1 bg-transparent text-sm text-ink placeholder:text-faint focus:outline-none"
           />
           {query && (
             <button type="button" onClick={() => setQuery('')} aria-label={t('Ryd søgning')}
-              className="text-[#9a9686] hover:text-[#314523] cursor-pointer">
+              className="text-faint hover:text-ink cursor-pointer">
               <X size={14} />
             </button>
           )}
@@ -184,75 +246,72 @@ export default function TimelineTab({ onCelebrate }: { onCelebrate: (title: stri
               className={cn(
                 'flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-semibold uppercase tracking-[0.1em] transition-colors cursor-pointer',
                 active
-                  ? 'bg-[#314523] text-[#f7f5ef]'
-                  : 'border border-[#e4e0d4] bg-[#f7f5ef] text-[#6c7561] hover:text-[#314523]',
+                  ? 'bg-ink text-shell'
+                  : 'border border-line bg-shell text-muted hover:text-ink',
               )}
             >
               {t(FILTER_LABELS[f])}
-              <span className={active ? 'text-[#dce3d3]' : 'text-[#9a9686]'}>{counts[f]}</span>
+              <span className={active ? 'text-sage-tint' : 'text-faint'}>{counts[f]}</span>
             </button>
           );
         })}
       </div>
 
-      {/* Rows */}
-      <div className="flex flex-col gap-3">
-        {visible.length === 0 && (
-          <div className="rounded-[18px] border border-[#e4e0d4] bg-[#f7f5ef] px-5 py-10 text-center">
-            <p className="font-serif text-lg text-[#314523]">
-              {tasks.length === 0
-                ? t('Ingen milepæle endnu — tilføj jeres første.')
-                : filter === 'færdige' ? t('Ingen færdige milepæle endnu.')
-                : filter === 'kommende' ? t('Alt er klaret. I er foran planen.')
-                : t('Ingen milepæle matcher din søgning.')}
-            </p>
-          </div>
-        )}
-
-        {visible.map((task) => (
-          <React.Fragment key={task.id}>
-            <TaskRow
-              task={task}
-              deleteLabel="Slet milepæl"
-              menuOpen={menuId === task.id}
-              onMenu={() => setMenuId((m) => (m === task.id ? null : task.id))}
-              onCloseMenu={() => setMenuId(null)}
-              onToggle={() => handleToggle(task)}
-              onDelete={() => { setMenuId(null); void deleteTask(task.id); }}
-              onInsertAfter={() => openAdd(task.id)}
-              onDateChange={(d) => void updateTask(task.id, { due_date: d })}
-            />
+      {/* The spine — time runs downward, one month band at a time. */}
+      {dated.length === 0 && undated.length === 0 ? (
+        <div className="rounded-[18px] border border-line bg-shell px-5 py-10 text-center">
+          <p className="font-serif text-lg text-ink">
+            {tasks.length === 0
+              ? t('Ingen milepæle endnu — tilføj jeres første.')
+              : filter === 'færdige' ? t('Ingen færdige milepæle endnu.')
+              : filter === 'kommende' ? t('Alt er klaret. I er foran planen.')
+              : t('Ingen milepæle matcher din søgning.')}
+          </p>
+        </div>
+      ) : (
+        <TimelineSpine
+          bands={bands}
+          undated={undated}
+          monthLabel={monthLabel}
+          menuId={menuId}
+          onMenu={(id) => setMenuId((m) => (m === id ? null : id))}
+          onCloseMenu={() => setMenuId(null)}
+          onToggle={handleToggle}
+          onDateChange={(id, d) => void updateTask(id, { due_date: d })}
+          rowActions={rowActions}
+          renderAddRow={(id) => (
             <AnimatePresence>
-              {addingAfter === task.id && (
+              {addingAfter === id && (
                 <AddRow inputRef={newInputRef} title={newTitle} date={newDate}
                   placeholder="Milepælens navn…"
                   onTitleChange={setNewTitle} onDateChange={setNewDate}
                   onSave={commitAdd} onCancel={() => setAddingAfter(null)} />
               )}
             </AnimatePresence>
-          </React.Fragment>
-        ))}
-
-        <AnimatePresence>
-          {addingAfter === 'bottom' && (
-            <AddRow inputRef={newInputRef} title={newTitle} date={newDate}
-              placeholder="Milepælens navn…"
-              onTitleChange={setNewTitle} onDateChange={setNewDate}
-              onSave={commitAdd} onCancel={() => setAddingAfter(null)} />
           )}
-        </AnimatePresence>
+        />
+      )}
 
-        <button
-          type="button"
-          onClick={() => openAdd('bottom')}
-          className="flex w-full items-center gap-4 rounded-[18px] border border-dashed border-[#d8d4c7] bg-transparent px-5 py-4 text-left text-sm font-semibold text-[#6c7561] transition-colors hover:border-[#c4bfae] hover:text-[#314523] cursor-pointer"
-        >
-          <span className="flex size-7 shrink-0 items-center justify-center rounded-full border-2 border-[#c4bfae]">
-            <Plus size={14} />
-          </span>
-          {t('Tilføj milepæl')}
-        </button>
-      </div>
+      <AnimatePresence>
+        {addingAfter === 'bottom' && (
+          <AddRow inputRef={newInputRef} title={newTitle} date={newDate}
+            placeholder="Milepælens navn…"
+            onTitleChange={setNewTitle} onDateChange={setNewDate}
+            onSave={commitAdd} onCancel={() => setAddingAfter(null)} />
+        )}
+      </AnimatePresence>
+
+      <button
+        type="button"
+        onClick={() => openAdd('bottom')}
+        className="flex w-full items-center gap-4 rounded-[18px] border border-dashed border-line bg-transparent px-5 py-4 text-left text-sm font-semibold text-muted transition-colors hover:border-line-strong hover:text-ink cursor-pointer"
+      >
+        <span className="flex size-7 shrink-0 items-center justify-center rounded-full border-2 border-line-strong">
+          <Plus size={14} />
+        </span>
+        {t('Tilføj milepæl')}
+      </button>
+
     </motion.section>
   );
 }

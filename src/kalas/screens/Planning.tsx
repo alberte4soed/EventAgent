@@ -13,8 +13,10 @@ import { isMilestone, isCheck, readPlanTab, writePlanTab, type PlanTab } from '.
 const AVA_CELEBRATION = 'Godt klaret. Ava har opdateret jeres fremdrift.';
 
 /* Two lenses on the same `timeline_tasks` table:
-     Tidslinje — the ~14 big, date-anchored milestones
-     Tjekliste — the many small to-dos, grouped by area
+     Tidslinje — the big date-anchored milestones, plus any checklist item the
+                 couple has dated
+     Tjekliste — the many small to-dos grouped by area, each area headed by its
+                 milestone
    See 0020_task_kind.sql for why `kind` (not `category`) separates them. */
 export default function Planning({ onNavigate }: { onNavigate?: (s: ScreenId) => void }) {
   const { t } = useLang();

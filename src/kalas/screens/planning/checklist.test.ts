@@ -1,11 +1,12 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { timeline as MOCK_TIMELINE } from '../../data';
 import { EN } from '../../strings';
 import { DEFAULT_CHECKLIST, defaultChecklist, missingChecklistItems } from './checklist-data';
 import {
-  CHECKLIST_AREAS, kindOf, areaOf, groupByArea, nextSort, statusOf,
-  parseOpenAreas, serializeOpenAreas, type ChecklistArea,
+  CHECKLIST_AREAS, kindOf, areaOf, hasArea, onTimeline, groupByArea, nextSort, statusOf,
+  readOpenAreas, writeOpenAreas, type ChecklistArea,
 } from './shared';
+import { defaultMilestones } from './TimelineTab';
 
 const AREA_IDS = new Set(CHECKLIST_AREAS.map((a) => a.id));
 
@@ -97,6 +98,59 @@ describe('kindOf', () => {
   });
 });
 
+describe('onTimeline', () => {
+  it('always keeps the milestones', () => {
+    expect(onTimeline({ kind: 'milestone', due_date: '2026-09-12' })).toBe(true);
+    // Ava can add a milestone without a date; it still belongs to that tab.
+    expect(onTimeline({ kind: 'milestone', due_date: null })).toBe(true);
+  });
+
+  it('lets a check on only once it has a date', () => {
+    expect(onTimeline({ kind: 'check', due_date: null })).toBe(false);
+    expect(onTimeline({ kind: 'check', due_date: '2026-08-14' })).toBe(true);
+  });
+
+  it('treats an unknown kind as a milestone', () => {
+    // A client running ahead of migration 0020 sees undefined here.
+    expect(onTimeline({ kind: undefined, due_date: null })).toBe(true);
+    expect(onTimeline({ kind: null, due_date: null })).toBe(true);
+  });
+});
+
+describe('hasArea', () => {
+  it('is true only for a real area id', () => {
+    expect(hasArea({ category: 'mad' })).toBe(true);
+    expect(hasArea({ category: 'ovrigt' })).toBe(true);
+  });
+
+  it('keeps the wedding day and uncategorised rows off the checklist', () => {
+    expect(hasArea({ category: null })).toBe(false);
+    expect(hasArea({ category: 'wedding_day' })).toBe(false);
+    // Ava writes free-text categories; those must not pile up under Øvrigt.
+    expect(hasArea({ category: 'catering' })).toBe(false);
+  });
+});
+
+describe('defaultMilestones', () => {
+  const seeded = defaultMilestones('2026-09-12');
+
+  it('gives every milestone an area, except the wedding day', () => {
+    const weddingDay = seeded.filter((m) => m.category === 'wedding_day');
+    expect(weddingDay).toHaveLength(1);
+    for (const m of seeded) {
+      if (m.category === 'wedding_day') continue;
+      expect(hasArea(m), `"${m.title}" has no area`).toBe(true);
+    }
+  });
+
+  it('stays milestones with dates', () => {
+    for (const m of seeded) {
+      expect(m.kind).toBe('milestone');
+      expect(m.due_date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    }
+  });
+});
+
 describe('areaOf', () => {
   it('maps known categories and falls back to ovrigt', () => {
     expect(areaOf({ category: 'mad' })).toBe('mad');
@@ -132,27 +186,32 @@ describe('groupByArea', () => {
 });
 
 describe('open areas', () => {
-  it('round-trips a set of areas', () => {
-    const open = new Set<ChecklistArea>(['mad', 'jura']);
-    expect(parseOpenAreas(serializeOpenAreas(open))).toEqual(open);
+  // The memo is module scope, so it carries between cases unless reset.
+  beforeEach(() => writeOpenAreas(new Set()));
+
+  it('starts with every area folded away', () => {
+    expect(readOpenAreas()).toEqual(new Set());
   });
 
-  it('starts empty — every area folded away', () => {
-    expect(parseOpenAreas(null)).toEqual(new Set());
-    expect(parseOpenAreas('')).toEqual(new Set());
-    expect(serializeOpenAreas(new Set())).toBe('[]');
+  it('remembers what was opened, so a tab switch does not lose your place', () => {
+    writeOpenAreas(new Set<ChecklistArea>(['mad', 'jura']));
+    expect(readOpenAreas()).toEqual(new Set(['mad', 'jura']));
   });
 
-  it('survives a value that is not an area list', () => {
-    expect(parseOpenAreas('not json')).toEqual(new Set());
-    expect(parseOpenAreas('{"mad":true}')).toEqual(new Set());
-    expect(parseOpenAreas('[1, null]')).toEqual(new Set());
+  it('hands back a copy, never the memo itself', () => {
+    // ChecklistTab builds its next set from what it reads. Sharing the object
+    // would hand setOpenAreas a reference React already has — no re-render.
+    writeOpenAreas(new Set<ChecklistArea>(['mad']));
+    const first = readOpenAreas();
+    first.add('jura');
+    expect(readOpenAreas()).toEqual(new Set(['mad']));
   });
 
-  it('drops ids that are no longer areas', () => {
-    // A session stored before an area was renamed must not reopen a group
-    // that CHECKLIST_AREAS no longer knows about.
-    expect(parseOpenAreas('["mad","ikke-et-omraade"]')).toEqual(new Set(['mad']));
+  it('copies on write too, so a later mutation cannot reach in', () => {
+    const mine = new Set<ChecklistArea>(['mad']);
+    writeOpenAreas(mine);
+    mine.add('jura');
+    expect(readOpenAreas()).toEqual(new Set(['mad']));
   });
 });
 

@@ -163,7 +163,7 @@ export const planningFunctionDeclarations: FunctionDeclaration[] = [
   {
     name: "list_tasks",
     description:
-      "The couple's planning tasks with ids, due dates and done state. Defaults to the big dated milestones; pass kind='check' for the granular checklist (~70 items, grouped by area).",
+      "The couple's planning tasks with ids, due dates and done state. Defaults to the big dated milestones; pass kind='check' for the granular checklist (~205 items, grouped by area). A check that has been given a due date also shows on the couple's timeline.",
     parameters: {
       type: Type.OBJECT,
       properties: {
@@ -430,13 +430,17 @@ async function execPlanningOverview(
   const budget = (budgetQ.data ?? []) as Pick<BudgetItemRow, "category" | "label" | "planned_amount" | "paid_amount">[];
   const guests = (guestsQ.data ?? []) as Pick<GuestRow, "rsvp" | "plus_one">[];
   const allTasks = (tasksQ.data ?? []) as Pick<TimelineTaskRow, "title" | "due_date" | "done" | "category" | "kind">[];
-  // Two levels of detail live in this table — report them apart, or the
-  // ~70 seeded checklist items swamp the milestone numbers Ava reasons about.
+  // Two levels of detail live in this table — report them apart, or the ~205
+  // seeded checklist items swamp the milestone numbers Ava reasons about.
   const tasks = allTasks.filter((t) => t.kind !== "check");
   const checks = allTasks.filter((t) => t.kind === "check");
   const today = new Date().toISOString().slice(0, 10);
-  const upcoming = tasks
-    .filter((t) => !t.done && t.due_date)
+  // What is next, and what is late, is asked of everything with a date — a
+  // dated checklist item sits on the Tidslinje tab too, so leaving it out here
+  // would have Ava contradict the screen the couple is looking at.
+  const dated = allTasks.filter((t) => t.due_date);
+  const upcoming = dated
+    .filter((t) => !t.done)
     .sort((a, b) => (a.due_date! < b.due_date! ? -1 : 1))
     .slice(0, 5);
   const checksByArea: Record<string, { total: number; done: number }> = {};
@@ -483,9 +487,11 @@ async function execPlanningOverview(
       by_category: byCategory,
     },
     tasks: {
+      // total/done stay milestone-only — they are the "how far along the big
+      // plan" numbers. overdue/next_up span both, matching the Tidslinje tab.
       total: tasks.length,
       done: tasks.filter((t) => t.done).length,
-      overdue: tasks.filter((t) => !t.done && t.due_date && t.due_date < today).length,
+      overdue: dated.filter((t) => !t.done && t.due_date! < today).length,
       next_up: upcoming.map((t) => ({ title: t.title, due_date: t.due_date })),
     },
     checklist: {
@@ -802,7 +808,7 @@ async function execListTasks(
   event: EventRow,
   args: Record<string, unknown> = {}
 ): Promise<Record<string, unknown>> {
-  // Default to milestones: listing all ~95 rows would flood the context.
+  // Default to milestones: listing all ~220 rows would flood the context.
   const kind = str(args.kind) === "check" ? "check" : "milestone";
   const { data, error } = await supabase
     .from("timeline_tasks")

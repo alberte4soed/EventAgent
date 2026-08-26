@@ -441,6 +441,18 @@ export const EN: Record<string, string> = {
   'Smukt — jeg noterer det til jeres leverandør-briefs og hjemmeside. Planlægger I det to?':
     "Beautiful — I'm noting it for your vendor briefs and website. Are the two of you planning together?",
   '{email} er inviteret som medplanlægger.': '{email} is invited as a co-planner.',
+
+  // Partner invitation — Ava sends this one for real, from her own mailbox.
+  // The copy promises an account, not shared access: a second user cannot yet
+  // see the same wedding, and the email must not say otherwise.
+  'Giv {name} besked': 'Let {name} know',
+  'Ava sender invitationen, så din partner kan oprette sin egen konto. Fælles adgang til planen er på vej. Valgfrit.':
+    'Ava sends the invitation so your partner can create an account of their own. Shared access to the plan is on the way. Optional.',
+  'Tjek e-mailadressen.': 'Check the email address.',
+  'Det er din egen adresse.': "That's your own address.",
+  'Invitationen kunne ikke sendes. Prøv igen.': "The invitation couldn't be sent. Try again.",
+  'Ava har sendt invitationen til {email}. {name} kan oprette sin egen konto — fælles adgang til planen er på vej.':
+    'Ava sent the invitation to {email}. {name} can create an account of their own — shared access to the plan is on the way.',
   'Jeg klarer det for nu — inviterer partneren senere.': "I'll handle it for now — invite my partner later.",
   'nær {location}': 'near {location}',
   'i jeres region': 'in your region',
@@ -761,7 +773,6 @@ export const EN: Record<string, string> = {
   'Ava kender jeres dato, region, budget og stil og giver et personligt svar.': 'Ava knows your date, region, budget and style and gives a personal answer.',
   'Ava læser dette når hun personaliserer eller designer forfra.': 'Ava reads this when she personalizes or designs from scratch.',
   'Ava matchede til budget og stil — ingen Google': 'Ava matched to budget and style — no Google',
-  'Ava sender catering {n} kuverter — opdateres automatisk.': 'Ava sends catering for {n} covers — updates automatically.',
   'Ava sender en venlig påmindelse på jeres vegne': 'Ava sends a friendly reminder on your behalf',
   'Ava tilføjer automatisk et kort-link til gæsterne.': 'Ava automatically adds a map link for guests.',
   'BRUDEBORDET': 'HEAD TABLE',
@@ -1075,6 +1086,16 @@ export const EN: Record<string, string> = {
   '{a} & {b} bruger Kalas til at planlægge deres store dag. Kom i gang på 2 minutter.': '{a} & {b} use Kalas to plan their big day. Get started in 2 minutes.',
   '{a} & {b} glæder sig til at se dig den {date}.': '{a} & {b} look forward to seeing you on {date}.',
   '{days} dage til dagen · milepælene frem til brylluppet.': '{days} days to the day · milestones leading to the wedding.',
+
+  // Tidslinje tab — the spine. It carries every dated task now, milestones and
+  // dated checklist items alike, so the wording no longer says "milestones".
+  '{days} dage til dagen · alt med en dato frem til brylluppet.':
+    '{days} days to the day · everything with a date, leading to the wedding.',
+  'Alt med en dato frem til brylluppet.': 'Everything with a date, leading to the wedding.',
+  '1 måned uden opgaver': '1 month with nothing planned',
+  '{n} måneder uden opgaver': '{n} months with nothing planned',
+  'Uden dato': 'No date yet',
+  'Giv dem en dato for at sætte dem på tidslinjen.': 'Give them a date to place them on the timeline.',
   '{filled}/{cap} gæster': '{filled}/{cap} guests',
   '{name} er nu jeres venue': '{name} is now your venue',
   '{n} beskeder sendt eller kladde': '{n} messages sent or draft',
@@ -1505,6 +1526,7 @@ export const EN: Record<string, string> = {
   'Omdøb punkt': 'Rename item',
   'Fold alle ud': 'Expand all',
   'Fold alle sammen': 'Collapse all',
+  'Fjern dato': 'Remove date',
   'Ingen afkrydsede punkter endnu.': 'No items ticked off yet.',
   'Alt er krydset af. Flot arbejde.': 'Everything is ticked off. Great work.',
   'Ingen punkter matcher din søgning.': 'No items match your search.',

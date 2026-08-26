@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Trash2, MoreHorizontal, CalendarDays, CornerDownRight, Pencil } from 'lucide-react';
+import { Trash2, MoreHorizontal, CalendarDays, CornerDownRight, Pencil, CalendarOff } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { cn, TaskCheckbox, taskRowTone, doneLabelClass } from '../../ui';
 import { useLang } from '../../i18n';
 import { formatDate, statusOf, statusLabel, daysDiff } from './shared';
@@ -13,13 +14,19 @@ export type DisplayTask = {
   dateISO: string | null;
   done: boolean;
   weddingDay: boolean;
+  /** Leading icon — the area, on the timeline's visiting checklist rows. */
+  Icon?: LucideIcon;
+  /** Small label marking a row that lives on the other tab, e.g. "Milepæl". */
+  tag?: string;
 };
 
 /** One completable row, shared by both tabs. The menu entries differ:
  *  the checklist is append-only (int `sort`, no fractional insert), so it
- *  passes no `onInsertAfter`; the timeline passes no `onRename`. */
+ *  passes no `onInsertAfter`; the timeline passes no `onRename`. A checklist
+ *  row visiting the timeline passes `onClearDate` instead of `onDelete` —
+ *  taking it off the timeline must not delete it off the checklist. */
 export default function TaskRow({
-  task, deleteLabel, menuOpen, onMenu, onCloseMenu, onToggle, onDelete, onInsertAfter, onRename, onDateChange,
+  task, deleteLabel, menuOpen, onMenu, onCloseMenu, onToggle, onDelete, onInsertAfter, onRename, onClearDate, onDateChange,
 }: {
   task: DisplayTask;
   deleteLabel: string;
@@ -27,9 +34,10 @@ export default function TaskRow({
   onMenu: () => void;
   onCloseMenu: () => void;
   onToggle: () => void;
-  onDelete: () => void;
+  onDelete?: () => void;
   onInsertAfter?: () => void;
   onRename?: () => void;
+  onClearDate?: () => void;
   onDateChange: (dateISO: string) => void;
 }) {
   const { t } = useLang();
@@ -51,8 +59,14 @@ export default function TaskRow({
       <TaskCheckbox done={task.done} label={task.title} onToggle={onToggle} />
 
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className={cn('text-base font-semibold', done ? doneLabelClass : 'text-[#314523]')}>
+        <span className={cn('flex flex-wrap items-center gap-2 text-base font-semibold', done ? doneLabelClass : 'text-[#314523]')}>
+          {task.Icon && <task.Icon size={14} strokeWidth={2} className="shrink-0 text-[#8a9079]" aria-hidden />}
           {t(task.title)}
+          {task.tag && (
+            <span className="rounded-full bg-[#eef1e6] px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-[0.1em] text-[#6c7561]">
+              {t(task.tag)}
+            </span>
+          )}
         </span>
         <button
           type="button"
@@ -121,10 +135,18 @@ export default function TaskRow({
                     <Pencil size={14} className="text-[#6c7561]" /> {t('Omdøb punkt')}
                   </button>
                 )}
-                <button type="button" onClick={onDelete}
-                  className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm text-[#b34e37] transition-colors hover:bg-[#faf4ef] cursor-pointer">
-                  <Trash2 size={14} /> {t(deleteLabel)}
-                </button>
+                {onClearDate && (
+                  <button type="button" onClick={onClearDate}
+                    className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm text-[#314523] transition-colors hover:bg-[#f0ede5] cursor-pointer">
+                    <CalendarOff size={14} className="text-[#6c7561]" /> {t('Fjern dato')}
+                  </button>
+                )}
+                {onDelete && (
+                  <button type="button" onClick={onDelete}
+                    className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm text-[#b34e37] transition-colors hover:bg-[#faf4ef] cursor-pointer">
+                    <Trash2 size={14} /> {t(deleteLabel)}
+                  </button>
+                )}
               </motion.div>
             </>
           )}

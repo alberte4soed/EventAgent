@@ -10,7 +10,7 @@ import TaskRow, { type DisplayTask } from './TaskRow';
 import AddRow from './AddRow';
 import { defaultChecklist, missingChecklistItems } from './checklist-data';
 import {
-  isCheck, groupByArea, areaLabel, nextSort, areaOf, topUpKey,
+  isCheck, isMilestone, hasArea, groupByArea, areaLabel, nextSort, areaOf, topUpKey,
   readOpenAreas, writeOpenAreas,
   type ChecklistArea, type Filter, FILTER_LABELS, CHECKLIST_AREAS,
 } from './shared';
@@ -49,33 +49,38 @@ export default function ChecklistTab({ onCelebrate, onNavigate }: {
     return () => clearTimeout(timer);
   }, [confirmReset]);
 
-  const rows = timelineTasks.filter(isCheck);
+  /* `checks` drives seeding and the top-up; `rows` is what the tab renders.
+     They must not be the same list — milestones exist before the checklist is
+     seeded, so folding them into `checks` would convince the seeder that the
+     list is already full. */
+  const checks = timelineTasks.filter(isCheck);
+  const rows = [...checks, ...timelineTasks.filter((r) => isMilestone(r) && hasArea(r))];
 
   /* The checklist seeds itself from here rather than from Planning's mount
      effect: its items are dateless, so waiting for a wedding date only left
      couples staring at an empty list. Seeding on tab open also keeps ~200 rows
      off half-created onboarding events, which is what that gate was for. */
   React.useEffect(() => {
-    if (loading || !event || rows.length > 0 || seeding.has(event.id)) return;
+    if (loading || !event || checks.length > 0 || seeding.has(event.id)) return;
     const id = event.id;
     seeding.add(id);
     void seedTasks(defaultChecklist()).then((err) => {
       if (err) { seeding.delete(id); setError(err); }
     });
-  }, [loading, event, rows.length, seedTasks]);
+  }, [loading, event, checks.length, seedTasks]);
 
   /* Couples who already have a checklist get any newly added default items,
      once per event. Their ticks and their own items are untouched, which a
      Nulstil would not be. */
   React.useEffect(() => {
-    if (loading || toppedUpRef.current || rows.length === 0 || !event) return;
+    if (loading || toppedUpRef.current || checks.length === 0 || !event) return;
     toppedUpRef.current = true;
     const key = topUpKey(event.id);
     if (localStorage.getItem(key)) return;
     localStorage.setItem(key, '1');
-    const missing = missingChecklistItems(rows);
+    const missing = missingChecklistItems(checks);
     if (missing.length > 0) void seedTasks(missing);
-  }, [loading, rows, event, seedTasks]);
+  }, [loading, checks, event, seedTasks]);
 
   const done = rows.filter((r) => r.done).length;
   const counts: Record<Filter, number> = {
@@ -194,6 +199,8 @@ export default function ChecklistTab({ onCelebrate, onNavigate }: {
 
   const toDisplay = (r: (typeof rows)[number]): DisplayTask => ({
     id: r.id, title: r.title, dateISO: r.due_date, done: r.done, weddingDay: false,
+    // A milestone heading this area's block is only visiting from the timeline.
+    tag: isMilestone(r) ? 'Milepæl' : undefined,
   });
 
   return (
@@ -383,8 +390,15 @@ export default function ChecklistTab({ onCelebrate, onNavigate }: {
                           onMenu={() => setMenuId((m) => (m === row.id ? null : row.id))}
                           onCloseMenu={() => setMenuId(null)}
                           onToggle={() => handleToggle(row)}
-                          onRename={() => openRename(row)}
-                          onDelete={() => { setMenuId(null); void deleteTask(row.id); }}
+                          // A milestone is only visiting: tick it or date it
+                          // here, but rename and delete belong on the timeline
+                          // where it actually lives.
+                          {...(isCheck(row)
+                            ? {
+                                onRename: () => openRename(row),
+                                onDelete: () => { setMenuId(null); void deleteTask(row.id); },
+                              }
+                            : {})}
                           onDateChange={(d) => void updateTask(row.id, { due_date: d })}
                         />
                       )

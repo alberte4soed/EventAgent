@@ -3,7 +3,6 @@ import {
   Building2, Church, UtensilsCrossed, Shirt, Mail, Scale, PartyPopper,
   HeartHandshake, CircleDashed, Wallet, Camera, Users, CalendarClock,
 } from 'lucide-react';
-import { TODAY } from '../../data';
 import type { TaskKind, TimelineTaskRow } from '@/lib/db/types';
 
 /* ── Tabs ─────────────────────────────────────────────────────────────── */
@@ -40,6 +39,20 @@ export function kindOf(row: Pick<TimelineTaskRow, 'kind'>): TaskKind {
 export const isMilestone = (row: Pick<TimelineTaskRow, 'kind'>) => kindOf(row) === 'milestone';
 export const isCheck = (row: Pick<TimelineTaskRow, 'kind'>) => kindOf(row) === 'check';
 
+/**
+ * Everything with a place in time: the milestones, plus any checklist item the
+ * couple has put a date on. The two tabs overlap here on purpose — giving a
+ * check a date means "put this in the calendar", and before this it meant
+ * nothing at all.
+ *
+ * Deliberately NOT folded into `kindOf`: isMilestone/isCheck must stay each
+ * other's complement, because they also drive the milestone seed gate in
+ * Planning.tsx and the two tab counters.
+ */
+export function onTimeline(row: Pick<TimelineTaskRow, 'kind' | 'due_date'>): boolean {
+  return isMilestone(row) || row.due_date != null;
+}
+
 /* ── Checklist areas ──────────────────────────────────────────────────── */
 
 export type ChecklistArea =
@@ -72,58 +85,46 @@ export function areaOf(row: Pick<TimelineTaskRow, 'category'>): ChecklistArea {
   return row.category && AREA_IDS.has(row.category) ? (row.category as ChecklistArea) : 'ovrigt';
 }
 
+/**
+ * True when the row's category actually names an area. Stricter than `areaOf`,
+ * which falls back to 'ovrigt' — that fallback is right for a check (it has to
+ * land somewhere) and wrong for a milestone: one with no area, with the
+ * 'wedding_day' sentinel, or with Ava's free-text category must stay off the
+ * checklist rather than pile up under Øvrigt.
+ */
+export function hasArea(row: Pick<TimelineTaskRow, 'category'>): boolean {
+  return row.category != null && AREA_IDS.has(row.category);
+}
+
 export function areaLabel(id: ChecklistArea): string {
   return CHECKLIST_AREAS.find((a) => a.id === id)?.label ?? 'Øvrigt';
 }
 
 /* ── Which areas are unfolded ─────────────────────────────────────────── */
 
-const OPEN_AREAS_KEY = 'kalas_checklist_open';
+/**
+ * Every area starts folded away on a fresh load, so the twelve groups fit on
+ * one screen instead of 205 rows, and you open the one you want to work in.
+ *
+ * Module scope rather than storage: switching to the Tidslinje tab unmounts the
+ * checklist, and losing your place on the way back would be its own annoyance —
+ * but the choice is not worth surviving a reload. Deliberately not
+ * sessionStorage, which kept areas open across reloads.
+ */
+let openAreasMemo = new Set<ChecklistArea>();
 
-/** Split out from `readOpenAreas` so the parsing is testable without a DOM.
- *  Unknown ids are dropped: a value stored before an area was renamed must
- *  not resurrect a group that no longer exists. */
-export function parseOpenAreas(raw: string | null): Set<ChecklistArea> {
-  if (!raw) return new Set();
-  try {
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return new Set();
-    return new Set(
-      parsed.filter((id): id is ChecklistArea => typeof id === 'string' && AREA_IDS.has(id)),
-    );
-  } catch {
-    return new Set();
-  }
-}
-
-export function serializeOpenAreas(open: Set<ChecklistArea>): string {
-  return JSON.stringify([...open]);
-}
-
-/** Empty means every area is folded away — the deliberate starting point, so
- *  all 12 groups fit on one screen instead of 205 rows. sessionStorage, like
- *  the tab choice: view state, not a preference worth keeping for good. */
 export function readOpenAreas(): Set<ChecklistArea> {
-  if (typeof window === 'undefined') return new Set();
-  try {
-    return parseOpenAreas(sessionStorage.getItem(OPEN_AREAS_KEY));
-  } catch {
-    return new Set();
-  }
+  return new Set(openAreasMemo);
 }
 
 export function writeOpenAreas(open: Set<ChecklistArea>) {
-  if (typeof window === 'undefined') return;
-  try {
-    sessionStorage.setItem(OPEN_AREAS_KEY, serializeOpenAreas(open));
-  } catch {
-    /* private mode or quota — folding just stops being remembered */
-  }
+  openAreasMemo = new Set(open);
 }
 
-/** Groups check rows by area, preserving CHECKLIST_AREAS order. Areas with no
- *  rows are dropped, so an untouched 'ovrigt' bucket never renders. */
-export function groupByArea<T extends Pick<TimelineTaskRow, 'category' | 'sort' | 'created_at'>>(
+/** Groups rows by area, preserving CHECKLIST_AREAS order. Areas with no rows
+ *  are dropped, so an untouched 'ovrigt' bucket never renders. Within an area a
+ *  milestone comes first — it is the big decision the small print hangs off. */
+export function groupByArea<T extends Pick<TimelineTaskRow, 'category' | 'sort' | 'created_at' | 'kind'>>(
   rows: T[],
 ): { area: ChecklistArea; items: T[] }[] {
   const buckets = new Map<ChecklistArea, T[]>();
@@ -136,15 +137,42 @@ export function groupByArea<T extends Pick<TimelineTaskRow, 'category' | 'sort' 
   return CHECKLIST_AREAS.flatMap(({ id }) => {
     const items = buckets.get(id);
     if (!items || items.length === 0) return [];
-    items.sort((a, b) => a.sort - b.sort || a.created_at.localeCompare(b.created_at));
+    // Milestone first, then the couple's own order. The two kinds run separate
+    // `sort` series (0-13 and 0-204), so comparing them numerically is meaningless.
+    items.sort((a, b) =>
+      (Number(isCheck(a)) - Number(isCheck(b)))
+      || a.sort - b.sort
+      || a.created_at.localeCompare(b.created_at));
     return [{ area: id, items }];
   });
 }
 
 /* ── Dates & status ───────────────────────────────────────────────────── */
 
-export function daysDiff(dateISO: string): number {
-  return Math.round((new Date(dateISO).getTime() - TODAY.getTime()) / 86400000);
+/**
+ * The real local calendar day, as ISO.
+ *
+ * Deliberately not `TODAY` from data.ts: that constant is frozen at
+ * 2026-06-14 to anchor the mock content, and the planning screen was reading
+ * it as the current date — so every "Forsinket" / "Snart" / "I dag" label, and
+ * the countdown on the Tidslinje tab, was answering as of a day in June.
+ * Built from local parts rather than toISOString(), which would report
+ * yesterday for anyone east of UTC late in the evening.
+ */
+export function todayISO(): string {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${now.getFullYear()}-${month}-${day}`;
+}
+
+/** Whole days from `from` (default: today) to `dateISO`, negative for the past.
+ *  Both sides are parsed at local midnight, so the result is a count of
+ *  calendar days and never drifts by an hour across a DST boundary. */
+export function daysDiff(dateISO: string, from: string = todayISO()): number {
+  const target = new Date(`${dateISO}T00:00:00`).getTime();
+  const origin = new Date(`${from}T00:00:00`).getTime();
+  return Math.round((target - origin) / 86400000);
 }
 
 export function formatDate(dateISO: string): string {
@@ -174,6 +202,90 @@ export function statusLabel(
   if (diff === 0) return t('I dag');
   if (diff > 0 && diff <= 14) return t('Snart');
   return t('Planlagt');
+}
+
+/* ── Timeline bands ───────────────────────────────────────────────────── */
+
+/**
+ * A month that holds dated tasks, or the empty stretch between two such
+ * months. The Tidslinje tab draws these down a single spine, so time reads
+ * continuously: an eight-month lull is visible as an eight-month lull, not as
+ * two rows sitting next to each other.
+ */
+export type TimelineBand<T> =
+  | { kind: 'month'; key: string; monthISO: string; items: T[]; todayIndex: number | null }
+  | { kind: 'gap'; key: string; months: number };
+
+/** Months since year 0 — the arithmetic that makes month distance subtraction. */
+function monthIndex(dateISO: string): number {
+  const [y, m] = dateISO.split('-');
+  return Number(y) * 12 + (Number(m) - 1);
+}
+
+function monthKeyOf(dateISO: string): string {
+  return dateISO.slice(0, 7);
+}
+
+function monthISOFromIndex(index: number): string {
+  const year = Math.floor(index / 12);
+  const month = (index % 12) + 1;
+  return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-01`;
+}
+
+/**
+ * Group dated tasks into month bands, with the empty months between them
+ * collapsed into gap bands that state how long the lull is.
+ *
+ * `todayISO` always gets a band of its own even when nothing is planned that
+ * month — the marker is the reader's "you are here", and it cannot sit inside
+ * a gap without claiming that month is empty *and* current at once.
+ *
+ * Items are expected sorted ascending by date; the caller already sorts them
+ * to render, and sorting twice would be the only reason to copy the array.
+ * `todayIndex` is how many of the month's items fall before today, so the
+ * marker can be drawn between two rows rather than always above them.
+ */
+export function buildTimelineBands<T extends { dateISO: string | null }>(
+  items: T[],
+  todayISO: string,
+): TimelineBand<T>[] {
+  const dated = items.filter((i): i is T & { dateISO: string } => i.dateISO != null);
+  if (dated.length === 0) return [];
+
+  const byMonth = new Map<string, T[]>();
+  for (const item of dated) {
+    const key = monthKeyOf(item.dateISO);
+    const bucket = byMonth.get(key);
+    if (bucket) bucket.push(item);
+    else byMonth.set(key, [item]);
+  }
+
+  const todayKey = monthKeyOf(todayISO);
+  const occupied = [...new Set([...byMonth.keys(), todayKey])].sort();
+
+  const bands: TimelineBand<T>[] = [];
+  let previous: number | null = null;
+
+  for (const key of occupied) {
+    const index = monthIndex(`${key}-01`);
+    if (previous !== null && index - previous > 1) {
+      bands.push({ kind: 'gap', key: `gap-${previous}`, months: index - previous - 1 });
+    }
+    const monthItems = byMonth.get(key) ?? [];
+    bands.push({
+      kind: 'month',
+      key,
+      monthISO: monthISOFromIndex(index),
+      items: monthItems,
+      todayIndex:
+        key === todayKey
+          ? monthItems.filter((i) => (i.dateISO as string) < todayISO).length
+          : null,
+    });
+    previous = index;
+  }
+
+  return bands;
 }
 
 /* ── Filters (shared by both tabs) ────────────────────────────────────── */
