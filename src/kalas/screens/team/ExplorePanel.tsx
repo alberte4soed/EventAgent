@@ -7,14 +7,12 @@ import type { HubCat, HubTab } from './shared';
 
 export default function ExplorePanel({
   cat,
-  query,
   venueView,
   onVenueViewChange,
   onNavigate,
   onSwitchTab,
 }: {
   cat: HubCat;
-  query: string;
   venueView: VenueHubView;
   onVenueViewChange: (view: VenueHubView) => void;
   onNavigate?: (s: NavigateTarget) => void;
@@ -30,7 +28,6 @@ export default function ExplorePanel({
           view: venueView === 'review' ? 'discover' : venueView,
           onViewChange: onVenueViewChange,
           onSwitchTab: onSwitchTab,
-          searchQuery: query,
           category: cat,
           showHint: false,
         }}

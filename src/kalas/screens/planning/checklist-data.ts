@@ -11,7 +11,7 @@ import type { ChecklistArea } from './shared';
    and ægteskabserklæring, salmer and kirkepynt, sanghæfte and indsamlede
    sange, toastmaster, brudevals før midnat, æresport, ris/sæbebobler.
 
-   Every title needs an English entry in strings.ts — TaskRow renders stored
+   Every title needs an English entry in strings.ts, TaskRow renders stored
    titles through t(), so an untranslated seed shows up as Danish text in an
    otherwise English list. */
 

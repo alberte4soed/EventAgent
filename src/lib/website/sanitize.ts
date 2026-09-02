@@ -1,7 +1,7 @@
 /* The trust boundary for model-built site HTML. Everything Gemini emits
    passes through here before storage: an allowlist sanitizer (no scripts,
    frames, forms, handlers or real URLs) plus a CSS scrub of the style block.
-   Images may only be {{img:ALIAS}} tokens — real URLs are substituted
+   Images may only be {{img:ALIAS}} tokens, real URLs are substituted
    per-request at serve time (resolveHtml.ts), so stored markup never fetches
    anything the platform didn't mint. */
 

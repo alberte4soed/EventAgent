@@ -59,7 +59,7 @@ const suggestionSchema: Schema = {
 
 const PROMPT = (country: string, language: string) => `
 You are a honeymoon-travel curator for newlywed couples.
-For the country "${country}", suggest exactly 8 dreamy honeymoon destinations couples actually go to —
+For the country "${country}", suggest exactly 8 dreamy honeymoon destinations couples actually go to,
 spread across these moods: "beach" (islands, coast, lagoons), "adventure" (mountains, deserts, safari, trekking),
 "city" (romantic cities, culture, food), and "nature" (lakes, wine country, rainforest, hot springs).
 Aim for at least 2 different kinds; favour variety over ten versions of the same beach.

@@ -13,7 +13,7 @@ import {
   type PlaceResult,
 } from "@/lib/places/client";
 import type { VendorCategory } from "@/lib/db/types";
-import type { OnboardingVenueSuggestion } from "@/app/api/onboarding/venues/route";
+import type { PlaceSuggestion } from "@/lib/venue/search";
 
 /**
  * POST /api/onboarding/vendors
@@ -122,7 +122,7 @@ function prompt(args: {
   return `Search the web and find up to ${TARGET} REAL ${args.cat.noun} in or near "${args.location}"${guestLine}.
 ${budgetLine} ${queryLine}
 
-Research each candidate on their own website and recent references — not one listicle.
+Research each candidate on their own website and recent references, not one listicle.
 For EACH one, report in plain text:
 - Name
 - Short description (what they offer, style/atmosphere)
@@ -134,7 +134,7 @@ For EACH one, report in plain text:
 ${asks}
 
 Only include real, currently-operating businesses local to ${args.location} with a verifiable web presence.
-Genuinely good, well-reviewed options only — skip filler to reach a count.`;
+Genuinely good, well-reviewed options only, skip filler to reach a count.`;
 }
 
 async function research(args: Parameters<typeof prompt>[0]): Promise<ExtractedVenue[]> {
@@ -165,7 +165,7 @@ async function enrich(
   extracted: ExtractedVenue,
   location: string,
   cat: CatSearch
-): Promise<OnboardingVenueSuggestion | null> {
+): Promise<PlaceSuggestion | null> {
   const place = await matchPlace(extracted.name, location);
 
   // Accommodation must be real lodging with a photo — hotels are well covered.
@@ -194,6 +194,9 @@ async function enrich(
     rating: resolved?.rating ?? null,
     review_count: resolved?.userRatingCount ?? null,
     place_id: place?.id ?? null,
+    website: resolved?.websiteUri ?? extracted.website ?? null,
+    lat: resolved?.location?.latitude ?? null,
+    lng: resolved?.location?.longitude ?? null,
   };
 }
 
@@ -220,7 +223,7 @@ export async function POST(request: NextRequest) {
   const lang = body.lang === "en" ? "en" : "da";
 
   const key = `onboarding-vendors:v1:${lang}:${catKey}:${location.toLowerCase()}:${guestCount ?? 0}`;
-  const cached = await cacheGet<OnboardingVenueSuggestion[]>(key);
+  const cached = await cacheGet<PlaceSuggestion[]>(key);
   if (cached?.length) return Response.json({ vendors: cached, category: cat.backend });
 
   let extracted: ExtractedVenue[] = [];
@@ -233,7 +236,7 @@ export async function POST(request: NextRequest) {
 
   const seenPlaces = new Set<string>();
   const seenNames = new Set<string>();
-  const vendors: OnboardingVenueSuggestion[] = [];
+  const vendors: PlaceSuggestion[] = [];
   for (const item of extracted) {
     if (vendors.length >= TARGET) break;
     const enriched = await enrich(item, location, cat);

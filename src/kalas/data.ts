@@ -1,5 +1,5 @@
 /* Central mock data for Kalas. Every SaaS surface is *pre-populated* from
-   the onboarding interview — nothing is an empty bucket. This module is the
+   the onboarding interview, nothing is an empty bucket. This module is the
    single source of truth the screens read from. */
 
 export const img = (id: string, w = 1100) =>
@@ -72,7 +72,7 @@ export const queue: QueueItem[] = [
     index: '01',
     kicker: 'Venue · shortlist',
     title: `Jeg har fundet 12 steder, der matcher jeres stil '${couple.style}' og budget på ${Math.round(couple.budgetTotal / 3000)}.000 kr.`,
-    body: 'Klar til at swipe igennem? Det tager omkring tre minutter — I markerer dem, I elsker, og jeg rækker ud i morgen tidlig.',
+    body: 'Klar til at swipe igennem? Det tager omkring tre minutter, I markerer dem, I elsker, og jeg rækker ud i morgen tidlig.',
     image: 'orangeri',
     primary: 'Start swipe-mode',
     secondary: 'Senere',
@@ -110,18 +110,18 @@ export type Task = {
 };
 
 export const timeline: Task[] = [
-  { id: 't1', title: 'Sæt budget & gæsteliste', description: 'Skab rammen — alt andet hænger på de to tal.', dateISO: '2025-07-12', status: 'done', owner: 'couple' },
+  { id: 't1', title: 'Sæt budget & gæsteliste', description: 'Skab rammen, alt andet hænger på de to tal.', dateISO: '2025-07-12', status: 'done', owner: 'couple' },
   { id: 't2', title: 'Book venue', description: 'Vigtigste beslutning. Avas top 3 ligger klar.', dateISO: '2025-09-12', status: 'done', owner: 'couple' },
   { id: 't3', title: 'Save-the-dates', description: 'Især hvis I gifter jer i højsæson eller i udlandet.', dateISO: '2025-10-12', status: 'done', owner: 'couple' },
   { id: 't4', title: 'Book fotograf', description: 'Editorial-fotografer booker 12-18 mdr. i forvejen.', dateISO: '2025-11-12', status: 'done', owner: 'couple' },
   { id: 't5', title: 'Brudekjole & jakkesæt', description: 'Regn med 3-4 prøvninger og tilretning.', dateISO: '2026-01-12', status: 'done', owner: 'couple' },
   { id: 't6', title: 'Florist & dekoration', description: 'Brief: stil, palet, antal borde.', dateISO: '2026-03-12', status: 'done', owner: 'ava' },
-  { id: 't7', title: 'Musik / DJ / band', description: 'Ceremoni, middag, fest — tre forskellige stemninger.', dateISO: '2026-03-12', status: 'done', owner: 'ava' },
+  { id: 't7', title: 'Musik / DJ / band', description: 'Ceremoni, middag, fest, tre forskellige stemninger.', dateISO: '2026-03-12', status: 'done', owner: 'ava' },
   { id: 't8', title: 'Kage & dessert', description: 'Smagsprøver bør ske 2-3 mdr. inden.', dateISO: '2026-04-12', status: 'done', owner: 'ava' },
   { id: 't9', title: 'Vielsesattest & jura', description: 'Prøvelsesattest gælder kun 4 måneder.', dateISO: '2026-06-12', status: 'done', owner: 'couple' },
-  { id: 't10', title: 'Endelig prøvepasning', description: 'Tøj, sko, smykker — alt samlet én gang.', dateISO: '2026-07-12', status: 'active', owner: 'couple' },
+  { id: 't10', title: 'Endelig prøvepasning', description: 'Tøj, sko, smykker, alt samlet én gang.', dateISO: '2026-07-12', status: 'active', owner: 'couple' },
   { id: 't11', title: 'Bordplan & menu låst', description: 'Trækkes fra RSVP-svar.', dateISO: '2026-08-12', status: 'upcoming', owner: 'couple' },
-  { id: 't12', title: 'Invitationer sendt', description: 'Send 8-10 uger inden — giv gæsterne tid.', dateISO: '2026-08-20', status: 'upcoming', owner: 'couple' },
+  { id: 't12', title: 'Invitationer sendt', description: 'Send 8-10 uger inden, giv gæsterne tid.', dateISO: '2026-08-20', status: 'upcoming', owner: 'couple' },
   { id: 't13', title: 'Koordinering med leverandører', description: 'Bekræft alle tider og fremmøde.', dateISO: '2026-09-05', status: 'upcoming', owner: 'ava' },
   { id: 't14', title: 'Jeres dag', description: 'Bare vær til stede.', dateISO: '2026-09-12', status: 'upcoming', owner: 'couple' },
 ];
@@ -133,8 +133,8 @@ export type BudgetLine = {
   pct: number;          // share of total
   spent: number;        // DKK committed/paid
   hint: string;
-  icon: string;         // BudgetIconId — fixed for standards, pickable for custom
-  color: string;        // hex — fixed for standards, pickable for custom
+  icon: string;         // BudgetIconId, fixed for standards, pickable for custom
+  color: string;        // hex, fixed for standards, pickable for custom
 };
 
 export const budgetLines: BudgetLine[] = [
@@ -191,14 +191,14 @@ export const venueCompare: VenueCompare[] = [
     available: true, image: 'orangeri',
   },
   {
-    id: 'sohuset', name: 'Søhuset Pier', note: 'Smukkest til middag — kortere aften',
+    id: 'sohuset', name: 'Søhuset Pier', note: 'Smukkest til middag, kortere aften',
     price: '78.500 kr', capacity: 'Op til 110 gæster',
     included: ['Catering inkluderet', 'Lydanlæg', 'Levende lys'],
     excluded: ['Værelser ikke inkluderet', 'Sluttid kl. 01'],
     available: true, image: 'longTable',
   },
   {
-    id: 'lade', name: 'Lille Lade', note: 'Datoen er optaget — bedt om alternativ weekend',
+    id: 'lade', name: 'Lille Lade', note: 'Datoen er optaget, bedt om alternativ weekend',
     price: '52.000 kr', capacity: 'Op til 160 gæster',
     included: ['Råt rum', 'Adgang dagen før', 'Egen catering tilladt'],
     excluded: ['Intet køkken', 'Toiletter udendørs'],
@@ -273,7 +273,7 @@ export const venueRecs: VenueRec[] = [
       'Indenfor 250.000 kr budget',
       'Lignende steder fik jeres ❤️',
     ],
-    quote: 'Lyset her ved skumring er ikke til at beskrive — det er den slags, der gør fotografer glade.',
+    quote: 'Lyset her ved skumring er ikke til at beskrive, det er den slags, der gør fotografer glade.',
   },
   {
     id: 'kokkedal',
@@ -285,7 +285,7 @@ export const venueRecs: VenueRec[] = [
     capacity: '130 gæster',
     tags: ['SLOTSPARK', 'OVERNATNING 24', 'EGET KØKKEN'],
     why: [
-      'European Romance 95% — stærkt match',
+      'European Romance 95%, stærkt match',
       'Botanisk have matcher Natural Elegance',
       'Historisk charme, moderne service',
       'Ava anbefaler lørdag 12. september',
@@ -335,20 +335,20 @@ export const guests: Guest[] = [
 export type ChatMsg = { id: string; from: 'ava' | 'me'; text: string };
 
 export const avaThread: ChatMsg[] = [
-  { id: 'c1', from: 'ava', text: 'Godmorgen! Sonnerupgaard svarede i nat — datoen er ledig, og de tilbyder orangeriet til 58.000 kr. inkl. borde og stole. Skal jeg booke en visning?' },
-  { id: 'c2', from: 'me', text: 'Ja tak — gerne en lørdag.' },
+  { id: 'c1', from: 'ava', text: 'Godmorgen! Sonnerupgaard svarede i nat, datoen er ledig, og de tilbyder orangeriet til 58.000 kr. inkl. borde og stole. Skal jeg booke en visning?' },
+  { id: 'c2', from: 'me', text: 'Ja tak, gerne en lørdag.' },
   { id: 'c3', from: 'ava', text: 'Perfekt. Jeg foreslår lørdag d. 28. juni kl. 11. Jeg sender en bekræftelse, så snart de svarer. Imens: vil I se de tre fotograftilbud side om side?' },
 ];
 
 export const onboardingScript: ChatMsg[] = [
-  { id: 'o1', from: 'ava', text: 'Hej Emma og Frederik. Jeg er Ava — jeg planlægger jeres bryllup, så I kan nyde det. Lad os tage en kort snak. Hvornår drømmer I om at gifte jer?' },
+  { id: 'o1', from: 'ava', text: 'Hej Emma og Frederik. Jeg er Ava, jeg planlægger jeres bryllup, så I kan nyde det. Lad os tage en kort snak. Hvornår drømmer I om at gifte jer?' },
   { id: 'o2', from: 'me', text: 'Vi tænker september næste år, gerne en lørdag.' },
-  { id: 'o3', from: 'ava', text: 'Dejligt — sensommer er smukt. Hvor mange gæster regner I cirka med?' },
+  { id: 'o3', from: 'ava', text: 'Dejligt, sensommer er smukt. Hvor mange gæster regner I cirka med?' },
   { id: 'o4', from: 'me', text: 'Omkring 120.' },
   { id: 'o5', from: 'ava', text: 'Noteret. Og hvor i landet? Hvor langt vil I rejse for det rette sted?' },
   { id: 'o6', from: 'me', text: 'Sjælland, nær København. Op til en times kørsel.' },
-  { id: 'o7', from: 'ava', text: 'Sidste store: hvad er jeres samlede budget — et cirkatal er fint.' },
+  { id: 'o7', from: 'ava', text: 'Sidste store: hvad er jeres samlede budget, et cirkatal er fint.' },
   { id: 'o8', from: 'me', text: 'Vi har sat 180.000 af.' },
   { id: 'o9', from: 'ava', text: 'Og stemningen? Beskriv det med tre ord, eller vis mig et billede.' },
-  { id: 'o10', from: 'me', text: 'Rustik elegance — lange borde, stearinlys, et glashus eller en lade.' },
+  { id: 'o10', from: 'me', text: 'Rustik elegance, lange borde, stearinlys, et glashus eller en lade.' },
 ];

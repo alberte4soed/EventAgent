@@ -20,12 +20,12 @@ describe("parseProduct", () => {
 
   it("falls back to JSON-LD offers and hostname store name", () => {
     const html = `
-      <title>Nice Lamp — MyShop</title>
+      <title>Nice Lamp, MyShop</title>
       <script type="application/ld+json">
         {"@type":"Product","name":"Nice Lamp","offers":{"@type":"Offer","price":"499.5","priceCurrency":"EUR"}}
       </script>`;
     const p = parseProduct(html, "https://www.myshop.com/lamp");
-    expect(p.title).toBe("Nice Lamp — MyShop");
+    expect(p.title).toBe("Nice Lamp, MyShop");
     expect(p.storeName).toBe("myshop.com");
     expect(p.priceCents).toBe(49950);
     expect(p.currency).toBe("EUR");

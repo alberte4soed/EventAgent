@@ -1,6 +1,8 @@
 // Pure venue/vendor ranking. Extracted so it can be unit-tested without the
 // Gemini/Supabase machinery around the search pipeline.
 
+import { budgetFitScore, capacityFitScore, capacityOf, estimatedTotal, type VenueFacts } from "./venue/facts";
+
 export interface RankableExtracted {
   capacity?: string | null;
   description?: string | null;
@@ -19,15 +21,29 @@ export function ratingScore(rating?: number, reviewCount?: number): number {
   return (rating * n + 4.2 * 10) / (n + 10);
 }
 
+export interface RankOptions {
+  /** Structured facts, when the caller has them. Scores capacity and budget
+   *  on the same curves the explore page's filter uses, so Ava and the
+   *  couple rank a venue the same way. */
+  facts?: VenueFacts | null;
+  /** The couple's venue budget, in local currency. */
+  budget?: number | null;
+}
+
 export function rankScore(
   candidate: { extracted: RankableExtracted; place: RankablePlace | null },
   guestCount: number | null | undefined,
-  vibes: string[]
+  vibes: string[],
+  opts: RankOptions = {}
 ): number {
   let score = ratingScore(candidate.place?.rating, candidate.place?.userRatingCount);
 
-  // Capacity fit: any number in the capacity text that covers the guest count.
-  if (guestCount && candidate.extracted.capacity) {
+  if (opts.facts) {
+    score += capacityFitScore(capacityOf(opts.facts), guestCount);
+    score += budgetFitScore(estimatedTotal(opts.facts, guestCount), opts.budget);
+  } else if (guestCount && candidate.extracted.capacity) {
+    // No structured facts: fall back to any number in the capacity text that
+    // covers the guest count.
     const numbers = candidate.extracted.capacity.match(/\d+/g)?.map(Number) ?? [];
     if (numbers.some((n) => n >= guestCount)) score += 0.1;
   }

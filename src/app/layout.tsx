@@ -33,9 +33,9 @@ const ebGaramond = EB_Garamond({
 });
 
 export const metadata: Metadata = {
-  title: "Kalas — plan the wedding, skip the stress",
+  title: "Kalas, plan the wedding, skip the stress",
   description:
-    "Kalas is your wedding-planning agent: it finds venues, contacts them for quotes, designs invites, and tracks RSVPs — all from your own Gmail.",
+    "Kalas is your wedding-planning agent: it finds venues, contacts them for quotes, designs invites, and tracks RSVPs, all from your own Gmail.",
 };
 
 export default function RootLayout({

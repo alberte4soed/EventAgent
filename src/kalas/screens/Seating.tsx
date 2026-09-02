@@ -1,424 +1,743 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
-import { Plus, X, Minus, Check, ChevronDown, Trash2, Sparkles, GripVertical } from 'lucide-react';
-import { Eyebrow, Pill, Chip, cn } from '../ui';
+"use client";
+
+/* Bordplan — the seating chart.
+ *
+ * It was a mock: a hardcoded roster of made-up Danes, tables that held a bag
+ * of names rather than chairs, and no way to say who sits next to whom. What a
+ * couple actually needs from this screen is a drawing they can hand to a
+ * venue, so the plan now has real chairs and this is a canvas.
+ *
+ * One interaction, three ways in. Picking a guest up and putting them down is
+ * the only verb: drag them, or click once to lift and once to drop, or tab to
+ * them and press Enter twice. All three run through the same `pick`/`place`
+ * pair, so the pointer path and the keyboard path can never drift apart — and
+ * the click path is what makes this usable on a tablet, which is where a lot
+ * of seating plans actually get argued over.
+ *
+ * All the seating logic lives in ./seating/model.ts and is unit-tested; this
+ * file is the surface. */
+
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import {
+  Plus, Minus, Trash2, Printer, Circle, RectangleHorizontal, Crown,
+  Search, Maximize2, Users, X, CornerUpLeft,
+} from 'lucide-react';
+import { Eyebrow, cn } from '../ui';
 import { useLang } from '../i18n';
 import { useWedding } from '../useWedding';
+import { TableNode } from './seating/TableNode';
+import {
+  MAX_SEATS, MIN_SEATS, SHAPES, changeShape, firstFreeSeat, freeSeats, initials,
+  makeTable, pruneToGuests, readPlan, seatGuest, seatOf, seatedIds, setSeatCount,
+  tableBounds, unseatGuest,
+  type PlanGuest, type SeatingPlan, type TableShape,
+} from './seating/model';
 
-/* ── Types ─────────────────────────────────────────────────────────── */
-type Shape = 'round' | 'rect' | 'horseshoe';
-
-type TableDef = {
-  id: string;
-  name: string;
-  shape: Shape;
-  capacity: number;
-  guestIds: string[];
+const SHAPE_ICON: Record<TableShape, typeof Circle> = {
+  round: Circle,
+  rect: RectangleHorizontal,
+  head: Crown,
 };
 
-type Guest = { id: string; name: string; group: string };
+/* 50% is where the plan opens, not where it stops — a room with a dozen
+   tables needs to get further away than the default. */
+const ZOOMS = [0.25, 0.35, 0.5, 0.65, 0.8, 1, 1.25, 1.5];
 
-/* ── Shape config ─────────────────────────────────────────────────── */
-const SHAPE_META: Record<Shape, { label: string; defaultCap: number; desc: string }> = {
-  round:      { label: 'Rundt bord',  defaultCap: 8,  desc: 'Typisk 6–12 gæster' },
-  rect:       { label: 'Langbord',    defaultCap: 12, desc: 'Typisk 8–20 gæster' },
-  horseshoe:  { label: 'Hestesko',    defaultCap: 20, desc: 'Typisk 14–30 gæster' },
-};
+/* The plan opens zoomed out. A seating chart is read as a room before it is
+   read as a list of names, at 100% you are nose-to-nose with two tables and
+   have to scroll to find out how many there are. */
+const DEFAULT_ZOOM = 0.5;
 
-/* ── Guest groups + roster ─────────────────────────────────────────── */
-const GROUP_COLORS: Record<string, string> = {
-  'Emmas familie':      '#6A8C5A',
-  'Frederiks familie':  '#9B7040',
-  'Venner':             '#4A7A9B',
-  'Emmas kolleger':     '#8A5A6A',
-  'Frederiks kolleger': '#5A7A5A',
-  'Brudepar':           '#314523',
-};
-
-// Stable colour for any group label (real guest sides fall outside the map).
-const GROUP_PALETTE = ['#6A8C5A', '#9B7040', '#4A7A9B', '#8A5A6A', '#5A7A5A', '#314523', '#7A6A9B'];
-function colorFor(group: string): string {
-  if (GROUP_COLORS[group]) return GROUP_COLORS[group];
-  let h = 0;
-  for (let i = 0; i < group.length; i++) h = (h * 31 + group.charCodeAt(i)) >>> 0;
-  return GROUP_PALETTE[h % GROUP_PALETTE.length];
+/* Step to the next zoom stop.
+ *
+ * Deliberately by nearest value rather than indexOf: a zoom that is not
+ * exactly one of the stops made indexOf return -1, and `-1 - 1` clamped to 0 —
+ * so one press of the minus button jumped straight from wherever you were to
+ * 50%. Nearest-stop stepping cannot do that whatever the current value is. */
+function stepZoom(current: number, dir: 1 | -1): number {
+  let nearest = 0;
+  for (let i = 1; i < ZOOMS.length; i++) {
+    if (Math.abs(ZOOMS[i] - current) < Math.abs(ZOOMS[nearest] - current)) nearest = i;
+  }
+  return ZOOMS[Math.min(ZOOMS.length - 1, Math.max(0, nearest + dir))];
 }
+/* The scrollable plane starts near the size of the window rather than at a
+   fixed 1500x1050. A plan with two tables on it used to leave most of a
+   screen of empty grid to scroll through, and pushed the totals below the
+   fold, the numbers a venue asks for should be on screen, not down there. */
+const PLANE_MIN = { w: 880, h: 520 };
+const PLANE_PAD = 100;
 
-const ALL_GUESTS: Guest[] = [
-  { id: 'b1',  name: 'Emma',          group: 'Brudepar' },
-  { id: 'b2',  name: 'Frederik',      group: 'Brudepar' },
-  { id: 'ef1', name: 'Kirsten H.',    group: 'Emmas familie' },
-  { id: 'ef2', name: 'Steen H.',      group: 'Emmas familie' },
-  { id: 'ef3', name: 'Louise H.',     group: 'Emmas familie' },
-  { id: 'ef4', name: 'Peter H.',      group: 'Emmas familie' },
-  { id: 'ef5', name: 'Mia A.',        group: 'Emmas familie' },
-  { id: 'ef6', name: 'Lars A.',       group: 'Emmas familie' },
-  { id: 'ef7', name: 'Sofia L.',      group: 'Emmas familie' },
-  { id: 'ef8', name: 'Thomas L.',     group: 'Emmas familie' },
-  { id: 'ff1', name: 'Birgit N.',     group: 'Frederiks familie' },
-  { id: 'ff2', name: 'Jens N.',       group: 'Frederiks familie' },
-  { id: 'ff3', name: 'Marie P.',      group: 'Frederiks familie' },
-  { id: 'ff4', name: 'Ole P.',        group: 'Frederiks familie' },
-  { id: 'ff5', name: 'Trine R.',      group: 'Frederiks familie' },
-  { id: 'ff6', name: 'Klaus R.',      group: 'Frederiks familie' },
-  { id: 'v1',  name: 'Julie W.',      group: 'Venner' },
-  { id: 'v2',  name: 'Mikkel W.',     group: 'Venner' },
-  { id: 'v3',  name: 'Sara X.',       group: 'Venner' },
-  { id: 'v4',  name: 'Jonas X.',      group: 'Venner' },
-  { id: 'v5',  name: 'Camilla Y.',    group: 'Venner' },
-  { id: 'v6',  name: 'Andreas Y.',    group: 'Venner' },
-  { id: 'v7',  name: 'Ida Z.',        group: 'Venner' },
-  { id: 'v8',  name: 'Tobias Z.',     group: 'Venner' },
-  { id: 'ek1', name: 'Rikke Ah.',     group: 'Emmas kolleger' },
-  { id: 'ek2', name: 'Simon Ah.',     group: 'Emmas kolleger' },
-  { id: 'ek3', name: 'Louise Ai.',    group: 'Emmas kolleger' },
-  { id: 'ek4', name: 'Christian Ai.', group: 'Emmas kolleger' },
-  { id: 'fk1', name: 'Birthe An.',    group: 'Frederiks kolleger' },
-  { id: 'fk2', name: 'Preben An.',    group: 'Frederiks kolleger' },
-  { id: 'fk3', name: 'Gitte Ao.',     group: 'Frederiks kolleger' },
-  { id: 'fk4', name: 'Carsten Ao.',   group: 'Frederiks kolleger' },
-];
-
-/* ── Initial state ─────────────────────────────────────────────────── */
-const INIT_TABLES: TableDef[] = [
-  { id: 'head', name: 'Brudebordet', shape: 'rect',  capacity: 10, guestIds: [] },
-  { id: 't1',   name: 'Bord 1',      shape: 'round', capacity: 8,  guestIds: [] },
-  { id: 't2',   name: 'Bord 2',      shape: 'round', capacity: 8,  guestIds: [] },
-  { id: 't3',   name: 'Bord 3',      shape: 'round', capacity: 8,  guestIds: [] },
-];
-
-/* ── Floor plan layout ─────────────────────────────────────────────── */
-// Max 4 regular tables per row; head table always at top center
-const ROW_XS   = [80, 215, 425, 560];     // x positions for 4-column grid
-const ROW_YS   = [150, 260, 365];          // y positions for 3 rows
-const VIEW_W   = 640;
-const VIEW_H   = 410;
-
-function tablePositions(tables: TableDef[]) {
-  const regular = tables.filter((t) => t.id !== 'head');
-  return regular.map((t, i) => {
-    const row = Math.floor(i / 4);
-    const col = i % 4;
-    const rowCount = Math.min(4, regular.length - row * 4);
-    // center fewer tables in the row
-    const totalRowW = ROW_XS[rowCount - 1] - ROW_XS[0];
-    const offsetX = (VIEW_W - totalRowW - ROW_XS[0] * 2) / 2;
-    return { id: t.id, cx: ROW_XS[col] + Math.max(0, offsetX), cy: ROW_YS[Math.min(row, 2)] };
-  });
-}
-
-/* ══════════════════════════════════════════════════════════════════════
-   MAIN EXPORT
-══════════════════════════════════════════════════════════════════════ */
 export default function Seating() {
   const { t } = useLang();
   const reduce = useReducedMotion();
-  const { loading, guests, seatingPlan, saveSeating } = useWedding();
-  const [tables, setTables]     = useState<TableDef[]>(INIT_TABLES);
-  const [positions, setPositions] = useState<Record<string, { x: number; y: number }>>({});
-  const [activeId, setActiveId] = useState<string>('t1');
-  const [expanded, setExpanded] = useState<string | null>(null);
+  const { loading, guests, couple, seatingPlan, saveSeating } = useWedding();
 
-  // Per-instance id counter (avoids a module-global that collides on remount).
-  const idRef = useRef(10);
-  const mkId = () => `t${idRef.current++}`;
+  const [plan, setPlan] = useState<SeatingPlan>({ version: 2, tables: [] });
+  const [held, setHeld] = useState<string | null>(null);
+  const [drag, setDrag] = useState<{ guestId: string; x: number; y: number } | null>(null);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [zoom, setZoom] = useState(DEFAULT_ZOOM);
+  const [query, setQuery] = useState('');
+  const [onlyUnseated, setOnlyUnseated] = useState(true);
+  const [say, setSay] = useState('');
+  /* The print sheet is portalled to <body>, which does not exist while this
+     renders on the server, so it waits for the client. A one-shot mount flag
+     is the whole point here; it cannot cascade, because nothing sets it back.
+     eslint-disable-next-line react-hooks/set-state-in-effect */
+  const [mounted, setMounted] = useState(false);
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { setMounted(true); }, []);
 
-  // Seat the real guest list; fall back to the demo roster only when the
-  // couple hasn't added anyone yet.
-  const pool: Guest[] = guests.length
-    ? guests.map((g) => ({ id: g.id, name: g.name, group: g.side || 'Gæster' }))
-    : ALL_GUESTS;
+  /* ── The guest list, as the plan sees it ───────────────────────────── */
+  const pool: PlanGuest[] = useMemo(() => guests.map((g) => ({
+    id: g.id,
+    name: g.name,
+    group: g.side?.trim() || t('Gæster'),
+    dietary: g.dietary?.trim() || null,
+    // The RSVP values are Danish: afventer / ja / nej.
+    attending: g.rsvp !== 'nej',
+  })), [guests, t]);
 
-  // Hydrate the saved plan once, then autosave (debounced) as it changes.
-  const readyRef = useRef(false);
+  const byId = useMemo(() => new Map(pool.map((g) => [g.id, g])), [pool]);
+
+  /* ── Load once, then autosave ──────────────────────────────────────── */
+  const hydrated = useRef(false);
   useEffect(() => {
-    if (readyRef.current || loading) return;
-    readyRef.current = true;
-    const d = (seatingPlan?.data ?? {}) as { tables?: TableDef[]; positions?: Record<string, { x: number; y: number }>; activeId?: string };
-    if (d.tables) setTables(d.tables);
-    if (d.positions) setPositions(d.positions);
-    if (d.activeId) setActiveId(d.activeId);
+    if (hydrated.current || loading) return;
+    hydrated.current = true;
+    setPlan(readPlan(seatingPlan?.data));
   }, [loading, seatingPlan]);
 
-  const planData = useMemo(() => ({ tables, positions, activeId }), [tables, positions, activeId]);
+  /* A guest deleted from the guest list must not keep a chair on the chart. */
   useEffect(() => {
-    if (!readyRef.current) return;
-    const t = setTimeout(() => { void saveSeating(planData); }, 800);
-    return () => clearTimeout(t);
-  }, [planData, saveSeating]);
+    if (!hydrated.current || pool.length === 0) return;
+    setPlan((p) => pruneToGuests(p, new Set(pool.map((g) => g.id))));
+  }, [pool]);
 
-  const moveTable = (id: string, x: number, y: number) =>
-    setPositions((prev) => ({ ...prev, [id]: { x, y } }));
+  useEffect(() => {
+    if (!hydrated.current) return;
+    const id = setTimeout(() => { void saveSeating(plan as unknown as Record<string, unknown>); }, 700);
+    return () => clearTimeout(id);
+  }, [plan, saveSeating]);
 
-  const assignedIds = new Set(tables.flatMap((t) => t.guestIds));
-  const unassigned  = pool.filter((g) => !assignedIds.has(g.id));
-  const totalSeated = assignedIds.size;
-  const activeTable = tables.find((t) => t.id === activeId);
+  /* ── Picking a guest up, and putting them down ─────────────────────── */
 
-  // A drag is one gesture: the window listeners below close over this render's
-  // `tables`/`activeId`, which is exactly the state at pointer-down.
-  const hasRoom = (id: string | null): boolean => {
-    if (!id) return false;
-    const tb = tables.find((t) => t.id === id);
-    return !!tb && tb.guestIds.length < tb.capacity;
-  };
+  const place = useCallback((guestId: string, tableId: string, index: number) => {
+    setPlan((p) => seatGuest(p, guestId, tableId, index));
+    setHeld(null);
+    const g = byId.get(guestId);
+    const table = plan.tables.find((x) => x.id === tableId);
+    if (g && table) setSay(t('{name} sidder nu ved {table}.', { name: g.name, table: table.name }));
+  }, [byId, plan.tables, t]);
 
-  /* ── Table mutations ─────────────────────────────────────────────── */
-  const addTable = (shape: Shape) => {
-    const num = tables.filter((t) => t.id !== 'head').length + 1;
-    setTables((prev) => [
-      ...prev,
-      { id: mkId(), name: `Bord ${num}`, shape, capacity: SHAPE_META[shape].defaultCap, guestIds: [] },
-    ]);
-  };
+  const lift = useCallback((guestId: string | null) => {
+    setHeld(guestId);
+    const g = guestId ? byId.get(guestId) : null;
+    setSay(g ? t('{name} er valgt. Tryk på en stol for at sætte dem der.', { name: g.name }) : '');
+  }, [byId, t]);
 
-  const removeTable = (id: string) => {
-    setTables((prev) => prev.filter((t) => t.id !== id));
-    if (activeId === id) setActiveId(tables.find((t) => t.id !== id)?.id ?? '');
-  };
+  const unseat = useCallback((guestId: string) => {
+    setPlan((p) => unseatGuest(p, guestId));
+    setHeld(null);
+    const g = byId.get(guestId);
+    if (g) setSay(t('{name} er tilbage på listen.', { name: g.name }));
+  }, [byId, t]);
 
-  const setShape = (id: string, shape: Shape) => {
-    setTables((prev) => prev.map((t) =>
-      t.id === id ? { ...t, shape, capacity: SHAPE_META[shape].defaultCap } : t
-    ));
-  };
+  /**
+   * One gesture handler for both a guest chip and an occupied chair.
+   *
+   * A short press is a click — lift or drop. A press that travels is a drag,
+   * and the drop is resolved with elementFromPoint against the `data-seat`
+   * markers rather than any geometry of our own.
+   */
+  const startGesture = useCallback((guestId: string) => (e: React.PointerEvent) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    const x0 = e.clientX, y0 = e.clientY;
+    let travelled = false;
 
-  const setCapacity = (id: string, delta: number) => {
-    setTables((prev) => prev.map((t) =>
-      t.id === id ? { ...t, capacity: Math.max(2, Math.min(40, t.capacity + delta)) } : t
-    ));
-  };
-
-  // Assign to a specific table (drag drop). Ignores full/duplicate.
-  const assignToTable = (tableId: string, guestId: string) => {
-    setTables((prev) => prev.map((tbl) =>
-      tbl.id === tableId && !tbl.guestIds.includes(guestId) && tbl.guestIds.length < tbl.capacity
-        ? { ...tbl, guestIds: [...tbl.guestIds, guestId] }
-        : tbl
-    ));
-  };
-
-  // Click / keyboard fallback: assign to the currently selected table.
-  const assignToActive = (guestId: string) => {
-    if (hasRoom(activeId)) assignToTable(activeId, guestId);
-  };
-
-  const unassignGuest = (tableId: string, guestId: string) => {
-    setTables((prev) => prev.map((t) =>
-      t.id === tableId ? { ...t, guestIds: t.guestIds.filter((id) => id !== guestId) } : t
-    ));
-  };
-
-  /* ── Drag a guest from the pool onto a table on the floor plan ─────── */
-  const [dragGuest, setDragGuest] = useState<Guest | null>(null);
-  const [hoverTableId, setHoverTableId] = useState<string | null>(null);
-  const [ghostPos, setGhostPos] = useState<{ x: number; y: number } | null>(null);
-
-  const tableUnderPoint = (x: number, y: number): string | null => {
-    const el = document.elementFromPoint(x, y)?.closest('[data-table-id]');
-    return el?.getAttribute('data-table-id') ?? null;
-  };
-
-  const startGuestDrag = (guest: Guest, e: React.PointerEvent) => {
-    if (assignedIds.has(guest.id)) return;
-    const sx = e.clientX, sy = e.clientY;
-    let dragging = false;
     const move = (ev: PointerEvent) => {
-      if (!dragging) {
-        if (Math.hypot(ev.clientX - sx, ev.clientY - sy) < 6) return; // click vs drag
-        dragging = true;
-        setDragGuest(guest);
+      if (!travelled && Math.hypot(ev.clientX - x0, ev.clientY - y0) > 6) {
+        travelled = true;
+        setHeld(guestId);
       }
-      setGhostPos({ x: ev.clientX, y: ev.clientY });
-      const id = tableUnderPoint(ev.clientX, ev.clientY);
-      setHoverTableId(hasRoom(id) ? id : null);
+      if (travelled) setDrag({ guestId, x: ev.clientX, y: ev.clientY });
     };
+
     const up = (ev: PointerEvent) => {
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
-      if (dragging) {
-        const id = tableUnderPoint(ev.clientX, ev.clientY);
-        if (hasRoom(id)) assignToTable(id as string, guest.id);
-      } else {
-        assignToActive(guest.id); // treated as a tap → click fallback
+      setDrag(null);
+      if (!travelled) { lift(held === guestId ? null : guestId); return; }
+
+      const under = document.elementFromPoint(ev.clientX, ev.clientY);
+      const seat = under?.closest('[data-seat]') as HTMLElement | null;
+      if (seat?.dataset.seat) {
+        const [tableId, idx] = seat.dataset.seat.split(':');
+        place(guestId, tableId, Number(idx));
+        return;
       }
-      setDragGuest(null); setHoverTableId(null); setGhostPos(null);
+      // Dropped back on the list — that is how a guest leaves a table.
+      if (under?.closest('[data-guest-rail]')) { unseat(guestId); return; }
+      setHeld(null);
+    };
+
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  }, [held, lift, place, unseat]);
+
+  /** Clicking a chair: drop what is in hand, or pick up who is sitting there. */
+  const onSeatClick = useCallback((tableId: string, index: number) => {
+    const table = plan.tables.find((x) => x.id === tableId);
+    const sitting = table?.seated[index] ?? null;
+    if (held) { place(held, tableId, index); return; }
+    lift(sitting);
+  }, [held, lift, place, plan.tables]);
+
+  /* ── Moving a table ────────────────────────────────────────────────── */
+  const startTableDrag = useCallback((tableId: string) => (e: React.PointerEvent) => {
+    if (e.button !== 0) return;
+    const start = plan.tables.find((x) => x.id === tableId);
+    if (!start) return;
+    const x0 = e.clientX, y0 = e.clientY;
+    const ox = start.x, oy = start.y;
+
+    const move = (ev: PointerEvent) => {
+      // Pointer pixels are screen pixels; the plane is scaled, so undo it.
+      const dx = (ev.clientX - x0) / zoom;
+      const dy = (ev.clientY - y0) / zoom;
+      setPlan((p) => ({
+        ...p,
+        tables: p.tables.map((tb) => (tb.id === tableId
+          ? { ...tb, x: Math.max(120, ox + dx), y: Math.max(110, oy + dy) }
+          : tb)),
+      }));
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
     };
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
+  }, [plan.tables, zoom]);
+
+  /* ── Tables ────────────────────────────────────────────────────────── */
+  const addTable = (shape: TableShape) => {
+    const n = plan.tables.filter((x) => x.shape !== 'head').length + 1;
+    const name = shape === 'head' ? t('Brudebord') : t('Bord {n}', { n });
+    const table = makeTable(plan, shape, name);
+    setPlan((p) => ({ ...p, tables: [...p.tables, table] }));
+    setSelected(table.id);
   };
 
-  /* Ava auto-seat: keep groups together — prefer tables that already hold
-     the same group, then the emptiest table; add round tables if needed. */
-  const autoSeat = () => {
-    setTables((prev) => {
-      const next = prev.map((t) => ({ ...t, guestIds: [...t.guestIds] }));
-      const seated = new Set(next.flatMap((t) => t.guestIds));
-      const guestGroup = Object.fromEntries(pool.map((g) => [g.id, g.group]));
+  const patchTable = (id: string, fn: (tb: SeatingPlan['tables'][number]) => SeatingPlan['tables'][number]) =>
+    setPlan((p) => ({ ...p, tables: p.tables.map((tb) => (tb.id === id ? fn(tb) : tb)) }));
 
-      for (const g of pool) {
-        if (seated.has(g.id)) continue;
-        let target = next
-          .filter((t) => t.guestIds.length < t.capacity)
-          .sort((a, b) => {
-            const aGrp = a.guestIds.some((id) => guestGroup[id] === g.group) ? 1 : 0;
-            const bGrp = b.guestIds.some((id) => guestGroup[id] === g.group) ? 1 : 0;
-            if (aGrp !== bGrp) return bGrp - aGrp;
-            return (b.capacity - b.guestIds.length) - (a.capacity - a.guestIds.length);
-          })[0];
-        if (!target) {
-          const num = next.filter((t) => t.id !== 'head').length + 1;
-          target = { id: mkId(), name: `Bord ${num}`, shape: 'round', capacity: 8, guestIds: [] };
-          next.push(target);
-        }
-        target.guestIds.push(g.id);
-        seated.add(g.id);
-      }
-      return next;
-    });
+  const removeTable = (id: string) => {
+    setPlan((p) => ({ ...p, tables: p.tables.filter((tb) => tb.id !== id) }));
+    setSelected(null);
   };
 
-  /* ── Groups of guests by group label ──────────────────────────────── */
-  const groups = Array.from(new Set(pool.map((g) => g.group))).map((grp) => ({
-    name: grp,
-    color: colorFor(grp),
-    guests: pool.filter((g) => g.group === grp),
-  }));
+  /* ── Derived ───────────────────────────────────────────────────────── */
+  const seated = useMemo(() => seatedIds(plan), [plan]);
+  const unseatedGuests = pool.filter((g) => !seated.has(g.id));
+  const totalSeats = plan.tables.reduce((n, tb) => n + tb.seats, 0);
+  const dietaryCount = pool.filter((g) => g.dietary).length;
+  const activeTable = plan.tables.find((tb) => tb.id === selected) ?? null;
 
-  const pct = pool.length ? Math.round((totalSeated / pool.length) * 100) : 0;
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return pool
+      .filter((g) => (onlyUnseated ? !seated.has(g.id) : true))
+      .filter((g) => !q || g.name.toLowerCase().includes(q) || g.group.toLowerCase().includes(q));
+  }, [pool, onlyUnseated, seated, query]);
+
+  const grouped = useMemo(() => {
+    const map = new Map<string, PlanGuest[]>();
+    for (const g of visible) map.set(g.group, [...(map.get(g.group) ?? []), g]);
+    return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0], 'da'));
+  }, [visible]);
+
+  /** The plane has to cover every table, chairs and labels included. */
+  const plane = useMemo(() => {
+    let w = PLANE_MIN.w, h = PLANE_MIN.h;
+    for (const tb of plan.tables) {
+      const b = tableBounds(tb);
+      w = Math.max(w, tb.x + b.w / 2 + PLANE_PAD);
+      h = Math.max(h, tb.y + b.h / 2 + PLANE_PAD);
+    }
+    return { w, h };
+  }, [plan.tables]);
+
+  /* Escape drops whatever is in hand — the way out of every modal state. */
+  useEffect(() => {
+    if (!held) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') lift(null); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [held, lift]);
+
+  /* A4 landscape at 96dpi, less a 12mm margin, is about 1000x660 usable. */
+  const printScale = Math.min(1, 1000 / plane.w, 660 / plane.h);
+
+  const printPlan = () => {
+    const style = document.createElement('style');
+    style.textContent = '@page { size: A4 landscape; margin: 12mm; }';
+    document.head.appendChild(style);
+    // Two frames: one for the style to land, one for layout to settle.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      window.print();
+      style.remove();
+    }));
+  };
+
+  const heldGuest = held ? byId.get(held) ?? null : null;
+  const dragGuest = drag ? byId.get(drag.guestId) ?? null : null;
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="flex gap-1.5">
+          {[0, 1, 2].map((i) => (
+            <span key={i} className="h-1.5 w-1.5 animate-pulse rounded-full bg-muted" style={{ animationDelay: `${i * 0.15}s` }} />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="pb-24">
-      {/* ── Header ──────────────────────────────────────────────────── */}
-      <div className="px-6 py-8 sm:px-9 lg:px-12 lg:py-8">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="font-serif text-[clamp(2rem,4vw,2.4rem)] leading-[1.1] tracking-[-0.02em] text-[#314523]">
-              {t('Bordplan')}
-            </h1>
-            <p className="mt-1.5 max-w-xl text-[13px] leading-relaxed text-[#6c7561]">
-              {t('Træk en gæst fra listen ud på et bord — eller vælg et bord og tryk på gæsten. Træk bordene rundt, som salen står.')}
-            </p>
-          </div>
-          {unassigned.length > 0 && (
-            <Pill variant="solid" onClick={autoSeat} className="shrink-0">
-              <Sparkles size={13} /> {t('Lad Ava placere resten ({n})', { n: unassigned.length })}
-            </Pill>
-          )}
+    <div className="flex min-h-full flex-col gap-6 px-6 py-8 sm:px-9 lg:px-12">
+      {/* ── Header ───────────────────────────────────────────────────── */}
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <Eyebrow>{t('Planlægning')}</Eyebrow>
+          <h1 className="mt-1 font-serif text-[clamp(2rem,4vw,2.4rem)] leading-[1.1] tracking-[-0.02em] text-[#24413a]">
+            {t('Bordplan')}
+          </h1>
+          <p className="mt-1.5 max-w-xl text-[13px] leading-relaxed text-[#5f6b66]">
+            {pool.length === 0
+              ? t('Tilføj gæster på gæstelisten, så kan I sætte dem på plads her.')
+              : unseatedGuests.length === 0
+                ? t('Alle {n} gæster har en plads.', { n: pool.length })
+                : t('{n} af {total} gæster har en plads.', { n: seated.size, total: pool.length })}
+          </p>
         </div>
-
-        {/* Stats + progress */}
-        <div className="mt-6 flex flex-wrap items-center gap-3">
-          <StatTile label={t('Placeret')} value={`${totalSeated} / ${pool.length}`} />
-          <StatTile label={t('Borde')} value={tables.length} />
-          <StatTile label={t('Total kapacitet')} value={tables.reduce((a, tb) => a + tb.capacity, 0)} />
-          <div className="ml-auto w-full max-w-xs self-center">
-            <div className="mb-1.5 flex items-center justify-between">
-              <span className="eyebrow text-[0.62rem]">{t('Placeret')}</span>
-              <span className="text-[0.74rem] text-muted">{pct}%</span>
-            </div>
-            <div className="h-1.5 overflow-hidden rounded-full bg-shell">
-              <motion.div animate={{ width: `${pct}%` }}
-                transition={reduce ? { duration: 0 } : { duration: 0.5, ease: 'easeOut' }}
-                className="h-full rounded-full bg-sage" />
-            </div>
-          </div>
-        </div>
+        <button
+          type="button"
+          onClick={printPlan}
+          className="inline-flex h-9 items-center gap-1.5 rounded-full border border-[#dcdfdb] bg-[#ffffff] px-4 text-[0.78rem] font-semibold text-[#24413a] transition-colors hover:border-[#24413a] cursor-pointer"
+        >
+          <Printer size={14} /> {t('Udskriv')}
+        </button>
       </div>
 
-      {/* ── Plan (left) + guest pool (right, sticky on desktop) ───────── */}
-      <div className="px-6 sm:px-9 lg:px-12 lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-8 lg:items-start">
-        <div className="min-w-0">
-          {/* Add table bar */}
-          <div className="mb-5 flex flex-wrap items-center gap-2.5">
-            <Eyebrow className="mr-1">{t('Tilføj bord')}</Eyebrow>
-            {(Object.entries(SHAPE_META) as [Shape, typeof SHAPE_META[Shape]][]).map(([shape, meta]) => (
-              <button key={shape} onClick={() => addTable(shape)}
-                className="flex min-h-[40px] items-center gap-2 rounded-full rule bg-card px-4 py-2 text-[0.82rem] font-medium text-ink-soft hover:bg-shell hover:text-ink transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ink/40">
-                <Plus size={13} />
-                <ShapeIcon shape={shape} size={14} />
-                {t(meta.label)}
+      {/* No breakpoint and no container query: plain wrapping flex.
+          A media query measures the window, which this screen never gets (in
+          chat mode it lives in a narrow stage beside Ava). A container query
+          measures the right box but needs a browser that supports it. Flex
+          basis needs neither: the two columns sit side by side whenever their
+          bases fit on one line, and the rail wraps under and goes full width
+          when they do not. That is the same question, asked by the layout
+          engine itself. */}
+      <div className="flex min-h-0 flex-1 flex-wrap gap-4">
+        {/* ── Canvas ─────────────────────────────────────────────────── */}
+        <div className="flex min-w-0 flex-[3_1_28rem] flex-col gap-3">
+          {/* Toolbar */}
+          <div className="flex flex-wrap items-center gap-2">
+            {SHAPES.map((s) => {
+              const Icon = SHAPE_ICON[s.id];
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => addTable(s.id)}
+                  title={t(s.hint)}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-full border border-[#dcdfdb] bg-[#ffffff] px-3.5 text-[0.78rem] font-semibold text-[#5f6b66] transition-colors hover:border-[#24413a] hover:text-[#24413a] cursor-pointer"
+                >
+                  <Plus size={13} /> <Icon size={13} /> {t(s.label)}
+                </button>
+              );
+            })}
+
+            <div className="ml-auto flex items-center gap-1 rounded-full border border-[#dcdfdb] bg-[#ffffff] px-1">
+              <button
+                type="button"
+                onClick={() => setZoom((z) => stepZoom(z, -1))}
+                disabled={zoom <= ZOOMS[0]}
+                aria-label={t('Zoom ud')}
+                className="flex h-8 w-8 items-center justify-center rounded-full text-[#5f6b66] hover:text-[#24413a] disabled:opacity-30 cursor-pointer"
+              >
+                <Minus size={14} />
               </button>
-            ))}
+              <span className="w-11 text-center text-[0.72rem] font-semibold tabular-nums text-[#24413a]">
+                {Math.round(zoom * 100)}%
+              </span>
+              <button
+                type="button"
+                onClick={() => setZoom((z) => stepZoom(z, 1))}
+                disabled={zoom >= ZOOMS[ZOOMS.length - 1]}
+                aria-label={t('Zoom ind')}
+                className="flex h-8 w-8 items-center justify-center rounded-full text-[#5f6b66] hover:text-[#24413a] disabled:opacity-30 cursor-pointer"
+              >
+                <Plus size={14} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setZoom(DEFAULT_ZOOM)}
+                title={t('Tilbage til standardvisning')}
+                aria-label={t('Nulstil zoom')}
+                className="flex h-8 w-8 items-center justify-center rounded-full text-[#5f6b66] hover:text-[#24413a] cursor-pointer"
+              >
+                <Maximize2 size={13} />
+              </button>
+            </div>
           </div>
 
-          {/* Floor plan */}
-          <FloorPlan tables={tables} activeId={activeId} onSelect={setActiveId}
-            positions={positions} onMove={moveTable}
-            dragging={Boolean(dragGuest)} hoverTableId={hoverTableId} />
-          <div className="mt-3 flex flex-wrap gap-4">
-            {(Object.entries(SHAPE_META) as [Shape, typeof SHAPE_META[Shape]][]).map(([shape, meta]) => (
-              <div key={shape} className="flex items-center gap-1.5">
-                <ShapeIcon shape={shape} size={13} className="text-muted" />
-                <span className="text-[0.72rem] text-muted">{t(meta.label)}</span>
-              </div>
-            ))}
-            <div className="ml-auto text-[0.72rem] text-muted">{t('Klik for at vælge · træk for at flytte bordet')}</div>
-          </div>
-
-          {/* Table cards */}
-          <div className="mt-10">
-            <Eyebrow className="mb-5">{t('Borde · {n} i alt', { n: tables.length })}</Eyebrow>
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {tables.map((tb) => (
-                <TableCard
+          {/* The plan itself */}
+          <div
+            className="relative overflow-auto rounded-[28px] border border-[#dcdfdb] bg-[#f8f9f8]"
+            style={{
+              // Hug the plan, but never take more of the page than this — the
+              // totals underneath have to stay on screen.
+              height: Math.max(320, Math.min(plane.h * zoom + 8, 576)),
+              backgroundImage:
+                'radial-gradient(circle, rgba(196,191,174,0.5) 1px, transparent 1px)',
+              backgroundSize: `${24 * zoom}px ${24 * zoom}px`,
+            }}
+          >
+            {/* A CSS transform does not change layout size, so the scroll
+                extent needs the scaled box; the inner plane keeps plan units
+                so table coordinates stay honest at every zoom. */}
+            <div className="relative" style={{ width: plane.w * zoom, height: plane.h * zoom }}>
+            <div
+              className="absolute left-0 top-0 origin-top-left"
+              style={{ width: plane.w, height: plane.h, transform: `scale(${zoom})` }}
+            >
+              {plan.tables.map((tb) => (
+                <TableNode
                   key={tb.id}
                   table={tb}
-                  guests={pool}
-                  isActive={activeId === tb.id}
-                  isExpanded={expanded === tb.id}
-                  isDropTarget={hoverTableId === tb.id}
-                  onSelect={() => { setActiveId(tb.id); setExpanded(tb.id); }}
-                  onToggleExpand={() => setExpanded(expanded === tb.id ? null : tb.id)}
-                  onShapeChange={(s) => setShape(tb.id, s)}
-                  onCapacityChange={(d) => setCapacity(tb.id, d)}
-                  onRemoveGuest={(gId) => unassignGuest(tb.id, gId)}
-                  onDelete={tb.id !== 'head' ? () => removeTable(tb.id) : undefined}
+                  guests={byId}
+                  held={held}
+                  selected={selected === tb.id}
+                  onSelect={() => setSelected(tb.id)}
+                  onSeatClick={(i) => onSeatClick(tb.id, i)}
+                  onSeatPointerDown={(gid, e) => startGesture(gid)(e)}
+                  onTablePointerDown={startTableDrag(tb.id)}
+                  onRename={() => {
+                    const next = window.prompt(t('Navn på bordet'), tb.name);
+                    if (next?.trim()) patchTable(tb.id, (x) => ({ ...x, name: next.trim() }));
+                  }}
                 />
               ))}
             </div>
+            </div>
+
+            {plan.tables.length === 0 && (
+              <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-3 text-center">
+                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#e8f0ec]">
+                  <Circle size={22} className="text-[#24413a]" />
+                </span>
+                <p className="max-w-[22rem] text-[0.9rem] leading-relaxed text-[#5f6b66]">
+                  {t('Læg det første bord ud, så kan I trække gæsterne på plads.')}
+                </p>
+              </div>
+            )}
           </div>
+
+          {/* ── Selected table ───────────────────────────────────────── */}
+          <AnimatePresence initial={false}>
+            {activeTable && (
+              <motion.div
+                initial={reduce ? false : { opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={reduce ? undefined : { opacity: 0, y: 8 }}
+                transition={{ duration: 0.18 }}
+                className="flex flex-wrap items-center gap-3 rounded-2xl border border-[#dcdfdb] bg-[#ffffff] px-4 py-3"
+              >
+                <span className="font-serif text-[1.05rem] text-[#24413a]">{activeTable.name}</span>
+
+                <div className="flex items-center gap-1">
+                  {SHAPES.map((s) => {
+                    const Icon = SHAPE_ICON[s.id];
+                    const on = activeTable.shape === s.id;
+                    return (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => patchTable(activeTable.id, (x) => changeShape(x, s.id))}
+                        aria-pressed={on}
+                        aria-label={t(s.label)}
+                        className={cn(
+                          'flex h-8 w-8 items-center justify-center rounded-full border transition-colors cursor-pointer',
+                          on ? 'border-[#24413a] bg-[#e8f0ec] text-[#24413a]'
+                            : 'border-[#dcdfdb] text-[#5f6b66] hover:border-[#24413a] hover:text-[#24413a]',
+                        )}
+                      >
+                        <Icon size={14} />
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="flex items-center gap-1 rounded-full border border-[#dcdfdb] px-1">
+                  <button
+                    type="button"
+                    onClick={() => patchTable(activeTable.id, (x) => setSeatCount(x, x.seats - 1))}
+                    disabled={activeTable.seats <= MIN_SEATS}
+                    aria-label={t('Færre pladser')}
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-[#5f6b66] hover:text-[#24413a] disabled:opacity-30 cursor-pointer"
+                  >
+                    <Minus size={13} />
+                  </button>
+                  <span className="w-16 text-center text-[0.74rem] font-semibold text-[#24413a]">
+                    {t('{n} pl.', { n: activeTable.seats })}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => patchTable(activeTable.id, (x) => setSeatCount(x, x.seats + 1))}
+                    disabled={activeTable.seats >= MAX_SEATS}
+                    aria-label={t('Flere pladser')}
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-[#5f6b66] hover:text-[#24413a] disabled:opacity-30 cursor-pointer"
+                  >
+                    <Plus size={13} />
+                  </button>
+                </div>
+
+                <span className="text-[0.76rem] text-[#7d938a]">
+                  {t('{n} ledige', { n: freeSeats(activeTable) })}
+                </span>
+
+                <button
+                  type="button"
+                  onClick={() => removeTable(activeTable.id)}
+                  className="ml-auto inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[0.76rem] font-semibold text-[#b34e37] transition-colors hover:bg-[#f2e3dd] cursor-pointer"
+                >
+                  <Trash2 size={13} /> {t('Fjern bord')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelected(null)}
+                  aria-label={t('Luk')}
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-[#7d938a] hover:text-[#24413a] cursor-pointer"
+                >
+                  <X size={14} />
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
-        {/* Guest pool */}
-        <div className="mt-10 lg:mt-0 lg:sticky lg:top-6">
-          <div className="rule rounded-2xl overflow-hidden">
-            <div className="bg-card px-5 py-4 rule-b">
-              <div className="flex items-center justify-between gap-3">
-                <Eyebrow>{t('Gæsteliste')}</Eyebrow>
-                <Chip tone={unassigned.length ? 'neutral' : 'success'}>
-                  {t('{n} uplacerede', { n: unassigned.length })}
-                </Chip>
-              </div>
-              <p className="mt-1.5 text-[0.8rem] leading-relaxed text-muted">
-                {activeTable && activeTable.guestIds.length >= activeTable.capacity
-                  ? t('{name} er fuldt — træk til et andet bord', { name: t(activeTable.name) })
-                  : t('Træk en gæst ud på bordplanen — eller tryk for at sætte ved {name}', { name: t(activeTable?.name ?? 'det valgte bord') })}
+        {/* ── Guest rail ─────────────────────────────────────────────── */}
+        <aside
+          data-guest-rail
+          className="flex min-w-0 flex-[1_1_16rem] flex-col rounded-[28px] border border-[#dcdfdb] bg-[#ffffff]"
+        >
+          <div className="border-b border-[#e6e9e5] p-4">
+            <div className="flex items-baseline justify-between gap-2">
+              <p className="text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-[#7d938a]">
+                {t('Gæster')}
+              </p>
+              <p className="text-[0.72rem] font-semibold text-[#24413a]">
+                {t('{n} uden plads', { n: unseatedGuests.length })}
               </p>
             </div>
-            <div className="max-h-[62vh] overflow-y-auto divide-y divide-[var(--color-line)]">
-              {groups.map((grp) => (
-                <GuestGroup
-                  key={grp.name}
-                  group={grp}
-                  assignedIds={assignedIds}
-                  activeTable={activeTable}
-                  reduce={Boolean(reduce)}
-                  onGuestPointerDown={startGuestDrag}
-                  onAssignActive={assignToActive}
+
+            <div className="mt-3 flex h-9 items-center gap-1.5 rounded-full border border-[#dcdfdb] bg-[#f8f9f8] px-3">
+              <Search size={13} className="shrink-0 text-[#7d938a]" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={t('Søg efter en gæst')}
+                aria-label={t('Søg efter en gæst')}
+                className="h-full w-full min-w-0 bg-transparent text-[0.8rem] text-[#24413a] placeholder:text-[#9a9686] focus:outline-none"
+              />
+            </div>
+
+            <div className="mt-2.5 flex gap-1.5">
+              {[
+                { id: true, label: t('Uden plads') },
+                { id: false, label: t('Alle') },
+              ].map((o) => (
+                <button
+                  key={String(o.id)}
+                  type="button"
+                  onClick={() => setOnlyUnseated(o.id)}
+                  aria-pressed={onlyUnseated === o.id}
+                  className={cn(
+                    'h-8 flex-1 rounded-full border text-[0.76rem] font-semibold transition-colors cursor-pointer',
+                    onlyUnseated === o.id
+                      ? 'border-[#24413a] bg-[#e8f0ec] text-[#24413a]'
+                      : 'border-[#dcdfdb] text-[#5f6b66] hover:border-[#24413a] hover:text-[#24413a]',
+                  )}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:max-h-[clamp(21rem,50vh,36rem)]">
+            {heldGuest && (
+              <div className="mb-3 flex items-center gap-2 rounded-xl bg-[#e8f0ec] px-3 py-2.5">
+                <CornerUpLeft size={13} className="shrink-0 text-[#24413a]" />
+                <p className="min-w-0 flex-1 text-[0.76rem] leading-snug text-[#24413a]">
+                  {t('Tryk på en ledig stol for at sætte {name}.', { name: heldGuest.name })}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => lift(null)}
+                  aria-label={t('Fortryd')}
+                  className="flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-full text-[#5f6b66] hover:text-[#24413a]"
+                >
+                  <X size={13} />
+                </button>
+              </div>
+            )}
+
+            {grouped.length === 0 && (
+              <p className="px-2 py-8 text-center text-[0.82rem] text-[#5f6b66]">
+                {pool.length === 0
+                  ? t('Ingen gæster endnu.')
+                  : query.trim()
+                    ? t('Ingen gæster matcher "{query}"', { query: query.trim() })
+                    : t('Alle har fået en plads.')}
+              </p>
+            )}
+
+            {grouped.map(([group, list]) => (
+              <div key={group} className="mb-4">
+                <p className="mb-1.5 px-1 text-[0.6rem] font-semibold uppercase tracking-[0.16em] text-[#7d938a]">
+                  {group} · {list.length}
+                </p>
+                <div className="flex flex-col gap-1">
+                  {list.map((g) => {
+                    const at = seatOf(plan, g.id);
+                    const table = at ? plan.tables.find((x) => x.id === at.tableId) : null;
+                    return (
+                      <button
+                        key={g.id}
+                        type="button"
+                        onPointerDown={startGesture(g.id)}
+                        onClick={() => lift(held === g.id ? null : g.id)}
+                        aria-pressed={held === g.id}
+                        className={cn(
+                          'flex w-full cursor-grab items-center gap-2.5 rounded-xl border px-2.5 py-2 text-left transition-colors active:cursor-grabbing',
+                          held === g.id
+                            ? 'border-[#24413a] bg-[#e8f0ec]'
+                            : 'border-transparent hover:border-[#dcdfdb] hover:bg-[#f8f9f8]',
+                          !g.attending && 'opacity-55',
+                        )}
+                      >
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#dbe5e0] text-[0.6rem] font-bold text-[#24413a]">
+                          {initials(g.name)}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-[0.82rem] text-[#24413a]">{g.name}</span>
+                          {table && (
+                            <span className="block truncate text-[0.68rem] text-[#7d938a]">{table.name}</span>
+                          )}
+                        </span>
+                        {g.dietary && (
+                          <span
+                            title={g.dietary}
+                            className="h-2 w-2 shrink-0 rounded-full bg-[#b34e37]"
+                          />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Fill the rest of a table in one go, when that is what is wanted. */}
+          {activeTable && unseatedGuests.length > 0 && freeSeats(activeTable) > 0 && (
+            <div className="border-t border-[#e6e9e5] p-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setPlan((p) => {
+                    let next = p;
+                    for (const g of unseatedGuests) {
+                      const tb = next.tables.find((x) => x.id === activeTable.id);
+                      const free = tb ? firstFreeSeat(tb) : -1;
+                      if (free === -1) break;
+                      next = seatGuest(next, g.id, activeTable.id, free);
+                    }
+                    return next;
+                  });
+                  setSay(t('Pladserne ved {table} er fyldt op.', { table: activeTable.name }));
+                }}
+                className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-full bg-[#24413a] px-4 text-[0.78rem] font-bold text-[#f8f9f8] transition-opacity hover:opacity-90 cursor-pointer"
+              >
+                <Users size={14} />
+                {t('Fyld {table} op', { table: activeTable.name })}
+              </button>
+            </div>
+          )}
+        </aside>
+      </div>
+
+      {/* ── The numbers a venue asks for ─────────────────────────────── */}
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-[#dcdfdb] bg-[#dcdfdb] sm:grid-cols-4">
+        <Stat label={t('Borde')} value={plan.tables.length} />
+        <Stat label={t('Pladser')} value={totalSeats} />
+        <Stat label={t('Placeret')} value={seated.size} />
+        <Stat label={t('Kostbehov')} value={dietaryCount} tone="clay" />
+      </div>
+
+      {/* What a screen reader hears when a guest is picked up or put down. */}
+      <p aria-live="polite" className="sr-only">{say}</p>
+
+      {/* The printed chart. Its own sheet at <body> level, so what comes out
+          of the printer is the plan and nothing around it. */}
+      {mounted && createPortal(
+        <div className="kalas-print-sheet theme-kalas hidden bg-white font-sans text-[#24413a]">
+          <div className="flex items-baseline justify-between border-b border-[#dcdfdb] pb-2">
+            <p className="font-serif text-[1.4rem]">
+              {couple.a && couple.b ? `${couple.a} & ${couple.b}` : t('Bordplan')}
+            </p>
+            <p className="text-[0.7rem] uppercase tracking-[0.16em] text-[#7d938a]">
+              {couple.dateLabel || t('Bordplan')}
+            </p>
+          </div>
+          <div
+            className="relative mx-auto mt-4 origin-top"
+            style={{ width: plane.w, height: plane.h * printScale, transform: `scale(${printScale})` }}
+          >
+            <div className="relative" style={{ width: plane.w, height: plane.h }}>
+              {plan.tables.map((tb) => (
+                <TableNode
+                  key={tb.id}
+                  table={tb}
+                  guests={byId}
+                  held={null}
+                  selected={false}
+                  onSelect={() => {}}
+                  onSeatClick={() => {}}
+                  onSeatPointerDown={() => {}}
+                  onTablePointerDown={() => {}}
+                  onRename={() => {}}
                 />
               ))}
             </div>
           </div>
-        </div>
-      </div>
+        </div>,
+        document.body,
+      )}
 
-      {/* Floating drag ghost */}
-      {dragGuest && ghostPos && (
-        <div aria-hidden
-          style={{ position: 'fixed', left: ghostPos.x, top: ghostPos.y, transform: 'translate(-50%, -150%)', pointerEvents: 'none', zIndex: 60 }}
-          className="flex items-center gap-1.5 rounded-full bg-ink px-3.5 py-2 text-[0.82rem] text-canvas shadow-[0_10px_30px_-8px_rgba(0,0,0,0.5)]">
-          <span className="h-2 w-2 rounded-full" style={{ background: colorFor(dragGuest.group) }} />
+      {/* The guest under the cursor while dragging. */}
+      {drag && dragGuest && (
+        <div
+          className="pointer-events-none fixed z-50 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#24413a] bg-[#ffffff] px-3 py-1.5 text-[0.78rem] font-semibold text-[#24413a] shadow-[0_8px_24px_rgba(18,51,43,0.18)]"
+          style={{ left: drag.x, top: drag.y }}
+        >
           {dragGuest.name}
         </div>
       )}
@@ -426,467 +745,16 @@ export default function Seating() {
   );
 }
 
-/* ── Floor plan — tables are draggable ───────────────────────────────── */
-function FloorPlan({
-  tables, activeId, onSelect, positions, onMove, dragging = false, hoverTableId = null,
-}: {
-  tables: TableDef[]; activeId: string; onSelect: (id: string) => void;
-  positions: Record<string, { x: number; y: number }>;
-  onMove: (id: string, x: number, y: number) => void;
-  dragging?: boolean;
-  hoverTableId?: string | null;
-}) {
-  const { t } = useLang();
-  const svgRef = useRef<SVGSVGElement>(null);
-  const dragRef = useRef<{ id: string; dx: number; dy: number } | null>(null);
-
-  const computed = tablePositions(tables);
-  const posMap: Record<string, { cx: number; cy: number }> = Object.fromEntries(
-    computed.map((p) => [p.id, { cx: positions[p.id]?.x ?? p.cx, cy: positions[p.id]?.y ?? p.cy }])
-  );
-  const headPos = { cx: positions['head']?.x ?? VIEW_W / 2, cy: positions['head']?.y ?? 50 };
-
-  /* Convert a pointer event to viewBox coordinates */
-  const toSvg = (e: React.PointerEvent) => {
-    const rect = svgRef.current!.getBoundingClientRect();
-    return {
-      x: ((e.clientX - rect.left) / rect.width) * VIEW_W,
-      y: ((e.clientY - rect.top) / rect.height) * VIEW_H,
-    };
-  };
-
-  const startDrag = (id: string, cx: number, cy: number) => (e: React.PointerEvent) => {
-    onSelect(id);
-    const p = toSvg(e);
-    dragRef.current = { id, dx: cx - p.x, dy: cy - p.y };
-    (e.target as Element).setPointerCapture?.(e.pointerId);
-  };
-
-  const handleMove = (e: React.PointerEvent) => {
-    const d = dragRef.current;
-    if (!d) return;
-    const p = toSvg(e);
-    const isHead = d.id === 'head';
-    const padX = isHead ? 130 : 45;
-    const x = Math.max(padX, Math.min(VIEW_W - padX, p.x + d.dx));
-    const y = Math.max(isHead ? 42 : 55, Math.min(VIEW_H - 50, p.y + d.dy));
-    onMove(d.id, x, y);
-  };
-
-  const endDrag = () => { dragRef.current = null; };
-
+function Stat({ label, value, tone }: { label: string; value: number; tone?: 'clay' }) {
   return (
-    <div className="rule rounded-2xl bg-[#f7f5f0] overflow-hidden">
-      <svg ref={svgRef} viewBox={`0 0 ${VIEW_W} ${VIEW_H}`} className="w-full"
-        style={{ maxHeight: 380, touchAction: 'none' }}
-        onPointerMove={handleMove} onPointerUp={endDrag} onPointerLeave={endDrag}>
-        {/* Room boundary */}
-        <rect x="10" y="10" width={VIEW_W - 20} height={VIEW_H - 20} rx="16"
-          fill="#f7f5f0" stroke="#dedad2" strokeWidth="1.5" />
-
-        {/* Dance floor */}
-        <rect x="252" y="172" width="136" height="96" rx="12"
-          fill="#edeae0" stroke="#d4d0c6" strokeWidth="1" strokeDasharray="6 4" />
-        <text x="320" y="225" fill="#b4af9e" fontSize="8" textAnchor="middle"
-          fontFamily="Hanken Grotesk, sans-serif" letterSpacing="2">{t('DANSEGULV')}</text>
-
-        {/* Entrance line */}
-        <line x1="270" y1={VIEW_H - 13} x2="370" y2={VIEW_H - 13}
-          stroke="#d0ccc0" strokeWidth="2.5" strokeLinecap="round" />
-        <text x="320" y={VIEW_H - 2} fill="#c4c0b4" fontSize="7.5" textAnchor="middle"
-          fontFamily="Hanken Grotesk, sans-serif" letterSpacing="2">{t('INDGANG')}</text>
-
-        {/* Head table */}
-        {(() => {
-          const head = tables.find((t) => t.id === 'head');
-          if (!head) return null;
-          const isActive = activeId === 'head';
-          const filled   = head.guestIds.length;
-          const cap      = head.capacity;
-          const isHover  = hoverTableId === 'head';
-          const canDrop  = dragging && filled < cap;
-          const { cx, cy } = headPos;
-          return (
-            <g data-table-id="head" className="cursor-grab active:cursor-grabbing"
-              onPointerDown={startDrag('head', cx, cy)}>
-              {(isActive || isHover) && <rect x={cx - 127} y={cy - 26} width="254" height="52" rx="26"
-                fill="none" stroke="#314523" strokeWidth={isHover ? 3 : 2} opacity={isHover ? 0.9 : 0.35} />}
-              {canDrop && !isHover && <rect x={cx - 127} y={cy - 26} width="254" height="52" rx="26"
-                fill="none" stroke="#314523" strokeWidth="1.5" strokeDasharray="5 4" opacity="0.4" />}
-              <rect x={cx - 120} y={cy - 22} width="240" height="44" rx="22"
-                fill={isActive ? '#314523' : '#31452320'}
-                stroke="#314523" strokeWidth={isActive ? 0 : 1.5} />
-              {/* Seat count indicator */}
-              <text x={cx} y={cy - 5} fill={isActive ? '#f7f5efcc' : '#31452399'}
-                fontSize="8" textAnchor="middle"
-                fontFamily="Hanken Grotesk, sans-serif" letterSpacing="2">{t('BRUDEBORDET')}</text>
-              <text x={cx} y={cy + 11} fill={isActive ? '#f7f5ef80' : '#31452360'}
-                fontSize="8" textAnchor="middle" fontFamily="Hanken Grotesk, sans-serif">
-                {t('{filled}/{cap} gæster', { filled, cap })}
-              </text>
-            </g>
-          );
-        })()}
-
-        {/* Regular tables */}
-        {tables.filter((tbl) => tbl.id !== 'head').map((tbl) => {
-          const pos = posMap[tbl.id];
-          if (!pos) return null;
-          const { cx, cy } = pos;
-          const isActive   = activeId === tbl.id;
-          const fillPct    = tbl.guestIds.length / tbl.capacity;
-          const col        = '#314523';
-          const bgAlpha    = isActive ? 'cc' : '22';
-          const strokeAlpha = isActive ? '' : '66';
-          const isHover    = hoverTableId === tbl.id;
-          const canDrop    = dragging && tbl.guestIds.length < tbl.capacity;
-
-          return (
-            <g key={tbl.id} data-table-id={tbl.id} className="cursor-grab active:cursor-grabbing"
-              onPointerDown={startDrag(tbl.id, cx, cy)}>
-              {/* Drop-target ring while dragging a guest */}
-              {isHover && <TableShape shape={tbl.shape} cx={cx} cy={cy} r={36} fill="none"
-                stroke={col} strokeWidth={3} opacity={0.9} />}
-              {canDrop && !isHover && <TableShape shape={tbl.shape} cx={cx} cy={cy} r={34} fill="none"
-                stroke={col} strokeWidth={1.5} opacity={0.4} />}
-              {/* Active glow ring */}
-              {isActive && !isHover && <TableShape shape={tbl.shape} cx={cx} cy={cy} r={32} fill="none"
-                stroke={col} strokeWidth={2} opacity={0.3} />}
-
-              {/* Table body */}
-              <TableShape shape={tbl.shape} cx={cx} cy={cy} r={22}
-                fill={`${col}${bgAlpha}`}
-                stroke={`${col}${strokeAlpha}`} strokeWidth={1.5} />
-
-              {/* Fill overlay */}
-              {fillPct > 0 && (
-                <TableShape shape={tbl.shape} cx={cx} cy={cy} r={22}
-                  fill={col} opacity={fillPct * 0.35} />
-              )}
-
-              {/* Seat dots */}
-              {Array.from({ length: Math.min(tbl.capacity, 12) }).map((_, i) => {
-                const n     = Math.min(tbl.capacity, 12);
-                const angle = (i / n) * Math.PI * 2 - Math.PI / 2;
-                const dR    = tbl.shape === 'round' ? 30 : tbl.shape === 'rect' ? 28 : 26;
-                const filled = i < (tbl.guestIds.length / tbl.capacity) * n;
-                return (
-                  <circle key={i}
-                    cx={cx + Math.cos(angle) * dR}
-                    cy={cy + Math.sin(angle) * dR}
-                    r={3}
-                    fill={filled ? col : 'none'}
-                    stroke={col} strokeWidth={0.8}
-                    opacity={filled ? 0.8 : 0.3} />
-                );
-              })}
-
-              {/* Number label */}
-              <text x={cx} y={cy + 4}
-                fill={isActive ? '#f7f5efdd' : '#31452399'}
-                fontSize="9.5" textAnchor="middle" fontWeight="600"
-                fontFamily="Hanken Grotesk, sans-serif">
-                {tbl.name.replace('Bord ', '')}
-              </text>
-            </g>
-          );
-        })}
-      </svg>
+    <div className="bg-[#ffffff] px-4 py-3.5">
+      <p className="text-[0.6rem] font-semibold uppercase tracking-[0.16em] text-[#7d938a]">{label}</p>
+      <p className={cn(
+        'mt-1 font-serif text-[1.6rem] leading-none',
+        tone === 'clay' ? 'text-[#b34e37]' : 'text-[#24413a]',
+      )}>
+        {value}
+      </p>
     </div>
-  );
-}
-
-/* ── SVG table shape renderer ────────────────────────────────────────── */
-function TableShape({
-  shape, cx, cy, r, fill, stroke, strokeWidth, opacity,
-}: {
-  shape: Shape; cx: number; cy: number; r: number;
-  fill?: string; stroke?: string; strokeWidth?: number; opacity?: number;
-}) {
-  const p = { fill, stroke, strokeWidth, opacity };
-  if (shape === 'round') {
-    return <circle cx={cx} cy={cy} r={r} {...p} />;
-  }
-  if (shape === 'rect') {
-    return <rect x={cx - r * 1.8} y={cy - r * 0.72} width={r * 3.6} height={r * 1.44} rx={r * 0.36} {...p} />;
-  }
-  // horseshoe
-  const ri = r * 0.42;
-  const d = [
-    `M ${cx - r} ${cy - r * 0.3}`,
-    `L ${cx - r} ${cy + ri}`,
-    `A ${r} ${r} 0 0 0 ${cx + r} ${cy + ri}`,
-    `L ${cx + r} ${cy - r * 0.3}`,
-    `L ${cx + r - ri * 1.6} ${cy - r * 0.3}`,
-    `A ${ri * 1.6} ${ri * 1.6} 0 0 1 ${cx - r + ri * 1.6} ${cy - r * 0.3}`,
-    'Z',
-  ].join(' ');
-  return <path d={d} {...p} />;
-}
-
-/* ── Table card ──────────────────────────────────────────────────────── */
-function TableCard({
-  table, guests, isActive, isExpanded, isDropTarget = false,
-  onSelect, onToggleExpand, onShapeChange, onCapacityChange, onRemoveGuest, onDelete,
-}: {
-  table: TableDef;
-  guests: Guest[];
-  isActive: boolean;
-  isExpanded: boolean;
-  isDropTarget?: boolean;
-  onSelect: () => void;
-  onToggleExpand: () => void;
-  onShapeChange: (s: Shape) => void;
-  onCapacityChange: (delta: number) => void;
-  onRemoveGuest: (id: string) => void;
-  onDelete?: () => void;
-}) {
-  const { t } = useLang();
-  const filled   = table.guestIds.length;
-  const cap      = table.capacity;
-  const isFull   = filled >= cap;
-  const tableGuests = table.guestIds.map((id) => guests.find((g) => g.id === id)).filter(Boolean) as Guest[];
-  const isHead   = table.id === 'head';
-
-  return (
-    <motion.div layout
-      className={cn('rule rounded-2xl overflow-hidden transition-all duration-200',
-        isDropTarget ? 'ring-2 ring-sage-strong ring-offset-2 ring-offset-canvas'
-          : isActive && 'ring-2 ring-ink ring-offset-2 ring-offset-canvas')}>
-
-      {/* Card header — click to select */}
-      <div
-        className="flex items-center gap-3 px-4 py-4 cursor-pointer hover:bg-card/30 transition-colors"
-        onClick={onSelect}>
-        {/* Shape + fill visual */}
-        <div className="flex shrink-0 flex-col items-center gap-1">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-card">
-            <ShapeIcon shape={table.shape} size={18} className="text-ink-soft" />
-          </div>
-          {/* mini fill bar */}
-          <div className="h-1 w-9 overflow-hidden rounded-full bg-shell">
-            <div className="h-full rounded-full bg-ink transition-all duration-500"
-              style={{ width: `${(filled / cap) * 100}%` }} />
-          </div>
-        </div>
-
-        <div className="min-w-0 flex-1">
-          <div className="flex items-baseline gap-2">
-            <span className="font-serif text-[1.05rem] text-ink truncate">{t(table.name)}</span>
-            {isFull && <Chip tone="sage">{t('Fuld')}</Chip>}
-          </div>
-          <div className="mt-1 text-[0.72rem] text-muted">{t(SHAPE_META[table.shape].label)}</div>
-        </div>
-
-        <div className="flex shrink-0 items-center gap-2">
-          <span className={cn('font-serif text-[1.25rem] leading-none',
-            isFull ? 'text-sage' : filled === 0 ? 'text-muted' : 'text-ink')}>
-            {filled}<span className="text-[0.75rem] text-muted">/{cap}</span>
-          </span>
-          <span className={cn('text-muted transition-transform duration-200 cursor-pointer',
-            isExpanded && 'rotate-180')}
-            onClick={(e) => { e.stopPropagation(); onToggleExpand(); }}>
-            <ChevronDown size={16} />
-          </span>
-        </div>
-      </div>
-
-      {/* Expanded controls + guest list */}
-      <AnimatePresence initial={false}>
-        {isExpanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-            className="overflow-hidden">
-            <div className="rule-t">
-
-              {/* Shape selector */}
-              {!isHead && (
-                <div className="flex items-center gap-2 px-4 py-3 rule-b">
-                  <span className="eyebrow mr-2">{t('Form')}</span>
-                  {(['round', 'rect', 'horseshoe'] as Shape[]).map((s) => (
-                    <button key={s} onClick={() => onShapeChange(s)}
-                      className={cn('flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[0.76rem] transition-all cursor-pointer rule',
-                        table.shape === s ? 'bg-ink text-canvas' : 'bg-card text-ink-soft hover:text-ink')}>
-                      <ShapeIcon shape={s} size={12} />
-                      {t(SHAPE_META[s].label)}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* Capacity stepper */}
-              <div className="flex items-center gap-3 px-4 py-3 rule-b">
-                <span className="eyebrow flex-1">{t('Sæder')}</span>
-                <div className="flex items-center gap-2">
-                  <button onClick={() => onCapacityChange(-1)}
-                    className="flex h-7 w-7 items-center justify-center rounded-full rule hover:bg-card transition-colors cursor-pointer">
-                    <Minus size={13} />
-                  </button>
-                  <span className="w-8 text-center font-serif text-[1.1rem] text-ink">{cap}</span>
-                  <button onClick={() => onCapacityChange(1)}
-                    className="flex h-7 w-7 items-center justify-center rounded-full rule hover:bg-card transition-colors cursor-pointer">
-                    <Plus size={13} />
-                  </button>
-                </div>
-                <span className="text-[0.72rem] text-muted">{t(SHAPE_META[table.shape].desc)}</span>
-              </div>
-
-              {/* Guest list */}
-              <div className="divide-y divide-[var(--color-line)]">
-                {tableGuests.length > 0 ? tableGuests.map((g) => (
-                  <div key={g.id} className="group flex items-center gap-2.5 px-4 py-2.5">
-                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[0.58rem] font-medium text-canvas"
-                      style={{ background: colorFor(g.group) }}>
-                      {g.name.split(' ').map((n) => n[0]).join('').slice(0, 2)}
-                    </div>
-                    <span className="flex-1 text-[0.86rem] text-ink">{g.name}</span>
-                    <span className="text-[0.68rem] text-muted opacity-0 group-hover:opacity-100 transition-opacity">{g.group}</span>
-                    <button onClick={() => onRemoveGuest(g.id)}
-                      className="opacity-0 group-hover:opacity-100 flex h-6 w-6 items-center justify-center rounded-full text-muted hover:text-ink hover:bg-card transition-all cursor-pointer">
-                      <X size={11} />
-                    </button>
-                  </div>
-                )) : (
-                  <div className="px-4 py-5 text-center">
-                    <p className="text-[0.82rem] text-muted italic">
-                      {isActive ? t('Klik på gæster nedenfor for at placere dem her') : t('Vælg bordet for at tilføje gæster')}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* Empty seats indicator */}
-              {cap - filled > 0 && (
-                <div className="flex items-center gap-1.5 px-4 py-2.5 rule-t">
-                  {Array.from({ length: cap - filled }).map((_, i) => (
-                    <span key={i} className="h-2 w-2 rounded-full bg-shell" />
-                  ))}
-                  <span className="ml-1 text-[0.7rem] text-muted">
-                    {cap - filled === 1
-                      ? t('{n} ledig plads', { n: cap - filled })
-                      : t('{n} ledige pladser', { n: cap - filled })}
-                  </span>
-                </div>
-              )}
-
-              {/* Delete table */}
-              {onDelete && (
-                <button onClick={onDelete}
-                  className="flex w-full items-center gap-2 px-4 py-3 rule-t text-[0.78rem] text-muted hover:text-clay hover:bg-[#fff5f5] transition-colors cursor-pointer">
-                  <Trash2 size={13} /> {t('Fjern bord')}
-                </button>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
-  );
-}
-
-/* ── Guest group section ─────────────────────────────────────────────── */
-function GuestGroup({
-  group, assignedIds, activeTable, reduce, onGuestPointerDown, onAssignActive,
-}: {
-  group: { name: string; color: string; guests: Guest[] };
-  assignedIds: Set<string>;
-  activeTable: TableDef | undefined;
-  reduce: boolean;
-  onGuestPointerDown: (guest: Guest, e: React.PointerEvent) => void;
-  onAssignActive: (id: string) => void;
-}) {
-  const { t } = useLang();
-  const [collapsed, setCollapsed] = useState(false);
-  const activeName = activeTable ? t(activeTable.name) : t('det valgte bord');
-
-  return (
-    <div>
-      <button
-        onClick={() => setCollapsed((v) => !v)}
-        className="flex w-full items-center gap-3 px-5 py-3.5 cursor-pointer hover:bg-card/30 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ink/30">
-        <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: group.color }} />
-        <span className="flex-1 text-left font-serif text-[0.98rem] text-ink">{group.name}</span>
-        <span className="text-[0.72rem] text-muted">
-          {t('{placed}/{total} placeret', {
-            placed: group.guests.filter((g) => assignedIds.has(g.id)).length,
-            total: group.guests.length,
-          })}
-        </span>
-        <span className={cn('text-muted transition-transform duration-200', collapsed && 'rotate-180')}>
-          <ChevronDown size={14} />
-        </span>
-      </button>
-
-      <AnimatePresence initial={false}>
-        {!collapsed && (
-          <motion.div
-            initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }}
-            transition={reduce ? { duration: 0 } : { duration: 0.22 }}
-            className="overflow-hidden">
-            <div className="flex flex-wrap gap-2 px-5 pb-4">
-              {group.guests.map((g) => {
-                const placed = assignedIds.has(g.id);
-                if (placed) {
-                  return (
-                    <span key={g.id}
-                      className="relative flex min-h-[36px] items-center gap-1.5 rounded-full bg-sage-tint px-3.5 py-2 text-[0.82rem] text-ink-soft">
-                      <Check size={11} className="shrink-0 text-sage" />
-                      {g.name}
-                    </span>
-                  );
-                }
-                return (
-                  <motion.button
-                    key={g.id}
-                    whileTap={reduce ? undefined : { scale: 0.94 }}
-                    onPointerDown={(e) => onGuestPointerDown(g, e)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onAssignActive(g.id); }
-                    }}
-                    aria-label={t('Placér {name} ved {table}', { name: g.name, table: activeName })}
-                    style={{ touchAction: 'none' }}
-                    className="relative flex min-h-[36px] touch-none items-center gap-1.5 rounded-full rule bg-canvas px-3 py-2 text-[0.82rem] text-ink transition-colors hover:bg-card cursor-grab active:cursor-grabbing focus:outline-none focus-visible:ring-2 focus-visible:ring-ink/40">
-                    <GripVertical size={12} className="shrink-0 text-muted" />
-                    {g.name}
-                  </motion.button>
-                );
-              })}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-/* ── Stat tile ───────────────────────────────────────────────────────── */
-function StatTile({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="rule rounded-2xl bg-card px-5 py-3">
-      <p className="eyebrow">{label}</p>
-      <p className="mt-0.5 font-serif text-[1.5rem] leading-none text-ink">{value}</p>
-    </div>
-  );
-}
-
-/* ── Shape icon (reusable) ───────────────────────────────────────────── */
-function ShapeIcon({ shape, size = 18, className }: { shape: Shape; size?: number; className?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 20 20" fill="none"
-      className={className} xmlns="http://www.w3.org/2000/svg">
-      {shape === 'round' && (
-        <circle cx="10" cy="10" r="7.5" stroke="currentColor" strokeWidth="1.6" />
-      )}
-      {shape === 'rect' && (
-        <rect x="1.5" y="6" width="17" height="8" rx="2" stroke="currentColor" strokeWidth="1.6" />
-      )}
-      {shape === 'horseshoe' && (
-        <path d="M4 4 L4 11 A6 6 0 0 0 16 11 L16 4"
-          stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinecap="round" />
-      )}
-    </svg>
   );
 }

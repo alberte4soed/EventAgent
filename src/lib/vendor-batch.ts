@@ -23,25 +23,25 @@ const SUPPLIER_CAT: Partial<Record<VendorCategory, SupplierCatFilter>> = {
 };
 
 const BATCH_LABEL_DA: Record<VendorCategory, string> = {
-  venue: "{n} venues lagt på jeres board — se dem",
-  photographer: "{n} fotografer lagt på jeres board — se dem",
-  florist: "{n} blomsterleverandører lagt på jeres board — se dem",
-  musician: "{n} musikere lagt på jeres board — se dem",
-  caterer: "{n} catering-leverandører lagt på jeres board — se dem",
-  planner: "{n} planlæggere lagt på jeres board — se dem",
-  accommodation: "{n} overnatningssteder lagt på jeres board — se dem",
-  other: "{n} leverandører lagt på jeres board — se dem",
+  venue: "{n} venues lagt på jeres board, se dem",
+  photographer: "{n} fotografer lagt på jeres board, se dem",
+  florist: "{n} blomsterleverandører lagt på jeres board, se dem",
+  musician: "{n} musikere lagt på jeres board, se dem",
+  caterer: "{n} catering-leverandører lagt på jeres board, se dem",
+  planner: "{n} planlæggere lagt på jeres board, se dem",
+  accommodation: "{n} overnatningssteder lagt på jeres board, se dem",
+  other: "{n} leverandører lagt på jeres board, se dem",
 };
 
 const BATCH_LABEL_EN: Record<VendorCategory, string> = {
-  venue: "{n} venues added to your board — see them",
-  photographer: "{n} photographers added to your board — see them",
-  florist: "{n} florists added to your board — see them",
-  musician: "{n} musicians added to your board — see them",
-  caterer: "{n} caterers added to your board — see them",
-  planner: "{n} planners added to your board — see them",
-  accommodation: "{n} places to stay added to your board — see them",
-  other: "{n} vendors added to your board — see them",
+  venue: "{n} venues added to your board, see them",
+  photographer: "{n} photographers added to your board, see them",
+  florist: "{n} florists added to your board, see them",
+  musician: "{n} musicians added to your board, see them",
+  caterer: "{n} caterers added to your board, see them",
+  planner: "{n} planners added to your board, see them",
+  accommodation: "{n} places to stay added to your board, see them",
+  other: "{n} vendors added to your board, see them",
 };
 
 export function batchCategory(

@@ -19,7 +19,7 @@ const features: Feature[] = [
   {
     id: "budget",
     title: "The budget keeps itself",
-    body: "Quotes and deposits land in the right category — flagged before anything tips over.",
+    body: "Quotes and deposits land in the right category, flagged before anything tips over.",
     className: "lg:col-span-6",
   },
   {
@@ -37,7 +37,7 @@ const features: Feature[] = [
   {
     id: "timeline",
     title: "Always knows what's next",
-    body: "The right nudge at the right week — nothing slips through.",
+    body: "The right nudge at the right week, nothing slips through.",
     className: "lg:col-span-6",
   },
 ];

@@ -21,11 +21,11 @@ export default function AnmeldelserTab() {
       <motion.section
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="rounded-[28px] border border-dashed border-[#d8d4c7] bg-[#fcfbf7] px-7 py-14 text-center"
+        className="rounded-[28px] border border-dashed border-[#dcdfdb] bg-[#ffffff] px-7 py-14 text-center"
       >
         <Users size={22} className="mx-auto text-[#9a9686]" />
-        <p className="mt-3 font-serif text-xl text-[#314523]">{t('Ingen bookede leverandører endnu')}</p>
-        <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-[#6c7561]">
+        <p className="mt-3 font-serif text-xl text-[#24413a]">{t('Ingen bookede leverandører endnu')}</p>
+        <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-[#5f6b66]">
           {t('Når I markerer nogen som booket under Venue & leverandører, kan I bedømme dem her bagefter.')}
         </p>
       </motion.section>
@@ -36,20 +36,20 @@ export default function AnmeldelserTab() {
     <motion.section
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col gap-6 rounded-[28px] border border-[#d8d4c7] bg-[#fcfbf7] p-7"
+      className="flex flex-col gap-6 rounded-[28px] border border-[#dcdfdb] bg-[#ffffff] p-7"
     >
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <p className="max-w-md text-sm text-[#6c7561]">
-          {t('Skriv det ned mens I husker det — hvad gik godt, og hvem ville I anbefale videre.')}
+        <p className="max-w-md text-sm text-[#5f6b66]">
+          {t('Skriv det ned mens I husker det, hvad gik godt, og hvem ville I anbefale videre.')}
         </p>
-        <p className="shrink-0 text-sm font-bold text-[#8a9079]">
+        <p className="shrink-0 text-sm font-bold text-[#7d938a]">
           {t('{done} af {total} bedømt', { done, total })}
         </p>
       </div>
 
       {groups.map(({ category, vendors }) => (
         <section key={category} className="flex flex-col gap-3">
-          <h2 className="font-serif text-lg text-[#314523]">{t(CATEGORY_LABELS[category])}</h2>
+          <h2 className="font-serif text-lg text-[#24413a]">{t(CATEGORY_LABELS[category])}</h2>
           {vendors.map((vendor) => (
             <VendorReview key={vendor.id} vendor={vendor} onSave={saveVenueReview} />
           ))}
@@ -70,13 +70,13 @@ function VendorReview({ vendor, onSave }: {
   return (
     <div className={cn(
       'rounded-[18px] border px-5 py-4',
-      rating > 0 ? 'border-[#d3dcc4] bg-[#eef1e6]' : 'border-[#e4e0d4] bg-[#f7f5ef]',
+      rating > 0 ? 'border-[#d3dcc4] bg-[#e8f0ec]' : 'border-[#e6e9e5] bg-[#f8f9f8]',
     )}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-base font-semibold text-[#314523]">{vendor.name}</p>
+          <p className="text-base font-semibold text-[#24413a]">{vendor.name}</p>
           {vendor.address && (
-            <p className="truncate text-[13px] text-[#6c7561]">{vendor.address}</p>
+            <p className="truncate text-[13px] text-[#5f6b66]">{vendor.address}</p>
           )}
         </div>
 
@@ -93,7 +93,7 @@ function VendorReview({ vendor, onSave }: {
               >
                 <Star
                   size={18}
-                  className={n <= rating ? 'text-[#c9a227]' : 'text-[#c4bfae]'}
+                  className={n <= rating ? 'text-[#c9a227]' : 'text-[#c6cbc6]'}
                   fill={n <= rating ? 'currentColor' : 'none'}
                 />
               </button>
@@ -107,7 +107,7 @@ function VendorReview({ vendor, onSave }: {
               aria-label={t('Vil anbefale')}
               className={cn(
                 'flex size-8 items-center justify-center rounded-full transition-colors cursor-pointer',
-                vendor.own_recommend === true ? 'bg-[#314523] text-[#f7f5ef]' : 'text-[#9a9686] hover:bg-white/70',
+                vendor.own_recommend === true ? 'bg-[#24413a] text-[#f8f9f8]' : 'text-[#9a9686] hover:bg-white/70',
               )}
             >
               <ThumbsUp size={14} />
@@ -134,7 +134,7 @@ function VendorReview({ vendor, onSave }: {
         rows={2}
         placeholder={t('Hvordan gik det? Kun jer der ser det.')}
         aria-label={t('Jeres anmeldelse af {name}', { name: vendor.name })}
-        className="mt-3 w-full resize-none rounded-[12px] border border-[#e4e0d4] bg-white/60 px-3.5 py-2.5 text-sm leading-relaxed text-[#314523] placeholder:text-[#9a9686] focus:outline-none"
+        className="mt-3 w-full resize-none rounded-[12px] border border-[#e6e9e5] bg-white/60 px-3.5 py-2.5 text-sm leading-relaxed text-[#24413a] placeholder:text-[#9a9686] focus:outline-none"
       />
     </div>
   );

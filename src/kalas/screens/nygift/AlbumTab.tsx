@@ -79,15 +79,15 @@ export default function AlbumTab({ onNavigate }: { onNavigate?: (s: 'website') =
   if (!published || !domain) {
     return (
       <Panel>
-        <p className="font-serif text-xl text-[#314523]">{t('Udgiv jeres hjemmeside først')}</p>
-        <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-[#6c7561]">
+        <p className="font-serif text-xl text-[#24413a]">{t('Udgiv jeres hjemmeside først')}</p>
+        <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-[#5f6b66]">
           {t('Gæsterne uploader via jeres side-adresse, så albummet åbner i samme øjeblik hjemmesiden er udgivet.')}
         </p>
         {onNavigate && (
           <button
             type="button"
             onClick={() => onNavigate('website')}
-            className="mt-5 inline-flex h-9 items-center rounded-full bg-[#173c32] px-4 text-xs font-semibold text-white cursor-pointer"
+            className="mt-5 inline-flex h-9 items-center rounded-full bg-[#12332b] px-4 text-xs font-semibold text-white cursor-pointer"
           >
             {t('Gå til Hjemmeside')}
           </button>
@@ -100,26 +100,26 @@ export default function AlbumTab({ onNavigate }: { onNavigate?: (s: 'website') =
     <motion.section
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col gap-5 rounded-[28px] border border-[#d8d4c7] bg-[#fcfbf7] p-7"
+      className="flex flex-col gap-5 rounded-[28px] border border-[#dcdfdb] bg-[#ffffff] p-7"
     >
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <p className="max-w-md text-sm text-[#6c7561]">
-          {t('Del linket med gæsterne — de kan lægge billeder op uden at oprette noget. Kun I kan se dem.')}
+        <p className="max-w-md text-sm text-[#5f6b66]">
+          {t('Del linket med gæsterne, de kan lægge billeder op uden at oprette noget. Kun I kan se dem.')}
         </p>
-        <p className="shrink-0 text-sm font-bold text-[#8a9079]">
+        <p className="shrink-0 text-sm font-bold text-[#7d938a]">
           {t('{n} billeder', { n: total })}
         </p>
       </div>
 
       {/* Share link */}
       <div className="flex flex-wrap items-center gap-2">
-        <code className="min-w-0 flex-1 truncate rounded-[14px] border border-[#e4e0d4] bg-[#f7f5ef] px-4 py-3 font-mono text-[13px] text-[#314523]">
+        <code className="min-w-0 flex-1 truncate rounded-[14px] border border-[#e6e9e5] bg-[#f8f9f8] px-4 py-3 font-mono text-[13px] text-[#24413a]">
           {shareUrl}
         </code>
         <button
           type="button"
           onClick={copyLink}
-          className="flex h-11 items-center gap-1.5 rounded-[14px] bg-[#173c32] px-4 text-xs font-semibold text-white cursor-pointer"
+          className="flex h-11 items-center gap-1.5 rounded-[14px] bg-[#12332b] px-4 text-xs font-semibold text-white cursor-pointer"
         >
           {copied ? <Check size={14} /> : <Link2 size={14} />}
           {copied ? t('Kopieret') : t('Kopiér link')}
@@ -128,7 +128,7 @@ export default function AlbumTab({ onNavigate }: { onNavigate?: (s: 'website') =
           type="button"
           onClick={toggleOpen}
           title={albumOpen ? t('Luk for nye billeder') : t('Åbn for nye billeder')}
-          className="flex h-11 items-center gap-1.5 rounded-[14px] border border-[#d9ded9] bg-white px-4 text-xs font-semibold text-[#314523] cursor-pointer"
+          className="flex h-11 items-center gap-1.5 rounded-[14px] border border-[#d9ded9] bg-white px-4 text-xs font-semibold text-[#24413a] cursor-pointer"
         >
           {albumOpen ? <Unlock size={14} /> : <Lock size={14} />}
           {albumOpen ? t('Åbent') : t('Lukket')}
@@ -142,11 +142,11 @@ export default function AlbumTab({ onNavigate }: { onNavigate?: (s: 'website') =
       )}
 
       {!loading && photos.length === 0 && (
-        <div className="rounded-[18px] border border-[#e4e0d4] bg-[#f7f5ef] px-5 py-12 text-center">
+        <div className="rounded-[18px] border border-[#e6e9e5] bg-[#f8f9f8] px-5 py-12 text-center">
           <ImageOff size={22} className="mx-auto text-[#9a9686]" />
-          <p className="mt-3 font-serif text-lg text-[#314523]">{t('Ingen billeder endnu')}</p>
-          <p className="mx-auto mt-1 max-w-sm text-sm text-[#6c7561]">
-            {t('Send linket rundt i gruppechatten — så fyldes albummet af sig selv.')}
+          <p className="mt-3 font-serif text-lg text-[#24413a]">{t('Ingen billeder endnu')}</p>
+          <p className="mx-auto mt-1 max-w-sm text-sm text-[#5f6b66]">
+            {t('Send linket rundt i gruppechatten, så fyldes albummet af sig selv.')}
           </p>
         </div>
       )}
@@ -154,7 +154,7 @@ export default function AlbumTab({ onNavigate }: { onNavigate?: (s: 'website') =
       {photos.length > 0 && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {photos.map((photo) => (
-            <figure key={photo.id} className="group relative aspect-square overflow-hidden rounded-[18px] bg-[#f0ede5]">
+            <figure key={photo.id} className="group relative aspect-square overflow-hidden rounded-[18px] bg-[#eceeeb]">
               {photo.url ? (
                 <img src={photo.url} alt={photo.caption ?? ''} loading="lazy"
                   className="h-full w-full object-cover" />
@@ -207,7 +207,7 @@ export default function AlbumTab({ onNavigate }: { onNavigate?: (s: 'website') =
           type="button"
           onClick={() => { const next = page + 1; setPage(next); setLoading(true); void load(next); }}
           disabled={loading}
-          className="mx-auto flex h-9 items-center gap-1.5 rounded-full border border-[#d9ded9] bg-white px-4 text-xs font-semibold text-[#314523] cursor-pointer disabled:opacity-50"
+          className="mx-auto flex h-9 items-center gap-1.5 rounded-full border border-[#d9ded9] bg-white px-4 text-xs font-semibold text-[#24413a] cursor-pointer disabled:opacity-50"
         >
           {loading && <Loader2 size={13} className="animate-spin" />}
           {t('Hent flere')}
@@ -222,7 +222,7 @@ function Panel({ children }: { children: React.ReactNode }) {
     <motion.section
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-[28px] border border-dashed border-[#d8d4c7] bg-[#fcfbf7] px-7 py-14 text-center"
+      className="rounded-[28px] border border-dashed border-[#dcdfdb] bg-[#ffffff] px-7 py-14 text-center"
     >
       {children}
     </motion.section>

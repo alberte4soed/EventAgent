@@ -2,7 +2,7 @@
 
 /* Authenticated Kalas app. Mounted at /home via next/dynamic with ssr:false,
    so sessionStorage/window access in the screens is safe. Onboarding lives
-   on its own Next route (/onboarding) — no phase state here. */
+   on its own Next route (/onboarding), no phase state here. */
 import { useCallback, useState } from 'react';
 import { AnimatePresence, MotionConfig } from 'motion/react';
 import Shell, { type ScreenId } from './Shell';

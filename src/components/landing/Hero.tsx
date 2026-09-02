@@ -71,7 +71,7 @@ export function Hero() {
         <BlurFade delay={0.65} duration={0.5} className="mx-auto mt-7 max-w-xl">
           <p className="text-lg leading-relaxed text-on-velvet/90 drop-shadow-[0_1px_12px_rgba(0,0,0,0.3)]">
             Ava researches real venues anywhere in the world, writes to them in
-            their own language, and turns the replies into quotes you can compare —
+            their own language, and turns the replies into quotes you can compare,
             then runs budget, guests, invites and your wedding website.
             You approve; she does.
           </p>
@@ -82,7 +82,7 @@ export function Hero() {
             href="/login"
             className="rounded-full bg-blue px-8 py-4 text-sm font-medium text-on-ink shadow-[0px_4px_14px_rgba(58,79,55,0.28)] transition hover:bg-blue-light"
           >
-            Plan my wedding — free
+            Plan my wedding, free
           </Link>
           <Link
             href="#features"

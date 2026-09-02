@@ -3,7 +3,7 @@ import * as React from 'react';
 /* Line composition for the templates.
 
    The designs were drawn against English sample text ("the 22nd of May 2027").
-   Danish long-form dates are longer — "Lørdag · den 12. september 2026" — and
+   Danish long-form dates are longer, "Lørdag · den 12. september 2026", and
    at the tracking these templates use (.22em–.3em, uppercase) they wrap inside
    a 280px card. Left alone that produces the two things that make display type
    look cheap: a year stranded on its own line, and a separator dangling at the

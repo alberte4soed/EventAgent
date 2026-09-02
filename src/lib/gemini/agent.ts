@@ -20,6 +20,7 @@ import {
   type PlaceResult,
 } from "@/lib/places/client";
 import { rankScore } from "@/lib/ranking";
+import { normalizeFacts, parsePrice } from "@/lib/venue/facts";
 import {
   agentSystemPrompt,
   VENDOR_SEARCH_PROMPT,
@@ -303,7 +304,7 @@ export async function runAgentTurn(
   });
 
   return {
-    text: "I got a bit tangled up there — could you rephrase that?",
+    text: "I got a bit tangled up there, could you rephrase that?",
     payload,
   };
 }
@@ -517,13 +518,20 @@ async function execSearchVenues(
         extracted: c.extracted,
         place,
         photoUrls,
-        score: rankScore({ extracted: c.extracted, place }, guestCount, vibes),
+        score: rankScore({ extracted: c.extracted, place }, guestCount, vibes, {
+          facts: normalizeFacts(c.extracted, {
+            capacity: c.extracted.capacity,
+            price_hint: c.extracted.price_hint,
+          }),
+          budget: parsePrice(event.budget),
+        }),
       };
     })
   );
   enriched.sort((a, b) => b.score - a.score);
 
   const rows = enriched.map(({ extracted: v, place, photoUrls }) => {
+    const facts = normalizeFacts(v, { capacity: v.capacity, price_hint: v.price_hint });
     const website = place?.websiteUri ?? v.website ?? null;
     const email = v.email ?? null;
     const emailVerified = emailMatchesWebsite(email, website);
@@ -540,6 +548,16 @@ async function execSearchVenues(
       phone: place?.nationalPhoneNumber ?? v.phone ?? null,
       capacity: v.capacity ?? null,
       price_hint: v.price_hint ?? null,
+      // Same structured facts the explore page writes, so a venue Ava adds
+      // is filterable on capacity and budget like any other.
+      capacity_seated: facts.capacity_seated,
+      capacity_standing: facts.capacity_standing,
+      price_from: facts.price_from,
+      price_unit: facts.price_unit,
+      catering: facts.catering,
+      accommodation: facts.accommodation,
+      rooms: facts.rooms,
+      setting: facts.setting,
       image_url: photoUrls[0] ?? null,
       source_urls: sourceUrls,
       place_id: place?.id ?? null,
@@ -779,7 +797,7 @@ async function execFindVenueEmail(
         found: true,
         email,
         verified: false,
-        note: "Email domain does not match the venue's website — double-check before sending.",
+        note: "Email domain does not match the venue's website, double-check before sending.",
       };
 }
 

@@ -41,7 +41,7 @@ export const VIBES = [
 
 export interface DateChip {
   key: string;
-  label: string; // e.g. "Summer 2026" — also stored as events.date_hint
+  label: string; // e.g. "Summer 2026", also stored as events.date_hint
 }
 
 const SEASONS = ["Spring", "Summer", "Fall", "Winter"] as const;

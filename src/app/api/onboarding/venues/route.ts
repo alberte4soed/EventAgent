@@ -1,239 +1,93 @@
+import { createHash } from "crypto";
 import { NextRequest } from "next/server";
-import { Type, type Schema } from "@google/genai";
 import { createClient } from "@/lib/supabase/server";
-import { getGemini, GEMINI_MODEL } from "@/lib/gemini/client";
-import { type ExtractedVenue } from "@/lib/gemini/schemas";
-import {
-  cacheGet,
-  cacheSet,
-  getDetails,
-  isPlausibleVenue,
-  matchPlace,
-  resolvePhotoUrls,
-  type PlaceResult,
-} from "@/lib/places/client";
+import { cacheGet, cacheSet, geocode } from "@/lib/places/client";
+import { searchArea, type VenueSuggestion } from "@/lib/venue/search";
+import { applyFilters, type VenueFilters } from "@/lib/venue/filter";
+import { findRegion } from "@/lib/venue/regions";
+import { VENUE_SETTINGS, type VenueSetting } from "@/lib/venue/facts";
+import { distanceBetween } from "@/lib/venue/distance";
 
 /**
  * POST /api/onboarding/venues
  *
- * Gemini researches real wedding venues for the couple's destination and guest
- * count; Google Places verifies each pick and supplies photos + ratings.
+ * Searches ONE area for wedding venues: Gemini researches, Google Places
+ * verifies, the couple's requirements steer the prompt and then filter the
+ * result.
+ *
+ * One area per request is the whole design. A region like "Nordsjælland" is
+ * five of these fired in parallel from the client, which is how ~50 venues
+ * arrive without any single function going near the platform's budget — and
+ * it means results stream in rather than the couple staring at a spinner.
  */
 
-// Two Gemini calls plus a batch of Places lookups. Netlify ignores this (see
-// cron/poll-replies), which is exactly why the Places work below runs in
-// parallel — the whole route has to fit inside a 10s function budget.
+// The platform ignores this (see the note in cron/poll-replies), which is why
+// the Places work runs in parallel and why a region is sharded across several
+// requests: each one has to fit inside a ~10s function budget.
 export const maxDuration = 60;
 
-export interface OnboardingVenueSuggestion {
-  id: string;
-  name: string;
-  description: string | null;
-  why_fit: string | null;
-  address: string | null;
-  capacity: string | null;
-  price_hint: string | null;
-  photo: string | null;
-  photos: string[];
-  rating: number | null;
-  review_count: number | null;
-  place_id: string | null;
-}
+export type { VenueSuggestion } from "@/lib/venue/search";
 
 interface Body {
+  /** Free-text place, or the qualified area when searching a region shard. */
   destination?: string;
+  /** Region slug — supplies the country qualifier and the prompt's context. */
+  region?: string;
+  /** Which shard of the region this request covers, e.g. "Helsingør". */
+  area?: string;
   guest_count?: number;
-  loved_destinations?: string[];
   budget?: string | null;
+  loved_destinations?: string[];
   lang?: string;
-}
-
-const TARGET = 10;
-
-/**
- * Shared curation brief. Two jobs at once: keep every pick a genuine WEDDING
- * venue (the #1 complaint is random hotels / restaurants / non-venues), while
- * still spreading across aesthetics so swiping actually reveals taste.
- */
-const DIVERSITY_BRIEF = `
-FOCUS — every single pick must be a place that genuinely hosts weddings and events: a dedicated wedding/event
-venue, an estate, manor, castle, barn or farm that hosts weddings, a vineyard or winery, a historic hall,
-orangery or garden, a museum or gallery that rents for events, or a hotel/restaurant ONLY IF it markets a real
-wedding offering (a wedding package, event/banquet space, a "bryllup"/"weddings" page). This is a wedding-venue
-shortlist, NOT a list of nice places in the city.
-
-Do NOT include: ordinary city or chain business hotels with no wedding offering, everyday restaurants or cafés,
-bars, nightclubs, shops, offices, town halls, associations, sports facilities, playgrounds, or private homes.
-
-VARIETY — within that focus, make the ${TARGET} venues feel distinct so the couple's swipes reveal a preference.
-Spread across settings where the area allows: rustic barn / farm, historic manor or palace, castle, coastal or
-beach, garden or orangery, vineyard or wine country, a design hotel with a real wedding offering, lakeside,
-industrial/warehouse event space, chapel, tented estate. Mix indoor and outdoor, city and countryside, intimate
-and grand, budget-friendly and splurge. No two picks should be interchangeable — but never trade the wedding-venue
-focus for variety.
-`.trim();
-
-const suggestSchema: Schema = {
-  type: Type.OBJECT,
-  properties: {
-    venues: {
-      type: Type.ARRAY,
-      items: {
-        type: Type.OBJECT,
-        properties: {
-          name: { type: Type.STRING },
-          description: { type: Type.STRING, nullable: true },
-          why_fit: { type: Type.STRING, nullable: true },
-          capacity: { type: Type.STRING, nullable: true },
-          price_hint: { type: Type.STRING, nullable: true },
-        },
-        required: ["name"],
-      },
-    },
-  },
-  required: ["venues"],
-};
-
-function prompt(args: {
-  destination: string;
-  guestCount: number;
-  loved: string[];
-  budget: string | null;
-  lang: string;
-}) {
-  const lovedLine = args.loved.length
-    ? `They also hearted these dream places for later: ${args.loved.join(", ")}. Lean into that vibe and geography where it makes sense.`
-    : "";
-  const budgetLine = args.budget ? `Budget ballpark: ${args.budget} DKK.` : "";
-  const langNote = args.lang === "da" ? "Write why_fit in Danish." : "Write why_fit in English.";
-
-  return `
-You are a wedding venue curator for a swipe-based vibe check. Suggest exactly ${TARGET} REAL wedding venues in or near "${args.destination}"
-for about ${args.guestCount} guests. ${lovedLine} ${budgetLine}
-
-${DIVERSITY_BRIEF}
-
-Rules:
-- Every "name" must be a real, findable, specific venue or estate (not a city, region, or generic business).
-- Every pick must be a place that actually hosts weddings/events and fits the guest count roughly — when in doubt, leave it out.
-- "why_fit" is ONE warm sentence highlighting THIS venue's distinct wedding vibe (${langNote}).
-- "capacity" and "price_hint" only when you have reasonable confidence; otherwise null.
-- No duplicates. No invented places. No generic hotels/restaurants without a real wedding offering.
-`.trim();
-}
-
-async function suggestStructured(args: Parameters<typeof prompt>[0]): Promise<ExtractedVenue[]> {
-  const ai = getGemini();
-  const res = await ai.models.generateContent({
-    model: GEMINI_MODEL,
-    contents: prompt(args),
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: suggestSchema,
-    },
-  });
-  const parsed = JSON.parse(res.text ?? "{}") as { venues?: ExtractedVenue[] };
-  return (parsed.venues ?? []).filter((v) => v.name?.trim()).slice(0, TARGET + 4);
-}
-
-async function suggestGrounded(
-  args: Parameters<typeof prompt>[0],
-  destination: string
-): Promise<ExtractedVenue[]> {
-  const ai = getGemini();
-  const searchPrompt = `Search the web and find ${TARGET} real WEDDING venues in or near ${destination} for about ${args.guestCount} guests.
-Search for genuine wedding venues — try queries like "bryllupslokale ${destination}", "wedding venue ${destination}",
-"bryllupsgård", "slot bryllup", "hold bryllup ${destination}" — and check each candidate has a real wedding/event offering.
-${args.loved.length ? `Dream places they saved: ${args.loved.join(", ")}.` : ""}
-${args.budget ? `Budget: ${args.budget} DKK.` : ""}
-
-${DIVERSITY_BRIEF}
-
-Only include places that genuinely host weddings; skip ordinary hotels, restaurants and non-venues even to reach the count.
-
-Return ONLY a JSON array — no prose, no markdown fence. Each element:
-{"name":string,"description":string|null,"why_fit":string|null,"address":string|null,"capacity":string|null,"price_hint":string|null}`;
-
-  const grounded = await ai.models.generateContent({
-    model: GEMINI_MODEL,
-    contents: searchPrompt,
-    config: { tools: [{ googleSearch: {} }] },
-  });
-  const notes = grounded.text?.trim();
-  if (!notes) return [];
-
-  // The search tool cannot be combined with responseSchema, so the model is
-  // asked for JSON in prose and we parse it. This used to be a second Gemini
-  // call, which pushed the route past the function timeout — the couple then
-  // saw "kunne ikke finde venues her" every time. On a parse failure the
-  // caller falls through to the structured path.
-  const json = notes.match(/\[[\s\S]*\]/)?.[0];
-  if (!json) return [];
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(json);
-  } catch {
-    return [];
-  }
-  if (!Array.isArray(parsed)) return [];
-  return (parsed as ExtractedVenue[])
-    .filter((v) => typeof v?.name === "string" && v.name.trim())
-    .slice(0, TARGET + 4);
-}
-
-/** Best-effort — resolves to null rather than throwing, so one bad candidate
- *  cannot reject the Promise.all that enriches the whole batch. */
-async function enrich(
-  extracted: ExtractedVenue,
-  destination: string
-): Promise<OnboardingVenueSuggestion | null> {
-  try {
-    return await enrichOrThrow(extracted, destination);
-  } catch {
-    return null;
-  }
-}
-
-async function enrichOrThrow(
-  extracted: ExtractedVenue,
-  destination: string
-): Promise<OnboardingVenueSuggestion | null> {
-  const place = await matchPlace(extracted.name, destination);
-  if (!place) return null;
-  if (place.businessStatus && place.businessStatus !== "OPERATIONAL") return null;
-  // Google's type tags catch the junk a name match lets through — playgrounds,
-  // offices, shops, transit — so a bad pick never reaches the couple's cards.
-  if (!isPlausibleVenue(place)) return null;
-
-  const details: PlaceResult | null = await getDetails(place.id);
-  const resolved = details ?? place;
-  const photos = await resolvePhotoUrls(resolved.photos, 4);
-  if (!photos[0]) return null;
-
-  return {
-    id: place.id,
-    name: resolved.displayName?.text ?? extracted.name,
-    description: extracted.description ?? resolved.editorialSummary?.text ?? null,
-    why_fit: extracted.why_fit ?? null,
-    address: resolved.formattedAddress ?? extracted.address ?? null,
-    capacity: extracted.capacity ?? null,
-    price_hint: extracted.price_hint ?? null,
-    photo: photos[0],
-    photos,
-    rating: resolved.rating ?? null,
-    review_count: resolved.userRatingCount ?? null,
-    place_id: place.id,
+  filters?: {
+    catering?: "in_house" | "any";
+    accommodation?: "on_site" | "on_site_or_nearby" | "any";
+    settings?: string[];
   };
+  /** The couple's own area, for measuring how far each venue is. Free text;
+   *  resolved to coordinates here, where the Places key lives. */
+  origin?: string;
+  /** Names already on screen — "Vis flere" must bring back different venues. */
+  exclude?: string[];
+  /** Places already on screen. The model can return the same venue under a
+   *  different name; the resolved place_id is what actually identifies it. */
+  exclude_place_ids?: string[];
 }
 
-function cacheKey(
-  destination: string,
-  guestCount: number,
-  loved: string[],
-  lang: string
-): string {
-  const lovedKey = [...loved].sort().join("|").toLowerCase();
-  return `onboarding-venues:v5:${lang}:${destination.toLowerCase()}:${guestCount}:${lovedKey}`;
+function cacheKey(args: {
+  destination: string;
+  guestCount: number | null;
+  budget: string | null;
+  loved: string[];
+  lang: string;
+  settings: string[];
+  wantsCatering: boolean;
+  wantsAccommodation: boolean;
+  exclude: string[];
+}): string {
+  const lovedKey = [...args.loved].sort().join("|").toLowerCase();
+  // The exclude set is what makes page 2 page 2, so it has to be part of the
+  // key — otherwise "Vis flere" serves the first page back from cache. Hashed
+  // because the list grows past 50 names and the key would dwarf the value.
+  const pageKey = args.exclude.length
+    ? createHash("sha1").update([...args.exclude].sort().join("|").toLowerCase()).digest("hex").slice(0, 12)
+    : "0";
+  // Only prompt-affecting inputs belong here. The soft filters are applied
+  // after the cache read, so toggling "catering i huset" is a cache hit
+  // rather than another Gemini call.
+  const want = `${args.wantsCatering ? "c" : ""}${args.wantsAccommodation ? "a" : ""}` || "0";
+  const settingKey = [...args.settings].sort().join(",") || "0";
+  return [
+    "venues:v7",
+    args.lang,
+    args.destination.toLowerCase(),
+    args.guestCount ?? 0,
+    args.budget ?? "0",
+    settingKey,
+    want,
+    lovedKey,
+    pageKey,
+  ].join(":");
 }
 
 export async function POST(request: NextRequest) {
@@ -244,60 +98,89 @@ export async function POST(request: NextRequest) {
   if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = (await request.json()) as Body;
-  const destination = (body.destination ?? "").trim();
-  const guestCount =
-    typeof body.guest_count === "number" && body.guest_count > 0
-      ? Math.round(body.guest_count)
-      : 75;
-  const loved = (body.loved_destinations ?? [])
-    .filter((v) => typeof v === "string" && v.trim())
-    .map((v) => v.trim().slice(0, 80))
-    .slice(0, 20);
-  const lang = body.lang === "en" ? "en" : "da";
-  const budget = (body.budget ?? "").trim() || null;
+
+  // A region + area pair resolves to a country-qualified destination: "Møn"
+  // and "Ribe" are not unambiguous to Google Places on their own, and an
+  // unqualified area is how a Danish search quietly returns Dutch venues.
+  const region = findRegion(body.region);
+  const area = (body.area ?? "").trim() || null;
+  const destination = area && region ? `${area}, ${region.country}` : (body.destination ?? "").trim();
 
   if (!destination || destination.length > 120) {
     return Response.json({ error: "destination is required" }, { status: 400 });
   }
 
-  const key = cacheKey(destination, guestCount, loved, lang);
-  const cached = await cacheGet<OnboardingVenueSuggestion[]>(key);
-  if (cached?.length) return Response.json({ venues: cached });
+  // No guest count means no capacity filter — better than inventing one. The
+  // old default of 75 silently filtered nothing while looking like it did.
+  const guestCount =
+    typeof body.guest_count === "number" && body.guest_count > 0 ? Math.round(body.guest_count) : null;
+  const budget = (body.budget ?? "").trim() || null;
+  const lang = body.lang === "en" ? "en" : "da";
+  const loved = (body.loved_destinations ?? [])
+    .filter((v) => typeof v === "string" && v.trim())
+    .map((v) => v.trim().slice(0, 80))
+    .slice(0, 20);
+  const exclude = (body.exclude ?? [])
+    .filter((v): v is string => typeof v === "string" && v.trim().length > 0)
+    .map((v) => v.trim().slice(0, 120))
+    .slice(0, 60);
+  const excludePlaceIds = new Set(
+    (body.exclude_place_ids ?? [])
+      .filter((v): v is string => typeof v === "string" && v.trim().length > 0)
+      .slice(0, 60)
+  );
 
-  const args = { destination, guestCount, loved, budget, lang };
-  let extracted: ExtractedVenue[] = [];
-  try {
-    extracted = await suggestGrounded(args, destination);
-  } catch {
-    // Grounding can fail — fall back to structured.
-  }
-  if (extracted.length < TARGET / 2) {
-    try {
-      const structured = await suggestStructured(args);
-      const seen = new Set(extracted.map((v) => v.name.toLowerCase()));
-      for (const v of structured) {
-        if (!seen.has(v.name.toLowerCase())) extracted.push(v);
-      }
-    } catch {
-      if (extracted.length === 0) return Response.json({ venues: [] });
+  const settings = (body.filters?.settings ?? []).filter((s): s is VenueSetting =>
+    (VENUE_SETTINGS as readonly string[]).includes(s)
+  );
+  const wantsCatering = body.filters?.catering === "in_house";
+  const wantsAccommodation =
+    body.filters?.accommodation === "on_site" || body.filters?.accommodation === "on_site_or_nearby";
+
+  const promptArgs = {
+    destination,
+    guestCount,
+    loved,
+    budget,
+    lang,
+    exclude,
+    settings,
+    wantsCatering,
+    wantsAccommodation,
+  };
+
+  // One cached Places lookup, shared by every shard of every later search.
+  const originText = (body.origin ?? "").trim().slice(0, 120);
+  const origin = originText ? await geocode(originText) : null;
+
+  const key = cacheKey({ ...promptArgs, guestCount, budget });
+  let venues = await cacheGet<VenueSuggestion[]>(key);
+  if (!venues?.length) {
+    venues = await searchArea({ ...promptArgs, area, excludePlaceIds, origin });
+    if (venues.length > 0) await cacheSet(key, venues);
+  } else {
+    // A cached page can still contain something already on screen — the
+    // exclude set moves on as the couple browses, the cache does not.
+    venues = venues.filter((v) => !v.place_id || !excludePlaceIds.has(v.place_id));
+    // The cache is keyed on the search, not on the couple, so distances on a
+    // cached page belong to whoever searched first. Recompute them.
+    if (origin) {
+      venues = venues.map((v) => ({
+        ...v,
+        distance_km: distanceBetween(origin, v.lat, v.lng),
+      }));
     }
   }
 
-  // Enrich every candidate at once. Serially this was ~1.5s per candidate —
-  // 20s+ on top of the Gemini calls, past the platform's function timeout, so
-  // the couple only ever saw "kunne ikke finde venues her". Order is preserved
-  // by resolving the whole array before picking.
-  const enriched = await Promise.all(extracted.map((item) => enrich(item, destination)));
+  // Hard rules only. Everything soft stays client-side so a toggle re-filters
+  // the list it already has instead of costing another search.
+  const hardFilters: VenueFilters = { min_capacity: guestCount };
+  const { kept, rejected } = applyFilters(venues, hardFilters);
 
-  const seenPlaces = new Set<string>();
-  const venues: OnboardingVenueSuggestion[] = [];
-  for (const venue of enriched) {
-    if (venues.length >= TARGET) break;
-    if (!venue || seenPlaces.has(venue.place_id!)) continue;
-    seenPlaces.add(venue.place_id!);
-    venues.push(venue);
-  }
-
-  if (venues.length > 0) await cacheSet(key, venues);
-  return Response.json({ venues });
+  return Response.json({
+    venues: kept.map((k) => k.venue),
+    area,
+    /** So the UI can say "3 steder skjult — for små til 70 gæster". */
+    hidden: { capacity: rejected.length },
+  });
 }

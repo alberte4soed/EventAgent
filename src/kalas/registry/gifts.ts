@@ -1,5 +1,5 @@
 /* Shared registry maths. Three surfaces render the same gifts — the couple's
-   screen, the token site renderer and the AI site's portal grid — and they
+   screen, the token site renderer and the AI site's portal grid, and they
    used to each sort and count their own way. Pure, so it can be imported from
    both src/kalas and src/app without dragging any client state along. */
 

@@ -9,7 +9,7 @@ import { cn } from '../../ui';
 import { effectiveLocation } from '../../lib/location';
 import type { NavigateTarget } from '../../lib/hub-nav';
 import type { HubCat } from './shared';
-import type { OnboardingVenueSuggestion } from '@/app/api/onboarding/venues/route';
+import type { PlaceSuggestion } from '@/lib/venue/search';
 
 /**
  * Location-driven vendor discovery for a non-venue category. Ava researches
@@ -31,14 +31,14 @@ export default function VendorExplore({
 
   const location = useMemo(() => effectiveLocation(event, venues), [event, venues]);
 
-  const [results, setResults] = useState<OnboardingVenueSuggestion[]>([]);
+  const [results, setResults] = useState<PlaceSuggestion[]>([]);
   const [backendCat, setBackendCat] = useState<string>('other');
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [justSaved, setJustSaved] = useState<Set<string>>(new Set());
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
-  const cache = useRef<Record<string, { vendors: OnboardingVenueSuggestion[]; category: string }>>({});
+  const cache = useRef<Record<string, { vendors: PlaceSuggestion[]; category: string }>>({});
 
   const savedPlaceIds = useMemo(
     () => new Set(venues.map((v) => v.place_id).filter(Boolean) as string[]),
@@ -71,7 +71,7 @@ export default function VendorExplore({
           }),
         });
         if (!res.ok) throw new Error(String(res.status));
-        const data = (await res.json()) as { vendors?: OnboardingVenueSuggestion[]; category?: string };
+        const data = (await res.json()) as { vendors?: PlaceSuggestion[]; category?: string };
         const list = data.vendors ?? [];
         cache.current[key] = { vendors: list, category: data.category ?? 'other' };
         setResults(list);
@@ -90,7 +90,7 @@ export default function VendorExplore({
     if (location) void load(location, cat);
   }, [location, cat, load]);
 
-  const saveVendor = async (v: OnboardingVenueSuggestion) => {
+  const saveVendor = async (v: PlaceSuggestion) => {
     setSavingId(v.id);
     try {
       const res = await fetch('/api/venues', {
@@ -107,7 +107,7 @@ export default function VendorExplore({
     }
   };
 
-  const isSaved = (v: OnboardingVenueSuggestion) =>
+  const isSaved = (v: PlaceSuggestion) =>
     justSaved.has(v.id) || (v.place_id != null && savedPlaceIds.has(v.place_id));
 
   const visible = results.filter((v) => !dismissed.has(v.id));
@@ -115,20 +115,20 @@ export default function VendorExplore({
   // ── No location yet → send them to set it on the venue page ──────────
   if (!location) {
     return (
-      <div className="rounded-2xl border border-[#d8d4c7] bg-[#f0ede5] px-5 py-6">
+      <div className="rounded-2xl border border-[#dcdfdb] bg-[#eceeeb] px-5 py-6">
         <div className="flex items-start gap-3">
           <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#e0dccf]">
-            <MapPin size={15} className="text-[#6c7561]" />
+            <MapPin size={15} className="text-[#5f6b66]" />
           </span>
           <div>
-            <p className="text-[0.92rem] font-medium text-[#314523]">{t('Vælg jeres lokation først')}</p>
-            <p className="mt-0.5 text-[0.8rem] text-[#6c7561]">
-              {t('Sæt jeres lokation øverst på venue-siden, eller vælg et venue — så finder Ava leverandører i nærheden.')}
+            <p className="text-[0.92rem] font-medium text-[#24413a]">{t('Vælg jeres lokation først')}</p>
+            <p className="mt-0.5 text-[0.8rem] text-[#5f6b66]">
+              {t('Sæt jeres lokation øverst på venue-siden, eller vælg et venue, så finder Ava leverandører i nærheden.')}
             </p>
             <button
               type="button"
               onClick={onGoToVenue}
-              className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-full bg-[#314523] px-3 text-xs font-semibold text-[#f7f5ef] hover:opacity-90 transition-opacity cursor-pointer"
+              className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-full bg-[#24413a] px-3 text-xs font-semibold text-[#f8f9f8] hover:opacity-90 transition-opacity cursor-pointer"
             >
               {t('Til venues')}
             </button>
@@ -142,15 +142,15 @@ export default function VendorExplore({
     <div className="space-y-5">
       {/* Location context */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="inline-flex items-center gap-1.5 text-[0.78rem] text-[#6c7561]">
-          <MapPin size={13} className="text-[#8a9079]" />
+        <p className="inline-flex items-center gap-1.5 text-[0.78rem] text-[#5f6b66]">
+          <MapPin size={13} className="text-[#7d938a]" />
           {t('Nær {area}', { area: location })}
         </p>
         {!loading && !failed && visible.length > 0 && (
           <button
             type="button"
             onClick={() => void load(location, cat)}
-            className="inline-flex h-7 items-center gap-1.5 rounded-full border border-[#e4e0d4] bg-[#fcfbf7] px-3 text-[0.7rem] font-semibold text-[#6c7561] transition-colors hover:text-[#314523] hover:border-[#314523] cursor-pointer"
+            className="inline-flex h-7 items-center gap-1.5 rounded-full border border-[#e6e9e5] bg-[#ffffff] px-3 text-[0.7rem] font-semibold text-[#5f6b66] transition-colors hover:text-[#24413a] hover:border-[#24413a] cursor-pointer"
           >
             <RotateCw size={11} /> {t('Opdater')}
           </button>
@@ -160,23 +160,23 @@ export default function VendorExplore({
       {loading ? (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {[0, 1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="animate-pulse overflow-hidden rounded-2xl border border-[#e4e0d4] bg-[#fcfbf7]">
-              <div className="h-40 bg-[#f0ede5]" />
+            <div key={i} className="animate-pulse overflow-hidden rounded-2xl border border-[#e6e9e5] bg-[#ffffff]">
+              <div className="h-40 bg-[#eceeeb]" />
               <div className="space-y-2 p-4">
-                <div className="h-4 w-1/2 rounded bg-[#f0ede5]" />
-                <div className="h-3 w-5/6 rounded bg-[#f0ede5]" />
-                <div className="h-3 w-2/3 rounded bg-[#f0ede5]" />
+                <div className="h-4 w-1/2 rounded bg-[#eceeeb]" />
+                <div className="h-3 w-5/6 rounded bg-[#eceeeb]" />
+                <div className="h-3 w-2/3 rounded bg-[#eceeeb]" />
               </div>
             </div>
           ))}
         </div>
       ) : failed || visible.length === 0 ? (
-        <div className="rounded-2xl border border-[#e4e0d4] bg-[#fcfbf7] p-8 text-center">
+        <div className="rounded-2xl border border-[#e6e9e5] bg-[#ffffff] p-8 text-center">
           <p className="text-[0.9rem] text-ink-soft">{t('Ingen leverandører fundet her endnu.')}</p>
           <button
             type="button"
             onClick={() => void load(location, cat)}
-            className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-[#314523] px-4 py-2 text-[0.78rem] font-bold text-white transition-opacity hover:opacity-90 cursor-pointer"
+            className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-[#24413a] px-4 py-2 text-[0.78rem] font-bold text-white transition-opacity hover:opacity-90 cursor-pointer"
           >
             <RotateCw size={13} /> {t('Prøv igen')}
           </button>
@@ -200,9 +200,9 @@ export default function VendorExplore({
       <button
         type="button"
         onClick={() => onNavigate?.('ava')}
-        className="flex w-full items-center justify-center gap-2 rounded-2xl border border-[#d8d4c7] bg-[#fcfbf7] px-5 py-3 text-sm text-[#314523] transition-colors hover:bg-[#f7f5ef] cursor-pointer"
+        className="flex w-full items-center justify-center gap-2 rounded-2xl border border-[#dcdfdb] bg-[#ffffff] px-5 py-3 text-sm text-[#24413a] transition-colors hover:bg-[#f8f9f8] cursor-pointer"
       >
-        <MessageCircle size={16} className="text-[#6c7561]" />
+        <MessageCircle size={16} className="text-[#5f6b66]" />
         {t('Spørg Ava om at finde flere')}
       </button>
     </div>
@@ -216,7 +216,7 @@ function VendorCard({
   onSave,
   onDismiss,
 }: {
-  v: OnboardingVenueSuggestion;
+  v: PlaceSuggestion;
   saved: boolean;
   saving: boolean;
   onSave: () => void;
@@ -230,20 +230,20 @@ function VendorCard({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-      className="flex flex-col overflow-hidden rounded-2xl border border-[#d8d4c7] bg-[#fcfbf7]"
+      className="flex flex-col overflow-hidden rounded-2xl border border-[#dcdfdb] bg-[#ffffff]"
     >
       <div className="relative aspect-[4/3] overflow-hidden">
         {v.photo ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={v.photo} alt={v.name} className="h-full w-full object-cover transition-transform duration-700 hover:scale-[1.04]" />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#eef1e6] to-[#e0dccf]">
-            <MapPin size={22} className="text-[#8a9079]" />
+          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#e8f0ec] to-[#e0dccf]">
+            <MapPin size={22} className="text-[#7d938a]" />
           </div>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-[#1a221540] to-transparent" />
         {v.rating != null && (
-          <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-[#f7f5ef]/90 px-2.5 py-1 text-[0.68rem] font-semibold text-ink backdrop-blur-sm">
+          <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-[#f8f9f8]/90 px-2.5 py-1 text-[0.68rem] font-semibold text-ink backdrop-blur-sm">
             <Star size={11} fill="currentColor" className="text-[#e6a34e]" />
             {v.rating.toFixed(1)}
             {v.review_count ? <span className="font-normal text-muted">({v.review_count})</span> : null}
@@ -254,7 +254,7 @@ function VendorCard({
             type="button"
             onClick={onDismiss}
             aria-label={t('Skjul')}
-            className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-[#f7f5ef]/80 text-[#6c7561] backdrop-blur-sm transition-colors hover:bg-[#f7f5ef] cursor-pointer"
+            className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-[#f8f9f8]/80 text-[#5f6b66] backdrop-blur-sm transition-colors hover:bg-[#f8f9f8] cursor-pointer"
           >
             <X size={13} />
           </button>
@@ -262,26 +262,26 @@ function VendorCard({
       </div>
 
       <div className="flex flex-1 flex-col p-4">
-        <h3 className="font-serif text-[1.08rem] leading-tight text-[#314523]">{v.name}</h3>
+        <h3 className="font-serif text-[1.08rem] leading-tight text-[#24413a]">{v.name}</h3>
         {v.address && (
-          <p className="mt-0.5 inline-flex items-center gap-1 truncate text-[0.72rem] text-[#8a9079]">
+          <p className="mt-0.5 inline-flex items-center gap-1 truncate text-[0.72rem] text-[#7d938a]">
             <MapPin size={10} className="shrink-0" /> {v.address}
           </p>
         )}
         {blurb && (
-          <p className="mt-2 flex-1 font-serif text-[0.82rem] italic leading-snug text-[#6c7561] line-clamp-3">
+          <p className="mt-2 flex-1 font-serif text-[0.82rem] italic leading-snug text-[#5f6b66] line-clamp-3">
             &ldquo;{blurb}&rdquo;
           </p>
         )}
-        <div className="mt-4 flex items-center justify-between border-t border-[#e4e0d4] pt-4">
-          <span className="font-serif text-[0.95rem] text-[#314523]">{v.price_hint || '—'}</span>
+        <div className="mt-4 flex items-center justify-between border-t border-[#e6e9e5] pt-4">
+          <span className="font-serif text-[0.95rem] text-[#24413a]">{v.price_hint || '-'}</span>
           <button
             type="button"
             onClick={onSave}
             disabled={saving || saved}
             className={cn(
               'flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-semibold uppercase tracking-[0.1em] transition-opacity cursor-pointer disabled:cursor-default',
-              saved ? 'bg-[#eef1e6] text-[#314523]' : 'bg-[#314523] text-[#f7f5ef] hover:opacity-85',
+              saved ? 'bg-[#e8f0ec] text-[#24413a]' : 'bg-[#24413a] text-[#f8f9f8] hover:opacity-85',
             )}
           >
             {saving ? (

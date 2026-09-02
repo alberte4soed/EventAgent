@@ -13,7 +13,7 @@ describe("appendSignature", () => {
     expect(appendSignature("hi")).toContain("\n-- \nAva · Wedding Orchestrator");
   });
 
-  it("is idempotent — a re-sent draft never stacks two copies", () => {
+  it("is idempotent, a re-sent draft never stacks two copies", () => {
     const once = appendSignature("hi");
     expect(appendSignature(once)).toBe(once);
   });

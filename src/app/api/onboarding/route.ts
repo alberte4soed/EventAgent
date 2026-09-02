@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
           styleHint,
         ]
           .filter(Boolean)
-          .join(", ")}. The venue anchors everything else — flowers, music and catering are all local to it. Shall I start researching venues near ${city}?`
+          .join(", ")}. The venue anchors everything else, flowers, music and catering are all local to it. Shall I start researching venues near ${city}?`
       : `Hej ${names}! Jeg er Ava, jeres bryllupsplanlægger. Her er hvad jeg har indtil videre: ${[
           city,
           dateKnown,
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
           styleHint,
         ]
           .filter(Boolean)
-          .join(", ")}. Venuet forankrer alt det andet — blomster, musik og catering er alle lokale til det. Skal jeg begynde at researche venues nær ${city}?`;
+          .join(", ")}. Venuet forankrer alt det andet, blomster, musik og catering er alle lokale til det. Skal jeg begynde at researche venues nær ${city}?`;
   await supabase.from("chat_messages").insert({
     event_id: event.id,
     user_id: user.id,

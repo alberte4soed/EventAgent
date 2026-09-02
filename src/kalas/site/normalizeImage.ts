@@ -1,6 +1,6 @@
 /* Client-side photo normalization for site uploads. iPhones hand us HEIC and
    10MB+ originals; the API accepts jpeg/png/webp ≤ 8MB. Anything outside that
-   is decoded in the browser (Safari decodes HEIC natively — the platform that
+   is decoded in the browser (Safari decodes HEIC natively, the platform that
    produces HEIC can read it) and re-encoded as a downscaled JPEG. Returns null
    only when the browser truly can't decode the file. */
 

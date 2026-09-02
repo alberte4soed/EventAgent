@@ -1,7 +1,7 @@
 /* The AI site-design contract. Ava (Gemini, structured output) emits a raw
    blob shaped like SiteDesign; parseSiteDesign() is the trust boundary that
    turns it into a safe, fully-defaulted value. Only validated hex colors and
-   enum tokens ever reach CSS — every free-text field is rendered strictly as
+   enum tokens ever reach CSS, every free-text field is rendered strictly as
    React text. The renderer (SiteRenderer.tsx) interprets this and nothing
    else, so a design blob can restyle everything but can never inject markup,
    scripts or arbitrary styles. */
@@ -210,7 +210,7 @@ function parseSections(v: unknown): DesignSection[] {
 
 /** Render list for a design given the couple's enabled content sections.
     The design dictates order/variants, but a section the couple has turned ON
-    must always render — designs generated before the toggle (or that omit a
+    must always render, designs generated before the toggle (or that omit a
     section) get it appended with defaults, before a trailing RSVP band. */
 export function mergeSections(design: SiteDesign, enabledIds: Set<string>): DesignSection[] {
   const fromDesign = design.sections.filter((s) => enabledIds.has(s.id));

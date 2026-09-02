@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { budgetLines } from '../../data';
-import { estimatedTotal, estimatedLines, DK_AVG_PER_GUEST } from './estimate';
+import { estimatedTotal, estimatedLines, DK_AVG_PER_GUEST, venueBudget } from './estimate';
 
 describe('estimatedTotal', () => {
   it('uses the couple’s own number when they gave one', () => {
@@ -53,5 +53,30 @@ describe('estimatedLines', () => {
 describe('budgetLines', () => {
   it('adds up to a whole budget', () => {
     expect(budgetLines.reduce((n, b) => n + b.pct, 0)).toBe(100);
+  });
+});
+
+describe('venueBudget', () => {
+  it('uses the line the couple actually allocated', () => {
+    const items = [
+      { category: 'venue', planned_amount: 72_500 },
+      { category: 'catering', planned_amount: 74_250 },
+    ];
+    // Not the 275.000 total — that would let a venue eat the whole wedding.
+    expect(venueBudget(items, 275_000)).toBe(72_500);
+  });
+
+  it('falls back to the benchmark share, never the total', () => {
+    expect(venueBudget([], 300_000)).toBe(99_000); // 33%
+    expect(venueBudget([{ category: 'catering', planned_amount: 80_000 }], 300_000)).toBe(99_000);
+  });
+
+  it('ignores a venue line set to zero', () => {
+    expect(venueBudget([{ category: 'venue', planned_amount: 0 }], 300_000)).toBe(99_000);
+  });
+
+  it('is null when there is no budget to work from', () => {
+    expect(venueBudget([], 0)).toBeNull();
+    expect(venueBudget([{ category: 'venue', planned_amount: 0 }], 0)).toBeNull();
   });
 });

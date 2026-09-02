@@ -1,7 +1,7 @@
 /* The site build pipeline (step 3 of content → imagery → build):
    gathers the couple's content, their photos, the chosen venue's photos and
    the per-section generated imagery, then has Gemini build the complete site
-   HTML from scratch — seeded by the chosen template's tokens. Output passes
+   HTML from scratch, seeded by the chosen template's tokens. Output passes
    the sanitize gate before storage; images live as alias tokens resolved at
    serve time. */
 
@@ -24,7 +24,7 @@ import type {
 /** The HTML-building model — heavier than the chat/tool model on purpose. */
 export const GEMINI_HTML_MODEL = process.env.GEMINI_HTML_MODEL ?? "gemini-3.5-flash";
 
-const MAX_NEW_SECTION_IMAGES = 4; // per run — bounded Nano Banana spend
+const MAX_NEW_SECTION_IMAGES = 4; // per run, bounded Nano Banana spend
 const MAX_INLINE_PARTS = 8;       // photos shown to the model multimodally
 
 const MIME_BY_EXT: Record<string, string> = { jpg: "image/jpeg", png: "image/png", webp: "image/webp" };
@@ -43,7 +43,7 @@ export interface EnsureImagesArgs {
 }
 
 /** Generate Nano Banana illustrations for toggled sections that don't have
-    one yet (kind=generated, role=section — reused on later builds). */
+    one yet (kind=generated, role=section, reused on later builds). */
 export async function ensureSectionImages(args: EnsureImagesArgs): Promise<SitePhotoRow[]> {
   const { supabase, event, userId, config } = args;
   const enabled = new Set(config.sections.filter((s) => s.enabled).map((s) => s.id));
@@ -111,7 +111,7 @@ function buildManifest(photos: SitePhotoRow[], venue: VenueRow | null): Manifest
       entries.push({
         alias: `S-${photo.section}`,
         kind: "generated section illustration",
-        note: `made for the "${photo.section}" section — use it there`,
+        note: `made for the "${photo.section}" section, use it there`,
         source: `photo:${photo.id}`,
         storagePath: photo.storage_path,
       });
@@ -120,7 +120,7 @@ function buildManifest(photos: SitePhotoRow[], venue: VenueRow | null): Manifest
       entries.push({
         alias: `P${p}`,
         kind: photo.kind === "generated" ? "generated artwork" : "couple photo",
-        note: photo.role === "hero" ? "their chosen favourite — strong hero candidate" : "couple's own photo",
+        note: photo.role === "hero" ? "their chosen favourite, strong hero candidate" : "couple's own photo",
         source: `photo:${photo.id}`,
         storagePath: photo.storage_path,
       });
@@ -272,7 +272,7 @@ export async function buildSiteHtml(args: BuildArgs): Promise<BuildResult> {
     guestCount: event.guest_count,
     language: profile?.language ?? "da",
     styleDirection, vibes,
-    templateName: preset ? `${preset.label} — ${baseDesign.concept.name}` : baseDesign.concept.name,
+    templateName: preset ? `${preset.label}, ${baseDesign.concept.name}` : baseDesign.concept.name,
     templateSpec: JSON.stringify({ palette: baseDesign.palette, typography: baseDesign.typography, shape: baseDesign.shape, hero: baseDesign.hero, decor: baseDesign.decor }, null, 1),
     content,
     imageManifest: manifest.map(({ alias, kind, note }) => ({ alias, kind, note })),
@@ -335,7 +335,7 @@ export async function buildSiteHtml(args: BuildArgs): Promise<BuildResult> {
 /* ── Serve-time URL map for a stored build ─────────────────────────────── */
 
 /** alias → URL map for a design row: signed storage URLs for photo sources,
-    venue photo URLs for venue sources. Admin client — server only. */
+    venue photo URLs for venue sources. Admin client, server only. */
 export async function urlMapForDesign(
   design: WebsiteDesignRow,
   photos: SitePhotoRow[],

@@ -1,5 +1,5 @@
 /* The exact Google-fonts href the templates were designed against
-   (invitationer-final.html). Loaded via a runtime <link> — client-side through
+   (invitationer-final.html). Loaded via a runtime <link>, client-side through
    useInvitationFonts(), server-side on the public share page. */
 
 'use client';

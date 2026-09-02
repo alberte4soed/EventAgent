@@ -77,6 +77,7 @@ export default function Home({ onNavigate }: { onNavigate: (s: NavigateTarget) =
         id: 'basics',
         label: t('Angiv dato og budget'),
         status: basicsDone ? 'completed' : 'in_progress',
+        // Date and budget are set by asking Ava — there is no form for them.
         screen: 'ava',
       },
       {
@@ -178,7 +179,7 @@ export default function Home({ onNavigate }: { onNavigate: (s: NavigateTarget) =
   };
 
   return (
-    <div className="flex min-h-full flex-col gap-10 bg-[#f5f3ee] px-6 py-8 sm:px-9 lg:px-12 lg:py-8">
+    <div className="flex min-h-full flex-col gap-10 bg-[#f4f5f3] px-6 py-8 sm:px-9 lg:px-12 lg:py-8">
       {/* Hero */}
       <motion.section
         initial={{ opacity: 0, y: 12 }}
@@ -186,37 +187,37 @@ export default function Home({ onNavigate }: { onNavigate: (s: NavigateTarget) =
         transition={{ delay: 0.04 }}
         className="flex flex-col gap-7"
       >
-        <div className="flex w-full flex-col gap-8 rounded-[28px] border border-[#d8d4c7] bg-[#ece9df] p-7 lg:flex-row">
+        <div className="flex w-full flex-col gap-8 rounded-[28px] border border-[#dcdfdb] bg-[#e6e9e6] p-7 lg:flex-row">
           <HeroPhoto fallback={HERO_IMG} alt={coupleLabel} />
           <div className="flex flex-1 flex-col justify-center gap-4">
-            <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#8a9079]">
+            <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#7d938a]">
               {t('Brylluppet for')}
             </p>
-            <h1 className="font-serif text-[clamp(2.5rem,6vw,3.75rem)] font-semibold leading-[1.05] text-[#314523]">
+            <h1 className="font-serif text-[clamp(2.5rem,6vw,3.75rem)] font-semibold leading-[1.05] text-[#24413a]">
               {coupleLabel}
             </h1>
-            <p className="text-base text-[#59634f]">{dateLine}</p>
-            <div className="mt-1 inline-flex w-fit items-center gap-2 rounded-full bg-[#314523] px-5 py-2">
-              <span className="font-serif text-xl font-semibold text-[#f7f5ef]">
-                {days ?? '—'}
+            <p className="text-base text-[#46574f]">{dateLine}</p>
+            <div className="mt-1 inline-flex w-fit items-center gap-2 rounded-full bg-[#24413a] px-5 py-2">
+              <span className="font-serif text-xl font-semibold text-[#f8f9f8]">
+                {days ?? '-'}
               </span>
-              <span className="text-sm font-semibold text-[#dce3d3]">{t('dage tilbage')}</span>
+              <span className="text-sm font-semibold text-[#dbe5e0]">{t('dage tilbage')}</span>
             </div>
           </div>
         </div>
 
         {/* Checklist */}
-        <div className="flex flex-col gap-5 rounded-[28px] border border-[#d8d4c7] bg-[#fcfbf7] p-7">
+        <div className="flex flex-col gap-5 rounded-[28px] border border-[#dcdfdb] bg-[#ffffff] p-7">
           <div className="flex items-end justify-between gap-4">
             <div className="flex flex-col gap-1">
-              <h2 className="font-serif text-2xl font-semibold text-[#314523]">
+              <h2 className="font-serif text-2xl font-semibold text-[#24413a]">
                 {t('Kom godt i gang')}
               </h2>
-              <p className="text-sm text-[#6c7561]">
+              <p className="text-sm text-[#5f6b66]">
                 {t('De første skridt for at sætte planlægningen i gang.')}
               </p>
             </div>
-            <p className="shrink-0 text-sm font-bold text-[#8a9079]">
+            <p className="shrink-0 text-sm font-bold text-[#7d938a]">
               {t('{done} af {total} klaret', { done: checklistDone, total: checklist.length })}
             </p>
           </div>
@@ -256,33 +257,33 @@ export default function Home({ onNavigate }: { onNavigate: (s: NavigateTarget) =
         >
           <div className="absolute inset-0 bg-[linear-gradient(rgba(20,32,16,0.15)_0%,rgba(20,32,16,0.82)_100%)]" />
           <div className="relative flex flex-col gap-2">
-            <h3 className="font-serif text-3xl font-semibold leading-tight text-[#f7f5ef]">
+            <h3 className="font-serif text-3xl font-semibold leading-tight text-[#f8f9f8]">
               {t('Find jeres venue')}
             </h3>
             <p className="max-w-[420px] text-sm leading-relaxed text-[#e6ebe0]">
               {t('Steder der matcher gæsteantal, stemning, placering og budget.')}
             </p>
           </div>
-          <span className="relative mt-4 inline-flex h-8 w-fit items-center gap-1.5 rounded-full bg-[#f7f5ef] px-3 text-xs font-semibold text-[#314523]">
+          <span className="relative mt-4 inline-flex h-8 w-fit items-center gap-1.5 rounded-full bg-[#f8f9f8] px-3 text-xs font-semibold text-[#24413a]">
             {t('Udforsk venues')}
             <MapPin size={13} />
           </span>
         </button>
 
-        <div className="flex flex-1 flex-col gap-6 rounded-[26px] border border-[#d8d4c7] bg-[#fcfbf7] p-7">
+        <div className="flex flex-1 flex-col gap-6 rounded-[26px] border border-[#dcdfdb] bg-[#ffffff] p-7">
           <div className="flex items-end justify-between gap-3">
             <div className="flex flex-col gap-2">
-              <h3 className="font-serif text-3xl font-semibold text-[#314523]">
+              <h3 className="font-serif text-3xl font-semibold text-[#24413a]">
                 {t('Find leverandører')}
               </h3>
-              <p className="text-sm text-[#6c7561]">
+              <p className="text-sm text-[#5f6b66]">
                 {t('Saml holdet der bringer dagen til live.')}
               </p>
             </div>
             <button
               type="button"
               onClick={() => goHub('explore', 'fotografi')}
-              className="shrink-0 text-sm font-bold text-[#314523] hover:opacity-70"
+              className="shrink-0 text-sm font-bold text-[#24413a] hover:opacity-70"
             >
               {t('Se alle →')}
             </button>
@@ -295,12 +296,12 @@ export default function Home({ onNavigate }: { onNavigate: (s: NavigateTarget) =
                   key={tile.id}
                   type="button"
                   onClick={() => goHub('explore', tile.hubCat)}
-                  className="flex flex-col gap-3 rounded-[18px] border border-[#e4e0d4] bg-[#f0ede5] p-4 text-left transition-colors hover:bg-[#e8e4da]"
+                  className="flex flex-col gap-3 rounded-[18px] border border-[#e6e9e5] bg-[#eceeeb] p-4 text-left transition-colors hover:bg-[#e8e4da]"
                 >
-                  <Icon size={20} className="text-[#435337]" strokeWidth={1.8} />
+                  <Icon size={20} className="text-[#35544a]" strokeWidth={1.8} />
                   <div>
-                    <p className="text-sm font-bold text-[#314523]">{tile.label}</p>
-                    <p className="text-[11px] text-[#6c7561]">{tile.meta}</p>
+                    <p className="text-sm font-bold text-[#24413a]">{tile.label}</p>
+                    <p className="text-[11px] text-[#5f6b66]">{tile.meta}</p>
                   </div>
                 </button>
               );
@@ -316,12 +317,12 @@ export default function Home({ onNavigate }: { onNavigate: (s: NavigateTarget) =
         transition={{ delay: 0.12 }}
         className="flex flex-col gap-5"
       >
-        <div className="flex items-end justify-between border-b border-[#e0ddd2] pb-4">
+        <div className="flex items-end justify-between border-b border-[#e2e6e2] pb-4">
           <div className="flex flex-col gap-1">
-            <h2 className="font-serif text-[28px] font-semibold text-[#314523]">
+            <h2 className="font-serif text-[28px] font-semibold text-[#24413a]">
               {t('Over hele planlægningen')}
             </h2>
-            <p className="text-sm text-[#6c7561]">
+            <p className="text-sm text-[#5f6b66]">
               {t('Et roligt overblik over alle hjørner af brylluppet.')}
             </p>
           </div>
@@ -409,13 +410,13 @@ function ChecklistRow({
     >
       <CheckDot done={done} />
       <span
-        className={`flex-1 text-base font-semibold ${done ? doneLabelClass : 'text-[#314523]'}`}
+        className={`flex-1 text-base font-semibold ${done ? doneLabelClass : 'text-[#24413a]'}`}
       >
         {label}
       </span>
       <span
         className={`text-xs font-bold uppercase tracking-[0.12em] ${
-          done ? 'text-[#7a9068]' : active ? 'text-[#8a7d5c]' : 'text-[#9a9686]'
+          done ? 'text-[#5f7d70]' : active ? 'text-[#8a7d5c]' : 'text-[#9a9686]'
         }`}
       >
         {statusLabel}
@@ -441,10 +442,10 @@ function OverviewCard({
     <button
       type="button"
       onClick={onClick}
-      className="flex min-w-[200px] flex-1 flex-col gap-4 rounded-[18px] border border-[#d9ded9] bg-white p-6 text-left transition-shadow hover:shadow-[0_8px_24px_rgba(49,69,35,0.06)]"
+      className="flex min-w-[200px] flex-1 flex-col gap-4 rounded-[18px] border border-[#d9ded9] bg-white p-6 text-left transition-shadow hover:shadow-[0_8px_24px_rgba(36,65,58,0.06)]"
     >
       <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#8a9992]">{label}</p>
-      <p className="font-serif text-[40px] font-semibold leading-none tracking-[-0.02em] text-[#173c32]">
+      <p className="font-serif text-[40px] font-semibold leading-none tracking-[-0.02em] text-[#12332b]">
         {stat}
       </p>
       <p className="flex-1 text-[13px] leading-snug text-[#7a8981]">{detail}</p>

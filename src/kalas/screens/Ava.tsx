@@ -197,7 +197,6 @@ function AvaChat({
     active: Boolean(walkthroughActive),
     historyLoaded,
     params: useMemo(() => walkthroughParams(event, couple), [event, couple]),
-    agentStatus,
     onNavigate,
     sendMessage,
     setMessages,
@@ -214,18 +213,18 @@ function AvaChat({
       variant === 'drawer' ? 'h-full px-4' : 'mx-auto h-[calc(100dvh-130px)] max-w-2xl px-5 lg:h-screen',
     )}>
       <header className="flex shrink-0 items-center gap-3 py-4">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#173c32]">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#12332b]">
           <span className="font-serif text-[1.3rem] leading-none text-white">K</span>
         </div>
         <div className="min-w-0 flex-1">
-          <div className="font-serif text-[1.15rem] text-[#173c32]">Ava</div>
+          <div className="font-serif text-[1.15rem] text-[#12332b]">Ava</div>
         </div>
         {onClose && (
           <button
             type="button"
             onClick={onClose}
             aria-label={t('Luk')}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] border border-[#d9ded9] bg-white text-[#173c32] hover:bg-[#fafaf8] cursor-pointer"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] border border-[#d9ded9] bg-white text-[#12332b] hover:bg-[#fafaf8] cursor-pointer"
           >
             <X size={18} />
           </button>
@@ -235,7 +234,7 @@ function AvaChat({
       <div className="relative min-h-0 flex-1">
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-10 bg-gradient-to-b from-[#f5f3ee] to-transparent"
+          className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-10 bg-gradient-to-b from-[#f4f5f3] to-transparent"
         />
         <div className="hide-scrollbar h-full space-y-4 overflow-y-auto py-5">
           {visible.map((m) => (
@@ -248,7 +247,7 @@ function AvaChat({
       </div>
 
       <div className="border-t border-[#d9ded9] pb-3 pt-2">
-        <form onSubmit={(e) => { e.preventDefault(); const msg = draft; setDraft(''); wt.armAutoAdvance(); void sendMessage(msg); }}
+        <form onSubmit={(e) => { e.preventDefault(); const msg = draft; setDraft(''); wt.noteTurn(); void sendMessage(msg); }}
           className="focus-shell flex items-center gap-2 rounded-full rule bg-card px-2 py-2">
           <button type="button" aria-label={t('Vedhæft fil')} disabled
             className="flex h-10 w-10 items-center justify-center rounded-full text-faint cursor-not-allowed">

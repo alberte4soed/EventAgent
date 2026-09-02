@@ -65,7 +65,7 @@ export async function POST(
   } catch (err) {
     if (err instanceof GmailNotConnectedError) {
       return Response.json(
-        { error: "outreach_unavailable", message: "Ava's mailbox is unavailable — try again shortly." },
+        { error: "outreach_unavailable", message: "Ava's mailbox is unavailable, try again shortly." },
         { status: 503 }
       );
     }

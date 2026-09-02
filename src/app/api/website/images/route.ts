@@ -58,6 +58,6 @@ export async function POST(request: NextRequest) {
     return Response.json({ photos });
   } catch (err) {
     logAgentError("api/website/images", err, { eventId });
-    return Response.json({ error: "Billedgenerering fejlede — prøv igen." }, { status: 502 });
+    return Response.json({ error: "Billedgenerering fejlede, prøv igen." }, { status: 502 });
   }
 }

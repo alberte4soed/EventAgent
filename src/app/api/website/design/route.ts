@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     .gte("created_at", since);
   if ((count ?? 0) >= MAX_GENERATIONS_PER_DAY) {
     return Response.json(
-      { error: "design_limit", message: "I har nået dagens grænse for nye designs — prøv igen i morgen." },
+      { error: "design_limit", message: "I har nået dagens grænse for nye designs, prøv igen i morgen." },
       { status: 429 }
     );
   }
@@ -61,6 +61,6 @@ export async function POST(request: NextRequest) {
     return Response.json({ designId: row.id });
   } catch (err) {
     logAgentError("api/website/design", err, { eventId });
-    return Response.json({ error: "Ava kunne ikke designe siden lige nu — prøv igen." }, { status: 502 });
+    return Response.json({ error: "Ava kunne ikke designe siden lige nu, prøv igen." }, { status: 502 });
   }
 }

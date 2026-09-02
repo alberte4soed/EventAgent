@@ -120,7 +120,7 @@ export async function POST(
     event_id: ctx.event.id,
     user_id: user.id,
     role: "assistant",
-    content: `I've written to ${ctx.venue.name} from my Kalas mailbox — their reply comes straight to me and I'll flag it for you in the outreach inbox.`,
+    content: `I've written to ${ctx.venue.name} from my Kalas mailbox, their reply comes straight to me and I'll flag it for you in the outreach inbox.`,
     payload: { kind: "send_report", sent: 1, failed: 0, skipped: 0 },
   });
 

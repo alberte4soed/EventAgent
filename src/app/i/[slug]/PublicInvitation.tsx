@@ -88,9 +88,9 @@ function RsvpModal({ slug, language, onClose }: { slug: string; language: 'da' |
         body: JSON.stringify({ name, email, attending, note, company }),
       });
       if (res.ok) setDone(true);
-      else setError(da ? 'Noget gik galt — prøv igen.' : 'Something went wrong — try again.');
+      else setError(da ? 'Noget gik galt, prøv igen.' : 'Something went wrong, try again.');
     } catch {
-      setError(da ? 'Noget gik galt — prøv igen.' : 'Something went wrong — try again.');
+      setError(da ? 'Noget gik galt, prøv igen.' : 'Something went wrong, try again.');
     } finally {
       setBusy(false);
     }

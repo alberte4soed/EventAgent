@@ -54,6 +54,19 @@ const SEARCH_FIELD_MASK = [
   "places.photos",
   "places.primaryType",
   "places.types",
+  // Text Search returns this too, so a discovery card needs no Details call.
+  // Details is still the only source of `reviews`, which the agent's board
+  // rows use — see getDetails.
+  "places.editorialSummary",
+  // Amenities. These look like an upgrade and are not: Google bills a request
+  // at the highest SKU tier in its field mask, and `editorialSummary` above
+  // already puts every search on Text Search Enterprise + Atmosphere.
+  // parkingOptions / goodForChildren / allowsDogs sit in that same tier, and
+  // accessibilityOptions in the cheaper Pro tier — so all four are free here.
+  "places.accessibilityOptions",
+  "places.parkingOptions",
+  "places.goodForChildren",
+  "places.allowsDogs",
 ].join(",");
 
 const DETAILS_FIELD_MASK = [
@@ -99,6 +112,25 @@ export interface PlaceResult {
     authorAttribution?: { displayName?: string };
   }[];
   editorialSummary?: { text?: string };
+  /* Amenities. Google's own answers, not a model's reading of a website —
+     see lib/venue/amenities.ts for why they are kept apart from VenueFacts. */
+  accessibilityOptions?: {
+    wheelchairAccessibleParking?: boolean;
+    wheelchairAccessibleEntrance?: boolean;
+    wheelchairAccessibleRestroom?: boolean;
+    wheelchairAccessibleSeating?: boolean;
+  };
+  parkingOptions?: {
+    freeParkingLot?: boolean;
+    paidParkingLot?: boolean;
+    freeStreetParking?: boolean;
+    paidStreetParking?: boolean;
+    valetParking?: boolean;
+    freeGarageParking?: boolean;
+    paidGarageParking?: boolean;
+  };
+  goodForChildren?: boolean;
+  allowsDogs?: boolean;
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
@@ -228,7 +260,8 @@ export async function searchText(
   const key = apiKey();
   if (!key || !query.trim()) return [];
   const max = opts.maxResults ?? 3;
-  const cacheKey = `search:${query.toLowerCase().trim()}:${max}`;
+  // v3: the field mask gained the amenity fields; v2 entries lack them.
+  const cacheKey = `search:v3:${query.toLowerCase().trim()}:${max}`;
   const cached = await cacheGet<PlaceResult[]>(cacheKey);
   if (cached) return cached;
   try {
@@ -252,6 +285,21 @@ export async function searchText(
   } catch {
     return [];
   }
+}
+
+/**
+ * Coordinates for a free-text place ("Kokkedal, Danmark").
+ *
+ * Rides on searchText, so it inherits the places_cache: a region searched as
+ * twelve parallel shards pays for this once, and every later search of any
+ * region reuses it. Returns null on anything unresolvable — the caller must
+ * treat that as "no distances", never as a distance of zero.
+ */
+export async function geocode(query: string): Promise<{ lat: number; lng: number } | null> {
+  const [place] = await searchText(query, { maxResults: 1 });
+  const lat = place?.location?.latitude;
+  const lng = place?.location?.longitude;
+  return lat != null && lng != null ? { lat, lng } : null;
 }
 
 /** Place Details (includes reviews). Returns null on any failure. */

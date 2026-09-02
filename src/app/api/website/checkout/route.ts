@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
           currency: "dkk",
           unit_amount: amountCents,
           product_data: {
-            name: "Kalas — AI-designet bryllupshjemmeside",
+            name: "Kalas, AI-designet bryllupshjemmeside",
             description: "Ava designer jeres personlige hjemmeside, inkl. fjernelse af Kalas-branding.",
           },
         },

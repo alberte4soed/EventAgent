@@ -16,7 +16,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     meal?: string | null; dietary?: string | null; note?: string | null; company?: string;
   };
 
-  if (body.company) return Response.json({ ok: true }); // honeypot — pretend success
+  if (body.company) return Response.json({ ok: true }); // honeypot, pretend success
   const name = (body.name ?? "").trim();
   if (!name || typeof body.attending !== "boolean") {
     return Response.json({ error: "name and attending are required" }, { status: 400 });

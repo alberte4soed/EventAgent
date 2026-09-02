@@ -1,11 +1,11 @@
 "use client";
 
 /* The walkthrough's inline controls, rendered under Ava's last bubble:
-   "try asking me…" chips that fire real agent turns, and — on the last step —
+   "try asking me…" chips that fire real agent turns, and, on the last step —
    the chat-vs-classic choice that ends onboarding. */
 
 import { motion } from 'motion/react';
-import { Sparkles, ArrowRight, MessageCircle, PanelLeft } from 'lucide-react';
+import { ArrowRight, MessageCircle, PanelLeft } from 'lucide-react';
 import { useLang } from './i18n';
 import { cn } from './ui';
 import type { Walkthrough } from './useWalkthrough';
@@ -50,7 +50,15 @@ export default function WalkthroughChips({ wt }: { wt: Walkthrough }) {
       animate={{ opacity: 1, y: 0 }}
       className="flex flex-wrap items-center gap-2"
     >
-      {wt.tries.map((prompt) => (
+      {/* Ava just did the thing on the stage, say so, and stay put until they
+          have actually looked at it. */}
+      {wt.tried && (
+        <p className="w-full text-[0.8rem] leading-snug text-faint">
+          {t('Kig på skærmen, jeg bliver her, til I siger videre.')}
+        </p>
+      )}
+
+      {!wt.tried && wt.tries.map((prompt) => (
         <button
           key={prompt}
           type="button"
@@ -60,7 +68,7 @@ export default function WalkthroughChips({ wt }: { wt: Walkthrough }) {
             'text-left text-[0.85rem] leading-snug text-ink transition-colors hover:bg-sage',
           )}
         >
-          <Sparkles size={13} strokeWidth={1.8} className="shrink-0 text-[#5c7a4f]" />
+          <MessageCircle size={13} strokeWidth={1.8} className="shrink-0 text-[#5c7a4f]" />
           <span>{t('Prøv: “{prompt}”', { prompt })}</span>
         </button>
       ))}
@@ -68,7 +76,12 @@ export default function WalkthroughChips({ wt }: { wt: Walkthrough }) {
       <button
         type="button"
         onClick={wt.next}
-        className="flex cursor-pointer items-center gap-1.5 rounded-full border border-[#d9ded9] bg-card px-3.5 py-2 text-[0.85rem] text-ink-soft transition-colors hover:text-ink"
+        className={cn(
+          'flex cursor-pointer items-center gap-1.5 rounded-full px-3.5 py-2 text-[0.85rem] transition-colors',
+          wt.tried
+            ? 'bg-ink font-semibold text-canvas hover:opacity-90'
+            : 'border border-[#d9ded9] bg-card text-ink-soft hover:text-ink',
+        )}
       >
         {t('Videre')}
         <ArrowRight size={13} strokeWidth={1.8} />

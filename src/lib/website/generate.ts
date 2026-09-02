@@ -59,7 +59,7 @@ export const siteDesignSchema: Schema = {
       type: Type.OBJECT,
       properties: {
         displayFont: en(FONT_IDS, "font id for headings"),
-        bodyFont: en(FONT_IDS, "font id for body — never a script font"),
+        bodyFont: en(FONT_IDS, "font id for body, never a script font"),
         displayWeight: en(DISPLAY_WEIGHTS),
         displayItalic: { type: Type.BOOLEAN },
         uppercaseEyebrows: { type: Type.BOOLEAN },

@@ -52,7 +52,7 @@ export function buildPartnerInvite({
       body: [
         greetName ? `Hi ${greetName},` : "Hi,",
         "",
-        `${who} has started planning your wedding in Kalas — one place for the timeline, the budget, the guest list, and me writing to the vendors.`,
+        `${who} has started planning your wedding in Kalas, one place for the timeline, the budget, the guest list, and me writing to the vendors.`,
         "",
         "Create your own account here:",
         url,
@@ -70,7 +70,7 @@ export function buildPartnerInvite({
     body: [
       greetName ? `Hej ${greetName},` : "Hej,",
       "",
-      `${who} er begyndt at planlægge jeres bryllup i Kalas — ét sted til tidslinjen, budgettet, gæstelisten og mig, der skriver til leverandørerne.`,
+      `${who} er begyndt at planlægge jeres bryllup i Kalas, ét sted til tidslinjen, budgettet, gæstelisten og mig, der skriver til leverandørerne.`,
       "",
       "Opret din egen adgang her:",
       url,

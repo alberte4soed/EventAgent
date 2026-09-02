@@ -33,7 +33,7 @@ export function FinalCTA() {
           href="/login"
           className="mt-10 inline-flex rounded-full bg-blue px-10 py-4 text-sm font-medium text-on-ink shadow-[0px_4px_14px_rgba(58,79,55,0.22)] transition hover:bg-blue-light"
         >
-          Start planning your wedding — it&apos;s free
+          Start planning your wedding, it&apos;s free
         </Link>
       </BlurFade>
     </section>

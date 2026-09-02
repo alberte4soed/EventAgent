@@ -5,8 +5,11 @@
  * Each step navigates the stage and drops one local assistant bubble into the
  * message list. The bubbles are client-only — never POSTed, never persisted —
  * so replaying the walkthrough never pollutes the couple's real chat history.
- * Advancing is conversational: trying a prompt (or typing anything) runs a real
- * agent turn, and when that turn finishes Ava moves on by herself.
+ *
+ * Advancing is always the couple's call. Ava used to move on by herself a
+ * beat after the agent turn finished — which navigated the stage away from the
+ * venues she had just put there, so the one thing the step existed to show was
+ * the one thing they never saw. Now a step that has been tried just waits.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -20,14 +23,13 @@ import {
   type WalkthroughParams,
 } from './walkthrough';
 
-/** How long to let the agent's answer breathe before Ava's next line. */
-const ADVANCE_DELAY_MS = 900;
-
 export interface Walkthrough {
   /** Null when the walkthrough isn't running. */
   step: (typeof WALKTHROUGH_STEPS)[number] | null;
   /** Try-prompts for the current step, placeholders already filled. */
   tries: string[];
+  /** The couple ran a prompt on this step — its result is sitting on the stage. */
+  tried: boolean;
   /** Send a try-prompt as a real agent turn. */
   runTry: (prompt: string) => void;
   /** Manual "Videre" — used on steps with nothing to try. */
@@ -36,15 +38,14 @@ export interface Walkthrough {
   skip: () => void;
   /** Finish, optionally kicking Ava off on the couple's remaining gaps. */
   finish: (mode: 'chat' | 'classic') => void;
-  /** Composer hook — typing your own question also advances the walkthrough. */
-  armAutoAdvance: () => void;
+  /** Composer hook — typing your own question counts as trying this step. */
+  noteTurn: () => void;
 }
 
 export function useWalkthrough({
   active,
   historyLoaded,
   params,
-  agentStatus,
   onNavigate,
   sendMessage,
   setMessages,
@@ -54,7 +55,6 @@ export function useWalkthrough({
   /** Chat history has landed — injecting earlier would be overwritten. */
   historyLoaded: boolean;
   params: Partial<WalkthroughParams>;
-  agentStatus: string | null;
   onNavigate?: (s: NavigateTarget) => void;
   sendMessage: (text: string, ctx?: { kickoff?: boolean }) => Promise<void>;
   setMessages: React.Dispatch<React.SetStateAction<ChatMessageRow[]>>;
@@ -115,43 +115,34 @@ export function useWalkthrough({
     setIdx((i) => Math.min(i + 1, WALKTHROUGH_STEPS.length - 1));
   }, []);
 
-  /* ── Auto-advance once the agent finishes the turn they triggered ─── */
-  const awaitingTurn = useRef(false);
-  const prevStatus = useRef(agentStatus);
-  useEffect(() => {
-    const wasBusy = prevStatus.current !== null;
-    prevStatus.current = agentStatus;
-    if (!active || !awaitingTurn.current) return;
-    if (!wasBusy || agentStatus !== null) return;
-    awaitingTurn.current = false;
-    const timer = setTimeout(advance, ADVANCE_DELAY_MS);
-    return () => clearTimeout(timer);
-  }, [active, agentStatus, advance]);
+  /* ── Which step they have already tried ───────────────────────────── */
+  /* Remembered by step id, so the chips can stop offering a prompt that has
+     already run and point at the stage instead. */
+  const [triedStep, setTriedStep] = useState<string | null>(null);
+  const stepId = step?.id ?? null;
 
-  /** Called by the composer too — typing your own question also moves things on. */
-  const armAutoAdvance = useCallback(() => {
-    if (active) awaitingTurn.current = true;
-  }, [active]);
+  /** Called by the composer too — typing your own question counts as a try. */
+  const noteTurn = useCallback(() => {
+    if (active && stepId) setTriedStep(stepId);
+  }, [active, stepId]);
 
   const runTry = useCallback(
     (prompt: string) => {
-      armAutoAdvance();
+      noteTurn();
       void sendMessage(prompt);
     },
-    [armAutoAdvance, sendMessage],
+    [noteTurn, sendMessage],
   );
 
   const skip = useCallback(() => {
-    awaitingTurn.current = false;
     setIdx(WALKTHROUGH_STEPS.length - 1);
   }, []);
 
   const finish = useCallback(
     (mode: 'chat' | 'classic') => {
-      awaitingTurn.current = false;
       if (mode === 'chat') {
         // Straight into real work: Ava reads the plan and asks what's missing.
-        void sendMessage(tRef.current('Hjælp os videre — hvad mangler vi at få på plads?'), {
+        void sendMessage(tRef.current('Hjælp os videre, hvad mangler vi at få på plads?'), {
           kickoff: true,
         });
       }
@@ -163,10 +154,11 @@ export function useWalkthrough({
   return {
     step,
     tries: step ? stepTries(step, params).map((p) => t(p, params as Record<string, string | number>)) : [],
+    tried: Boolean(stepId && triedStep === stepId),
     runTry,
     next: advance,
     skip,
     finish,
-    armAutoAdvance,
+    noteTurn,
   };
 }

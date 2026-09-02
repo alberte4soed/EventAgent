@@ -3,7 +3,7 @@
 /* The real, full-size public wedding site — token-driven. Rendered at
    /w/[slug] (and scaled down as the builder preview) from two inputs:
    SiteConfig (the couple's content) and SiteDesign (Ava's generated design:
-   validated palette/typography/layout tokens — see design.ts). Every visual
+   validated palette/typography/layout tokens, see design.ts). Every visual
    decision reads from the design; every interactive piece (RSVP, registry
    claims, countdown) is a coded component with injected handlers. All
    design-authored strings render as React text only. */
@@ -507,7 +507,7 @@ function GiftsSection({ s, config, tone, display, btn, registryItems, claimedByI
   return (
     <>
       {config.giftsText && <p className="mx-auto mb-8 max-w-xl text-center text-[0.98rem] leading-relaxed opacity-80">{config.giftsText}</p>}
-      {/* Both variants now show the same GiftCard — the point of the redesign
+      {/* Both variants now show the same GiftCard, the point of the redesign
           is that the couple's screen and the guest's page look alike. `list`
           only narrows it to one column. Tone is inherited so the card takes
           this site's palette rather than the app's. */}

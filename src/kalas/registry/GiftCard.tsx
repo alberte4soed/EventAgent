@@ -2,7 +2,7 @@
 
 /* One gift tile, shared by all three registry surfaces: the couple's screen,
    the token site renderer and the AI site's portal grid. Presentation only —
-   no data fetching, no mutators — so src/app/w/[slug] can import it too.
+   no data fetching, no mutators, so src/app/w/[slug] can import it too.
 
    The image carries the card, the way Ønskeskyen does it: a 4:5 photo with the
    price on it and a "reserved" band across the bottom. Everything a caller
@@ -61,7 +61,7 @@ export default function GiftCard({
       'group flex flex-col overflow-hidden rounded-2xl transition-shadow',
       borrowed
         ? 'border border-current/15 bg-current/[0.04]'
-        : 'rule bg-card hover:shadow-[0_8px_24px_rgba(49,69,35,0.06)]',
+        : 'rule bg-card hover:shadow-[0_8px_24px_rgba(36,65,58,0.06)]',
       reserved && 'opacity-80',
     )}>
       <div

@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     if (err instanceof GmailNotConnectedError) {
       return Response.json(
-        { error: "mailbox_unavailable", message: "Ava's mailbox is unavailable — try again shortly." },
+        { error: "mailbox_unavailable", message: "Ava's mailbox is unavailable, try again shortly." },
         { status: 503 },
       );
     }
@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
     await admin.from("partner_invites").delete().eq("id", inviteData.id);
     console.error("partner invite send failed", err);
     return Response.json(
-      { error: "send_failed", message: "The invitation could not be sent — try again shortly." },
+      { error: "send_failed", message: "The invitation could not be sent, try again shortly." },
       { status: 502 },
     );
   }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from 'react';
-import { Upload, FileText, Trash2, Sparkles, Send, Loader2, AlertTriangle } from 'lucide-react';
+import { Upload, FileText, Trash2, ScanText, Send, Loader2, AlertTriangle } from 'lucide-react';
 import { useLang } from '../i18n';
 import { cn } from '../ui';
 import type { BudgetContractRow, ContractReview } from '@/lib/db/types';
@@ -119,7 +119,7 @@ export default function BudgetContractPanel({
       {!contract ? (
         <div className="flex items-center justify-between gap-3">
           <span className="flex items-center gap-2 text-[0.8rem] text-muted">
-            <Sparkles size={14} className="text-[#6a5acd]" />
+            <ScanText size={14} className="text-[#6a5acd]" />
             {t('Upload en kontrakt, så gennemgår Ava den for jer')}
           </span>
           <button

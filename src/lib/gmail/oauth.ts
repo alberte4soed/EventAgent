@@ -121,7 +121,7 @@ export async function refreshAccessToken(refreshTokenEnc: string): Promise<Token
     // work — instead of the 503 that says the mailbox needs reconnecting.
     if (tokens.error && DEAD_GRANT_ERRORS.has(tokens.error)) {
       throw new GmailNotConnectedError(
-        `Mailbox access was refused (${tokens.error}) — reconnect it`
+        `Mailbox access was refused (${tokens.error}), reconnect it`
       );
     }
     throw new Error(

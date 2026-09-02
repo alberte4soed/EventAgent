@@ -5,7 +5,7 @@ import { resolveHtml, familiesInHtml } from './resolveHtml';
 /** Padding so outputs pass the too-small rejection threshold. */
 const FILLER = `<section><h2>Program</h2><p>${'Vi glæder os til at fejre dagen sammen med jer. '.repeat(30)}</p></section>`;
 
-describe('sanitizeSiteHtml — the model-output gate', () => {
+describe('sanitizeSiteHtml, the model-output gate', () => {
   it('keeps legitimate site markup, style block and slots', () => {
     const html = sanitizeSiteHtml(`
       <style>#kalas-site h1 { font-family: 'Playfair Display', serif; color: #4a2e33; }</style>
@@ -40,7 +40,7 @@ describe('sanitizeSiteHtml — the model-output gate', () => {
     expect(html).toContain('Velkommen');
   });
 
-  it('drops images with real URLs — aliases only', () => {
+  it('drops images with real URLs, aliases only', () => {
     const html = sanitizeSiteHtml(`
       <img src="https://evil.example/track.gif" alt="">
       <img src="data:image/png;base64,AAAA" alt="">

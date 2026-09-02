@@ -113,7 +113,7 @@ function HtmlSite({ html, couple, hideBranding, registryItems, claimedByItem, on
   return (
     <div className="min-h-screen">
       {/* Sanitized model output: allowlisted tags/attrs only, image srcs are
-          platform-substituted URLs — see src/lib/website/sanitize.ts. */}
+          platform-substituted URLs, see src/lib/website/sanitize.ts. */}
       <div id="kalas-site" ref={rootRef} dangerouslySetInnerHTML={{ __html: html }} />
 
       {/* Same GiftCard as the couple's screen, but in `inherit` tone: the model
@@ -192,7 +192,7 @@ function PasswordGate({ slug }: { slug: string }) {
         <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
           placeholder={t("Adgangskode")} autoFocus
           className="mt-5 w-full rounded-xl rule bg-canvas px-4 py-3 text-center text-[0.95rem] text-ink focus:border-ink focus:outline-none" />
-        {error && <p className="mt-2 text-[0.78rem] text-[var(--color-terracotta)]">{t("Forkert kode — prøv igen.")}</p>}
+        {error && <p className="mt-2 text-[0.78rem] text-[var(--color-terracotta)]">{t("Forkert kode, prøv igen.")}</p>}
         <button type="submit" disabled={busy || !password}
           className="mt-4 w-full rounded-full bg-ink px-5 py-3 text-[0.82rem] font-medium text-canvas hover:bg-ink/90 transition-colors cursor-pointer disabled:opacity-50">
           {busy ? t("Åbner…") : t("Se siden")}
@@ -233,7 +233,7 @@ function RsvpModal({ slug, config, token, onClose }: { slug: string; config: Sit
           note: note.trim() || null, company,
         }),
       });
-      if (!res.ok) { setError(t("Noget gik galt — prøv igen.")); return; }
+      if (!res.ok) { setError(t("Noget gik galt, prøv igen.")); return; }
       setDone(attending);
     } finally { setBusy(false); }
   };
@@ -243,7 +243,7 @@ function RsvpModal({ slug, config, token, onClose }: { slug: string; config: Sit
       {done !== null ? (
         <div className="p-8 text-center">
           <p className="text-[2rem]">{done ? "🥂" : "💛"}</p>
-          <h2 className="mt-3 font-serif text-[1.3rem] text-ink">{done ? t("Tak — vi ses!") : t("Tak for svaret")}</h2>
+          <h2 className="mt-3 font-serif text-[1.3rem] text-ink">{done ? t("Tak, vi ses!") : t("Tak for svaret")}</h2>
           <p className="mt-2 text-[0.88rem] text-ink-soft">
             {done ? t("Vi har noteret jeres deltagelse.") : t("Vi kommer til at savne jer.")}
           </p>
@@ -337,7 +337,7 @@ function ClaimModal({ slug, item, onClose }: { slug: string; item: RegistryItemR
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
-        setError(j.error === "fully_claimed" ? t("Denne gave er allerede reserveret.") : t("Noget gik galt — prøv igen."));
+        setError(j.error === "fully_claimed" ? t("Denne gave er allerede reserveret.") : t("Noget gik galt, prøv igen."));
         return;
       }
       setDone(true);
@@ -349,7 +349,7 @@ function ClaimModal({ slug, item, onClose }: { slug: string; item: RegistryItemR
       {done ? (
         <div className="p-8 text-center">
           <p className="text-[2rem]">🎁</p>
-          <h2 className="mt-3 font-serif text-[1.3rem] text-ink">{t("Tak — gaven er reserveret")}</h2>
+          <h2 className="mt-3 font-serif text-[1.3rem] text-ink">{t("Tak, gaven er reserveret")}</h2>
           {/* The couple's registry screen shows the name and the message, so
               promising anonymity here was simply untrue. */}
           <p className="mt-2 text-[0.88rem] text-ink-soft">{t("Brudeparret får besked, og de andre gæster kan se at den er taget.")}</p>

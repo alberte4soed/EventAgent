@@ -4,7 +4,7 @@ import type {
 } from '@/lib/db/types';
 
 /* The thank-you list is DERIVED, not stored. It merges two sources the app
-   already has — who came, and who gave something — and layers the couple's
+   already has, who came, and who gave something, and layers the couple's
    own annotations (thank_yous rows) on top. Keeping it derived means a guest
    added or a gift claimed after the fact simply shows up. */
 

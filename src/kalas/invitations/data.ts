@@ -1,7 +1,7 @@
 /* Deterministic helpers for InvitationData: monogram derivation, date phrasing
    per template dateStyle, editor defaults, and per-template sample content for
    the /dev/templates parity harness. The defaults double as the AI fallback so
-   a preview is never empty. Pure — safe to import server-side. */
+   a preview is never empty. Pure, safe to import server-side. */
 
 import type { DateStyle, InvitationData, Language, TemplateMeta } from './types';
 
@@ -165,7 +165,7 @@ const SAMPLES: Record<string, Sample> = {
   toile:          { partnerA: 'Clara', partnerB: 'Felix', isoDate: '2027-05-16T15:00:00', label: 'Joyfully invite you', displayDate: 'The sixteenth of May 2027', venue: 'The Country House', venueDetail: 'Zealand', language: 'en' },
   eucalyptus:     { partnerA: 'Alma', partnerB: 'Noel', isoDate: '2027-06-19T15:00:00', label: 'Together with our families', displayDate: 'The nineteenth of June 2027', venue: 'Greenhouse Botanica', venueDetail: 'Fyn', language: 'en' },
   terracotta:     { partnerA: 'Sofia', partnerB: 'Léon', isoDate: '2027-09-20T16:00:00', label: 'Together with their families', displayDate: 'The twentieth of September 2027', venue: 'Tuscany', venueDetail: 'Italy', language: 'en' },
-  aquarelle:      { partnerA: 'Isabella', partnerB: 'Theo', isoDate: '2027-05-11T15:00:00', label: 'Save the date', introLines: ["We're saying yes —", 'and would love you there'], displayDate: '11 May 2027', venue: 'Copenhagen', language: 'en' },
+  aquarelle:      { partnerA: 'Isabella', partnerB: 'Theo', isoDate: '2027-05-11T15:00:00', label: 'Save the date', introLines: ["We're saying yes,", 'and would love you there'], displayDate: '11 May 2027', venue: 'Copenhagen', language: 'en' },
   amalfi:         { partnerA: 'Aria', partnerB: 'Noah', isoDate: '2027-06-30T16:00:00', label: 'Join us on the coast', displayDate: 'The thirtieth of June 2027', venue: 'Amalfi', venueDetail: 'Italy', language: 'en' },
   corail:         { partnerA: 'Lea', partnerB: 'Milo', isoDate: '2027-08-21T16:00:00', label: 'Together with their families', displayDate: 'The twenty-first of August 2027', venue: 'Cala Rossa', venueDetail: 'Sardinia', language: 'en' },
   provence:       { partnerA: 'Josephine', partnerB: 'Lucas', isoDate: '2027-06-26T16:00:00', label: 'You are warmly invited', displayDate: 'The twenty-sixth of June 2027', venue: 'Domaine des Lavandes', venueDetail: 'Provence', language: 'en' },

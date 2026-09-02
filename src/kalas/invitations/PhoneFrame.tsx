@@ -19,7 +19,7 @@ export function PhoneFrame({ children, width, className }: { children: ReactNode
 }
 
 /** A phone preview scaled down to a thumbnail `width` without distorting the
-    280×590 design — used by the gallery grid, the category selector, and the
+    280×590 design, used by the gallery grid, the category selector, and the
     editor's AI-variant previews. */
 export function ScaledPhone({ width, children }: { width: number; children: ReactNode }) {
   const base = 280;

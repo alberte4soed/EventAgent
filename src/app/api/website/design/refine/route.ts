@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     .eq("event_id", eventId)
     .eq("active", true);
   if ((count ?? 0) === 0) {
-    return Response.json({ error: "Ingen aktivt design at justere — generér først." }, { status: 409 });
+    return Response.json({ error: "Ingen aktivt design at justere, generér først." }, { status: 409 });
   }
 
   try {
@@ -53,6 +53,6 @@ export async function POST(request: NextRequest) {
     return Response.json({ designId: row.id });
   } catch (err) {
     logAgentError("api/website/design/refine", err, { eventId });
-    return Response.json({ error: "Ava kunne ikke justere designet lige nu — prøv igen." }, { status: 502 });
+    return Response.json({ error: "Ava kunne ikke justere designet lige nu, prøv igen." }, { status: 502 });
   }
 }

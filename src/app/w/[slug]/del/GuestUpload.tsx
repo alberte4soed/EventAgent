@@ -106,7 +106,7 @@ function Upload({ slug, names, total: initialTotal, closed }: Props) {
   return (
     <Frame names={names}>
       <p className="text-[0.9rem] leading-relaxed text-muted">
-        {t("Har I taget billeder? Læg dem her — så samler vi dem alle sammen ét sted.")}
+        {t("Har I taget billeder? Læg dem her, så samler vi dem alle sammen ét sted.")}
       </p>
 
       <label className="mt-6 block text-left">
@@ -151,7 +151,7 @@ function Upload({ slug, names, total: initialTotal, closed }: Props) {
           <div className="mt-3 grid grid-cols-3 gap-2">
             {items.map((item) => (
               <div key={item.key} className="relative aspect-square overflow-hidden rounded-xl bg-shell">
-                {/* Local object URL — the album itself is private. */}
+                {/* Local object URL, the album itself is private. */}
                 <img src={item.preview} alt="" className="h-full w-full object-cover" />
                 <div className="absolute inset-0 flex items-center justify-center bg-ink/35">
                   {item.state === "klar" && <Check size={18} className="text-canvas" />}
@@ -229,7 +229,7 @@ function PasswordGate({ slug }: { slug: string }) {
         <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
           placeholder={t("Adgangskode")} autoFocus
           className="mt-5 w-full rounded-xl rule bg-canvas px-4 py-3 text-center text-[0.95rem] text-ink focus:border-ink focus:outline-none" />
-        {error && <p className="mt-2 text-[0.78rem] text-[var(--color-terracotta)]">{t("Forkert kode — prøv igen.")}</p>}
+        {error && <p className="mt-2 text-[0.78rem] text-[var(--color-terracotta)]">{t("Forkert kode, prøv igen.")}</p>}
         <button type="submit" disabled={busy || !password}
           className="mt-4 w-full rounded-full bg-ink px-5 py-3 text-[0.82rem] font-medium text-canvas hover:bg-ink/90 transition-colors cursor-pointer disabled:opacity-50">
           {busy ? t("Åbner…") : t("Se siden")}

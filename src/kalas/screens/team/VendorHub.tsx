@@ -11,6 +11,7 @@ import ExplorePanel from './ExplorePanel';
 import ShortlistPanel from './ShortlistPanel';
 import BookedPanel from './BookedPanel';
 import LocationChip from './LocationChip';
+import { cn } from '../../ui';
 import { effectiveLocation } from '../../lib/location';
 import {
   hubBadges,
@@ -34,7 +35,6 @@ export default function VendorHub({ onNavigate }: { onNavigate?: (s: NavigateTar
   const [venueView, setVenueView] = useState<VenueHubView>(
     deepLink.tab === 'shortlist' ? 'list' : 'discover',
   );
-
   const badges = useMemo(
     () => hubBadges(venues, outbound, replies, event?.chosen_venue_id),
     [venues, outbound, replies, event?.chosen_venue_id],
@@ -74,14 +74,14 @@ export default function VendorHub({ onNavigate }: { onNavigate?: (s: NavigateTar
 
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-6 px-6 py-8 sm:px-9 lg:px-12">
-      {/* Header — same pattern as Honeymoon: title first, tabs underneath. */}
+      {/* Header, same pattern as Honeymoon: title first, tabs underneath. */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#8a9079]">{t('Planlægning')}</p>
-          <h1 className="mt-1 font-serif text-[clamp(2rem,4vw,2.4rem)] leading-[1.1] tracking-[-0.02em] text-[#314523]">
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#7d938a]">{t('Planlægning')}</p>
+          <h1 className="mt-1 font-serif text-[clamp(2rem,4vw,2.4rem)] leading-[1.1] tracking-[-0.02em] text-[#24413a]">
             {t('Venue & leverandører')}
           </h1>
-          <p className="mt-1 max-w-xl text-[13px] text-[#6c7561]">
+          <p className="mt-1 max-w-xl text-[13px] text-[#5f6b66]">
             {t('Find jeres venue og leverandører, gem favoritter, og hold styr på hvem I har booket.')}
           </p>
         </div>
@@ -92,14 +92,18 @@ export default function VendorHub({ onNavigate }: { onNavigate?: (s: NavigateTar
 
       {/* Category chips live on the page chrome (under tabs), not under panel titles. */}
       {tab !== 'booked' && (
-        <CategoryFilterBar cat={cat} onCatChange={setCat} vendorsLocked={vendorsLocked} />
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <CategoryFilterBar cat={cat} onCatChange={setCat} vendorsLocked={vendorsLocked} />
+          </div>
+
+        </div>
       )}
 
       <div>
         {tab === 'explore' && (
           <ExplorePanel
             cat={cat}
-            query=""
             venueView={venueView}
             onVenueViewChange={setVenueView}
             onNavigate={onNavigate}
@@ -109,7 +113,6 @@ export default function VendorHub({ onNavigate }: { onNavigate?: (s: NavigateTar
         {tab === 'shortlist' && (
           <ShortlistPanel
             cat={cat}
-            query=""
             venueView={venueView}
             onVenueViewChange={setVenueView}
             onNavigate={onNavigate}

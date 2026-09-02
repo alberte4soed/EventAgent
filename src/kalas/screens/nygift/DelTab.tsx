@@ -66,17 +66,17 @@ export default function DelTab({ onNavigate }: { onNavigate?: (s: 'website') => 
       <motion.section
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="rounded-[28px] border border-dashed border-[#d8d4c7] bg-[#fcfbf7] px-7 py-14 text-center"
+        className="rounded-[28px] border border-dashed border-[#dcdfdb] bg-[#ffffff] px-7 py-14 text-center"
       >
-        <p className="font-serif text-xl text-[#314523]">{t('Udgiv jeres hjemmeside først')}</p>
-        <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-[#6c7561]">
+        <p className="font-serif text-xl text-[#24413a]">{t('Udgiv jeres hjemmeside først')}</p>
+        <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-[#5f6b66]">
           {t('Opsamlingen deler adresse med jeres side, så den kan først åbne når siden er udgivet.')}
         </p>
         {onNavigate && (
           <button
             type="button"
             onClick={() => onNavigate('website')}
-            className="mt-5 inline-flex h-9 items-center rounded-full bg-[#173c32] px-4 text-xs font-semibold text-white cursor-pointer"
+            className="mt-5 inline-flex h-9 items-center rounded-full bg-[#12332b] px-4 text-xs font-semibold text-white cursor-pointer"
           >
             {t('Gå til Hjemmeside')}
           </button>
@@ -89,16 +89,16 @@ export default function DelTab({ onNavigate }: { onNavigate?: (s: 'website') => 
     <motion.section
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col gap-5 rounded-[28px] border border-[#d8d4c7] bg-[#fcfbf7] p-7"
+      className="flex flex-col gap-5 rounded-[28px] border border-[#dcdfdb] bg-[#ffffff] p-7"
     >
-      <p className="max-w-md text-sm text-[#6c7561]">
-        {t('En lille side der opsummerer dagen — til dem der ikke kunne komme, og til jer selv om ti år.')}
+      <p className="max-w-md text-sm text-[#5f6b66]">
+        {t('En lille side der opsummerer dagen, til dem der ikke kunne komme, og til jer selv om ti år.')}
       </p>
 
       {/* Real numbers only */}
-      <div className="grid grid-cols-3 gap-px overflow-hidden rounded-[18px] border border-[#e4e0d4] bg-[#e4e0d4]">
+      <div className="grid grid-cols-3 gap-px overflow-hidden rounded-[18px] border border-[#e6e9e5] bg-[#e6e9e5]">
         <Stat icon={<Users size={14} />} label={t('Gæster')} value={String(attended)} />
-        <Stat icon={<Images size={14} />} label={t('Billeder')} value={albumCount == null ? '—' : String(albumCount)} />
+        <Stat icon={<Images size={14} />} label={t('Billeder')} value={albumCount == null ? '-' : String(albumCount)} />
         <Stat icon={<Heart size={14} />} label={t('Leverandører')} value={String(booked)} />
       </div>
 
@@ -112,7 +112,7 @@ export default function DelTab({ onNavigate }: { onNavigate?: (s: 'website') => 
           onBlur={() => save(recap)}
           maxLength={80}
           placeholder={t('Tak fordi I fejrede med os')}
-          className="h-11 rounded-[14px] border border-[#e4e0d4] bg-[#f7f5ef] px-4 text-sm text-[#314523] placeholder:text-[#9a9686] focus:outline-none"
+          className="h-11 rounded-[14px] border border-[#e6e9e5] bg-[#f8f9f8] px-4 text-sm text-[#24413a] placeholder:text-[#9a9686] focus:outline-none"
         />
       </label>
 
@@ -126,8 +126,8 @@ export default function DelTab({ onNavigate }: { onNavigate?: (s: 'website') => 
           onBlur={() => save(recap)}
           rows={5}
           maxLength={1200}
-          placeholder={t('Skriv et par linjer om dagen — hvordan det var, og hvad I sidder tilbage med.')}
-          className="resize-none rounded-[14px] border border-[#e4e0d4] bg-[#f7f5ef] px-4 py-3 text-sm leading-relaxed text-[#314523] placeholder:text-[#9a9686] focus:outline-none"
+          placeholder={t('Skriv et par linjer om dagen, hvordan det var, og hvad I sidder tilbage med.')}
+          className="resize-none rounded-[14px] border border-[#e6e9e5] bg-[#f8f9f8] px-4 py-3 text-sm leading-relaxed text-[#24413a] placeholder:text-[#9a9686] focus:outline-none"
         />
       </label>
 
@@ -137,14 +137,14 @@ export default function DelTab({ onNavigate }: { onNavigate?: (s: 'website') => 
           onClick={togglePublished}
           className={cn(
             'flex h-11 items-center gap-1.5 rounded-[14px] px-4 text-xs font-semibold transition-colors cursor-pointer',
-            live ? 'bg-[#173c32] text-white' : 'border border-[#d9ded9] bg-white text-[#314523]',
+            live ? 'bg-[#12332b] text-white' : 'border border-[#d9ded9] bg-white text-[#24413a]',
           )}
         >
           {live ? <Eye size={14} /> : <EyeOff size={14} />}
           {live ? t('Synlig for alle') : t('Kun jer')}
         </button>
 
-        <code className="min-w-0 flex-1 truncate rounded-[14px] border border-[#e4e0d4] bg-[#f7f5ef] px-4 py-3 font-mono text-[13px] text-[#314523]">
+        <code className="min-w-0 flex-1 truncate rounded-[14px] border border-[#e6e9e5] bg-[#f8f9f8] px-4 py-3 font-mono text-[13px] text-[#24413a]">
           {shareUrl}
         </code>
         <button
@@ -152,7 +152,7 @@ export default function DelTab({ onNavigate }: { onNavigate?: (s: 'website') => 
           onClick={copyLink}
           disabled={!live}
           title={live ? undefined : t('Gør siden synlig først')}
-          className="flex h-11 items-center gap-1.5 rounded-[14px] bg-[#173c32] px-4 text-xs font-semibold text-white cursor-pointer disabled:opacity-40 disabled:cursor-default"
+          className="flex h-11 items-center gap-1.5 rounded-[14px] bg-[#12332b] px-4 text-xs font-semibold text-white cursor-pointer disabled:opacity-40 disabled:cursor-default"
         >
           {copied ? <Check size={14} /> : <Link2 size={14} />}
           {copied ? t('Kopieret') : t('Kopiér link')}
@@ -168,9 +168,9 @@ export default function DelTab({ onNavigate }: { onNavigate?: (s: 'website') => 
 
 function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="bg-[#f7f5ef] px-4 py-4 text-center">
-      <div className="flex items-center justify-center gap-1.5 text-[#8a9079]">{icon}</div>
-      <div className="mt-1 font-serif text-[1.5rem] text-[#314523]">{value}</div>
+    <div className="bg-[#f8f9f8] px-4 py-4 text-center">
+      <div className="flex items-center justify-center gap-1.5 text-[#7d938a]">{icon}</div>
+      <div className="mt-1 font-serif text-[1.5rem] text-[#24413a]">{value}</div>
       <div className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#9a9686]">{label}</div>
     </div>
   );

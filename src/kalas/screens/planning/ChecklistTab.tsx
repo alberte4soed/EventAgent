@@ -50,7 +50,7 @@ export default function ChecklistTab({ onCelebrate, onNavigate }: {
   }, [confirmReset]);
 
   /* `checks` drives seeding and the top-up; `rows` is what the tab renders.
-     They must not be the same list — milestones exist before the checklist is
+     They must not be the same list, milestones exist before the checklist is
      seeded, so folding them into `checks` would convince the seeder that the
      list is already full. */
   const checks = timelineTasks.filter(isCheck);
@@ -108,7 +108,7 @@ export default function ChecklistTab({ onCelebrate, onNavigate }: {
 
   /* Every area starts folded away, so the 12 groups fit on one screen instead
      of 205 rows. While a search or filter is on, an area with matches unfolds
-     itself — otherwise searching would return twelve closed lines. */
+     itself, otherwise searching would return twelve closed lines. */
   const filtering = q !== '' || filter !== 'alle';
   const isOpen = (area: ChecklistArea) => filtering || openAreas.has(area);
   const allOpen = groups.length > 0 && groups.every(({ area }) => openAreas.has(area));
@@ -207,21 +207,21 @@ export default function ChecklistTab({ onCelebrate, onNavigate }: {
     <motion.section
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col gap-5 rounded-[28px] border border-[#d8d4c7] bg-[#fcfbf7] p-7"
+      className="flex flex-col gap-5 rounded-[28px] border border-[#dcdfdb] bg-[#ffffff] p-7"
     >
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <p className="text-sm text-[#6c7561]">
-          {t('De mange småting — samlet i bunker, så I kan tage ét område ad gangen.')}
+        <p className="text-sm text-[#5f6b66]">
+          {t('De mange småting, samlet i bunker, så I kan tage ét område ad gangen.')}
         </p>
         <div className="flex flex-wrap items-center gap-2.5">
-          <p className="shrink-0 text-sm font-bold text-[#8a9079]">
+          <p className="shrink-0 text-sm font-bold text-[#7d938a]">
             {t('{done} af {total} klaret', { done, total: rows.length })}
           </p>
           {groups.length > 0 && !filtering && (
             <button
               type="button"
               onClick={toggleAll}
-              className="flex h-8 items-center gap-1.5 rounded-full border border-[#d9ded9] bg-white px-3 text-xs font-semibold text-[#314523] transition-colors cursor-pointer"
+              className="flex h-8 items-center gap-1.5 rounded-full border border-[#d9ded9] bg-white px-3 text-xs font-semibold text-[#24413a] transition-colors cursor-pointer"
             >
               <ChevronsUpDown size={13} />
               {allOpen ? t('Fold alle sammen') : t('Fold alle ud')}
@@ -232,7 +232,7 @@ export default function ChecklistTab({ onCelebrate, onNavigate }: {
             onClick={handleReset}
             className={cn(
               'flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-semibold transition-colors cursor-pointer',
-              confirmReset ? 'bg-[#b34e37] text-white' : 'border border-[#d9ded9] bg-white text-[#314523]',
+              confirmReset ? 'bg-[#b34e37] text-white' : 'border border-[#d9ded9] bg-white text-[#24413a]',
             )}
           >
             <RotateCcw size={13} />
@@ -243,18 +243,18 @@ export default function ChecklistTab({ onCelebrate, onNavigate }: {
 
       {/* Search + filters */}
       <div className="flex flex-wrap items-center gap-2">
-        <div className="flex h-11 w-full items-center gap-2.5 rounded-[14px] border border-[#e4e0d4] bg-[#f7f5ef] px-4 sm:w-[260px]">
+        <div className="flex h-11 w-full items-center gap-2.5 rounded-[14px] border border-[#e6e9e5] bg-[#f8f9f8] px-4 sm:w-[260px]">
           <Search size={15} className="shrink-0 text-[#9a9686]" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t('Søg i tjeklisten')}
             aria-label={t('Søg i tjeklisten')}
-            className="min-w-0 flex-1 bg-transparent text-sm text-[#314523] placeholder:text-[#9a9686] focus:outline-none"
+            className="min-w-0 flex-1 bg-transparent text-sm text-[#24413a] placeholder:text-[#9a9686] focus:outline-none"
           />
           {query && (
             <button type="button" onClick={() => setQuery('')} aria-label={t('Ryd søgning')}
-              className="text-[#9a9686] hover:text-[#314523] cursor-pointer">
+              className="text-[#9a9686] hover:text-[#24413a] cursor-pointer">
               <X size={14} />
             </button>
           )}
@@ -269,12 +269,12 @@ export default function ChecklistTab({ onCelebrate, onNavigate }: {
               className={cn(
                 'flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-semibold uppercase tracking-[0.1em] transition-colors cursor-pointer',
                 active
-                  ? 'bg-[#314523] text-[#f7f5ef]'
-                  : 'border border-[#e4e0d4] bg-[#f7f5ef] text-[#6c7561] hover:text-[#314523]',
+                  ? 'bg-[#24413a] text-[#f8f9f8]'
+                  : 'border border-[#e6e9e5] bg-[#f8f9f8] text-[#5f6b66] hover:text-[#24413a]',
               )}
             >
               {t(FILTER_LABELS[f])}
-              <span className={active ? 'text-[#dce3d3]' : 'text-[#9a9686]'}>{counts[f]}</span>
+              <span className={active ? 'text-[#dbe5e0]' : 'text-[#9a9686]'}>{counts[f]}</span>
             </button>
           );
         })}
@@ -285,16 +285,16 @@ export default function ChecklistTab({ onCelebrate, onNavigate }: {
           <p className="text-sm font-semibold text-[#b34e37]">
             {t('Kunne ikke hente standardlisten')}
           </p>
-          <p className="mt-1 text-[13px] text-[#6c7561]">{error}</p>
+          <p className="mt-1 text-[13px] text-[#5f6b66]">{error}</p>
         </div>
       )}
 
       {groups.length === 0 && (
-        <div className="rounded-[18px] border border-[#e4e0d4] bg-[#f7f5ef] px-5 py-10 text-center">
-          <p className="font-serif text-lg text-[#314523]">
+        <div className="rounded-[18px] border border-[#e6e9e5] bg-[#f8f9f8] px-5 py-10 text-center">
+          <p className="font-serif text-lg text-[#24413a]">
             {rows.length === 0
               ? error
-                ? t('Tjeklisten er tom — tryk Nulstil for at prøve igen.')
+                ? t('Tjeklisten er tom, tryk Nulstil for at prøve igen.')
                 : t('Henter standardlisten …')
               : filter === 'færdige' ? t('Ingen afkrydsede punkter endnu.')
               : filter === 'kommende' ? t('Alt er krydset af. Flot arbejde.')
@@ -316,7 +316,7 @@ export default function ChecklistTab({ onCelebrate, onNavigate }: {
           <section key={area} className="flex flex-col">
             {/* Button inside the heading, not the other way round: a <button>
                 may only contain phrasing content, and this way the area keeps
-                its place in the heading outline. No aria-label — the visible
+                its place in the heading outline. No aria-label, the visible
                 text is the accessible name, so "2/17" is announced too, and
                 aria-expanded carries the state. */}
             <h2>
@@ -326,13 +326,13 @@ export default function ChecklistTab({ onCelebrate, onNavigate }: {
                 aria-expanded={open}
                 className="flex w-full flex-wrap items-center gap-3 rounded-[14px] px-1 py-2 text-left transition-colors hover:bg-[#f2efe7] cursor-pointer"
               >
-                {Icon && <Icon size={16} strokeWidth={2} className="shrink-0 text-[#8a9079]" />}
-                <span className="font-serif text-lg text-[#314523]">{label}</span>
+                {Icon && <Icon size={16} strokeWidth={2} className="shrink-0 text-[#7d938a]" />}
+                <span className="font-serif text-lg text-[#24413a]">{label}</span>
                 <span className="text-xs font-bold text-[#9a9686]">
                   {progress.done}/{progress.total}
                 </span>
-                <span aria-hidden className="h-1 min-w-[64px] flex-1 overflow-hidden rounded-full bg-[#e4e0d4]">
-                  <span className="block h-full rounded-full bg-[#8a9079] transition-[width] duration-300" style={{ width: `${pct}%` }} />
+                <span aria-hidden className="h-1 min-w-[64px] flex-1 overflow-hidden rounded-full bg-[#e6e9e5]">
+                  <span className="block h-full rounded-full bg-[#7d938a] transition-[width] duration-300" style={{ width: `${pct}%` }} />
                 </span>
                 <ChevronDown
                   size={16}
@@ -361,12 +361,12 @@ export default function ChecklistTab({ onCelebrate, onNavigate }: {
                       <button
                         type="button"
                         onClick={() => onNavigate('nygift')}
-                        className="flex w-full items-center justify-between gap-3 rounded-[18px] border border-[#d3dcc4] bg-[#eef1e6] px-5 py-3.5 text-left transition-colors hover:bg-[#e6ebdc] cursor-pointer"
+                        className="flex w-full items-center justify-between gap-3 rounded-[18px] border border-[#d3dcc4] bg-[#e8f0ec] px-5 py-3.5 text-left transition-colors hover:bg-[#e6ebdc] cursor-pointer"
                       >
-                        <span className="text-sm text-[#314523]">
+                        <span className="text-sm text-[#24413a]">
                           {t('Takkelisten og billederne bor under Nygift')}
                         </span>
-                        <ArrowRight size={15} className="shrink-0 text-[#6c7561]" />
+                        <ArrowRight size={15} className="shrink-0 text-[#5f6b66]" />
                       </button>
                     )}
 
@@ -416,9 +416,9 @@ export default function ChecklistTab({ onCelebrate, onNavigate }: {
                     <button
                       type="button"
                       onClick={() => openAdd(area)}
-                      className="flex w-full items-center gap-4 rounded-[18px] border border-dashed border-[#d8d4c7] bg-transparent px-5 py-3 text-left text-sm font-semibold text-[#6c7561] transition-colors hover:border-[#c4bfae] hover:text-[#314523] cursor-pointer"
+                      className="flex w-full items-center gap-4 rounded-[18px] border border-dashed border-[#dcdfdb] bg-transparent px-5 py-3 text-left text-sm font-semibold text-[#5f6b66] transition-colors hover:border-[#c6cbc6] hover:text-[#24413a] cursor-pointer"
                     >
-                      <span className="flex size-7 shrink-0 items-center justify-center rounded-full border-2 border-[#c4bfae]">
+                      <span className="flex size-7 shrink-0 items-center justify-center rounded-full border-2 border-[#c6cbc6]">
                         <Plus size={14} />
                       </span>
                       {t('Tilføj punkt')}

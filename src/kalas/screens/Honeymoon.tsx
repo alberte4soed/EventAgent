@@ -2,11 +2,11 @@
 
 /* Honeymoon screen — a sibling to the venue discovery flow, but for the couple's
    trip after the wedding. Three tabs:
-     · Udforsk    — spin the globe, pick a country, browse AI-curated honeymoon
+     · Udforsk   , spin the globe, pick a country, browse AI-curated honeymoon
                     destinations, then real romantic hotels for a chosen place.
-     · Inspiration — an editorial gallery of honeymoon themes, destination
+     · Inspiration, an editorial gallery of honeymoon themes, destination
                     spotlights and idea cards (trips / routes / hotels).
-     · Gemte      — everything the couple hearted, grouped by kind.
+     · Gemte     , everything the couple hearted, grouped by kind.
    Content is AI-generated (Gemini + Google Places) via /api/honeymoon/*, and
    favourites persist to honeymoon_saves through useWedding(). */
 
@@ -15,7 +15,7 @@ import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Heart, MapPin, Star, Loader2, Globe as GlobeIcon, Search, PenLine,
-  ArrowRight, ArrowUpRight, Plane, Hotel, Route, Sparkles, Compass, Expand, Trash2,
+  ArrowRight, ArrowUpRight, Plane, Hotel, Route, Lightbulb, Compass, Expand, Trash2,
   CalendarCheck, Check,
 } from 'lucide-react';
 import { Lightbox } from '../onboarding/Lightbox';
@@ -58,7 +58,7 @@ function SaveHeart({ saved, onClick, className }: {
       aria-pressed={saved}
       className={cn(
         'flex h-9 w-9 items-center justify-center rounded-full backdrop-blur-sm transition-colors cursor-pointer',
-        saved ? 'bg-[#b34e37] text-white' : 'bg-canvas/90 text-[#59634f] hover:text-[#b34e37]',
+        saved ? 'bg-[#b34e37] text-white' : 'bg-canvas/90 text-[#46574f] hover:text-[#b34e37]',
         className,
       )}
     >
@@ -135,17 +135,17 @@ export default function Honeymoon({ onNavigate }: { onNavigate?: (s: NavigateTar
     <div className="flex min-w-0 flex-1 flex-col gap-6 px-6 py-8 sm:px-9 lg:px-12">
       {/* Header */}
       <div>
-        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#8a9079]">{t('Planlægning')}</p>
-        <h1 className="mt-1 font-serif text-[clamp(2rem,4vw,2.4rem)] leading-[1.1] tracking-[-0.02em] text-[#314523]">
+        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#7d938a]">{t('Planlægning')}</p>
+        <h1 className="mt-1 font-serif text-[clamp(2rem,4vw,2.4rem)] leading-[1.1] tracking-[-0.02em] text-[#24413a]">
           {t('Bryllupsrejse')}
         </h1>
-        <p className="mt-1 max-w-xl text-[13px] text-[#6c7561]">
-          {t('Drøm jer væk sammen — find destinationer på kloden, bliv inspireret, og gem de steder I forelsker jer i.')}
+        <p className="mt-1 max-w-xl text-[13px] text-[#5f6b66]">
+          {t('Drøm jer væk sammen, find destinationer på kloden, bliv inspireret, og gem de steder I forelsker jer i.')}
         </p>
       </div>
 
       {/* Tab bar */}
-      <div className="flex gap-1 border-b border-[#e0ddd2]">
+      <div className="flex gap-1 border-b border-[#e2e6e2]">
         {TABS.map(({ id, label, Icon }) => {
           const active = tab === id;
           const count =
@@ -159,18 +159,18 @@ export default function Honeymoon({ onNavigate }: { onNavigate?: (s: NavigateTar
               onClick={() => setTab(id)}
               className={cn(
                 'relative flex items-center gap-2 px-3 py-2.5 text-[0.82rem] font-semibold transition-colors cursor-pointer',
-                active ? 'text-[#314523]' : 'text-muted hover:text-ink',
+                active ? 'text-[#24413a]' : 'text-muted hover:text-ink',
               )}
             >
               <Icon size={15} strokeWidth={2} />
               {t(label)}
               {count != null && (
-                <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-[#eef1e6] px-1 text-[0.6rem] font-bold text-[#314523]">
+                <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-[#e8f0ec] px-1 text-[0.6rem] font-bold text-[#24413a]">
                   {count}
                 </span>
               )}
               {active && (
-                <motion.span layoutId="honeymoon-tab" className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-[#314523]" />
+                <motion.span layoutId="honeymoon-tab" className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-[#24413a]" />
               )}
             </button>
           );
@@ -234,7 +234,7 @@ type ToggleSave = (row: {
 }) => void;
 
 /* ══════════════════════════════════════════════════════════════════════════
-   UDFORSK — globe → country → destinations → hotels
+   UDFORSK, globe → country → destinations → hotels
 ══════════════════════════════════════════════════════════════════════════ */
 const UdforskTab = forwardRef<
   { searchHotels: (dest: string) => void },
@@ -330,13 +330,13 @@ const UdforskTab = forwardRef<
     >
       <div className="grid gap-[18px] xl:grid-cols-[minmax(0,1fr)_400px]">
         {/* Globe */}
-        <div className="relative h-[min(58vh,520px)] overflow-hidden rounded-[28px] border border-[#d8d4c7] bg-[#f7f5ef]">
+        <div className="relative h-[min(58vh,520px)] overflow-hidden rounded-[28px] border border-[#dcdfdb] bg-[#f8f9f8]">
           <DestinationGlobe selectedCountry={country} onCountryPick={pickCountry} />
         </div>
 
         {/* Destination panel */}
-        <div className="flex min-h-[320px] max-h-[min(58vh,520px)] flex-col overflow-hidden rounded-[28px] border border-[#d8d4c7] bg-[#fcfbf7]">
-          <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[#e4e0d4] px-5 py-4">
+        <div className="flex min-h-[320px] max-h-[min(58vh,520px)] flex-col overflow-hidden rounded-[28px] border border-[#dcdfdb] bg-[#ffffff]">
+          <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[#e6e9e5] px-5 py-4">
             <div className="min-w-0">
               <p className="text-[0.62rem] font-semibold uppercase tracking-[0.2em] text-muted">{t('Destination')}</p>
               <h3 className="truncate font-serif text-[1.2rem] leading-tight text-ink">{country ?? t('Vælg et sted')}</h3>
@@ -348,8 +348,8 @@ const UdforskTab = forwardRef<
               className={cn(
                 'flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[0.72rem] font-semibold transition-colors cursor-pointer',
                 custom
-                  ? 'border-[#314523] bg-[#eef1e6] text-[#314523]'
-                  : 'border-[#d8d4c7] text-[#6c7561] hover:border-[#314523] hover:text-[#314523]',
+                  ? 'border-[#24413a] bg-[#e8f0ec] text-[#24413a]'
+                  : 'border-[#dcdfdb] text-[#5f6b66] hover:border-[#24413a] hover:text-[#24413a]',
               )}
             >
               <PenLine size={13} /> {t('Skriv selv')}
@@ -361,7 +361,7 @@ const UdforskTab = forwardRef<
               <motion.div
                 initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
                 transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-                className="shrink-0 overflow-hidden border-b border-[#e4e0d4] bg-[#f7f5ef]"
+                className="shrink-0 overflow-hidden border-b border-[#e6e9e5] bg-[#f8f9f8]"
               >
                 <div className="flex items-center gap-2 px-4 py-3">
                   <input
@@ -369,14 +369,14 @@ const UdforskTab = forwardRef<
                     onChange={(e) => setCustomValue(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') submitCustom(); }}
                     placeholder={t('f.eks. Maldiverne · Toscana · Bali')}
-                    className="h-9 min-w-0 flex-1 rounded-full border border-[#d8d4c7] bg-[#fcfbf7] px-4 text-[0.82rem] text-ink placeholder:text-[#9a9686] focus:border-[#314523] focus:outline-none"
+                    className="h-9 min-w-0 flex-1 rounded-full border border-[#dcdfdb] bg-[#ffffff] px-4 text-[0.82rem] text-ink placeholder:text-[#9a9686] focus:border-[#24413a] focus:outline-none"
                     autoFocus
                   />
                   <button
                     type="button"
                     onClick={submitCustom}
                     disabled={!customValue.trim()}
-                    className="flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-[#314523] px-3.5 text-[0.72rem] font-semibold text-[#f7f5ef] transition-opacity hover:opacity-90 disabled:opacity-40 cursor-pointer"
+                    className="flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-[#24413a] px-3.5 text-[0.72rem] font-semibold text-[#f8f9f8] transition-opacity hover:opacity-90 disabled:opacity-40 cursor-pointer"
                   >
                     <Search size={13} /> {t('Søg')}
                   </button>
@@ -388,17 +388,17 @@ const UdforskTab = forwardRef<
           <div className="min-h-0 flex-1 overflow-y-auto p-4">
             {!country ? (
               <div className="flex h-full flex-col items-center justify-center gap-4 px-4 text-center">
-                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#314523]">
+                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#24413a]">
                   <GlobeIcon size={19} className="text-white" />
                 </div>
                 <p className="text-[0.88rem] leading-relaxed text-ink-soft">
-                  {t('Tryk på et land på kloden — eller skriv selv et sted — for at se honeymoon-destinationer.')}
+                  {t('Tryk på et land på kloden, eller skriv selv et sted, for at se honeymoon-destinationer.')}
                 </p>
                 {region && (
                   <button
                     type="button"
                     onClick={() => void searchHotels(region)}
-                    className="inline-flex items-center gap-2 rounded-full bg-[#314523] px-4 py-2.5 text-[0.78rem] font-bold text-white transition-opacity hover:opacity-90 cursor-pointer"
+                    className="inline-flex items-center gap-2 rounded-full bg-[#24413a] px-4 py-2.5 text-[0.78rem] font-bold text-white transition-opacity hover:opacity-90 cursor-pointer"
                   >
                     <MapPin size={13} />
                     {t('Søg hoteller nær {area}', { area: region })}
@@ -439,12 +439,12 @@ const UdforskTab = forwardRef<
       <div ref={resultsRef} className="scroll-mt-6">
         {destination && (
           <div className="flex flex-col gap-5">
-            <div className="flex flex-wrap items-end justify-between gap-3 border-b border-[#e0ddd2] pb-3">
+            <div className="flex flex-wrap items-end justify-between gap-3 border-b border-[#e2e6e2] pb-3">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#8a9079]">{t('Honeymoon-hoteller')}</p>
-                <h2 className="mt-1 font-serif text-[clamp(1.5rem,3vw,2rem)] leading-tight text-[#314523]">{destination}</h2>
-                <p className="mt-1 text-[13px] text-[#6c7561]">
-                  {t('Romantiske ophold til jeres bryllupsrejse — tryk på hjertet for at gemme.')}
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#7d938a]">{t('Honeymoon-hoteller')}</p>
+                <h2 className="mt-1 font-serif text-[clamp(1.5rem,3vw,2rem)] leading-tight text-[#24413a]">{destination}</h2>
+                <p className="mt-1 text-[13px] text-[#5f6b66]">
+                  {t('Romantiske ophold til jeres bryllupsrejse, tryk på hjertet for at gemme.')}
                 </p>
               </div>
             </div>
@@ -452,22 +452,22 @@ const UdforskTab = forwardRef<
             {hotelsLoading ? (
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {[0, 1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="animate-pulse overflow-hidden rounded-2xl border border-[#e4e0d4] bg-[#fcfbf7]">
-                    <div className="h-44 bg-[#f0ede5]" />
+                  <div key={i} className="animate-pulse overflow-hidden rounded-2xl border border-[#e6e9e5] bg-[#ffffff]">
+                    <div className="h-44 bg-[#eceeeb]" />
                     <div className="space-y-2 p-4">
-                      <div className="h-4 w-1/2 rounded bg-[#f0ede5]" />
-                      <div className="h-3 w-5/6 rounded bg-[#f0ede5]" />
+                      <div className="h-4 w-1/2 rounded bg-[#eceeeb]" />
+                      <div className="h-3 w-5/6 rounded bg-[#eceeeb]" />
                     </div>
                   </div>
                 ))}
               </div>
             ) : hotelsFailed ? (
-              <div className="rounded-2xl border border-[#e4e0d4] bg-[#fcfbf7] p-8 text-center">
+              <div className="rounded-2xl border border-[#e6e9e5] bg-[#ffffff] p-8 text-center">
                 <p className="text-[0.9rem] text-ink-soft">{t('Kunne ikke finde hoteller her.')}</p>
                 <button
                   type="button"
                   onClick={() => void searchHotels(destination)}
-                  className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-[#314523] px-4 py-2 text-[0.78rem] font-bold text-white transition-opacity hover:opacity-90 cursor-pointer"
+                  className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-[#24413a] px-4 py-2 text-[0.78rem] font-bold text-white transition-opacity hover:opacity-90 cursor-pointer"
                 >
                   {t('Prøv igen')}
                 </button>
@@ -519,7 +519,7 @@ function DestCard({ s, active, saved, onChoose, onToggleSave }: {
   return (
     <div className={cn(
       'group relative overflow-hidden rounded-2xl border transition-colors',
-      active ? 'border-[#314523] shadow-[0_6px_18px_rgba(23,60,50,0.12)]' : 'border-[#e4e0d4] hover:border-[#314523]/40',
+      active ? 'border-[#24413a] shadow-[0_6px_18px_rgba(18,51,43,0.12)]' : 'border-[#e6e9e5] hover:border-[#24413a]/40',
     )}>
       <div className="absolute right-2 top-2 z-10">
         <SaveHeart saved={saved} onClick={onToggleSave} className="h-8 w-8" />
@@ -532,14 +532,14 @@ function DestCard({ s, active, saved, onChoose, onToggleSave }: {
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
           </div>
         ) : (
-          <div className="flex h-28 w-full items-center justify-center bg-[#eef1e6]">
-            <MapPin size={18} className="text-[#314523] opacity-40" />
+          <div className="flex h-28 w-full items-center justify-center bg-[#e8f0ec]">
+            <MapPin size={18} className="text-[#24413a] opacity-40" />
           </div>
         )}
         <div className="p-3">
           <div className="flex items-center gap-2">
-            <p className="truncate font-serif text-[0.98rem] text-[#314523]">{s.name}</p>
-            <span className="shrink-0 rounded-full bg-[#f0ede5] px-2 py-0.5 text-[0.56rem] font-bold uppercase tracking-[0.1em] text-[#314523]">
+            <p className="truncate font-serif text-[0.98rem] text-[#24413a]">{s.name}</p>
+            <span className="shrink-0 rounded-full bg-[#eceeeb] px-2 py-0.5 text-[0.56rem] font-bold uppercase tracking-[0.1em] text-[#24413a]">
               {KIND_LABEL[s.kind]}
             </span>
             {s.rating != null && (
@@ -549,7 +549,7 @@ function DestCard({ s, active, saved, onChoose, onToggleSave }: {
             )}
           </div>
           {s.blurb && <p className="mt-1 line-clamp-2 text-[0.76rem] leading-snug text-ink-soft">{s.blurb}</p>}
-          <span className="mt-1.5 inline-flex items-center gap-1 text-[0.68rem] font-bold uppercase tracking-[0.08em] text-[#314523]">
+          <span className="mt-1.5 inline-flex items-center gap-1 text-[0.68rem] font-bold uppercase tracking-[0.08em] text-[#24413a]">
             {t('Se hoteller')} <ArrowRight size={12} />
           </span>
         </div>
@@ -563,20 +563,20 @@ function HotelCard({ h, saved, onToggleSave, onExpand }: {
   h: HoneymoonHotel; saved: boolean; onToggleSave: () => void; onExpand?: () => void;
 }) {
   return (
-    <div className="group flex flex-col overflow-hidden rounded-2xl border border-[#e4e0d4] bg-[#fcfbf7] transition-shadow hover:shadow-sm">
+    <div className="group flex flex-col overflow-hidden rounded-2xl border border-[#e6e9e5] bg-[#ffffff] transition-shadow hover:shadow-sm">
       <div className="relative aspect-[4/3] overflow-hidden">
         {h.photo ? (
           <img src={h.photo} alt={h.name} loading="lazy"
             className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.05]" />
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center bg-[#eef1e6]"><Hotel size={22} className="text-[#314523] opacity-40" /></div>
+          <div className="absolute inset-0 flex items-center justify-center bg-[#e8f0ec]"><Hotel size={22} className="text-[#24413a] opacity-40" /></div>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-[#1a221533] to-transparent" />
         <div className="absolute right-2 top-2"><SaveHeart saved={saved} onClick={onToggleSave} /></div>
         <RatingBadge rating={h.rating} className="absolute left-2 top-2" />
         {onExpand && (
           <button type="button" onClick={onExpand} aria-label="Se billeder"
-            className="absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-canvas/90 text-[#59634f] backdrop-blur-sm transition-colors hover:text-ink cursor-pointer">
+            className="absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-canvas/90 text-[#46574f] backdrop-blur-sm transition-colors hover:text-ink cursor-pointer">
             <Expand size={14} />
           </button>
         )}
@@ -588,7 +588,7 @@ function HotelCard({ h, saved, onToggleSave, onExpand }: {
           <p className="mt-2 line-clamp-2 text-[0.8rem] leading-snug text-ink-soft">{h.why_fit || h.description}</p>
         )}
         {h.price_hint && (
-          <span className="mt-2.5 inline-block w-fit rounded-full bg-shell px-2.5 py-1 text-[0.66rem] font-bold uppercase tracking-[0.08em] text-[#6c7561]">{h.price_hint}</span>
+          <span className="mt-2.5 inline-block w-fit rounded-full bg-shell px-2.5 py-1 text-[0.66rem] font-bold uppercase tracking-[0.08em] text-[#5f6b66]">{h.price_hint}</span>
         )}
       </div>
     </div>
@@ -596,7 +596,7 @@ function HotelCard({ h, saved, onToggleSave, onExpand }: {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   INSPIRATION — editorial gallery
+   INSPIRATION, editorial gallery
 ══════════════════════════════════════════════════════════════════════════ */
 function InspirationTab({ lang, findSaved, onToggleSave, onSeeHotels, onExplore }: {
   lang: string; findSaved: FindSaved; onToggleSave: ToggleSave;
@@ -646,17 +646,17 @@ function InspirationTab({ lang, findSaved, onToggleSave, onSeeHotels, onExplore 
           <p className="text-[0.85rem] text-ink-soft">{t('Samler inspiration…')}</p>
         </div>
       ) : failed || !data ? (
-        <div className="rounded-2xl border border-[#e4e0d4] bg-[#fcfbf7] p-10 text-center">
+        <div className="rounded-2xl border border-[#e6e9e5] bg-[#ffffff] p-10 text-center">
           <p className="font-serif text-[1.2rem] text-ink">{t('Ingen inspiration lige nu')}</p>
           <p className="mt-1 text-[0.85rem] text-ink-soft">{t('Prøv i stedet at udforske destinationer på kloden.')}</p>
           <button type="button" onClick={onExplore}
-            className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#314523] px-4 py-2.5 text-[0.78rem] font-bold text-white transition-opacity hover:opacity-90 cursor-pointer">
+            className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#24413a] px-4 py-2.5 text-[0.78rem] font-bold text-white transition-opacity hover:opacity-90 cursor-pointer">
             <GlobeIcon size={14} /> {t('Udforsk')}
           </button>
         </div>
       ) : (
         <>
-          {/* Themes — full-bleed editorial cards */}
+          {/* Themes, full-bleed editorial cards */}
           {data.themes.length > 0 && (
             <section>
               <p className="mb-3 text-[0.62rem] font-bold uppercase tracking-[0.18em] text-muted">{t('Honeymoon-typer')}</p>
@@ -672,7 +672,7 @@ function InspirationTab({ lang, findSaved, onToggleSave, onSeeHotels, onExplore 
                       <img src={th.photo} alt={th.title} loading="lazy"
                         className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.06]" />
                     ) : (
-                      <div className="absolute inset-0 bg-gradient-to-br from-[#4d5638] to-[#314523]" />
+                      <div className="absolute inset-0 bg-gradient-to-br from-[#4d5638] to-[#24413a]" />
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/25 to-black/10" />
                     <div className="relative px-5">
@@ -685,7 +685,7 @@ function InspirationTab({ lang, findSaved, onToggleSave, onSeeHotels, onExplore 
             </section>
           )}
 
-          {/* Spotlights — destination cards with a CTA into hotels */}
+          {/* Spotlights, destination cards with a CTA into hotels */}
           {data.spotlights.length > 0 && (
             <section>
               <p className="mb-3 text-[0.62rem] font-bold uppercase tracking-[0.18em] text-muted">{t('Destinations-spotlight')}</p>
@@ -699,7 +699,7 @@ function InspirationTab({ lang, findSaved, onToggleSave, onSeeHotels, onExplore 
                         <img src={sp.photo} alt={sp.name} loading="lazy"
                           className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.05]" />
                       ) : (
-                        <div className="absolute inset-0 bg-gradient-to-br from-[#4d5638] to-[#314523]" />
+                        <div className="absolute inset-0 bg-gradient-to-br from-[#4d5638] to-[#24413a]" />
                       )}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
                       <div className="absolute right-3 top-3">
@@ -715,7 +715,7 @@ function InspirationTab({ lang, findSaved, onToggleSave, onSeeHotels, onExplore 
                         <button
                           type="button"
                           onClick={() => onSeeHotels(dest)}
-                          className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#f7f5ef] px-4 py-2 text-[0.74rem] font-bold text-[#314523] transition-opacity hover:opacity-90 cursor-pointer"
+                          className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#f8f9f8] px-4 py-2 text-[0.74rem] font-bold text-[#24413a] transition-opacity hover:opacity-90 cursor-pointer"
                         >
                           {t('Se hoteller')} <ArrowUpRight size={13} />
                         </button>
@@ -727,11 +727,11 @@ function InspirationTab({ lang, findSaved, onToggleSave, onSeeHotels, onExplore 
             </section>
           )}
 
-          {/* Ideas — trips / routes / hotels */}
+          {/* Ideas, trips / routes / hotels */}
           {data.ideas.length > 0 && (
             <section>
               <p className="mb-1 text-[0.62rem] font-bold uppercase tracking-[0.18em] text-muted">{t('Idéer til turen')}</p>
-              <h2 className="mb-3 font-serif text-[clamp(1.4rem,3vw,1.9rem)] leading-tight text-[#314523]">
+              <h2 className="mb-3 font-serif text-[clamp(1.4rem,3vw,1.9rem)] leading-tight text-[#24413a]">
                 {t('Ture, ruter & romantiske ophold')}
               </h2>
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -739,16 +739,16 @@ function InspirationTab({ lang, findSaved, onToggleSave, onSeeHotels, onExplore 
                   const meta = IDEA_META[idea.kind];
                   const saved = Boolean(findSaved('idea', null, idea.title));
                   return (
-                    <div key={`${idea.title}-${i}`} className="group flex flex-col overflow-hidden rounded-2xl border border-[#e4e0d4] bg-[#fcfbf7] transition-shadow hover:shadow-sm">
+                    <div key={`${idea.title}-${i}`} className="group flex flex-col overflow-hidden rounded-2xl border border-[#e6e9e5] bg-[#ffffff] transition-shadow hover:shadow-sm">
                       <div className="relative aspect-[16/10] overflow-hidden">
                         {idea.photo ? (
                           <img src={idea.photo} alt={idea.title} loading="lazy"
                             className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.05]" />
                         ) : (
-                          <div className="absolute inset-0 flex items-center justify-center bg-[#eef1e6]"><meta.Icon size={22} className="text-[#314523] opacity-40" /></div>
+                          <div className="absolute inset-0 flex items-center justify-center bg-[#e8f0ec]"><meta.Icon size={22} className="text-[#24413a] opacity-40" /></div>
                         )}
                         <div className="absolute inset-0 bg-gradient-to-t from-[#1a221533] to-transparent" />
-                        <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-canvas/90 px-2.5 py-1 text-[0.58rem] font-bold uppercase tracking-[0.1em] text-[#314523] backdrop-blur-sm">
+                        <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-canvas/90 px-2.5 py-1 text-[0.58rem] font-bold uppercase tracking-[0.1em] text-[#24413a] backdrop-blur-sm">
                           <meta.Icon size={11} /> {meta.label}
                         </span>
                         <div className="absolute right-2 top-2">
@@ -776,7 +776,7 @@ function InspirationTab({ lang, findSaved, onToggleSave, onSeeHotels, onExplore 
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   GEMTE — saved favourites, grouped by kind
+   GEMTE, saved favourites, grouped by kind
 ══════════════════════════════════════════════════════════════════════════ */
 function GemteTab({ saves, onRemove, onToggleBooked, onExplore, onInspire }: {
   saves: HoneymoonSaveRow[];
@@ -788,7 +788,7 @@ function GemteTab({ saves, onRemove, onToggleBooked, onExplore, onInspire }: {
   const groups: { kind: HoneymoonSaveRow['kind']; label: string; Icon: typeof Plane }[] = [
     { kind: 'destination', label: t('Destinationer'), Icon: MapPin },
     { kind: 'hotel', label: t('Hoteller'), Icon: Hotel },
-    { kind: 'idea', label: t('Idéer'), Icon: Sparkles },
+    { kind: 'idea', label: t('Idéer'), Icon: Lightbulb },
   ];
 
   if (saves.length === 0) {
@@ -798,8 +798,8 @@ function GemteTab({ saves, onRemove, onToggleBooked, onExplore, onInspire }: {
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
         className="rounded-2xl border border-dashed border-[var(--color-line-strong)] bg-card p-10 text-center"
       >
-        <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#eef1e6]">
-          <Heart size={20} className="text-[#314523]" />
+        <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#e8f0ec]">
+          <Heart size={20} className="text-[#24413a]" />
         </span>
         <p className="mt-3 font-serif text-[1.25rem] text-ink">{t('Ingen gemte endnu')}</p>
         <p className="mx-auto mt-1 max-w-sm text-[0.85rem] text-ink-soft">
@@ -807,11 +807,11 @@ function GemteTab({ saves, onRemove, onToggleBooked, onExplore, onInspire }: {
         </p>
         <div className="mt-4 flex flex-wrap justify-center gap-2.5">
           <button type="button" onClick={onExplore}
-            className="inline-flex items-center gap-2 rounded-full bg-[#314523] px-4 py-2.5 text-[0.78rem] font-bold text-white transition-opacity hover:opacity-90 cursor-pointer">
+            className="inline-flex items-center gap-2 rounded-full bg-[#24413a] px-4 py-2.5 text-[0.78rem] font-bold text-white transition-opacity hover:opacity-90 cursor-pointer">
             <GlobeIcon size={14} /> {t('Udforsk')}
           </button>
           <button type="button" onClick={onInspire}
-            className="inline-flex items-center gap-2 rounded-full border border-[#d8d4c7] px-4 py-2.5 text-[0.78rem] font-bold text-[#314523] transition-colors hover:bg-[#eef1e6] cursor-pointer">
+            className="inline-flex items-center gap-2 rounded-full border border-[#dcdfdb] px-4 py-2.5 text-[0.78rem] font-bold text-[#24413a] transition-colors hover:bg-[#e8f0ec] cursor-pointer">
             <Compass size={14} /> {t('Inspiration')}
           </button>
         </div>
@@ -835,19 +835,19 @@ function GemteTab({ saves, onRemove, onToggleBooked, onExplore, onInspire }: {
             </p>
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {rows.map((s) => (
-                <div key={s.id} className="group flex flex-col overflow-hidden rounded-2xl border border-[#e4e0d4] bg-[#fcfbf7]">
+                <div key={s.id} className="group flex flex-col overflow-hidden rounded-2xl border border-[#e6e9e5] bg-[#ffffff]">
                   <div className="relative aspect-[16/10] overflow-hidden">
                     {s.image_url ? (
                       <img src={s.image_url} alt={s.name} loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
                     ) : (
-                      <div className="absolute inset-0 flex items-center justify-center bg-[#eef1e6]"><Icon size={22} className="text-[#314523] opacity-40" /></div>
+                      <div className="absolute inset-0 flex items-center justify-center bg-[#e8f0ec]"><Icon size={22} className="text-[#24413a] opacity-40" /></div>
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-[#1a221533] to-transparent" />
                     <button
                       type="button"
                       onClick={() => onRemove(s.id)}
                       aria-label={t('Fjern fra gemte')}
-                      className="absolute right-2 top-2 flex h-9 w-9 items-center justify-center rounded-full bg-canvas/90 text-[#59634f] backdrop-blur-sm transition-colors hover:text-[#b34e37] cursor-pointer"
+                      className="absolute right-2 top-2 flex h-9 w-9 items-center justify-center rounded-full bg-canvas/90 text-[#46574f] backdrop-blur-sm transition-colors hover:text-[#b34e37] cursor-pointer"
                     >
                       <Trash2 size={15} />
                     </button>
@@ -880,8 +880,8 @@ function BookToggle({ booked, onToggle }: { booked: boolean; onToggle: () => voi
       className={cn(
         'mt-3 inline-flex w-fit items-center gap-1.5 rounded-full px-3 py-1.5 text-[0.72rem] font-bold transition-colors cursor-pointer',
         booked
-          ? 'bg-[#314523] text-white hover:opacity-90'
-          : 'border border-[#d8d4c7] text-[#314523] hover:bg-[#eef1e6]',
+          ? 'bg-[#24413a] text-white hover:opacity-90'
+          : 'border border-[#dcdfdb] text-[#24413a] hover:bg-[#e8f0ec]',
       )}
     >
       {booked ? <Check size={13} /> : <CalendarCheck size={13} />}
@@ -891,7 +891,7 @@ function BookToggle({ booked, onToggle }: { booked: boolean; onToggle: () => voi
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   BOOKET — everything the couple has confirmed & booked
+   BOOKET, everything the couple has confirmed & booked
 ══════════════════════════════════════════════════════════════════════════ */
 function BooketTab({ saves, onUnbook, onBrowseSaved }: {
   saves: HoneymoonSaveRow[];
@@ -907,16 +907,16 @@ function BooketTab({ saves, onUnbook, onBrowseSaved }: {
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
         className="rounded-2xl border border-dashed border-[var(--color-line-strong)] bg-card p-10 text-center"
       >
-        <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#eef1e6]">
-          <CalendarCheck size={20} className="text-[#314523]" />
+        <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#e8f0ec]">
+          <CalendarCheck size={20} className="text-[#24413a]" />
         </span>
         <p className="mt-3 font-serif text-[1.25rem] text-ink">{t('Intet booket endnu')}</p>
         <p className="mx-auto mt-1 max-w-sm text-[0.85rem] text-ink-soft">
-          {t('Når I har booket en destination eller et hotel, så marker det under Gemte — så samler vi jeres rejseplan her.')}
+          {t('Når I har booket en destination eller et hotel, så marker det under Gemte, så samler vi jeres rejseplan her.')}
         </p>
         <div className="mt-4 flex justify-center">
           <button type="button" onClick={onBrowseSaved}
-            className="inline-flex items-center gap-2 rounded-full bg-[#314523] px-4 py-2.5 text-[0.78rem] font-bold text-white transition-opacity hover:opacity-90 cursor-pointer">
+            className="inline-flex items-center gap-2 rounded-full bg-[#24413a] px-4 py-2.5 text-[0.78rem] font-bold text-white transition-opacity hover:opacity-90 cursor-pointer">
             <Heart size={14} /> {t('Gå til gemte')}
           </button>
         </div>
@@ -930,20 +930,20 @@ function BooketTab({ saves, onUnbook, onBrowseSaved }: {
       transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
       className="flex flex-col gap-4"
     >
-      <p className="text-[13px] text-[#6c7561]">
-        {t('Jeres bekræftede rejseplan — destinationer og ophold I har booket.')}
+      <p className="text-[13px] text-[#5f6b66]">
+        {t('Jeres bekræftede rejseplan, destinationer og ophold I har booket.')}
       </p>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {saves.map((s) => (
-          <div key={s.id} className="group flex flex-col overflow-hidden rounded-2xl border border-[#e4e0d4] bg-[#fcfbf7]">
+          <div key={s.id} className="group flex flex-col overflow-hidden rounded-2xl border border-[#e6e9e5] bg-[#ffffff]">
             <div className="relative aspect-[16/10] overflow-hidden">
               {s.image_url ? (
                 <img src={s.image_url} alt={s.name} loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
               ) : (
-                <div className="absolute inset-0 flex items-center justify-center bg-[#eef1e6]"><CalendarCheck size={22} className="text-[#314523] opacity-40" /></div>
+                <div className="absolute inset-0 flex items-center justify-center bg-[#e8f0ec]"><CalendarCheck size={22} className="text-[#24413a] opacity-40" /></div>
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-[#1a221533] to-transparent" />
-              <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-[#314523] px-2.5 py-1 text-[0.58rem] font-bold uppercase tracking-[0.1em] text-white">
+              <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-[#24413a] px-2.5 py-1 text-[0.58rem] font-bold uppercase tracking-[0.1em] text-white">
                 <Check size={11} /> {t('Booket')}
               </span>
               <RatingBadge rating={s.rating} className="absolute right-2 top-2" />
@@ -955,7 +955,7 @@ function BooketTab({ saves, onUnbook, onBrowseSaved }: {
               <button
                 type="button"
                 onClick={() => onUnbook(s.id)}
-                className="mt-3 inline-flex w-fit items-center gap-1.5 rounded-full border border-[#d8d4c7] px-3 py-1.5 text-[0.72rem] font-bold text-[#6c7561] transition-colors hover:border-[#b34e37] hover:text-[#b34e37] cursor-pointer"
+                className="mt-3 inline-flex w-fit items-center gap-1.5 rounded-full border border-[#dcdfdb] px-3 py-1.5 text-[0.72rem] font-bold text-[#5f6b66] transition-colors hover:border-[#b34e37] hover:text-[#b34e37] cursor-pointer"
               >
                 <Trash2 size={13} /> {t('Fjern booking')}
               </button>
@@ -983,7 +983,7 @@ function PanelError({ label, onRetry }: { label: string; onRetry: () => void }) 
     <div className="flex h-full flex-col items-center justify-center gap-3 px-4 text-center">
       <p className="text-[0.85rem] text-ink-soft">{label}</p>
       <button type="button" onClick={onRetry}
-        className="inline-flex items-center gap-1.5 rounded-full bg-[#314523] px-4 py-2 text-[0.76rem] font-bold text-white transition-opacity hover:opacity-90 cursor-pointer">
+        className="inline-flex items-center gap-1.5 rounded-full bg-[#24413a] px-4 py-2 text-[0.76rem] font-bold text-white transition-opacity hover:opacity-90 cursor-pointer">
         {t('Prøv igen')}
       </button>
     </div>

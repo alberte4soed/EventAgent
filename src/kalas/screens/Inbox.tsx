@@ -54,7 +54,7 @@ export default function Inbox({ onNavigate, embedded }: { onNavigate?: (s: Navig
         </div>
         <h2 className="display mt-5 text-[1.8rem] text-ink">{t('Ingen henvendelser endnu')}</h2>
         <p className="mt-2 max-w-sm text-[0.9rem] text-ink-soft">
-          {t('Når Ava skriver til venues og leverandører, samles alle samtaler, tilbud og filer her — så I har ét sted til al koordinering.')}
+          {t('Når Ava skriver til venues og leverandører, samles alle samtaler, tilbud og filer her, så I har ét sted til al koordinering.')}
         </p>
         <div className="mt-6"><Pill arrow onClick={() => onNavigate?.('ava')}>{t('Bed Ava tage kontakt')}</Pill></div>
       </div>
@@ -335,7 +335,7 @@ function QuotesTab({ venues, outbound, replies, onChanged }: {
   const shortlist = venues.filter((v) => v.swipe_status === 'liked' || outbound.some((o) => o.venue_id === v.id));
   if (shortlist.length === 0) {
     return <p className="mt-10 text-center font-serif text-[1.1rem] italic text-muted">
-      {t('Ingen leverandører på listen endnu — like nogen, så samler Ava tilbuddene her.')}
+      {t('Ingen leverandører på listen endnu, like nogen, så samler Ava tilbuddene her.')}
     </p>;
   }
   return (
@@ -454,7 +454,7 @@ function FilesTab({ venues, attachments }: { venues: VenueRow[]; attachments: Em
 
   if (attachments.length === 0) {
     return <p className="mt-10 text-center font-serif text-[1.1rem] italic text-muted">
-      {t('Ingen filer endnu — menuer, tilbud og billeder fra leverandører samles her.')}
+      {t('Ingen filer endnu, menuer, tilbud og billeder fra leverandører samles her.')}
     </p>;
   }
   return (

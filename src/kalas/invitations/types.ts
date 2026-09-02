@@ -25,11 +25,11 @@ export type Language = 'da' | 'en';
 export interface InvitationData {
   partnerA: string;          // "Adeline"
   partnerB: string;          // "Morgan"
-  monogram: string;          // "A M" — derived from initials, editable
+  monogram: string;          // "A M", derived from initials, editable
   label: string;             // "Together with their families"
   introLines: string[];      // ["joyfully invite you", "to the celebration…"]
   displayDate: string;       // phrased per template.dateStyle
-  isoDate: string;           // "2027-05-22T16:00:00" — countdown + sorting
+  isoDate: string;           // "2027-05-22T16:00:00", countdown + sorting
   time?: string;             // "Four o'clock in the afternoon"
   venue: string;             // "Villa Serena"
   venueDetail?: string;      // "Provence, France"

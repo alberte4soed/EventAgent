@@ -4,7 +4,7 @@
    rather than inventing a second one: the picture is stored in the private
    `site-photos` bucket with role='hero', which is the same photo the website
    builder treats as the front-page favourite. Upload here and it shows both
-   places — there is only ever one hero per event, enforced by the API.
+   places, there is only ever one hero per event, enforced by the API.
 
    The bucket is private, so the URL has to be signed per request; sitePhotos
    in context carries only storage paths. */
@@ -55,7 +55,7 @@ export default function HeroPhoto({ fallback, alt }: { fallback: string; alt: st
         // iPhones hand us HEIC and 10 MB originals; the API takes jpeg/png/webp
         // under 8 MB.
         const ready = await normalizeImage(file);
-        if (!ready) { setError(t('Billedet kunne ikke læses — prøv et andet.')); return; }
+        if (!ready) { setError(t('Billedet kunne ikke læses, prøv et andet.')); return; }
         const form = new FormData();
         form.append('file', ready);
         form.append('eventId', event.id);
@@ -98,7 +98,7 @@ export default function HeroPhoto({ fallback, alt }: { fallback: string; alt: st
   return (
     <div className="flex w-full shrink-0 flex-col gap-2 lg:w-[380px]">
       <div
-        className="group relative h-[240px] w-full rounded-[22px] border-[6px] border-[#f8f6f0] bg-cover bg-center shadow-[0_16px_40px_rgba(49,69,35,0.18)] lg:h-[300px]"
+        className="group relative h-[240px] w-full rounded-[22px] border-[6px] border-[#f8f6f0] bg-cover bg-center shadow-[0_16px_40px_rgba(36,65,58,0.18)] lg:h-[300px]"
         style={{ backgroundImage: `url('${shown}')` }}
         role="img"
         aria-label={alt}
@@ -114,7 +114,7 @@ export default function HeroPhoto({ fallback, alt }: { fallback: string; alt: st
               <button
                 type="button"
                 onClick={() => inputRef.current?.click()}
-                className="flex items-center gap-1.5 rounded-full bg-[#fcfbf7] px-4 py-2 text-[0.78rem] font-semibold text-[#314523] transition-colors hover:bg-white cursor-pointer"
+                className="flex items-center gap-1.5 rounded-full bg-[#ffffff] px-4 py-2 text-[0.78rem] font-semibold text-[#24413a] transition-colors hover:bg-white cursor-pointer"
               >
                 <Camera size={14} />
                 {url ? t('Skift billede') : t('Vælg jeres billede')}
@@ -123,7 +123,7 @@ export default function HeroPhoto({ fallback, alt }: { fallback: string; alt: st
                 <button
                   type="button"
                   onClick={clear}
-                  className="rounded-full bg-[#fcfbf7]/85 px-3 py-2 text-[0.78rem] font-medium text-[#314523] transition-colors hover:bg-white cursor-pointer"
+                  className="rounded-full bg-[#ffffff]/85 px-3 py-2 text-[0.78rem] font-medium text-[#24413a] transition-colors hover:bg-white cursor-pointer"
                 >
                   {t('Fjern')}
                 </button>
@@ -144,7 +144,7 @@ export default function HeroPhoto({ fallback, alt }: { fallback: string; alt: st
 
       {error && <p role="alert" className="px-1 text-[0.78rem] text-[#b34e37]">{error}</p>}
       {url && !error && (
-        <p className="px-1 text-[0.72rem] text-[#8a9079]">{t('Billedet bruges også som forside på jeres bryllupsside.')}</p>
+        <p className="px-1 text-[0.72rem] text-[#7d938a]">{t('Billedet bruges også som forside på jeres bryllupsside.')}</p>
       )}
     </div>
   );

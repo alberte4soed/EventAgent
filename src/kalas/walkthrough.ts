@@ -40,13 +40,13 @@ export const WALKTHROUGH_STEPS: readonly WalkthroughStep[] = [
     id: 'intro',
     page: 'home',
     message:
-      'Så er I inde — velkommen! Lad mig vise jer rundt. Det korte af det lange: I behøver ikke lede efter knapper. Skriv til mig her, så åbner jeg den rigtige side og laver arbejdet.',
+      'Så er I inde, velkommen! Lad mig vise jer rundt. Det korte af det lange: I behøver ikke lede efter knapper. Skriv til mig her, så åbner jeg den rigtige side og laver arbejdet.',
   },
   {
     id: 'vendors',
     page: 'team',
     message:
-      'Det her er leverandører. Her udforsker I steder og folk, gemmer favoritter på jeres shortlist, og ser hvem I har booket. Prøv at bede mig om noget — jeg søger på nettet og lægger rigtige steder på tavlen.',
+      'Det her er leverandører. Her udforsker I steder og folk, gemmer favoritter på jeres shortlist, og ser hvem I har booket. Prøv at bede mig om noget, jeg søger på nettet og lægger rigtige steder på tavlen.',
     tries: ['Find et bryllupssted i {city} til {guests} gæster'],
     needs: ['city', 'guests'],
   },
@@ -54,7 +54,7 @@ export const WALKTHROUGH_STEPS: readonly WalkthroughStep[] = [
     id: 'budget',
     page: 'budget',
     message:
-      'Budgettet. Jeg fordeler det på kategorier og siger til, før I rammer loftet. I kan trække i det selv — eller bare bede mig om at ændre det.',
+      'Budgettet. Jeg fordeler det på kategorier og siger til, før I rammer loftet. I kan trække i det selv, eller bare bede mig om at ændre det.',
     tries: ['Sæt budgettet for mad og drikke til {foodBudget} kr'],
     needs: ['foodBudget'],
   },
@@ -62,7 +62,7 @@ export const WALKTHROUGH_STEPS: readonly WalkthroughStep[] = [
     id: 'guests',
     page: 'guests',
     message:
-      'Gæstelisten. Importér fra CSV eller tilføj dem enkeltvis — jeg holder styr på svar, plus-ens og kostbehov undervejs. I kan også bare spørge mig om status.',
+      'Gæstelisten. Importér fra CSV eller tilføj dem enkeltvis, jeg holder styr på svar, plus-ens og kostbehov undervejs. I kan også bare spørge mig om status.',
     tries: ['Hvem mangler at svare på invitationen?'],
   },
   {
@@ -77,7 +77,7 @@ export const WALKTHROUGH_STEPS: readonly WalkthroughStep[] = [
     id: 'inbox',
     page: 'inbox',
     message:
-      'Og her lander svarene. Når jeg har skrevet til et sted, samler jeg tråden, trækker prisen ud af mailen og lægger et forslag til svar klar — I skal bare godkende.',
+      'Og her lander svarene. Når jeg har skrevet til et sted, samler jeg tråden, trækker prisen ud af mailen og lægger et forslag til svar klar, I skal bare godkende.',
   },
   {
     id: 'rest',

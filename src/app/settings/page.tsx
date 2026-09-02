@@ -50,7 +50,7 @@ export default async function SettingsPage({
           Vendor outreach
         </h2>
         <p className="mt-1 text-sm text-[#7A8066]">
-          Ava contacts venues and vendors from her own Kalas mailbox — nothing is
+          Ava contacts venues and vendors from her own Kalas mailbox, nothing is
           sent from your personal email. Every conversation shows up in your
           outreach inbox, and you approve each reply before it goes out.
         </p>
@@ -62,7 +62,7 @@ export default async function SettingsPage({
             Kalas outreach mailbox
           </h2>
           <p className="mt-1 text-sm text-[#7A8066]">
-            Admin only — the platform Gmail account Ava sends from and reads replies in.
+            Admin only, the platform Gmail account Ava sends from and reads replies in.
           </p>
           <div className="mt-4 flex items-center justify-between rounded-xl border border-[#D4D6C0] bg-[#F6F0E8] px-4 py-3">
             {platform.connected ? (

@@ -32,7 +32,7 @@ async function loadRow(): Promise<PlatformGmailTokensRow | null> {
 /** Persist tokens after the admin consent callback. */
 export async function storePlatformTokens(tokens: TokenResponse): Promise<void> {
   if (!tokens.refresh_token) {
-    throw new Error("Google did not return a refresh token — retry the connection");
+    throw new Error("Google did not return a refresh token, retry the connection");
   }
   const email = emailFromIdToken(tokens.id_token);
   if (!email) throw new Error("Could not determine the connected Gmail address");
@@ -60,7 +60,7 @@ export async function getPlatformAccessToken(): Promise<string> {
   const row = await loadRow();
   if (!row) {
     throw new GmailNotConnectedError(
-      "The Kalas outreach mailbox is not connected — an admin must connect it in Settings"
+      "The Kalas outreach mailbox is not connected, an admin must connect it in Settings"
     );
   }
   cachedEmail = row.google_email;
@@ -78,7 +78,7 @@ export async function getPlatformAccessToken(): Promise<string> {
   } catch (err) {
     if (err instanceof GmailNotConnectedError) {
       console.error(
-        `[platform-gmail] OUTREACH MAILBOX GRANT UNUSABLE (${err.message}) — reconnect via /api/admin/gmail/connect`
+        `[platform-gmail] OUTREACH MAILBOX GRANT UNUSABLE (${err.message}), reconnect via /api/admin/gmail/connect`
       );
     }
     throw err;

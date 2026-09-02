@@ -6,7 +6,7 @@ import {
   Wallet, Users, Globe, Mail, ListChecks, LayoutDashboard,
   LayoutGrid, X, Settings, Gift, PanelLeftClose, PanelLeft,
   LogOut, UserPlus, Inbox,
-  Sparkles, Plane,
+  MessageCircle, Plane,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import WeddingRings from './icons/WeddingRings';
@@ -45,7 +45,7 @@ export const SIDEBAR_RAIL_W = 72;
 const shellTransition = { type: 'spring' as const, stiffness: 380, damping: 36 };
 
 /** Page cream — main content surface */
-export const PAGE_BG = '#f5f3ee';
+export const PAGE_BG = '#f4f5f3';
 /** Soft mint chrome behind sidebar + header (slightly greener than page cream) */
 export const CHROME_BG = '#f0f1ec';
 /** Soft green wash from top-left (sits behind sidebar + header as one layer) */
@@ -57,7 +57,7 @@ export function Wordmark({ light = false }: { light?: boolean }) {
     <span
       className={cn(
         'text-[1.75rem] leading-none',
-        light ? 'text-[#fffdf7]' : 'text-[#314523]',
+        light ? 'text-[#fffdf7]' : 'text-[#24413a]',
       )}
       style={{ fontFamily: 'var(--font-wordmark)', fontWeight: 700, letterSpacing: 0 }}
     >
@@ -143,12 +143,12 @@ export default function Shell({
                       type="button"
                       onClick={() => setSidebarCollapsed(false)}
                       aria-label={t('Vis menu')}
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] text-[#6c7561] transition-colors hover:bg-[#314523]/8 hover:text-[#314523] cursor-pointer"
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] text-[#5f6b66] transition-colors hover:bg-[#24413a]/8 hover:text-[#24413a] cursor-pointer"
                     >
                       <PanelLeft size={18} strokeWidth={1.6} />
                     </button>
                   </div>
-                  <span className="font-serif text-[1.35rem] leading-none text-[#314523]" aria-hidden>K</span>
+                  <span className="font-serif text-[1.35rem] leading-none text-[#24413a]" aria-hidden>K</span>
                 </>
               ) : (
                 <>
@@ -157,7 +157,7 @@ export default function Shell({
                     type="button"
                     onClick={() => setSidebarCollapsed(true)}
                     aria-label={t('Skjul menu')}
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] text-[#6c7561] transition-colors hover:bg-[#314523]/8 hover:text-[#314523] cursor-pointer"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] text-[#5f6b66] transition-colors hover:bg-[#24413a]/8 hover:text-[#24413a] cursor-pointer"
                   >
                     <PanelLeftClose size={18} strokeWidth={1.6} />
                   </button>
@@ -173,11 +173,11 @@ export default function Shell({
                 />
               ))}
               {!sidebarRail && (
-                <p className="mt-6 pb-2 pl-3 text-[10px] font-bold uppercase tracking-[0.16em] text-[#8a9079]">
+                <p className="mt-6 pb-2 pl-3 text-[10px] font-bold uppercase tracking-[0.16em] text-[#7d938a]">
                   {t('Planlægning')}
                 </p>
               )}
-              {sidebarRail && <div className="mx-auto my-3 h-px w-8 bg-[#d8d4c7]" />}
+              {sidebarRail && <div className="mx-auto my-3 h-px w-8 bg-[#dcdfdb]" />}
               {NAV.filter((n) => n.group === 'plan').map((n) => (
                 <NavRow key={n.id} item={n} active={current === n.id} onClick={() => navigate(n.id)}
                   collapsed={sidebarRail}
@@ -186,13 +186,13 @@ export default function Shell({
             </nav>
 
             <div className={cn(
-              'mt-4 shrink-0 border-t border-[#e0ddd2] pt-4',
+              'mt-4 shrink-0 border-t border-[#e2e6e2] pt-4',
               sidebarRail ? 'flex flex-col items-center gap-1.5' : 'flex flex-col gap-1',
             )}>
               {sidebarRail ? (
                 <>
                   <SignOutButton
-                    className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-[10px] text-[#6c7561] transition-colors hover:bg-[#314523]/8 hover:text-[#314523] disabled:opacity-50"
+                    className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-[10px] text-[#5f6b66] transition-colors hover:bg-[#24413a]/8 hover:text-[#24413a] disabled:opacity-50"
                   >
                     <LogOut size={17} strokeWidth={1.6} aria-hidden />
                     <span className="sr-only">{t('Log ud')}</span>
@@ -202,7 +202,7 @@ export default function Shell({
                     onClick={() => navigate('invites')}
                     aria-label={t('Invitér')}
                     title={t('Invitér')}
-                    className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-[10px] text-[#6c7561] transition-colors hover:bg-[#314523]/8 hover:text-[#314523]"
+                    className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-[10px] text-[#5f6b66] transition-colors hover:bg-[#24413a]/8 hover:text-[#24413a]"
                   >
                     <UserPlus size={17} strokeWidth={1.6} />
                   </button>
@@ -210,7 +210,7 @@ export default function Shell({
               ) : (
                 <>
                   <SignOutButton
-                    className="flex w-full cursor-pointer items-center gap-3 rounded-[10px] px-3 py-2.5 text-left text-[13px] font-medium text-[#59634f] transition-colors hover:bg-[#314523]/[0.06] hover:text-[#314523] disabled:opacity-50"
+                    className="flex w-full cursor-pointer items-center gap-3 rounded-[10px] px-3 py-2.5 text-left text-[13px] font-medium text-[#46574f] transition-colors hover:bg-[#24413a]/[0.06] hover:text-[#24413a] disabled:opacity-50"
                   >
                     <LogOut size={17} strokeWidth={1.6} className="shrink-0" />
                     {t('Log ud')}
@@ -218,7 +218,7 @@ export default function Shell({
                   <button
                     type="button"
                     onClick={() => navigate('invites')}
-                    className="flex w-full cursor-pointer items-center gap-3 rounded-[10px] px-3 py-2.5 text-left text-[13px] font-medium text-[#59634f] transition-colors hover:bg-[#314523]/[0.06] hover:text-[#314523]"
+                    className="flex w-full cursor-pointer items-center gap-3 rounded-[10px] px-3 py-2.5 text-left text-[13px] font-medium text-[#46574f] transition-colors hover:bg-[#24413a]/[0.06] hover:text-[#24413a]"
                   >
                     <UserPlus size={17} strokeWidth={1.6} className="shrink-0" />
                     {t('Invitér')}
@@ -242,7 +242,7 @@ export default function Shell({
               <a
                 href="/settings"
                 aria-label={t('Indstillinger')}
-                className="flex size-8 items-center justify-center rounded-full border border-[#d8d4c7] text-[#6c7561] transition-colors hover:bg-[#314523]/6 hover:text-[#314523]"
+                className="flex size-8 items-center justify-center rounded-full border border-[#dcdfdb] text-[#5f6b66] transition-colors hover:bg-[#24413a]/6 hover:text-[#24413a]"
               >
                 <Settings size={15} strokeWidth={1.6} />
               </a>
@@ -250,10 +250,10 @@ export default function Shell({
             </div>
           </header>
 
-          {/* Solid page surface — covers the wash below the header */}
+          {/* Solid page surface, covers the wash below the header */}
           <div className="flex min-h-0 flex-1 pl-2.5 lg:pl-3">
             <main
-              className="min-w-0 flex-1 overflow-y-auto rounded-tl-[20px] border border-[#e0ddd2] border-b-0 border-r-0 pb-28 lg:pb-0"
+              className="min-w-0 flex-1 overflow-y-auto rounded-tl-[20px] border border-[#e2e6e2] border-b-0 border-r-0 pb-28 lg:pb-0"
               style={{ backgroundColor: PAGE_BG }}
             >
               <div className="min-h-full">{children}</div>
@@ -355,8 +355,8 @@ export function NavRow({ item, active, onClick, badge, collapsed = false }: {
         'group relative mb-1.5 flex w-full items-center rounded-[10px] text-left transition-colors duration-200 cursor-pointer',
         collapsed ? 'justify-center px-0 py-2.5' : 'gap-3 px-3 py-2.5',
         active
-          ? 'bg-white/70 text-[#314523] shadow-sm'
-          : 'text-[#59634f] hover:bg-[#314523]/[0.06] hover:text-[#314523]',
+          ? 'bg-white/70 text-[#24413a] shadow-sm'
+          : 'text-[#46574f] hover:bg-[#24413a]/[0.06] hover:text-[#24413a]',
       )}>
       <span className="relative z-10 shrink-0">
         <Icon size={18} strokeWidth={2} />
@@ -389,14 +389,16 @@ export function ModeToggle({
 }) {
   const { t } = useLang();
   const options = [
-    { id: true as const, label: 'Chat', icon: Sparkles },
+    // The same icon the chat column uses for itself on mobile — sparkles read
+    // as "magic", which is not what this switch does.
+    { id: true as const, label: 'Chat', icon: MessageCircle },
     { id: false as const, label: 'Klassisk', icon: PanelLeft },
   ];
   return (
     <div
       role="group"
       aria-label={t('Skift mellem chat og klassisk')}
-      className="flex items-center rounded-full border border-[#d8d4c7] bg-[#fcfbf7]/70 p-0.5"
+      className="flex items-center rounded-full border border-[#dcdfdb] bg-[#ffffff]/70 p-0.5"
     >
       {options.map(({ id, label, icon: Icon }) => {
         const active = chatMode === id;
@@ -411,8 +413,8 @@ export function ModeToggle({
             className={cn(
               'relative flex h-7 cursor-pointer items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold transition-colors',
               active
-                ? 'bg-[#314523] text-[#fffdf7]'
-                : 'text-[#6c7561] hover:text-[#314523]',
+                ? 'bg-[#24413a] text-[#fffdf7]'
+                : 'text-[#5f6b66] hover:text-[#24413a]',
             )}
           >
             <Icon size={12} strokeWidth={1.8} />

@@ -53,7 +53,7 @@ export const functionDeclarations: FunctionDeclaration[] = [
   {
     name: "search_venues",
     description:
-      "Research real wedding venues or local vendors on the internet, verified against Google Places (ratings, reviews, photos, contact info). Creates swipeable cards for the user. Venues require location and guest count. Non-venue categories (florist, photographer, musician, caterer) should only be searched once the venue or at least the location is settled — vendors are local to it.",
+      "Research real wedding venues or local vendors on the internet, verified against Google Places (ratings, reviews, photos, contact info). Creates swipeable cards for the user. Venues require location and guest count. Non-venue categories (florist, photographer, musician, caterer) should only be searched once the venue or at least the location is settled, vendors are local to it.",
     parameters: {
       type: Type.OBJECT,
       properties: {
@@ -156,7 +156,7 @@ export const functionDeclarations: FunctionDeclaration[] = [
   {
     name: "mark_stage_complete",
     description:
-      "Manually mark a whole journey stage complete when the user says they've finished it their own way (e.g. booked a venue or vendors outside the app, or finished with invites). Use sparingly — prefer mark_venue_chosen / mark_vendor_booked for specific items.",
+      "Manually mark a whole journey stage complete when the user says they've finished it their own way (e.g. booked a venue or vendors outside the app, or finished with invites). Use sparingly, prefer mark_venue_chosen / mark_vendor_booked for specific items.",
     parameters: {
       type: Type.OBJECT,
       properties: {
@@ -187,7 +187,7 @@ export const functionDeclarations: FunctionDeclaration[] = [
   {
     name: "update_website_design",
     description:
-      "Design or restyle the couple's wedding website. Use when they ask you to design their site, or to change how it looks (colors, fonts, layout, mood — e.g. 'gør hjemmesiden mørkere', 'større forsidebillede'). Pass their request as the instruction; set regenerate=true only when they want a completely fresh design instead of an adjustment.",
+      "Design or restyle the couple's wedding website. Use when they ask you to design their site, or to change how it looks (colors, fonts, layout, mood, e.g. 'gør hjemmesiden mørkere', 'større forsidebillede'). Pass their request as the instruction; set regenerate=true only when they want a completely fresh design instead of an adjustment.",
     parameters: {
       type: Type.OBJECT,
       properties: {

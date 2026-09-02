@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import type { OnboardingVenueSuggestion } from "@/app/api/onboarding/venues/route";
+import type { PlaceSuggestion, VenueSuggestion } from "@/lib/venue/search";
 import type { EventRow, ProfileRow, VendorCategory, VenueRow } from "@/lib/db/types";
 
 const VENDOR_CATEGORIES: VendorCategory[] = [
@@ -14,9 +14,10 @@ function resolveCategory(value: unknown): VendorCategory {
 /**
  * POST /api/venues — save a discovered venue to the couple's active wedding.
  *
- * Body: { venue: OnboardingVenueSuggestion } — the enriched suggestion the
- * discovery flow got from /api/onboarding/venues. Deduped on place_id, so
- * saving the same venue twice just re-likes the existing row.
+ * Body: { venue } — the enriched suggestion the discovery flow got from
+ * /api/onboarding/venues (a venue, carrying structured facts) or from
+ * /api/onboarding/vendors (any other category, carrying none). Deduped on
+ * place_id, so saving the same venue twice just re-likes the existing row.
  */
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest) {
   if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = (await request.json()) as {
-    venue?: OnboardingVenueSuggestion;
+    venue?: PlaceSuggestion & Partial<VenueSuggestion>;
     category?: string;
   };
   const venue = body.venue;
@@ -91,6 +92,34 @@ export async function POST(request: NextRequest) {
     rating: venue.rating ?? null,
     review_count: venue.review_count ?? null,
     why_fit: venue.why_fit ?? null,
+    website: venue.website ?? null,
+    // Coordinates were being dropped here, so every venue saved from the
+    // discovery UI had no location at all — the agent path persisted them,
+    // this one never did.
+    lat: venue.lat ?? null,
+    lng: venue.lng ?? null,
+    // Structured facts, so a saved venue keeps what the search knew about it.
+    // Vendors have none; the columns are nullable for exactly that reason.
+    capacity_seated: venue.facts?.capacity_seated ?? null,
+    capacity_standing: venue.facts?.capacity_standing ?? null,
+    price_from: venue.facts?.price_from ?? null,
+    price_unit: venue.facts?.price_unit ?? null,
+    catering: venue.facts?.catering ?? null,
+    accommodation: venue.facts?.accommodation ?? null,
+    rooms: venue.facts?.rooms ?? null,
+    setting: venue.facts?.setting ?? null,
+    region: venue.area ?? null,
+    ceremony: venue.facts?.ceremony ?? null,
+    outdoor: venue.facts?.outdoor ?? null,
+    rain_plan: venue.facts?.rain_plan ?? null,
+    own_drinks: venue.facts?.own_drinks ?? null,
+    exclusive: venue.facts?.exclusive ?? null,
+    curfew_hour: venue.facts?.curfew_hour ?? null,
+    // Google's answers, kept distinct from the model's inferences above.
+    wheelchair: venue.amenities?.wheelchair ?? null,
+    parking: venue.amenities?.parking ?? null,
+    good_for_children: venue.amenities?.children ?? null,
+    allows_dogs: venue.amenities?.dogs ?? null,
     swipe_status: "liked" as const,
     category: cat,
     source_urls: [],

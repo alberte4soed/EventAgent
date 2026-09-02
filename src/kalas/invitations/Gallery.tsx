@@ -48,10 +48,10 @@ export function Gallery({ couple, onPick }: { couple: CoupleInput; onPick: (t: T
   return (
     <div className="px-6 py-8 sm:px-9 lg:px-12 lg:py-8">
       <div>
-        <h1 className="font-serif text-[clamp(2rem,4vw,2.4rem)] leading-[1.1] tracking-[-0.02em] text-[#314523]">
+        <h1 className="font-serif text-[clamp(2rem,4vw,2.4rem)] leading-[1.1] tracking-[-0.02em] text-[#24413a]">
           {t('Invitationer')}
         </h1>
-        <p className="mt-1.5 max-w-xl text-[13px] leading-relaxed text-[#6c7561]">
+        <p className="mt-1.5 max-w-xl text-[13px] leading-relaxed text-[#5f6b66]">
           {t('Vælg en stil, tast jeres detaljer, og lad AI finpudse ordlyden.')}
         </p>
       </div>

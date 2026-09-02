@@ -1,4 +1,6 @@
 import { Type, type Schema } from "@google/genai";
+import { factsSchemaProps } from "@/lib/venue/search";
+import type { RawFacts } from "@/lib/venue/facts";
 
 /** responseSchema for structured venue extraction (search step B). */
 export const venueListSchema: Schema = {
@@ -22,6 +24,10 @@ export const venueListSchema: Schema = {
             nullable: true,
             description: "One sentence on why this option fits the couple",
           },
+          // Structured facts, so a venue Ava finds is filterable on capacity,
+          // price, catering and accommodation exactly like one the couple
+          // found on the explore page.
+          ...factsSchemaProps,
         },
         required: ["name"],
       },
@@ -30,7 +36,7 @@ export const venueListSchema: Schema = {
   required: ["venues"],
 };
 
-export interface ExtractedVenue {
+export interface ExtractedVenue extends RawFacts {
   name: string;
   description?: string | null;
   address?: string | null;

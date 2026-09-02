@@ -56,7 +56,7 @@ const PROMPT = (country: string, language: string) => `
 You are a wedding-travel curator for couples planning their wedding.
 For the country "${country}", suggest exactly:
 - the 4 top cities (kind "city"): the biggest / most iconic cities couples would recognise, and
-- 5 wedding destinations (kind "wedding"): the places people actually get married — coastal towns, lake or wine regions, castles-and-countryside areas, islands. Not simply the largest cities; think honeymoon-postcard.
+- 5 wedding destinations (kind "wedding"): the places people actually get married, coastal towns, lake or wine regions, castles-and-countryside areas, islands. Not simply the largest cities; think honeymoon-postcard.
 
 Rules:
 - "name" must be a real, findable place name (city, town, island or well-known area) in English.

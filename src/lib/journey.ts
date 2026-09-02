@@ -136,7 +136,7 @@ export function computeJourney(event: EventRow, extras: JourneyExtras): JourneyS
             return `${label} ${contacted[c] ?? 0} contacted`;
           })
           .join(" · ")
-      : "Flowers, photos, music and catering — all local to your venue";
+      : "Flowers, photos, music and catering, all local to your venue";
 
   const workspace = `/events/${event.id}`;
 
@@ -164,7 +164,7 @@ export function computeJourney(event: EventRow, extras: JourneyExtras): JourneyS
         : !basicsComplete
           ? "Unlocks once the basics are in"
           : extras.quotesIn > 0
-            ? `${extras.quotesIn} quote${extras.quotesIn === 1 ? "" : "s"} in — compare and choose`
+            ? `${extras.quotesIn} quote${extras.quotesIn === 1 ? "" : "s"} in, compare and choose`
             : extras.likedVenues > 0
               ? `${extras.likedVenues} venue${extras.likedVenues === 1 ? "" : "s"} shortlisted`
               : "Everything local flows from where you say 'I do'",

@@ -68,11 +68,11 @@ function toCard(v: VenueRow): VendorCard {
 
 /* ── FAQ (static guidance) ──────────────────────────────────────────── */
 const FAQ = [
-  { q: 'Hvornår skal vi booke vores fotograf?',    a: 'Mindst 12–18 måneder inden brylluppet. De bedste er oftest fuldt booket tidligt — specielt lørdag-bryllupper forsvinder først.' },
+  { q: 'Hvornår skal vi booke vores fotograf?',    a: 'Mindst 12–18 måneder inden brylluppet. De bedste er oftest fuldt booket tidligt, specielt lørdag-bryllupper forsvinder først.' },
   { q: 'Hvad koster fotografi typisk?',            a: 'Fra 15.000 til 35.000 kr. for en heldags-pakke inkl. redigering. Videofilm koster typisk 8–15.000 kr. ekstra.' },
   { q: 'Reportage eller klassisk fotografi?',      a: 'Reportage er dokumentarisk og følger dagen naturligt. Klassisk inkluderer poserede portrætter og familiefotos. De fleste par vælger en blanding.' },
   { q: 'Hvad med blomster og dekoration?',         a: 'Floristerne bookes oftest 9–12 måneder inden. Ava laver et brief baseret på jeres moodboard, så floristerne kender jeres stil fra første møde.' },
-  { q: 'Kan Ava koordinere alle leverandørerne?',  a: 'Ja — Ava koordinerer tidsplaner, briefer alle parter med jeres DNA-profil og holder styr på udestående svar og leverancer.' },
+  { q: 'Kan Ava koordinere alle leverandørerne?',  a: 'Ja, Ava koordinerer tidsplaner, briefer alle parter med jeres DNA-profil og holder styr på udestående svar og leverancer.' },
 ];
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -203,21 +203,21 @@ export default function Suppliers({
 
         {/* ── Locked until a venue is chosen ──────────────────────────── */}
         {locked && (
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-[18px] border border-[#d8d4c7] bg-[#f0ede5] px-5 py-4">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-[18px] border border-[#dcdfdb] bg-[#eceeeb] px-5 py-4">
             <div className="flex items-start gap-3">
               <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#e0dccf]">
-                <Lock size={13} className="text-[#6c7561]" />
+                <Lock size={13} className="text-[#5f6b66]" />
               </span>
               <div>
-                <p className="text-[0.88rem] font-medium text-[#314523]">{t('Vælg jeres lokation først')}</p>
-                <p className="mt-0.5 text-[0.76rem] text-[#6c7561]">
-                  {t('Når I har låst jeres venue, åbner vi leverandørerne — så kan Ava finde og kontakte dem for jer.')}
+                <p className="text-[0.88rem] font-medium text-[#24413a]">{t('Vælg jeres lokation først')}</p>
+                <p className="mt-0.5 text-[0.76rem] text-[#5f6b66]">
+                  {t('Når I har låst jeres venue, åbner vi leverandørerne, så kan Ava finde og kontakte dem for jer.')}
                 </p>
               </div>
             </div>
             {hub?.onGoToVenue && (
               <button onClick={hub.onGoToVenue}
-                className="shrink-0 h-8 rounded-full bg-[#314523] px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#f7f5ef] hover:opacity-90 transition-colors cursor-pointer">
+                className="shrink-0 h-8 rounded-full bg-[#24413a] px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#f8f9f8] hover:opacity-90 transition-colors cursor-pointer">
                 {t('Til venues')}
               </button>
             )}
@@ -227,13 +227,13 @@ export default function Suppliers({
         {/* Ask-Ava-to-send banner when vendors are saved (gated until venue chosen) */}
         {savedCount > 0 && !locked && (
           <button onClick={() => onNavigate?.('ava')}
-            className="mt-4 flex w-full items-center justify-between rounded-[18px] border border-[#d8d4c7] bg-[#fcfbf7] px-5 py-3.5 text-left transition-colors hover:bg-[#f7f5ef] cursor-pointer">
-            <span className="text-sm text-[#314523]">
+            className="mt-4 flex w-full items-center justify-between rounded-[18px] border border-[#dcdfdb] bg-[#ffffff] px-5 py-3.5 text-left transition-colors hover:bg-[#f8f9f8] cursor-pointer">
+            <span className="text-sm text-[#24413a]">
               {savedCount === 1
-                ? t('{n} leverandør gemt — bed Ava sende henvendelser', { n: savedCount })
-                : t('{n} leverandører gemt — bed Ava sende henvendelser', { n: savedCount })}
+                ? t('{n} leverandør gemt, bed Ava sende henvendelser', { n: savedCount })
+                : t('{n} leverandører gemt, bed Ava sende henvendelser', { n: savedCount })}
             </span>
-            <MessageCircle size={16} className="text-[#6c7561]" />
+            <MessageCircle size={16} className="text-[#5f6b66]" />
           </button>
         )}
 
@@ -241,12 +241,12 @@ export default function Suppliers({
         {results.length > 0 && (
           <>
             <div className="mt-10 flex items-baseline justify-between">
-              <Eyebrow className="!text-[#8a9079]">
+              <Eyebrow className="!text-[#7d938a]">
                 {cat === 'alle' ? t('Jeres leverandører') : catLabel} · {t('{n} resultater', { n: results.length })}
               </Eyebrow>
               {savedCount > 0 && (
-                <span className="flex items-center gap-1.5 text-[0.7rem] text-[#6c7561]">
-                  <Heart size={11} fill="currentColor" className="text-[#314523]" />
+                <span className="flex items-center gap-1.5 text-[0.7rem] text-[#5f6b66]">
+                  <Heart size={11} fill="currentColor" className="text-[#24413a]" />
                   {t('{n} gemt', { n: savedCount })}
                 </span>
               )}
@@ -316,7 +316,7 @@ function SupplierCard({ s, i, onToggleSave }: {
     <motion.div
       initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: Math.min(i * 0.04, 0.3), ease: [0.22, 1, 0.36, 1] }}
-      className="flex flex-col overflow-hidden rounded-[18px] border border-[#d8d4c7] bg-[#fcfbf7]">
+      className="flex flex-col overflow-hidden rounded-[18px] border border-[#dcdfdb] bg-[#ffffff]">
       <div className="relative aspect-[4/3] overflow-hidden">
         {s.image ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -327,23 +327,23 @@ function SupplierCard({ s, i, onToggleSave }: {
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-[#1a221550] to-transparent" />
         {s.matchPct != null && (
-          <div className="absolute left-3 top-3 rounded-full bg-[#eef1e6] px-2.5 py-1 text-[0.6rem] font-bold uppercase tracking-[0.16em] text-[#314523]">
+          <div className="absolute left-3 top-3 rounded-full bg-[#e8f0ec] px-2.5 py-1 text-[0.6rem] font-bold uppercase tracking-[0.16em] text-[#24413a]">
             {t('{n}% match', { n: s.matchPct })}
           </div>
         )}
         <button onClick={() => onToggleSave(s.id)} aria-label={s.liked ? t('Fjern fra listen') : t('Tilføj til liste')}
           className={cn(
             'absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full backdrop-blur-sm transition-all cursor-pointer',
-            s.liked ? 'bg-[#eef1e6] text-[#314523]' : 'bg-[#f7f5ef]/80 text-[#314523] hover:bg-[#f7f5ef]',
+            s.liked ? 'bg-[#e8f0ec] text-[#24413a]' : 'bg-[#f8f9f8]/80 text-[#24413a] hover:bg-[#f8f9f8]',
           )}>
           <Heart size={14} fill={s.liked ? 'currentColor' : 'none'} />
         </button>
       </div>
 
       <div className="flex flex-1 flex-col p-4">
-        <p className="text-[0.6rem] font-semibold uppercase tracking-[0.18em] text-[#8a9079]">{catLabel}</p>
-        <h3 className="mt-1 font-serif text-[1.1rem] leading-tight text-[#314523]">{s.name}</h3>
-        {s.style && <p className="mt-0.5 text-[0.76rem] text-[#6c7561]">{s.style}</p>}
+        <p className="text-[0.6rem] font-semibold uppercase tracking-[0.18em] text-[#7d938a]">{catLabel}</p>
+        <h3 className="mt-1 font-serif text-[1.1rem] leading-tight text-[#24413a]">{s.name}</h3>
+        {s.style && <p className="mt-0.5 text-[0.76rem] text-[#5f6b66]">{s.style}</p>}
 
         {s.tags.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-1.5">
@@ -351,7 +351,7 @@ function SupplierCard({ s, i, onToggleSave }: {
               const reviews = /^(\d+) anmeldelser$/.exec(tag);
               const label = reviews ? t('{n} anmeldelser', { n: reviews[1] }) : t(tag);
               return (
-              <span key={tag} className="rounded-full bg-[#f0ede5] px-2.5 py-0.5 text-[0.58rem] font-medium uppercase tracking-[0.1em] text-[#6c7561]">
+              <span key={tag} className="rounded-full bg-[#eceeeb] px-2.5 py-0.5 text-[0.58rem] font-medium uppercase tracking-[0.1em] text-[#5f6b66]">
                 {label}
               </span>
               );
@@ -360,15 +360,15 @@ function SupplierCard({ s, i, onToggleSave }: {
         )}
 
         {s.quote && (
-          <p className="mt-3 flex-1 font-serif text-[0.82rem] italic leading-snug text-[#6c7561]">
+          <p className="mt-3 flex-1 font-serif text-[0.82rem] italic leading-snug text-[#5f6b66]">
             &ldquo;{s.quote}&rdquo;
           </p>
         )}
 
-        <div className="mt-4 flex items-center justify-between border-t border-[#e4e0d4] pt-4">
-          <span className="font-serif text-[1rem] text-[#314523]">{s.price || '—'}</span>
+        <div className="mt-4 flex items-center justify-between border-t border-[#e6e9e5] pt-4">
+          <span className="font-serif text-[1rem] text-[#24413a]">{s.price || '-'}</span>
           <button onClick={() => onToggleSave(s.id)}
-            className="h-8 rounded-full bg-[#314523] px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#f7f5ef] hover:opacity-85 transition-colors cursor-pointer">
+            className="h-8 rounded-full bg-[#24413a] px-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#f8f9f8] hover:opacity-85 transition-colors cursor-pointer">
             {s.liked ? t('På listen ✓') : t('Tilføj til liste')}
           </button>
         </div>

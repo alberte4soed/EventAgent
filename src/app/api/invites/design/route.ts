@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     .gte("created_at", since);
   if ((count ?? 0) >= MAX_DESIGNS_PER_DAY) {
     return Response.json(
-      { error: "design_limit", message: "You've hit today's design limit — try again tomorrow." },
+      { error: "design_limit", message: "You've hit today's design limit, try again tomorrow." },
       { status: 429 }
     );
   }
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (created.length === 0) {
-    return Response.json({ error: "Design generation failed — try again" }, { status: 502 });
+    return Response.json({ error: "Design generation failed, try again" }, { status: 502 });
   }
   return Response.json({ designs: created });
 }

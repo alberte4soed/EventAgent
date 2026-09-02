@@ -28,7 +28,7 @@ const steps: Step[] = [
         Brief her like <span className="text-accent">a friend.</span>
       </>
     ),
-    body: "“35 guests, by the sea, autumn 2027” is all Ava needs. She researches real venues that fit — verified contacts, ratings, capacity — and puts them on your board to swipe.",
+    body: "“35 guests, by the sea, autumn 2027” is all Ava needs. She researches real venues that fit, verified contacts, ratings, capacity, and puts them on your board to swipe.",
     tilt: -1.2,
   },
   {
@@ -37,11 +37,11 @@ const steps: Step[] = [
     eyebrow: "She reaches out",
     title: (
       <>
-        She writes to each venue —{" "}
+        She writes to each venue{" "}
         <span className="text-accent">in its own language.</span>
       </>
     ),
-    body: "One approved brief becomes a personal email to every venue you shortlist: Danish to the badehotel, Italian to the villa — sent from Ava's own mailbox. You read and approve each one before it goes.",
+    body: "One approved brief becomes a personal email to every venue you shortlist: Danish to the badehotel, Italian to the villa, sent from Ava's own mailbox. You read and approve each one before it goes.",
     extra: (
       <div className="mt-5 flex flex-wrap items-center gap-2 text-[12px] text-[#7A8066]">
         {["🇩🇰 Dansk", "🇮🇹 Italiano", "🇫🇷 Français", "🇬🇧 English"].map((l) => (
@@ -67,7 +67,7 @@ const steps: Step[] = [
         <span className="text-accent">quotes you can compare.</span>
       </>
     ),
-    body: "As venues answer, Ava pulls out prices, available dates and what's included, lays them side by side, and drafts every follow-up for your approval — until one of them is yours.",
+    body: "As venues answer, Ava pulls out prices, available dates and what's included, lays them side by side, and drafts every follow-up for your approval, until one of them is yours.",
     tilt: -1.4,
   },
 ];

@@ -41,10 +41,10 @@ export function checkLimits(counts: {
     return { ok: false, status: 429, message: "Albummet er fyldt op." };
   }
   if (counts.lastHourEvent >= ALBUM_LIMITS.perEventPerHour) {
-    return { ok: false, status: 429, message: "Der kommer mange billeder lige nu — prøv om lidt." };
+    return { ok: false, status: 429, message: "Der kommer mange billeder lige nu, prøv om lidt." };
   }
   if (counts.last24hUploader >= ALBUM_LIMITS.perUploaderPerDay) {
-    return { ok: false, status: 429, message: "I har delt rigtig mange i dag — prøv igen i morgen." };
+    return { ok: false, status: 429, message: "I har delt rigtig mange i dag, prøv igen i morgen." };
   }
   return { ok: true };
 }

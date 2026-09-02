@@ -155,14 +155,3 @@ export function matchesHubCat(row: VenueRow, cat: HubCat): boolean {
   if (cat === 'video') return row.category === 'photographer';
   return row.category !== 'venue';
 }
-
-export function matchesHubSearch(row: VenueRow, query: string): boolean {
-  const q = query.trim().toLowerCase();
-  if (!q) return true;
-  return (
-    row.name.toLowerCase().includes(q)
-    || (row.address ?? '').toLowerCase().includes(q)
-    || (row.description ?? '').toLowerCase().includes(q)
-    || row.category.toLowerCase().includes(q)
-  );
-}

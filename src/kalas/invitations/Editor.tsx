@@ -6,7 +6,7 @@
 
 import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Sparkles, Check, Copy, ArrowLeft } from 'lucide-react';
+import { PenLine, Check, Copy, ArrowLeft } from 'lucide-react';
 import { PhoneFrame, ScaledPhone } from './PhoneFrame';
 import { useInvitationFonts } from './fonts';
 import { deriveMonogram, phraseDate } from './data';
@@ -110,9 +110,9 @@ export function Editor({
       });
       const json = (await res.json()) as { variants?: InvitationData[] };
       if (res.ok && json.variants?.length) setVariants(json.variants);
-      else setAiError(da ? 'AI kunne ikke svare — prøv igen.' : 'AI could not respond — try again.');
+      else setAiError(da ? 'AI kunne ikke svare, prøv igen.' : 'AI could not respond, try again.');
     } catch {
-      setAiError(da ? 'AI kunne ikke svare — prøv igen.' : 'AI could not respond — try again.');
+      setAiError(da ? 'AI kunne ikke svare, prøv igen.' : 'AI could not respond, try again.');
     } finally {
       setAiBusy(false);
     }
@@ -153,16 +153,16 @@ export function Editor({
         </button>
         <h1 className="display text-[clamp(1.7rem,3vw,2.3rem)] leading-tight text-ink">{template.name}<span className="italic">.</span></h1>
         <p className="mt-2 max-w-sm text-[0.85rem] leading-relaxed text-muted">
-          {t('Tast jeres detaljer — kortet opdateres live. Lad AI finpudse ordlyden i skabelonens stil.')}
+          {t('Tast jeres detaljer, kortet opdateres live. Lad AI finpudse ordlyden i skabelonens stil.')}
         </p>
 
-        {/* AI panel — story + tone feed the generator */}
+        {/* AI panel, story + tone feed the generator */}
         <div className="mt-6 rounded-2xl rule bg-card p-4">
           <div className="flex items-center gap-2 text-[0.72rem] font-semibold uppercase tracking-[0.16em] text-ink">
-            <Sparkles size={13} /> {t('Lad AI skrive ordlyden')}
+            <PenLine size={13} /> {t('Lad AI skrive ordlyden')}
           </div>
           <p className="mt-1 text-[0.78rem] leading-relaxed text-muted">
-            {t('Fortæl kort om jeres dag — AI tilpasser teksten til skabelonens stil.')}
+            {t('Fortæl kort om jeres dag, AI tilpasser teksten til skabelonens stil.')}
           </p>
           <textarea
             value={notes}
@@ -190,7 +190,7 @@ export function Editor({
           </div>
           <button onClick={runAi} disabled={aiBusy}
             className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-ink px-4 py-3.5 text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-canvas transition-opacity hover:opacity-85 disabled:opacity-60 cursor-pointer">
-            <Sparkles size={14} /> {aiBusy ? t('AI skriver…') : t('Gør den perfekt med AI')}
+            <PenLine size={14} /> {aiBusy ? t('AI skriver…') : t('Gør den perfekt med AI')}
           </button>
           {aiError && <p className="mt-2 text-[0.78rem] text-[#b34e37]">{aiError}</p>}
         </div>
@@ -201,7 +201,7 @@ export function Editor({
             <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
               className="mt-5 overflow-hidden">
               <p className="mb-3 text-[0.72rem] text-muted">
-                {t('AI skrev jeres detaljer i skabelonens stil — vælg en, og redigér frit bagefter.')}
+                {t('AI skrev jeres detaljer i skabelonens stil, vælg en, og redigér frit bagefter.')}
               </p>
               <div className="grid grid-cols-3 gap-3">
                 {variants.map((v, i) => (
@@ -232,7 +232,7 @@ export function Editor({
           </div>
 
           {template.monogram && (
-            <Field label={t('Monogram')} value={data.monogram} onChange={(v) => set('monogram', v)} hint={t('Udledes af initialer — kan redigeres')} />
+            <Field label={t('Monogram')} value={data.monogram} onChange={(v) => set('monogram', v)} hint={t('Udledes af initialer, kan redigeres')} />
           )}
 
           {has('label') && (
@@ -261,7 +261,7 @@ export function Editor({
 
           <Field label={t('Sted')} value={data.venue} onChange={(v) => set('venue', v)} />
           {has('venueDetail') && (
-            <Field label={t('Sted — detalje')} value={data.venueDetail ?? ''} onChange={(v) => set('venueDetail', v || undefined)} placeholder={da ? 'By, land' : 'City, country'} />
+            <Field label={t('Sted, detalje')} value={data.venueDetail ?? ''} onChange={(v) => set('venueDetail', v || undefined)} placeholder={da ? 'By, land' : 'City, country'} />
           )}
           {has('closing') && (
             <Field label={t('Afslutning')} value={data.closing ?? ''} onChange={(v) => set('closing', v || undefined)} />

@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
     .select("id", { count: "exact", head: true })
     .eq("event_id", eventId);
   if ((count ?? 0) >= MAX_PHOTOS) {
-    return Response.json({ error: `Max ${MAX_PHOTOS} billeder — slet nogle først` }, { status: 429 });
+    return Response.json({ error: `Max ${MAX_PHOTOS} billeder, slet nogle først` }, { status: 429 });
   }
 
   // Only one hero per event — same rule the PATCH route enforces. Uploading

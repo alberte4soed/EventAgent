@@ -42,7 +42,7 @@ export const agentUpdates: AgentUpdate[] = [
   },
   {
     name: "Quote in",
-    description: "Nyhavn Loft: DKK 158,000 — terrace ceremony included",
+    description: "Nyhavn Loft: DKK 158,000, terrace ceremony included",
     time: "1h ago",
     icon: "📊",
     color: "#c5bea6",
@@ -56,7 +56,7 @@ export const agentUpdates: AgentUpdate[] = [
   },
   {
     name: "You're booked",
-    description: "Deposit link sent — venue holds the date for 48 hours",
+    description: "Deposit link sent, venue holds the date for 48 hours",
     time: "3h ago",
     icon: "✅",
     color: "#4A4E3C",

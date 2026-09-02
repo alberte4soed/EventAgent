@@ -25,7 +25,7 @@ describe("refreshAccessToken", () => {
   });
 
   /* Each of these means the grant can never be redeemed again, so they have to
-     reach the caller as "reconnect the mailbox" — a 503 — rather than a 500
+     reach the caller as "reconnect the mailbox", a 503, rather than a 500
      that tells the couple to retry something that cannot succeed. This is the
      bug that made approve-and-send return 500 in production: the mailbox
      answered unauthorized_client and only invalid_grant was being mapped. */

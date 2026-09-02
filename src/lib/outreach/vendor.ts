@@ -85,7 +85,7 @@ export async function loadVendorOutreach(
           status: 503,
           payload: {
             error: "outreach_unavailable",
-            message: "Avas postkasse er ved at blive sat op — prøv igen om lidt.",
+            message: "Avas postkasse er ved at blive sat op, prøv igen om lidt.",
           },
         },
       };

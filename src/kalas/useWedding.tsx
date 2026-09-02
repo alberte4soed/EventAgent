@@ -2,7 +2,7 @@
 
 /* The real data layer for the Kalas app. Loads the signed-in couple's actual
    wedding (event + venues + outreach + replies + proposals + invites) via the
-   browser Supabase client and exposes it — plus a `couple` adapter shaped like
+   browser Supabase client and exposes it, plus a `couple` adapter shaped like
    the old mock `data.ts` so screens can read real data with minimal changes.
    Screens that have no backend yet keep reading data.ts. */
 

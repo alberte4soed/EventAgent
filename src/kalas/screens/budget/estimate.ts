@@ -1,5 +1,5 @@
 /* The opening budget. A couple should not have to fill in a form before the
-   screen shows them anything — everything needed is already in the event row,
+   screen shows them anything, everything needed is already in the event row,
    so the seven benchmark lines are worked out and saved on arrival, and the
    couple pushes them up and down from there. */
 
@@ -45,4 +45,27 @@ export function estimatedLines(total: number): EstimatedLine[] {
     color: line.color,
     sort: i,
   }));
+}
+
+/**
+ * What the couple has set aside for the venue itself.
+ *
+ * The venue search used to seed its budget filter from the WHOLE wedding
+ * budget, which is meaningless: a venue costing all 275.000 kr leaves nothing
+ * for food, photographer or flowers. What matters is the line they allocated
+ * to it — 72.500 kr of that 275.000.
+ *
+ * Falls back to the benchmark share (`budgetLines`, venue = 33%) when they
+ * have not split their budget yet, and to null when there is no budget at
+ * all. Never to the total.
+ */
+export function venueBudget(
+  items: { category: string; planned_amount: number }[],
+  total: number
+): number | null {
+  const line = items.find((b) => b.category === "venue");
+  if (line && line.planned_amount > 0) return line.planned_amount;
+  const pct = budgetLines.find((l) => l.id === "venue")?.pct ?? 0;
+  if (total > 0 && pct > 0) return Math.round((total * pct) / 100);
+  return null;
 }

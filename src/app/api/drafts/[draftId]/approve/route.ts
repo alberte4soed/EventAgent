@@ -90,7 +90,7 @@ export async function POST(
       return Response.json(
         {
           error: "outreach_unavailable",
-          message: "Ava's outreach mailbox is being set up — try again shortly.",
+          message: "Ava's outreach mailbox is being set up, try again shortly.",
         },
         { status: 503 }
       );
@@ -202,8 +202,8 @@ export async function POST(
     role: "assistant",
     content:
       sentCount > 0
-        ? `I've reached out to ${sentCount} ${draft.category}${sentCount === 1 ? "" : "s"} from my Kalas mailbox — replies come straight to me and I'll flag each one for you in the outreach inbox.`
-        : "I couldn't send any emails — check the contact details and approve again.",
+        ? `I've reached out to ${sentCount} ${draft.category}${sentCount === 1 ? "" : "s"} from my Kalas mailbox, replies come straight to me and I'll flag each one for you in the outreach inbox.`
+        : "I couldn't send any emails, check the contact details and approve again.",
     payload: {
       kind: "send_report",
       sent: sentCount,

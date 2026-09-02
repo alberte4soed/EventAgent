@@ -1,7 +1,7 @@
 "use client";
 
 /* The emotional beat: meet Ava before her feature set. A slow-breathing
-   orb — layered radial glows + a drifting conic shimmer — above a short
+   orb, layered radial glows + a drifting conic shimmer, above a short
    manifesto. Pure CSS/motion, no assets. */
 
 import { motion } from "framer-motion";
@@ -90,7 +90,7 @@ export function IntroducingAva() {
         <BlurFade inView delay={0.3} duration={0.6}>
           <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-[#7A8066] sm:text-[17px]">
             Ava researches real venues, writes the emails, chases the replies,
-            compares the quotes, and keeps budget, guests and the website moving —
+            compares the quotes, and keeps budget, guests and the website moving:
             the work a wedding planner actually does. You set the direction and
             approve each step. Nothing happens without your yes.
           </p>

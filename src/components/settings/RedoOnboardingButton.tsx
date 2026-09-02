@@ -8,7 +8,7 @@ export function RedoOnboardingButton() {
 
   const redo = async () => {
     const ok = window.confirm(
-      "Start onboarding again? Your current wedding stays saved — completing onboarding creates a new wedding plan.",
+      "Start onboarding again? Your current wedding stays saved, completing onboarding creates a new wedding plan.",
     );
     if (!ok) return;
 

@@ -2,8 +2,8 @@
    (src/kalas/screens/Website.tsx) and the public renderer (SiteRenderer.tsx +
    /w/[slug]). The couple's content persists in wedding_sites.config (JSONB);
    parseConfig() reads that blob into a typed, defaulted SiteConfig. The site's
-   LOOK lives separately in website_designs (see design.ts) — Ava generates it.
-   `sitePassword` is deliberately NOT part of SiteConfig — it never reaches the
+   LOOK lives separately in website_designs (see design.ts), Ava generates it.
+   `sitePassword` is deliberately NOT part of SiteConfig, it never reaches the
    client. */
 
 import type { IMAGES } from '../data';

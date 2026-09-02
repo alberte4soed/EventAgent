@@ -1,6 +1,6 @@
 import { useState, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Upload, Send, Users, Clock, CheckCheck, ChevronRight, Trash2, Search, X, Check, Link2, Mail, Phone, Pencil } from 'lucide-react';
+import { Plus, Upload, Send, Users, Clock, CheckCheck, ChevronRight, Trash2, Search, X, Check, Link2, Mail, Phone, Pencil, Salad } from 'lucide-react';
 import { Pill, Chip, cn } from '../ui';
 import AnimateNumber from '../AnimateNumber';
 import { useLang } from '../i18n';
@@ -31,7 +31,7 @@ function makeTemplates(a: string, b: string, dateLabel: string) {
   return [
     { id: 'tp1', label: 'Praktisk info', subject: 'Alt du skal vide om dagen', recipients: 'Alle gæster', body: `Kære [navn],\n\nVi glæder os enormt til at fejre vores store dag med dig!\n\nHer er de vigtigste praktiske informationer:\n\n📍 Sted: [venue]\n🕐 Ceremoni starter kl. [tid]\n🚗 Parkering: [info]\n\nKontakt os hvis du har spørgsmål.\n\nMed kærlig hilsen,\n${sign}` },
     { id: 'tp2', label: 'Rykker – RSVP', subject: 'Mangler stadig dit svar 💌', recipients: 'Afventende svar', body: `Hej [navn],\n\nVi mangler stadig at høre om du kan komme til vores bryllup den ${dateLabel}.\n\nVil du svare inden [dato]?\n\nMed håb om at se dig,\n${sign}` },
-    { id: 'tp3', label: 'Tak for svar', subject: 'Tak for dit svar! 🙏', recipients: 'Bekræftede', body: `Kære [navn],\n\nTusen tak — vi er så glade for at du kommer!\n\nKærlig hilsen,\n${sign}` },
+    { id: 'tp3', label: 'Tak for svar', subject: 'Tak for dit svar! 🙏', recipients: 'Bekræftede', body: `Kære [navn],\n\nTusen tak, vi er så glade for at du kommer!\n\nKærlig hilsen,\n${sign}` },
   ];
 }
 
@@ -90,11 +90,11 @@ export default function Guests() {
     <div className="px-6 py-8 sm:px-9 lg:px-12 lg:py-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-serif text-[clamp(2rem,4vw,2.4rem)] leading-[1.1] tracking-[-0.02em] text-[#314523]">
+          <h1 className="font-serif text-[clamp(2rem,4vw,2.4rem)] leading-[1.1] tracking-[-0.02em] text-[#24413a]">
             {t('Gæster')}
           </h1>
-          <p className="mt-1.5 max-w-xl text-[13px] leading-relaxed text-[#6c7561]">
-            {t('Hold styr på jeres gæsteliste og RSVP — og send invitationer, når I er klar.')}
+          <p className="mt-1.5 max-w-xl text-[13px] leading-relaxed text-[#5f6b66]">
+            {t('Hold styr på jeres gæsteliste og RSVP, og send invitationer, når I er klar.')}
           </p>
         </div>
         <div className="hidden items-center gap-2 sm:flex">
@@ -243,7 +243,7 @@ export default function Guests() {
               <span className="text-[0.62rem] font-semibold tracking-[0.2em] uppercase text-muted">{t('Navn')}</span>
               <span className="text-[0.62rem] font-semibold tracking-[0.2em] uppercase text-muted">{t('RSVP')}</span>
               <span className="text-[0.62rem] font-semibold tracking-[0.2em] uppercase text-muted">{t('Måltid')}</span>
-              <span className="text-[0.62rem] font-semibold tracking-[0.2em] uppercase text-muted">—</span>
+              <span className="text-[0.62rem] font-semibold tracking-[0.2em] uppercase text-muted">-</span>
             </div>
             <div className="divide-y divide-[var(--color-line)]">
               {list.map((g, i) => <GuestRow key={g.id} g={g} i={i} link={guestLink(g.rsvp_token)} onRemove={() => removeGuest(g.id)} onCycle={() => cycleRsvp(g)} onSave={(patch) => updateGuest(g.id, patch)} />)}
@@ -273,6 +273,10 @@ function GuestRow({ g, i, link, onRemove, onCycle, onSave }: { g: GuestRecord; i
   const [editing, setEditing] = useState(false);
   const [editEmail, setEditEmail] = useState(g.email ?? '');
   const [editPhone, setEditPhone] = useState(g.phone ?? '');
+  /* Dietary notes only ever arrived from the guest's own RSVP. The couple
+     could read them and never write one, which is no good for the aunt who
+     told them over the phone, and it is their guest list. */
+  const [editDiet, setEditDiet] = useState(g.dietary ?? '');
   const detail = [g.plus_one_name && `+ ${g.plus_one_name}`, g.dietary && g.dietary].filter(Boolean).join(' · ');
 
   const copyLink = () => {
@@ -285,10 +289,15 @@ function GuestRow({ g, i, link, onRemove, onCycle, onSave }: { g: GuestRecord; i
   const openEdit = () => {
     setEditEmail(g.email ?? '');
     setEditPhone(g.phone ?? '');
+    setEditDiet(g.dietary ?? '');
     setEditing(true);
   };
   const saveEdit = () => {
-    onSave({ email: editEmail.trim() || null, phone: editPhone.trim() || null });
+    onSave({
+      email: editEmail.trim() || null,
+      phone: editPhone.trim() || null,
+      dietary: editDiet.trim() || null,
+    });
     setEditing(false);
   };
 
@@ -326,12 +335,12 @@ function GuestRow({ g, i, link, onRemove, onCycle, onSave }: { g: GuestRecord; i
           {g.meal ? (
             <span className="text-[0.82rem] text-ink-soft capitalize">{g.meal}</span>
           ) : (
-            <span className="text-[0.82rem] text-muted">—</span>
+            <span className="text-[0.82rem] text-muted">-</span>
           )}
         </div>
 
         <div className="flex items-center justify-end gap-2">
-          <button onClick={editing ? () => setEditing(false) : openEdit} aria-label={t('Rediger kontakt for {name}', { name: g.name })} title={t('Rediger email & telefon')}
+          <button onClick={editing ? () => setEditing(false) : openEdit} aria-label={t('Rediger kontakt for {name}', { name: g.name })} title={t('Rediger kontakt og kostbehov')}
             className={cn('transition-colors cursor-pointer', editing ? 'text-ink' : 'text-muted/50 hover:text-ink')}>
             <Pencil size={13} />
           </button>
@@ -367,6 +376,13 @@ function GuestRow({ g, i, link, onRemove, onCycle, onSave }: { g: GuestRecord; i
                 <input type="tel" value={editPhone} onChange={(e) => setEditPhone(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') setEditing(false); }}
                   placeholder={t('Telefon')} aria-label={t('Telefon for {name}', { name: g.name })}
+                  className="w-full bg-transparent text-[0.85rem] text-ink placeholder:text-muted focus:outline-none" />
+              </label>
+              <label className="flex flex-1 min-w-[150px] items-center gap-2 border-b border-[var(--color-line)] pb-1">
+                <Salad size={13} className="shrink-0 text-muted" />
+                <input type="text" value={editDiet} onChange={(e) => setEditDiet(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') setEditing(false); }}
+                  placeholder={t('Kostbehov, fx vegetar')} aria-label={t('Kostbehov for {name}', { name: g.name })}
                   className="w-full bg-transparent text-[0.85rem] text-ink placeholder:text-muted focus:outline-none" />
               </label>
               <button onClick={saveEdit} aria-label={t('Gem kontakt')}

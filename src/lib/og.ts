@@ -1,6 +1,6 @@
 /* Lightweight OpenGraph / product scraper for the gift registry. Given a
    product URL we fetch the page server-side and pull title, image, store name
-   and price from meta tags (with a JSON-LD fallback) — no API keys, works on
+   and price from meta tags (with a JSON-LD fallback), no API keys, works on
    most shops. parseProduct() is pure so it can be unit-tested with fixtures. */
 
 export interface ProductInfo {

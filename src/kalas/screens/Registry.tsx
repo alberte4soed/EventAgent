@@ -82,11 +82,11 @@ export default function Registry({ onNavigate }: { onNavigate?: (s: import('../S
 
   return (
     <div className="px-6 py-8 sm:px-9 lg:px-12 lg:py-8">
-      <h1 className="font-serif text-[clamp(2rem,4vw,2.4rem)] leading-[1.1] tracking-[-0.02em] text-[#314523]">
+      <h1 className="font-serif text-[clamp(2rem,4vw,2.4rem)] leading-[1.1] tracking-[-0.02em] text-[#24413a]">
         {t('Ønskeliste')}
       </h1>
-      <p className="mt-1.5 max-w-xl text-[13px] leading-relaxed text-[#6c7561]">
-        {t('Indsæt et link til en gave, så henter vi billede og pris. Gæsterne kan reservere den fra jeres bryllupsside — så to ikke køber det samme.')}
+      <p className="mt-1.5 max-w-xl text-[13px] leading-relaxed text-[#5f6b66]">
+        {t('Indsæt et link til en gave, så henter vi billede og pris. Gæsterne kan reservere den fra jeres bryllupsside, så to ikke køber det samme.')}
       </p>
 
       {/* Add */}
@@ -108,7 +108,7 @@ export default function Registry({ onNavigate }: { onNavigate?: (s: import('../S
         </button>
       </div>
 
-      {/* Editor — one panel for a new wish and for editing a saved one */}
+      {/* Editor, one panel for a new wish and for editing a saved one */}
       <AnimatePresence>
         {draft && (
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
@@ -144,7 +144,7 @@ export default function Registry({ onNavigate }: { onNavigate?: (s: import('../S
                     placeholder={t('Billedlink')}
                     className="w-full rounded-lg rule bg-canvas px-3 py-1.5 text-[0.8rem] text-muted focus:border-ink focus:text-ink focus:outline-none" />
                   <textarea value={draft.description ?? ''} onChange={(e) => setDraft({ ...draft, description: e.target.value })}
-                    placeholder={t('En note til gæsterne — farve, størrelse, hvor I helst vil have den fra')} rows={2}
+                    placeholder={t('En note til gæsterne, farve, størrelse, hvor I helst vil have den fra')} rows={2}
                     className="w-full resize-none rounded-lg rule bg-canvas px-3 py-2 text-[0.82rem] text-ink placeholder:text-muted focus:border-ink focus:outline-none" />
 
                   <div className="flex flex-wrap items-center gap-2 pt-1">

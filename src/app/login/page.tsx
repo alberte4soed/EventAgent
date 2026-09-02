@@ -97,7 +97,7 @@ export default function LoginPage() {
       if (signInError.message.toLowerCase().includes("email rate limit exceeded")) {
         setError(
           "Supabase's built-in email limit was hit (about 2 confirmation emails per hour for the whole project). " +
-            "Password sign-in does not send email — if you were creating an account, wait an hour or use Google. " +
+            "Password sign-in does not send email, if you were creating an account, wait an hour or use Google. " +
             "For dev, turn off “Confirm email” in Supabase → Authentication → Providers → Email."
         );
       } else if (signInError.message.toLowerCase().includes("email not confirmed")) {
@@ -134,7 +134,7 @@ export default function LoginPage() {
             {mode === "sign-in" ? "Sign in to Kalas" : "Create your account"}
           </h1>
           <p className="mt-3 text-center text-sm leading-relaxed text-[#7A8066]">
-            Plan your wedding with Ava — find venues, manage guests, and send
+            Plan your wedding with Ava, find venues, manage guests, and send
             quote requests.
           </p>
 

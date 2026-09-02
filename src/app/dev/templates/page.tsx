@@ -1,7 +1,7 @@
 'use client';
 
 /* Dev-only parity harness: renders all 20 templates with the source sample
-   content, grouped by mood, inside the phone frame — to confirm the port
+   content, grouped by mood, inside the phone frame, to confirm the port
    matches invitationer-final.html and that nothing clips. Visit /dev/templates. */
 
 import { useInvitationFonts } from '@/kalas/invitations/fonts';
@@ -16,7 +16,7 @@ export default function DevTemplatesPage() {
   return (
     <div style={{ background: '#12100e', color: '#efe9df', minHeight: '100vh', padding: '48px 22px 110px', fontFamily: 'system-ui, sans-serif' }}>
       <div style={{ maxWidth: 1240, margin: '0 auto' }}>
-        <h1 style={{ fontSize: 28, fontWeight: 300, marginBottom: 8 }}>Invitation templates — parity harness</h1>
+        <h1 style={{ fontSize: 28, fontWeight: 300, marginBottom: 8 }}>Invitation templates, parity harness</h1>
         <p style={{ color: '#8a8074', fontSize: 14, marginBottom: 40 }}>
           All templates with sample content. Tap Sceau / Déco / Lettre to open; Minuit &amp; Céleste count down live.
         </p>

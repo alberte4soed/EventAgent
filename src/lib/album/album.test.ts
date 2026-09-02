@@ -14,7 +14,7 @@ describe("sniffImageType", () => {
     expect(sniffImageType(WEBP)).toBe("webp");
   });
 
-  it("reads the bytes, not the file name — a PNG renamed .jpg is still a PNG", () => {
+  it("reads the bytes, not the file name, a PNG renamed .jpg is still a PNG", () => {
     expect(sniffImageType(PNG)).toBe("png");
   });
 

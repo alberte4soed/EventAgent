@@ -1,7 +1,7 @@
 import type { VenueRow, VendorCategory } from '@/lib/db/types';
 
 /* "Booked" is expressed two ways in this codebase — a booked_at timestamp, or
-   being the event's chosen venue — and the OR is currently repeated inline in
+   being the event's chosen venue, and the OR is currently repeated inline in
    several screens. Encapsulated here so the review list cannot drift from what
    the vendor hub calls booked. */
 

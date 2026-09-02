@@ -79,7 +79,7 @@ export default function WeddingDatePicker({ value, onChange, lang }: Props) {
   };
 
   return (
-    <div className="mt-5 w-full max-w-[380px] rounded-[20px] border border-[#d8d5ca] bg-[#fffdf7] p-5 shadow-[0px_12px_36px_rgba(23,60,50,0.06)]">
+    <div className="mt-5 w-full max-w-[380px] rounded-[20px] border border-[#d8d5ca] bg-[#fffdf7] p-5 shadow-[0px_12px_36px_rgba(18,51,43,0.06)]">
       <div className="mb-4 flex items-center justify-between">
         <button
           type="button"
@@ -130,7 +130,7 @@ export default function WeddingDatePicker({ value, onChange, lang }: Props) {
                 'flex h-10 w-full items-center justify-center rounded-full text-[0.88rem] transition-colors cursor-pointer',
                 disabled && 'cursor-not-allowed text-[#c5cbc3]',
                 !disabled && !isSelected && 'text-[#23351f] hover:bg-[#eef2e8]',
-                isSelected && 'bg-[#173c32] font-semibold text-[#fffdf7] shadow-[0px_4px_12px_rgba(23,60,50,0.2)]',
+                isSelected && 'bg-[#12332b] font-semibold text-[#fffdf7] shadow-[0px_4px_12px_rgba(18,51,43,0.2)]',
                 isToday && !isSelected && 'ring-1 ring-[#7b8e55] ring-inset',
               )}
             >

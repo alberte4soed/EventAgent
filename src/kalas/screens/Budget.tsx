@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'motion/react';
-import { Plus, X, Pencil, Bell, StickyNote, Sparkles } from 'lucide-react';
+import { Plus, X, Pencil, Bell, StickyNote, FileSignature } from 'lucide-react';
 import BudgetContractPanel from './BudgetContractPanel';
 import { budgetLines, type BudgetLine } from '../data';
 import {
@@ -50,7 +50,7 @@ function daysUntil(dateStr: string): number | null {
 
 export default function Budget({ onNavigate }: { onNavigate?: (s: NavigateTarget) => void }) {
   const { t } = useLang();
-  const { loading, couple, event, budgetItems, saveBudgetItem, deleteBudgetItem } = useWedding();
+  const { loading, couple, event, budgetItems, saveBudgetItem, deleteBudgetItem, updateEvent } = useWedding();
 
   // What the estimate is built on. Their own figure wins; a headcount is the
   // fallback. Zero means we know neither, and nothing is guessed.
@@ -106,7 +106,7 @@ export default function Budget({ onNavigate }: { onNavigate?: (s: NavigateTarget
      the checklist's self-seed: a module-scope claim keyed by event, so leaving
      the screen mid-insert cannot start a second batch.
 
-     Deliberately does not write back to the event — the old estimator saved its
+     Deliberately does not write back to the event, the old estimator saved its
      guesses into `budget` and `guest_count`, which overwrote what the couple
      had actually told us with a number derived from it. */
   /* One claim guards all three write paths below. `budget_items` only lands a
@@ -297,13 +297,13 @@ export default function Budget({ onNavigate }: { onNavigate?: (s: NavigateTarget
     <div className="px-6 py-8 sm:px-9 lg:px-12 lg:py-8">
       {/* ── Header ────────────────────────────────────────────────────── */}
       <div className="mb-8">
-        <h1 className="font-serif text-[clamp(2rem,4vw,2.4rem)] leading-[1.1] tracking-[-0.02em] text-[#314523]">
+        <h1 className="font-serif text-[clamp(2rem,4vw,2.4rem)] leading-[1.1] tracking-[-0.02em] text-[#24413a]">
           {t('Budget')}
         </h1>
-        <p className="mt-1.5 max-w-xl text-[13px] leading-relaxed text-[#6c7561]">
+        <p className="mt-1.5 max-w-xl text-[13px] leading-relaxed text-[#5f6b66]">
           {total > 0
-            ? t('Fordelingen er lagt ud fra det I har fortalt — træk i den, så den passer jer.')
-            : t('Hold styr på hvad brylluppet koster — og hvad I har tilbage.')}
+            ? t('Fordelingen er lagt ud fra det I har fortalt, træk i den, så den passer jer.')
+            : t('Hold styr på hvad brylluppet koster, og hvad I har tilbage.')}
         </p>
         {/* Nothing to estimate from. A split of zero would just be seven empty
             rows pretending to be a plan. */}
@@ -316,7 +316,12 @@ export default function Budget({ onNavigate }: { onNavigate?: (s: NavigateTarget
 
       {/* Totals strip */}
       <div className="grid gap-px overflow-hidden rounded-3xl rule bg-[var(--color-line)] sm:grid-cols-3">
-        <Stat label="Samlet budget" value={total} tone="total" />
+        <Stat
+          label="Samlet budget"
+          value={total}
+          tone="total"
+          onCommit={(next) => void updateEvent({ budget: next > 0 ? String(next) : null })}
+        />
         <Stat label="Fordelt" value={allocated} tone="allocated" />
         <Stat label={remaining < 0 ? 'Over budget' : 'Tilbage at fordele'} value={Math.abs(remaining)} tone={remaining < 0 ? 'over' : 'remaining'} />
       </div>
@@ -336,7 +341,7 @@ export default function Budget({ onNavigate }: { onNavigate?: (s: NavigateTarget
           />
         ))}
       </div>
-      {/* Legend — so the bar actually reads */}
+      {/* Legend, so the bar actually reads */}
       <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5">
         {lines.map((b) => {
           const Icon = resolveBudgetIcon(b.icon);
@@ -469,7 +474,7 @@ export default function Budget({ onNavigate }: { onNavigate?: (s: NavigateTarget
                   <button onClick={() => setEditCell(`${b.id}:actual`)}
                     aria-label={t('Faktisk pris for {label}', { label: t(b.label) })}
                     className="font-semibold text-ink tabular-nums hover:opacity-60 transition-opacity cursor-pointer">
-                    {actual > 0 ? kr(actual) : '—'}
+                    {actual > 0 ? kr(actual) : '-'}
                   </button>
                 )}
               </span>
@@ -486,7 +491,7 @@ export default function Budget({ onNavigate }: { onNavigate?: (s: NavigateTarget
                   <button onClick={() => setEditCell(`${b.id}:paid`)}
                     aria-label={t('Betalt for {label}', { label: t(b.label) })}
                     className="font-semibold text-ink tabular-nums hover:opacity-60 transition-opacity cursor-pointer">
-                    {paid > 0 ? kr(paid) : '—'}
+                    {paid > 0 ? kr(paid) : '-'}
                   </button>
                 )}
               </span>
@@ -522,13 +527,13 @@ export default function Budget({ onNavigate }: { onNavigate?: (s: NavigateTarget
                   <button onClick={() => setContractOpen((s) => ({ ...s, [b.id]: !s[b.id] }))}
                     aria-label={t('Kontrakt for {label}', { label: t(b.label) })} aria-pressed={Boolean(contractOpen[b.id])}
                     className={cn('transition-colors cursor-pointer', contractOpen[b.id] ? 'text-[#6a5acd]' : 'text-muted hover:text-[#6a5acd]')}>
-                    <Sparkles size={16} />
+                    <FileSignature size={16} />
                   </button>
                 </span>
               </span>
             </div>
 
-            {/* Reminder editor — shown when toggled or already set */}
+            {/* Reminder editor, shown when toggled or already set */}
             {(remOpen[b.id] || reminder) && (
               <div className="mt-4 flex items-center gap-3">
                 <input type="date" value={reminder}
@@ -550,7 +555,7 @@ export default function Budget({ onNavigate }: { onNavigate?: (s: NavigateTarget
               </div>
             )}
 
-            {/* Note editor — shown when toggled or already set */}
+            {/* Note editor, shown when toggled or already set */}
             {(noteOpen[b.id] || note) && (
               <textarea rows={2} value={note}
                 placeholder={t('Fx aftaler, kontaktperson, hvad prisen dækker…')}
@@ -560,7 +565,7 @@ export default function Budget({ onNavigate }: { onNavigate?: (s: NavigateTarget
                 className="mt-4 w-full resize-none rule rounded-lg bg-shell px-3 py-2.5 text-[0.82rem] text-ink placeholder:text-muted/60 focus:outline-none" />
             )}
 
-            {/* Contract upload + Ava review — toggled by the ✨ icon */}
+            {/* Contract upload + Ava review, toggled by the ✨ icon */}
             {contractOpen[b.id] && (
               <BudgetContractPanel
                 eventId={event?.id ?? null}
@@ -693,13 +698,13 @@ export default function Budget({ onNavigate }: { onNavigate?: (s: NavigateTarget
         .kalas-range { -webkit-appearance: none; appearance: none; height: 2px; background: var(--color-line-strong); border-radius: 999px; cursor: pointer; }
         .kalas-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 999px; background: var(--color-sage); border: 2px solid var(--color-canvas); box-shadow: 0 1px 4px rgba(46,51,37,0.2); cursor: pointer; }
         .kalas-range::-moz-range-thumb { width: 16px; height: 16px; border-radius: 999px; background: var(--color-sage); border: 2px solid var(--color-canvas); cursor: pointer; }
-        .kalas-date { color: #314523; }
+        .kalas-date { color: #24413a; }
         .kalas-date::-webkit-datetime-edit,
         .kalas-date::-webkit-datetime-edit-fields-wrapper,
         .kalas-date::-webkit-datetime-edit-text,
         .kalas-date::-webkit-datetime-edit-month-field,
         .kalas-date::-webkit-datetime-edit-day-field,
-        .kalas-date::-webkit-datetime-edit-year-field { color: #314523; }
+        .kalas-date::-webkit-datetime-edit-year-field { color: #24413a; }
         .kalas-date::-webkit-calendar-picker-indicator { filter: invert(19%) sepia(18%) saturate(1200%) hue-rotate(60deg); }
       `}</style>
     </div>
@@ -777,15 +782,61 @@ function StylePicker({
   );
 }
 
-function Stat({ label, value, tone }: { label: string; value: number; tone: keyof typeof STAT_STYLES }) {
+/* The totals. `onCommit` makes one of them the couple's own figure rather
+   than a read-out: the budget was settable only by asking Ava, while this tile
+   sat here showing the number it would not let them change. */
+function Stat({ label, value, tone, onCommit }: {
+  label: string; value: number; tone: keyof typeof STAT_STYLES;
+  onCommit?: (next: number) => void;
+}) {
   const { t } = useLang();
   const s = STAT_STYLES[tone];
+  const [editing, setEditing] = useState(false);
+
+  const commit = (raw: string) => {
+    setEditing(false);
+    const digits = raw.replace(/[^\d]/g, '');
+    const next = digits ? Number.parseInt(digits, 10) : 0;
+    if (next !== value) onCommit?.(next);
+  };
+
   return (
     <div className={cn('px-6 py-7', s.bg)}>
       <Eyebrow className={s.label}>{t(label)}</Eyebrow>
-      <div className={cn('mt-2 font-serif text-[2rem]', s.value)}>
-        <AnimateNumber value={value} suffix=" kr" />
-      </div>
+      {editing ? (
+        <input
+          autoFocus
+          inputMode="numeric"
+          defaultValue={value > 0 ? kr(value) : ''}
+          onBlur={(e) => commit(e.currentTarget.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') e.currentTarget.blur();
+            if (e.key === 'Escape') setEditing(false);
+          }}
+          aria-label={t(label)}
+          className={cn(
+            'mt-2 w-full border-b border-current/30 bg-transparent font-serif text-[2rem] focus:outline-none',
+            s.value,
+          )}
+        />
+      ) : onCommit ? (
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          title={t('Ret det samlede budget')}
+          className={cn(
+            'mt-2 flex w-full items-center gap-2 text-left font-serif text-[2rem] cursor-pointer',
+            s.value,
+          )}
+        >
+          <AnimateNumber value={value} suffix=" kr" />
+          <Pencil size={15} className="shrink-0 opacity-50" />
+        </button>
+      ) : (
+        <div className={cn('mt-2 font-serif text-[2rem]', s.value)}>
+          <AnimateNumber value={value} suffix=" kr" />
+        </div>
+      )}
     </div>
   );
 }

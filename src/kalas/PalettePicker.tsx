@@ -248,7 +248,7 @@ export default function PalettePicker({
           );
         })}
 
-        {/* Custom palette card — always shown */}
+        {/* Custom palette card, always shown */}
         <button
           onClick={() => onChange('custom')}
           className={cn(
@@ -271,7 +271,7 @@ export default function PalettePicker({
         </button>
       </motion.div>
 
-      {/* Custom color pickers — shown when custom palette is active */}
+      {/* Custom color pickers, shown when custom palette is active */}
       {value === 'custom' && (
         <motion.div
           initial={{ opacity: 0, y: -4 }}

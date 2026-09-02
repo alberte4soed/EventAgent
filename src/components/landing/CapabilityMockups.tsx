@@ -62,7 +62,7 @@ function ChatMockup() {
         We&apos;re thinking ~35 guests, by the sea on Bornholm, autumn 2027. Intimate, not stiff.
       </div>
       <div className="rounded-2xl rounded-bl-md border px-3.5 py-2.5 text-[12px] leading-snug" style={{ borderColor: LINE, backgroundColor: "#ffffff", color: MUTED, maxWidth: "85%" }}>
-        Lovely brief. I found seaside venues that fit an intimate autumn party — take a look:
+        Lovely brief. I found seaside venues that fit an intimate autumn party, take a look:
       </div>
       <div className="flex gap-2">
         {["Melsted Badehotel", "Dragsholm Castle", "Herthadalen"].map((name, i) => (
@@ -111,7 +111,7 @@ function VendorsMockup() {
           </div>
         ))}
       </div>
-      <p className="text-center text-[10px]" style={{ color: MUTED }}>Real venues, researched live — ratings, capacity and contacts verified</p>
+      <p className="text-center text-[10px]" style={{ color: MUTED }}>Real venues, researched live, ratings, capacity and contacts verified</p>
     </div>
   );
 }
@@ -129,7 +129,7 @@ function OutreachMockup() {
       </div>
       <div className="mt-3 flex-1 space-y-1.5 overflow-hidden rounded-xl border px-3.5 py-3 text-[11px] leading-relaxed" style={{ borderColor: LINE, backgroundColor: "#fff", color: MUTED }}>
         <p style={{ color: INK }}>Gentile staff di Villa Toscana,</p>
-        <p>ci siamo innamorati della vostra terrazza sui vigneti — sarebbe lo sfondo perfetto per il nostro matrimonio…</p>
+        <p>ci siamo innamorati della vostra terrazza sui vigneti, sarebbe lo sfondo perfetto per il nostro matrimonio…</p>
         <p className="truncate">Prevediamo circa 35 invitati per l&apos;autunno 2027. Avreste disponibilità…</p>
         <p className="pt-1" style={{ color: INK }}>Cordiali saluti,<br />Ava, per conto della coppia</p>
       </div>
@@ -167,7 +167,7 @@ function QuotesMockup() {
           {best && <Pill dark>Best fit</Pill>}
         </div>
       ))}
-      <p className="text-[10px]" style={{ color: MUTED }}>Prices, dates and conditions pulled out of every reply — automatically</p>
+      <p className="text-[10px]" style={{ color: MUTED }}>Prices, dates and conditions pulled out of every reply, automatically</p>
     </div>
   );
 }
@@ -202,7 +202,7 @@ function BudgetMockup() {
           </div>
         ))}
       </div>
-      <p className="text-[10px]" style={{ color: MUTED }}>Every deposit and quote lands here on its own — flagged before anything tips over</p>
+      <p className="text-[10px]" style={{ color: MUTED }}>Every deposit and quote lands here on its own, flagged before anything tips over</p>
     </div>
   );
 }
@@ -212,7 +212,7 @@ function GuestsMockup() {
   const rows: [string, string, string][] = [
     ["Alberte Holm", "Yes", "Fish"],
     ["Jonas Krag", "Yes", "Veg"],
-    ["Nour El-Sayed", "Pending", "—"],
+    ["Nour El-Sayed", "Pending", "-"],
     ["Marta Rossi", "Yes", "Meat"],
   ];
   return (
@@ -274,7 +274,7 @@ function WebsiteMockup() {
 function TimelineMockup() {
   const items: [string, string, "done" | "now" | "next"][] = [
     ["Venue booked", "Melsted Badehotel · deposit paid", "done"],
-    ["Book your photographer", "3 quotes in — pick this week", "now"],
+    ["Book your photographer", "3 quotes in, pick this week", "now"],
     ["Send save-the-dates", "Opens once the guest list is set", "next"],
     ["Menu tasting", "Ava proposes dates in March", "next"],
   ];

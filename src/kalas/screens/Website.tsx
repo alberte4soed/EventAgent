@@ -1,7 +1,7 @@
 import { useState, useId, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  Check, Globe, Smartphone, Plus, Trash2, Sparkles, Loader2, Upload,
+  Check, Globe, Smartphone, Plus, Trash2, Palette, Loader2, Upload,
   Lock, Copy, Eye, MapPin, Gift, HelpCircle, Bed, History, Star,
   Camera, Clock, BookOpen, Image, QrCode, ChevronDown, RotateCcw,
 } from 'lucide-react';
@@ -170,12 +170,12 @@ export default function Website() {
       if (res.status === 402) { setNeedsPayment(true); return; }
       if (!res.ok) {
         const data = (await res.json().catch(() => ({}))) as { message?: string; error?: string };
-        setGenError(data.message ?? data.error ?? 'Noget gik galt — prøv igen.');
+        setGenError(data.message ?? data.error ?? 'Noget gik galt. Prøv igen.');
         return;
       }
       await refresh();
     } catch {
-      setGenError('Noget gik galt — prøv igen.');
+      setGenError('Noget gik galt. Prøv igen.');
     } finally {
       setWorking(null);
     }
@@ -226,12 +226,12 @@ export default function Website() {
       });
       if (!res.ok) {
         const data = (await res.json().catch(() => ({}))) as { error?: string };
-        setGenError(data.error ?? 'Kunne ikke starte forfra — prøv igen.');
+        setGenError(data.error ?? 'Kunne ikke starte forfra. Prøv igen.');
         return;
       }
       await refresh();
     } catch {
-      setGenError('Kunne ikke starte forfra — prøv igen.');
+      setGenError('Kunne ikke starte forfra. Prøv igen.');
     } finally {
       setRestarting(false);
     }
@@ -284,8 +284,8 @@ export default function Website() {
     if (failed > 0) {
       setGenError(
         failed === 1
-          ? t('{n} billede kunne ikke uploades — prøv et andet format.', { n: failed })
-          : t('{n} billeder kunne ikke uploades — prøv et andet format.', { n: failed }),
+          ? t('{n} billede kunne ikke uploades. Prøv et andet format.', { n: failed })
+          : t('{n} billeder kunne ikke uploades. Prøv et andet format.', { n: failed }),
       );
     }
     await refresh();
@@ -501,7 +501,7 @@ export default function Website() {
                 <Label>{t('Jeres historie')}</Label>
                 <Textarea value={storyText} onChange={setStoryText} rows={5}
                   placeholder={t('Fortæl gæsterne jeres historie…')} />
-                <p className="mt-2 text-[0.7rem] text-muted">{t('Ava har skrevet et udkast — tilpas det som I ønsker.')}</p>
+                <p className="mt-2 text-[0.7rem] text-muted">{t('Ava har skrevet et udkast. Tilpas det som I ønsker.')}</p>
               </SectionCard>
 
               {/* PROGRAM */}
@@ -684,9 +684,9 @@ export default function Website() {
                   {t('Gæsterne får en knap til at uploade egne billeder. Alle billeder samles i jeres private galleri.')}
                 </p>
                 {/* The upload link used to be shown here as {domain}.kalas.dk/del
-                    — a URL that never existed. Ships with the album in Nygift. */}
+                   , a URL that never existed. Ships with the album in Nygift. */}
                 <div className="mt-3 rule rounded-xl bg-shell px-4 py-3 text-[0.78rem] text-muted">
-                  {t('Gæstealbummet bor under Nygift — det åbner snart.')}
+                  {t('Gæstealbummet bor under Nygift og åbner snart.')}
                 </div>
               </SectionCard>
             </div>
@@ -809,7 +809,7 @@ export default function Website() {
                   <div>
                     <p className="font-serif text-[1.15rem] text-ink">{t('Kalas-branding')}</p>
                     <p className="mt-1 text-[0.8rem] text-muted">
-                      {t('Et diskret "Lavet med Kalas" vises i bunden af jeres side — og hjælper andre par finde Kalas.')}
+                      {t('Et diskret "Lavet med Kalas" vises i bunden af jeres side, og hjælper andre par med at finde Kalas.')}
                     </p>
                   </div>
                   {websitePaid
@@ -836,9 +836,9 @@ export default function Website() {
                   {/* Only real numbers. There is no analytics anywhere in the
                       app, so page views cannot be shown honestly. */}
                   {[
-                    { label: t('Gæster inviteret'), value: published ? String(guests.length) : '—' },
-                    { label: t('RSVP modtaget'),   value: published ? String(guests.filter((g) => g.rsvp !== 'afventer').length) : '—' },
-                    { label: t('Siger ja'),        value: published ? String(guests.filter((g) => g.rsvp === 'ja').length) : '—' },
+                    { label: t('Gæster inviteret'), value: published ? String(guests.length) : '-' },
+                    { label: t('RSVP modtaget'),   value: published ? String(guests.filter((g) => g.rsvp !== 'afventer').length) : '-' },
+                    { label: t('Siger ja'),        value: published ? String(guests.filter((g) => g.rsvp === 'ja').length) : '-' },
                   ].map(({ label, value }) => (
                     <div key={label} className="bg-card px-4 py-5 text-center">
                       <div className="font-serif text-[1.6rem] text-ink">{value}</div>
@@ -931,7 +931,7 @@ export default function Website() {
               <div className="mt-7 space-y-3">
                 {[
                   { n: t('Tidslinje på 2 minutter'), d: t('14 milepæle planlagt baglæns fra bryllupsdagen') },
-                  { n: t('3 venues fundet'),          d: t('Ava matchede til budget og stil — ingen Google') },
+                  { n: t('3 venues fundet'),          d: t('Ava matchede til budget og stil, ingen Google') },
                   { n: t('Invitationer klar'),         d: t('Udkast skrevet og klar til godkendelse på dag 1') },
                 ].map(({ n, d }) => (
                   <div key={n} className="flex items-start gap-3">
@@ -951,7 +951,7 @@ export default function Website() {
                 style={{ background: 'var(--color-ink)' }}
                 onClick={() => setShowLanding(false)}
               >
-                {t('Start gratis — ingen kreditkort')}
+                {t('Start gratis, ingen kreditkort')}
               </button>
               <p className="mt-3 text-center text-[0.7rem] text-muted">
                 {t('Én gang · 499 kr ved launch · normalt 799 kr')}
@@ -1033,13 +1033,13 @@ function SectionCard({
                         <img src={ai.thumb} alt="" className="h-10 w-14 shrink-0 rounded-lg object-cover" />
                       ) : (
                         <span className="flex h-10 w-14 shrink-0 items-center justify-center rounded-lg bg-shell">
-                          <Sparkles size={13} className="text-muted" />
+                          <Palette size={13} className="text-muted" />
                         </span>
                       )}
                       <div className="min-w-0">
                         <p className="text-[0.82rem] text-ink">{t('AI-billede')}</p>
                         <p className="text-[0.68rem] text-muted truncate">
-                          {ai.thumb ? t('Genereret — genbruges i næste byg') : t('Ava genererer en illustration til sektionen')}
+                          {ai.thumb ? t('Genereret, genbruges i næste byg') : t('Ava genererer en illustration til sektionen')}
                         </p>
                       </div>
                     </div>
@@ -1133,7 +1133,7 @@ function ScaledPreview({ domain, couple, config, design, photoUrls, html, htmlFo
         mobile && 'mx-auto w-[390px] max-w-full',
       )}
     >
-      {/* Fonts the current design uses — loaded app-side for the preview */}
+      {/* Fonts the current design uses, loaded app-side for the preview */}
       <link rel="stylesheet" href={googleFontsHref([design.typography.displayFont, design.typography.bodyFont])} />
       {/* Browser chrome */}
       <div className="flex items-center gap-2 rule-b bg-shell px-4 py-2.5">
@@ -1144,7 +1144,7 @@ function ScaledPreview({ domain, couple, config, design, photoUrls, html, htmlFo
           <Lock size={9} className="shrink-0" /> <span className="truncate">{domain}.kalas.dk</span>
         </div>
       </div>
-      {/* Scaled real site — fills the frame (phone-narrow when mobile). */}
+      {/* Scaled real site, fills the frame (phone-narrow when mobile). */}
       <div ref={wrapRef} className="relative h-[520px] w-full overflow-hidden">
         {html ? (
           /* Sandboxed (no scripts can ever run) — the model-built site. */
@@ -1235,15 +1235,15 @@ function DesignStudio({
         <p className="rule rounded-xl bg-[#f2e3dd] px-4 py-3 text-[0.82rem] text-[var(--color-terracotta)]">{t(genError)}</p>
       )}
 
-      {/* Paywall notice — templates stay usable; Ava's edits unlock on purchase. */}
+      {/* Paywall notice, templates stay usable; Ava's edits unlock on purchase. */}
       {needsPayment && !websitePaid && (
         <div className="rule rounded-2xl bg-card p-6 text-center">
           <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-ink">
-            <Sparkles size={18} className="text-canvas" />
+            <Palette size={18} className="text-canvas" />
           </div>
           <p className="font-serif text-[1.25rem] text-ink leading-tight">{t('Lås Ava-designeren op')}</p>
           <p className="mx-auto mt-2 max-w-xs text-[0.82rem] text-muted leading-relaxed">
-            {t('Skabelonerne er jeres — men Avas personalisering og ændringer via chat er en betalt funktion. Inkl. fjernelse af Kalas-branding.')}
+            {t('Skabelonerne er jeres, men Avas personalisering og ændringer via chat er en betalt funktion. Inkl. fjernelse af Kalas-branding.')}
           </p>
           <button onClick={onCheckout}
             className="mt-5 rounded-full bg-ink px-6 py-2.5 text-[0.72rem] font-bold uppercase tracking-[0.16em] text-canvas hover:bg-ink/80 transition-colors cursor-pointer">
@@ -1258,7 +1258,7 @@ function DesignStudio({
           <Eyebrow className="mb-2">{t('Trin 1 · Vælg jeres stil')}</Eyebrow>
           <p className="font-serif text-[1.4rem] leading-tight text-ink">{t('Otte gennemarbejdede skabeloner')}</p>
           <p className="mt-2 text-[0.85rem] leading-relaxed text-muted">
-            {t('Vælg den der ligner jer — siden skifter med det samme i forhåndsvisningen. Bagefter gør Ava den personlig med jeres billeder, og I kan bede hende om ændringer.')}
+            {t('Vælg den der ligner jer. Siden skifter med det samme i forhåndsvisningen, og bagefter gør Ava den personlig med jeres billeder. I kan bede hende om ændringer.')}
           </p>
           <div className="mt-4">
             <TemplateGallery activePresetId={activePresetId} applyingPreset={applyingPreset} onPick={onApplyPreset} />
@@ -1273,7 +1273,7 @@ function DesignStudio({
               <p className="font-serif text-[1.5rem] leading-tight text-ink">{design.concept.name}</p>
             </div>
             <span className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sage-tint">
-              <Sparkles size={15} className="text-ink" />
+              <Palette size={15} className="text-ink" />
             </span>
           </div>
           <p className="mt-2 text-[0.85rem] leading-relaxed text-muted">{design.concept.rationale}</p>
@@ -1304,7 +1304,7 @@ function DesignStudio({
             {/* Build: images per section → venue + photos + template → full site */}
             <button onClick={() => onGenerate(styleDirection)}
               className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-ink py-3 text-[0.72rem] font-bold uppercase tracking-[0.16em] text-canvas hover:bg-ink/80 transition-colors cursor-pointer">
-              <Sparkles size={13} /> {hasHtml ? t('Byg siden igen') : t('Byg jeres side med Ava')}
+              <Palette size={13} /> {hasHtml ? t('Byg siden igen') : t('Byg jeres side med Ava')}
             </button>
             {!hasHtml && (
               <p className="mt-2 text-center text-[0.7rem] text-muted">
@@ -1394,7 +1394,7 @@ function DesignStudio({
           value={styleDirection}
           onChange={(e) => setStyleDirection(e.target.value)}
           rows={3}
-          placeholder={t('f.eks. Vi drømmer om noget let og botanisk med varme toner — ikke for stift…')}
+          placeholder={t('f.eks. Vi drømmer om noget let og botanisk med varme toner, ikke for stift…')}
           className="w-full resize-none rule rounded-xl bg-shell px-4 py-3 text-[0.85rem] text-ink placeholder:text-muted focus:outline-none"
         />
         <p className="mt-2 text-[0.7rem] text-muted">
@@ -1403,7 +1403,7 @@ function DesignStudio({
         {hasDesign && (
           <button onClick={() => onGenerate(styleDirection, true)}
             className="mt-3 flex items-center gap-1.5 text-[0.75rem] text-muted hover:text-ink transition-colors cursor-pointer">
-            <Sparkles size={12} /> {t('Lad Ava designe helt forfra')}
+            <Palette size={12} /> {t('Lad Ava designe helt forfra')}
           </button>
         )}
       </section>
@@ -1561,7 +1561,7 @@ function PhotoManager({ photos, photoUrls, step, onUpload, onDelete, onSetHero }
         <span className="text-[0.7rem] text-muted">{photos.length} / 24</span>
       </div>
       <p className="mt-2 text-[0.8rem] leading-relaxed text-muted">
-        {t('Træk billeder herind eller tryk upload — forlovelsesbilleder, stedet, jer to. Ava designer ud fra dem. Markér ét som forsidebillede.')}
+        {t('Træk billeder herind eller tryk upload: forlovelsesbilleder, stedet, jer to. Ava designer ud fra dem. Markér ét som forsidebillede.')}
       </p>
 
       <div className="mt-4 grid grid-cols-3 gap-2">
@@ -1579,7 +1579,7 @@ function PhotoManager({ photos, photoUrls, step, onUpload, onDelete, onSetHero }
               )}
               {p.kind === 'generated' && (
                 <span className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-canvas/85">
-                  <Sparkles size={10} className="text-ink" />
+                  <Palette size={10} className="text-ink" />
                 </span>
               )}
               <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-gradient-to-t from-black/60 to-transparent p-1.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
@@ -1621,7 +1621,7 @@ function PhotoManager({ photos, photoUrls, step, onUpload, onDelete, onSetHero }
         className="hidden"
         onChange={(e) => { void handleFiles(e.target.files); e.target.value = ''; }}
       />
-      <p className="mt-3 text-[0.68rem] text-muted">{t('Alle almindelige billedformater — også direkte fra iPhone')}</p>
+      <p className="mt-3 text-[0.68rem] text-muted">{t('Alle almindelige billedformater, også direkte fra iPhone')}</p>
     </section>
   );
 }

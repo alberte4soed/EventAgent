@@ -74,7 +74,7 @@ describe("buildPartnerInvite", () => {
     }
   });
 
-  it("writes its own sign-off — the transport signature is only chrome", () => {
+  it("writes its own sign-off, the transport signature is only chrome", () => {
     expect(buildPartnerInvite({ ...base, lang: "da" }).body).toContain("Kærlig hilsen");
     expect(buildPartnerInvite({ ...base, lang: "en" }).body).toContain("Warmly,");
   });

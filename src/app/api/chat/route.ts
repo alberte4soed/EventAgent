@@ -44,7 +44,7 @@ async function buildReplyContext(
   const proposalRow = proposal as ReplyProposalRow | null;
 
   return [
-    `DISCUSSION CONTEXT — the user is talking about a reply from "${venueRow?.name ?? "a vendor"}"${
+    `DISCUSSION CONTEXT, the user is talking about a reply from "${venueRow?.name ?? "a vendor"}"${
       venueRow?.category && venueRow.category !== "venue" ? ` (${venueRow.category})` : ""
     } (reply_id: ${replyId}).`,
     `Their message: ${(replyRow.body ?? replyRow.snippet ?? "").slice(0, 1500)}`,

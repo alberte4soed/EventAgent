@@ -115,7 +115,7 @@ export function toOnboardingPayload(form: FormState) {
 const inputCls = 'w-full rounded-2xl border border-[var(--color-line-strong)] bg-canvas px-4 py-3.5 text-[1rem] text-ink placeholder:text-muted focus:border-ink focus:outline-none transition-colors';
 
 /* ══════════════════════════════════════════════════════════════════════
-   MAIN EXPORT — centered, traditional step flow (no chat pane)
+   MAIN EXPORT, centered, traditional step flow (no chat pane)
 ══════════════════════════════════════════════════════════════════════ */
 const TOTAL_STEPS = 5;
 
@@ -248,7 +248,7 @@ function LangPill({ lang, onLang }: { lang: 'da' | 'en'; onLang: (l: 'da' | 'en'
           onClick={() => onLang(l)}
           className={cn(
             'min-w-[72px] rounded-full px-4 py-2 text-sm font-medium transition-colors cursor-pointer',
-            lang === l ? 'bg-ink font-semibold text-card shadow-[0px_3px_10px_rgba(49,69,35,0.16)]' : 'text-muted',
+            lang === l ? 'bg-ink font-semibold text-card shadow-[0px_3px_10px_rgba(36,65,58,0.16)]' : 'text-muted',
           )}
         >
           {l === 'da' ? 'Dansk' : 'English'}
@@ -267,17 +267,17 @@ const CONTEXT_PANEL_COPY: Record<number, { eyebrow: string; title: string; sub: 
   2: {
     eyebrow: 'Datoen',
     title: 'Hvornår siger I ja?',
-    sub: 'En sæson, en dato eller “vi ved det ikke endnu” — Ava tilpasser sig.',
+    sub: 'En sæson, en dato eller “vi ved det ikke endnu”, Ava tilpasser sig.',
   },
   3: {
     eyebrow: 'Omfang',
     title: 'Hvor mange gæster?',
-    sub: 'Et pejlemærke er nok — Ava bruger det til venues, budget og tidslinje.',
+    sub: 'Et pejlemærke er nok, Ava bruger det til venues, budget og tidslinje.',
   },
   4: {
     eyebrow: 'Sammen om det',
     title: 'Giv partneren adgang',
-    sub: 'I deler samme plan — ingen duplikerede lister eller beskedkopiering. Valgfrit.',
+    sub: 'I deler samme plan, ingen duplikerede lister eller beskedkopiering. Valgfrit.',
   },
 };
 
@@ -287,7 +287,7 @@ function ContextPanel({ step, t }: { step: number; t: (s: string) => string }) {
   const benefits = [t('Anbefalinger formet omkring jer'), t('Ændr ethvert svar senere')];
 
   return (
-    <aside className="hidden w-full max-w-[430px] shrink-0 flex-col justify-between rounded-3xl bg-ink p-[38px] shadow-[0px_18px_50px_rgba(49,69,35,0.16)] lg:flex lg:min-h-[620px]">
+    <aside className="hidden w-full max-w-[430px] shrink-0 flex-col justify-between rounded-3xl bg-ink p-[38px] shadow-[0px_18px_50px_rgba(36,65,58,0.16)] lg:flex lg:min-h-[620px]">
       <div className="flex flex-col gap-6">
         <div className="flex h-[52px] w-[52px] items-center justify-center rounded-full bg-terracotta">
           <WeddingRings size={22} className="text-card" />
@@ -391,7 +391,7 @@ function Chip({ selected, onClick, children }: { selected: boolean; onClick: () 
 }
 
 /* ══════════════════════════════════════════════════════════════════════
-   STEP 1 — NAMES
+   STEP 1, NAMES
 ══════════════════════════════════════════════════════════════════════ */
 function NamesStep({ form, set, onNext }: { form: FormState; set: any; onNext: () => void }) {
   const { t } = useLang();
@@ -457,7 +457,7 @@ function NamesStep({ form, set, onNext }: { form: FormState; set: any; onNext: (
 }
 
 /* ══════════════════════════════════════════════════════════════════════
-   STEP 2 — DESTINATION (interactive globe + country panel)
+   STEP 2, DESTINATION (interactive globe + country panel)
 ══════════════════════════════════════════════════════════════════════ */
 const GLOBE_H = 'h-[min(72vh,640px)]';
 /** Matches OnboardingHeader h-[92px]; mobile adds lang row below header. */
@@ -534,7 +534,7 @@ function DestinationStep({ form, setField }: {
                   {t('Hvor i')} <span className="italic">{t('verden?')}</span>
                 </h2>
                 <p className="mt-2 max-w-lg text-[0.9rem] leading-relaxed text-muted sm:text-[0.95rem]">
-                  {t('Drej og zoom på kloden, og tryk på et land — så henter vi de største byer og smukkeste bryllupsdestinationer.')}
+                  {t('Drej og zoom på kloden, og tryk på et land, så henter vi de største byer og smukkeste bryllupsdestinationer.')}
                 </p>
               </div>
               <div className="pointer-events-auto shrink-0 pt-1">
@@ -597,7 +597,7 @@ function DestinationStep({ form, setField }: {
         ) : null}
       </div>
 
-      {/* Page-level right drawer — below header, above footer, no backdrop */}
+      {/* Page-level right drawer, below header, above footer, no backdrop */}
       <AnimatePresence>
         {country && (
           <motion.aside
@@ -607,7 +607,7 @@ function DestinationStep({ form, setField }: {
             exit={{ x: '100%' }}
             transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
             className={cn(
-              'fixed right-0 z-40 flex w-[min(420px,100vw)] flex-col border-l border-[var(--color-line-strong)] bg-card shadow-[-16px_0_48px_rgba(49,69,35,0.2)]',
+              'fixed right-0 z-40 flex w-[min(420px,100vw)] flex-col border-l border-[var(--color-line-strong)] bg-card shadow-[-16px_0_48px_rgba(36,65,58,0.2)]',
               DRAWER_TOP,
               DRAWER_BOTTOM,
             )}
@@ -776,7 +776,7 @@ function DestinationCard({ s, country, selected, loved, onChoose, onToggleLove, 
   return (
     <div className={cn(
       'group relative overflow-hidden rounded-2xl border transition-colors',
-      selected ? 'border-ink shadow-[0px_6px_18px_rgba(49,69,35,0.12)]' : 'border-[var(--color-line)] hover:border-[var(--color-line-strong)]',
+      selected ? 'border-ink shadow-[0px_6px_18px_rgba(36,65,58,0.12)]' : 'border-[var(--color-line)] hover:border-[var(--color-line-strong)]',
     )}>
       <button type="button" onClick={onChoose} className="block w-full text-left cursor-pointer">
         {s.photo ? (
@@ -857,7 +857,7 @@ function DestinationCard({ s, country, selected, loved, onChoose, onToggleLove, 
 }
 
 /* ══════════════════════════════════════════════════════════════════════
-   STEP 3 — DATE
+   STEP 3, DATE
 ══════════════════════════════════════════════════════════════════════ */
 function DateStep({ form, setField }: {
   form: FormState; setField: <K extends keyof FormState>(k: K, v: FormState[K]) => void;
@@ -866,7 +866,7 @@ function DateStep({ form, setField }: {
   return (
     <div>
       <StepHead eyebrow="Hvornår" title={<>{t('Hvornår siger I')} <span className="italic">{t('ja?')}</span></>}
-        sub="En sæson er fint — I behøver ikke en præcis dato endnu." />
+        sub="En sæson er fint, I behøver ikke en præcis dato endnu." />
       <div className="flex flex-wrap gap-2">
         <Chip
           selected={form.dateChoice === 'exact'}
@@ -902,7 +902,7 @@ function DateStep({ form, setField }: {
 }
 
 /* ══════════════════════════════════════════════════════════════════════
-   STEP 4 — SCOPE (guest band · budget band)
+   STEP 4, SCOPE (guest band · budget band)
 ══════════════════════════════════════════════════════════════════════ */
 function ScopeStep({ form, setField }: {
   form: FormState; setField: <K extends keyof FormState>(k: K, v: FormState[K]) => void;
@@ -920,7 +920,7 @@ function ScopeStep({ form, setField }: {
   return (
     <div>
       <StepHead eyebrow="Rammen" title={<>{t('Hvor stort')} <span className="italic">{t('tænker I?')}</span></>}
-        sub="Bare et pejlemærke — Ava bruger det til at forme venues, budget og tidslinje." />
+        sub="Bare et pejlemærke, Ava bruger det til at forme venues, budget og tidslinje." />
       <div className="space-y-7">
         <Field label="Antal gæster">
           <div className="flex flex-wrap gap-2">
@@ -931,7 +931,7 @@ function ScopeStep({ form, setField }: {
             ))}
           </div>
         </Field>
-        <Field label="Budget" hint="Valgfrit — hjælper Ava med at fordele pengene fornuftigt.">
+        <Field label="Budget" hint="Valgfrit, hjælper Ava med at fordele pengene fornuftigt.">
           <div className={cn('space-y-5 transition-opacity', form.budgetPrivate && 'opacity-45')}>
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
               <span className="min-w-[140px] font-serif text-[clamp(1.75rem,4vw,2.25rem)] tabular-nums text-ink">
@@ -987,7 +987,7 @@ function ScopeStep({ form, setField }: {
 }
 
 /* ══════════════════════════════════════════════════════════════════════
-   STEP 5 — PARTNER
+   STEP 5, PARTNER
 ══════════════════════════════════════════════════════════════════════ */
 function PartnerStep({ form, set }: { form: FormState; set: any }) {
   const { t, lang } = useLang();
@@ -1058,7 +1058,7 @@ function PartnerStep({ form, set }: { form: FormState; set: any }) {
         {sent && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-4 rounded-2xl bg-sage-tint p-4">
             <p className="text-[0.88rem] text-ink leading-relaxed">
-              {t('Ava har sendt invitationen til {email}. {name} kan oprette sin egen konto — fælles adgang til planen er på vej.', { email: form.partnerEmail, name: nameB })}
+              {t('Ava har sendt invitationen til {email}. {name} kan oprette sin egen konto, fælles adgang til planen er på vej.', { email: form.partnerEmail, name: nameB })}
             </p>
           </motion.div>
         )}

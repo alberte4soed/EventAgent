@@ -122,7 +122,7 @@ export function Chip({
     neutral: 'text-muted rule',
     sage: 'text-ink bg-sage-tint',
     clay: 'text-[#7a543c] bg-[#ecdcd0]',
-    success: 'text-[#3f5436] bg-[#dde7d6]',
+    success: 'text-[#2f5a48] bg-[#dde7d6]',
   }[tone];
   return (
     <span className={cn('inline-flex items-center rounded-full px-2.5 py-1 text-[0.65rem] font-medium uppercase tracking-[0.14em]', tones)}>
@@ -134,13 +134,13 @@ export function Chip({
 /* ── Task check dot ──────────────────────────────────────────────────────
    The circle used by every completable row (Tidslinje, Tjekliste, Home).
    Non-interactive on purpose: Home wraps whole rows in a <button>, so it can
-   only reuse the visual — nesting a button inside a button is invalid. */
+   only reuse the visual, nesting a button inside a button is invalid. */
 export function CheckDot({ done, icon, className }: { done: boolean; icon?: React.ReactNode; className?: string }) {
   return (
     <span
       className={cn(
         'flex size-7 shrink-0 items-center justify-center rounded-full',
-        done ? 'bg-[#314523] text-[#f7f5ef]' : 'border-2 border-[#c4bfae] bg-transparent',
+        done ? 'bg-[#24413a] text-[#f8f9f8]' : 'border-2 border-[#c6cbc6] bg-transparent',
         className,
       )}
     >
@@ -169,14 +169,14 @@ export function TaskCheckbox({ done, label, onToggle }: { done: boolean; label: 
 /** Row background + border for a task's status. */
 export function taskRowTone(status: 'done' | 'overdue' | 'default') {
   return status === 'done'
-    ? 'border-[#d3dcc4] bg-[#eef1e6]'
+    ? 'border-[#d3dcc4] bg-[#e8f0ec]'
     : status === 'overdue'
       ? 'border-[#e8d5c8] bg-[#faf4ef]'
-      : 'border-[#e4e0d4] bg-[#f7f5ef]';
+      : 'border-[#e6e9e5] bg-[#f8f9f8]';
 }
 
 /** Label styling for a completed task. */
-export const doneLabelClass = 'text-[#59634f] line-through decoration-[#59634f]/40';
+export const doneLabelClass = 'text-[#46574f] line-through decoration-[#46574f]/40';
 
 /* ── Preview note ────────────────────────────────────────────────────────
    Marks a design-only screen: the layout is real, but nothing here is saved
@@ -186,7 +186,7 @@ export function PreviewNote({ children }: { children?: React.ReactNode }) {
   return (
     <div className="mx-auto mb-6 flex max-w-fit items-center gap-2 rounded-full bg-sage-tint px-4 py-2 text-[0.72rem] font-medium tracking-[0.04em] text-ink">
       <span className="inline-block h-1.5 w-1.5 rounded-full bg-sage-strong" />
-      {children ?? t('Forhåndsvisning — Ava arbejder på at gøre denne del interaktiv. Ændringer gemmes endnu ikke.')}
+      {children ?? t('Forhåndsvisning, Ava arbejder på at gøre denne del interaktiv. Ændringer gemmes endnu ikke.')}
     </div>
   );
 }

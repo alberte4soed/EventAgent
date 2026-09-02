@@ -45,33 +45,33 @@ html {
      rest of the app standardizes on. Names disjoint from the marketing
      set; ink/fonts are overridden per subtree via .theme-kalas instead.
      See docs/DESIGN_SYSTEM.md. */
-  --color-canvas: #f5f3ee;          /* main background — warm ivory       */
-  --color-card: #fcfbf7;            /* raised card — bright ivory         */
-  --color-blush: #ece9df;           /* alt warm band                      */
-  --color-shell: #f0ede5;           /* inset tile / chip                  */
+  --color-canvas: #f4f5f3;          /* main background — warm ivory       */
+  --color-card: #ffffff;            /* raised card — bright ivory         */
+  --color-blush: #e6e9e6;           /* alt warm band                      */
+  --color-shell: #eceeeb;           /* inset tile / chip                  */
 
-  --color-muted: #6c7561;           /* meta + tracked labels (AA)         */
+  --color-muted: #5f6b66;           /* meta + tracked labels (AA)         */
   --color-faint: #8a9992;           /* labels / captions                  */
 
-  --color-sage: #8a9079;            /* sage accent + eyebrow labels       */
-  --color-sage-strong: #7a9068;     /* sage hover / "done"                */
-  --color-sage-tint: #dce3d3;       /* sage wash                          */
+  --color-sage: #7d938a;            /* sage accent + eyebrow labels       */
+  --color-sage-strong: #5f7d70;     /* sage hover / "done"                */
+  --color-sage-tint: #dbe5e0;       /* sage wash                          */
 
-  --color-line: #d8d4c7;            /* hairline rule                      */
-  --color-line-strong: #c4bfae;
+  --color-line: #dcdfdb;            /* hairline rule                      */
+  --color-line-strong: #c6cbc6;
 
-  --color-clay: #9c8a63;            /* warm khaki accent (awaiting)       */
+  --color-clay: #8a7f66;            /* warm khaki accent (awaiting)       */
   --color-terracotta: #b34e37;      /* the single accent — links / → / errors */
   --color-terracotta-tint: #f2e3dd; /* warm terracotta wash               */
-  --color-success: #3f5436;         /* olive-green (positive)             */
+  --color-success: #2f5a48;         /* olive-green (positive)             */
 }
 
 /* ── Kalas subtree re-skin ───────────────────────────────────────────────
    Applied on the app/onboarding root divs. Overrides the shared token
    names with Kalas values (forest ink, Cormorant/Hanken type). */
 .theme-kalas {
-  --color-ink: #314523;
-  --color-ink-soft: #59634f;
+  --color-ink: #24413a;
+  --color-ink-soft: #46574f;
   --font-serif: var(--font-cormorant);
   --font-sans: var(--font-hanken);
   font-feature-settings: "ss01", "cv01";
@@ -158,4 +158,12 @@ html {
 
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+/* ── Printing the seating plan ───────────────────────────────────────────
+   The chart is printed from its own sheet, portalled to <body>, so a
+   printout carries the plan and nothing else — no nav rail, no guest list,
+   no toolbar. Everything else at body level is hidden for the duration. */
+@media print {
+  body > *:not(.kalas-print-sheet) { display: none !important; }
+  .kalas-print-sheet { display: block !important; }
 }

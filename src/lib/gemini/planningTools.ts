@@ -21,7 +21,7 @@ export const planningFunctionDeclarations: FunctionDeclaration[] = [
   {
     name: "get_planning_overview",
     description:
-      "Live snapshot of the whole wedding: budget totals, guest/RSVP counts, vendor board by category, tasks, registry, website and inbox state. Call this before answering questions about status, progress, money or 'what's missing' — never guess numbers.",
+      "Live snapshot of the whole wedding: budget totals, guest/RSVP counts, vendor board by category, tasks, registry, website and inbox state. Call this before answering questions about status, progress, money or 'what's missing', never guess numbers.",
     parameters: { type: Type.OBJECT, properties: {} },
   },
   {
@@ -65,7 +65,7 @@ export const planningFunctionDeclarations: FunctionDeclaration[] = [
   {
     name: "set_budget_entry",
     description:
-      "Create or update one budget category. Amounts are plain DKK integers. Standard category ids: venue, catering, photo, florals, music, attire, misc — reuse them when the meaning matches so the Budget page groups correctly; invent a short slug for new categories. Only pass the amounts you intend to change.",
+      "Create or update one budget category. Amounts are plain DKK integers. Standard category ids: venue, catering, photo, florals, music, attire, misc, reuse them when the meaning matches so the Budget page groups correctly; invent a short slug for new categories. Only pass the amounts you intend to change.",
     parameters: {
       type: Type.OBJECT,
       properties: {
@@ -103,7 +103,7 @@ export const planningFunctionDeclarations: FunctionDeclaration[] = [
   {
     name: "add_guests",
     description:
-      "Add one or many guests in a single call ('add my parents Bo and Lise'). rsvp values: 'ja' (yes), 'nej' (no), 'afventer' (awaiting, default). side is free text — 'Fælles' (shared, default) or one partner's name.",
+      "Add one or many guests in a single call ('add my parents Bo and Lise'). rsvp values: 'ja' (yes), 'nej' (no), 'afventer' (awaiting, default). side is free text, 'Fælles' (shared, default) or one partner's name.",
     parameters: {
       type: Type.OBJECT,
       properties: {
@@ -131,7 +131,7 @@ export const planningFunctionDeclarations: FunctionDeclaration[] = [
   {
     name: "update_guest",
     description:
-      "Update one guest — record an RSVP ('Anna said yes' → rsvp 'ja'), fix contact info, toggle a plus-one. Pass guest_id from list_guests, or just the guest's name and I'll match it.",
+      "Update one guest, record an RSVP ('Anna said yes' → rsvp 'ja'), fix contact info, toggle a plus-one. Pass guest_id from list_guests, or just the guest's name and I'll match it.",
     parameters: {
       type: Type.OBJECT,
       properties: {
@@ -200,7 +200,7 @@ export const planningFunctionDeclarations: FunctionDeclaration[] = [
   {
     name: "update_task",
     description:
-      "Update a task — mark it done when the couple says they finished something, or move its due date. Pass task_id from list_tasks, or the title and I'll match it.",
+      "Update a task, mark it done when the couple says they finished something, or move its due date. Pass task_id from list_tasks, or the title and I'll match it.",
     parameters: {
       type: Type.OBJECT,
       properties: {
@@ -388,7 +388,7 @@ async function findRow<T extends { id: string }>(
   if (candidates.length === 1) return { row: candidates[0] };
   if (candidates.length === 0) return { error: `No ${table} row matching "${name}"` };
   return {
-    error: `Ambiguous — ${candidates.length} rows match "${name}": ${candidates
+    error: `Ambiguous, ${candidates.length} rows match "${name}": ${candidates
       .map((r) => `${String(r[nameColumn])} (${r.id})`)
       .join(", ")}`,
   };
@@ -777,7 +777,7 @@ async function execUpdateGuest(
     if (rsvp !== "afventer") patch.responded_at = new Date().toISOString();
   }
   if (typeof args.plus_one === "boolean") patch.plus_one = args.plus_one;
-  if (Object.keys(patch).length === 0) return { error: "Nothing to update — pass at least one field" };
+  if (Object.keys(patch).length === 0) return { error: "Nothing to update, pass at least one field" };
 
   const { data, error: updateError } = await supabase
     .from("guests")
@@ -865,7 +865,7 @@ async function execUpdateTask(
   const due = str(args.due_date);
   if (due) patch.due_date = due;
   if (typeof args.done === "boolean") patch.done = args.done;
-  if (Object.keys(patch).length === 0) return { error: "Nothing to update — pass at least one field" };
+  if (Object.keys(patch).length === 0) return { error: "Nothing to update, pass at least one field" };
 
   const { data, error: updateError } = await supabase
     .from("timeline_tasks")
@@ -987,7 +987,7 @@ async function execUpdateRegistryItem(
   if (price !== undefined) patch.price_cents = price * 100;
   const quantity = int(args.quantity);
   if (quantity !== undefined) patch.quantity = quantity;
-  if (Object.keys(patch).length === 0) return { error: "Nothing to update — pass at least one field" };
+  if (Object.keys(patch).length === 0) return { error: "Nothing to update, pass at least one field" };
 
   const { data, error: updateError } = await supabase
     .from("registry_items")

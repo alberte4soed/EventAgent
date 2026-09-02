@@ -257,12 +257,12 @@ export default function TimelineTab({ onCelebrate }: { onCelebrate: (title: stri
         })}
       </div>
 
-      {/* The spine — time runs downward, one month band at a time. */}
+      {/* The spine, time runs downward, one month band at a time. */}
       {dated.length === 0 && undated.length === 0 ? (
         <div className="rounded-[18px] border border-line bg-shell px-5 py-10 text-center">
           <p className="font-serif text-lg text-ink">
             {tasks.length === 0
-              ? t('Ingen milepæle endnu — tilføj jeres første.')
+              ? t('Ingen milepæle endnu, tilføj jeres første.')
               : filter === 'færdige' ? t('Ingen færdige milepæle endnu.')
               : filter === 'kommende' ? t('Alt er klaret. I er foran planen.')
               : t('Ingen milepæle matcher din søgning.')}

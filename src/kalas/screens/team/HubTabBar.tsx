@@ -31,7 +31,7 @@ export default function HubTabBar({
   };
 
   return (
-    <div className="flex gap-1 overflow-x-auto hide-scrollbar border-b border-[#e0ddd2]">
+    <div className="flex gap-1 overflow-x-auto hide-scrollbar border-b border-[#e2e6e2]">
       {HUB_TABS.map(({ id }) => {
         const active = tab === id;
         const count = badges[id];
@@ -43,20 +43,20 @@ export default function HubTabBar({
             onClick={() => onChange(id)}
             className={cn(
               'relative flex shrink-0 items-center gap-2 px-3 py-2.5 text-[0.82rem] font-semibold transition-colors cursor-pointer',
-              active ? 'text-[#314523]' : 'text-muted hover:text-ink',
+              active ? 'text-[#24413a]' : 'text-muted hover:text-ink',
             )}
           >
             <Icon size={15} strokeWidth={2} />
             {labels[id]}
             {count ? (
-              <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-[#eef1e6] px-1 text-[0.6rem] font-bold text-[#314523]">
+              <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-[#e8f0ec] px-1 text-[0.6rem] font-bold text-[#24413a]">
                 {count}
               </span>
             ) : null}
             {active && (
               <motion.span
                 layoutId="hub-underline"
-                className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-[#314523]"
+                className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-[#24413a]"
               />
             )}
           </button>

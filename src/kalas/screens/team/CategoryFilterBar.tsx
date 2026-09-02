@@ -48,8 +48,8 @@ export default function CategoryFilterBar({
             className={cn(
               'flex h-8 shrink-0 items-center gap-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer',
               active
-                ? 'bg-[var(--color-sage-tint)] text-[#314523] border-[0.5px] border-[var(--color-sage-strong)] pl-3 pr-2.5'
-                : 'border border-[#e4e0d4] bg-[#f7f5ef] text-[#6c7561] hover:text-[#314523] hover:bg-[#efece3] px-3',
+                ? 'bg-[var(--color-sage-tint)] text-[#24413a] border-[0.5px] border-[var(--color-sage-strong)] pl-3 pr-2.5'
+                : 'border border-[#e6e9e5] bg-[#f8f9f8] text-[#5f6b66] hover:text-[#24413a] hover:bg-[#efece3] px-3',
               locked && !active && 'opacity-70',
             )}
           >
@@ -57,7 +57,7 @@ export default function CategoryFilterBar({
               ? <Lock size={13} className="shrink-0 opacity-70" aria-hidden />
               : <Icon size={14} className="shrink-0" aria-hidden />}
             {t(c.label)}
-            {active && <span className="h-1 w-1 rounded-full bg-[#314523]" aria-hidden />}
+            {active && <span className="h-1 w-1 rounded-full bg-[#24413a]" aria-hidden />}
           </button>
         );
       })}

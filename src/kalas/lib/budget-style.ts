@@ -86,7 +86,7 @@ export function isBudgetIconId(v: string | null | undefined): v is BudgetIconId 
 }
 
 export function resolveBudgetIcon(id: string | null | undefined): LucideIcon {
-  return BUDGET_ICON_MAP[isBudgetIconId(id) ? id : 'sparkles'];
+  return BUDGET_ICON_MAP[isBudgetIconId(id) ? id : 'gem'];
 }
 
 export function nextBudgetColor(used: string[]): string {

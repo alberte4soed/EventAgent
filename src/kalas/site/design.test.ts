@@ -3,7 +3,7 @@ import { DEFAULT_DESIGN, mergeSections, parseSiteDesign } from './design';
 import { googleFontsHref } from './fonts';
 import { SITE_PRESETS } from './presets';
 
-describe('parseSiteDesign — the model-output trust boundary', () => {
+describe('parseSiteDesign, the model-output trust boundary', () => {
   it('returns the default design for garbage input', () => {
     expect(parseSiteDesign(null)).toEqual(DEFAULT_DESIGN);
     expect(parseSiteDesign(undefined)).toEqual(DEFAULT_DESIGN);
@@ -106,7 +106,7 @@ describe('parseSiteDesign — the model-output trust boundary', () => {
   });
 });
 
-describe('mergeSections — enabled content always renders', () => {
+describe('mergeSections, enabled content always renders', () => {
   it('appends sections the couple enabled that the design omitted', () => {
     const design = parseSiteDesign({
       sections: [
@@ -125,7 +125,7 @@ describe('mergeSections — enabled content always renders', () => {
   });
 });
 
-describe('SITE_PRESETS — templates are valid designs', () => {
+describe('SITE_PRESETS, templates are valid designs', () => {
   it('every preset survives parseSiteDesign unchanged', () => {
     for (const p of SITE_PRESETS) {
       expect(parseSiteDesign(JSON.parse(JSON.stringify(p.design)))).toEqual(p.design);

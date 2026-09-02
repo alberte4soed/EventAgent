@@ -2,6 +2,10 @@
 // Replace with `supabase gen types typescript` output once a project is linked.
 
 import type { VenueResearchProfile } from "@/lib/venue/research";
+import type {
+  Accommodation, Catering, Ceremony, Exclusivity, Outdoor, OwnDrinks, PriceUnit, VenueSetting,
+} from "@/lib/venue/facts";
+import type { Parking } from "@/lib/venue/amenities";
 
 export type EventStatus =
   | "gathering"
@@ -138,6 +142,31 @@ export interface VenueRow {
   category: VendorCategory;
   booked_at: string | null;
   venue_research: VenueResearchProfile | null;
+  /** Structured facts the venue search filters on — see lib/venue/facts.ts.
+   *  Null throughout for non-venue vendors and for rows saved before 0025. */
+  capacity_seated: number | null;
+  capacity_standing: number | null;
+  price_from: number | null;
+  price_unit: PriceUnit | null;
+  catering: Catering | null;
+  accommodation: Accommodation | null;
+  rooms: number | null;
+  setting: VenueSetting | null;
+  /** The area the venue was found in, e.g. "Helsingør". */
+  region: string | null;
+  /** Inferred from the venue's own pages — see 0026. Often null. */
+  ceremony: Ceremony | null;
+  outdoor: Outdoor | null;
+  rain_plan: boolean | null;
+  own_drinks: OwnDrinks | null;
+  exclusive: Exclusivity | null;
+  /** Hour the party must end, 24h clock: 1 = 01:00. */
+  curfew_hour: number | null;
+  /** Google-reported. Null means Google said nothing, never "no". */
+  wheelchair: boolean | null;
+  parking: Parking | null;
+  good_for_children: boolean | null;
+  allows_dogs: boolean | null;
   /** The couple's own rating, 1–5. `reviews` above is read-only Google data. */
   own_rating: number | null;
   own_review: string | null;
